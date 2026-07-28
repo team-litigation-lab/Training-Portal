@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>CM Training Interface — Trainee Portal</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
   :root{
     --bg-dark:#1E2E4D;
     --bg-card-dark:#28395A;
@@ -319,54 +320,65 @@
     .sidebar{ width:100%; }
   }
 
-  /* ================= AUTH GATE (login / register) ================= */
+  /* ================= AUTH GATE (login / register) — restyled to match the LSH Case Management System login screen ================= */
   .authpage{
     min-height:100vh; display:flex; align-items:center; justify-content:center;
-    background: radial-gradient(circle at 50% 15%, var(--navy-header) 0%, var(--bg-dark) 65%);
-    padding:40px 16px; font-family:Arial, Helvetica, sans-serif;
+    --auth-navy:#0f2148;
+    --auth-navy-deep:#081226;
+    --auth-navy-mid:#132a5c;
+    --auth-navy-input:#0d1c3d;
+    --auth-line:#1e2c4d;
+    --auth-accent:#f97316;
+    --auth-accent-hover:#fb923c;
+    background: radial-gradient(circle at 30% 20%, var(--auth-navy-mid), var(--auth-navy-deep) 70%);
+    padding:40px 16px; font-family:'IBM Plex Sans', Arial, Helvetica, sans-serif;
     transition: background 0.4s ease;
   }
   .authpage.theme-admin{
-    background: radial-gradient(circle at 50% 15%, #4a1f1f 0%, #24100f 65%);
+    --auth-accent:#ef4444;
+    --auth-accent-hover:#f87171;
+    background: radial-gradient(circle at 30% 20%, #3b0d0d, var(--auth-navy-deep) 70%);
   }
   .authcard{
-    width:100%; max-width:400px; background:var(--bg-card-dark);
-    border-radius:var(--r-lg); border-top:3px solid var(--orange);
-    box-shadow:var(--shadow-lg); padding:26px 28px 30px; color:#fff;
-    transition: border-color 0.3s ease;
+    width:100%; max-width:420px; background:rgba(255,255,255,0.03);
+    border:1px solid var(--auth-line);
+    border-top:3px solid var(--auth-accent); border-radius:12px;
+    box-shadow:0 30px 80px rgba(0,0,0,0.5); padding:32px; color:#fff;
+    transition: border-top-color 0.4s ease;
   }
-  .authpage.theme-admin .authcard{ border-top-color:var(--red); }
 
-  .authbrand{ display:flex; align-items:center; gap:12px; margin-bottom:20px; }
-  .authbrand .logo-box{ width:44px; height:44px; font-size:16px; }
-  .authbrand .l1{ font-size:15px; }
-  .authpage.theme-admin .authbrand .l2{ color:var(--red); }
-  .authpage.theme-admin .authbrand .logo-box{ background:var(--red); }
+  .authbrand{ display:flex; align-items:center; gap:12px; margin-bottom:22px; }
+  .authbrand .logo-box{
+    width:38px; height:38px; font-size:14px; border-radius:6px;
+    background:transparent; border:2px solid var(--auth-accent); color:var(--auth-accent);
+    display:flex; align-items:center; justify-content:center; font-weight:900;
+    transition: border-color 0.4s ease, color 0.4s ease;
+  }
+  .authbrand .l1{ font-size:16px; font-weight:900; text-transform:uppercase; letter-spacing:0.04em; color:#fff; }
+  .authbrand .l2{ font-size:10px; color:var(--auth-accent); font-weight:700; letter-spacing:0.06em; margin-top:4px; transition: color 0.4s ease; }
+  .authpage.theme-admin .authbrand .logo-box{ background:transparent; }
 
-  .authtabs{ display:flex; gap:8px; margin-bottom:20px; background:var(--bg-dark);
-    border:1px solid var(--line); border-radius:var(--r-xs); padding:3px; }
+  .authtabs{ display:flex; gap:6px; margin-bottom:20px; background:var(--auth-navy-input); border:none; border-radius:8px; padding:4px; }
   .authtabs button{
-    flex:1; border:none; background:transparent; color:var(--muted); border-radius:6px;
-    font-size:11px; letter-spacing:0.7px; font-weight:700; padding:9px 6px; cursor:pointer;
+    flex:1; border:none; background:transparent; color:#94a3b8; border-radius:6px;
+    font-size:10.5px; letter-spacing:0.05em; font-weight:800; padding:9px 6px; cursor:pointer;
+    text-transform:uppercase; transition: background 0.25s ease, color 0.25s ease;
   }
-  .authtabs button.active{ background:var(--orange); color:#fff; box-shadow:var(--shadow-sm); }
-  .authpage.theme-admin .authtabs button.active{ background:var(--red); }
+  .authtabs button.active{ background:var(--auth-accent); color:#0f2148; box-shadow:none; }
+  .authpage.theme-admin .authtabs button.active{ color:#2b0a0a; }
 
-  .authfield{ margin-bottom:15px; }
-  .authfield label{ display:block; font-size:10px; letter-spacing:1.2px; color:var(--muted); margin-bottom:6px; }
+  .authfield{ margin-bottom:12px; }
+  .authfield label{ display:block; font-size:9.5px; letter-spacing:0.05em; color:#94a3b8; margin-bottom:6px; text-transform:uppercase; }
   .authfield input, .authfield select{
-    width:100%; padding:11px 12px; background:var(--bg-dark); border:1px solid var(--line);
-    color:#fff; font-size:12.5px; border-radius:var(--r-xs); font-family:inherit;
+    width:100%; padding:10px 12px; background:var(--auth-navy-input); border:1px solid var(--auth-line);
+    color:#fff; font-size:13px; border-radius:6px; font-family:'IBM Plex Mono','Courier New',monospace;
   }
-  .authfield input::placeholder{ color:var(--muted-dark); }
+  .authfield input::placeholder{ color:#64748b; }
   .authfield input:focus, .authfield select:focus{
-    outline:none; border-color:var(--orange); box-shadow:0 0 0 3px rgba(232,121,46,0.18);
-  }
-  .authpage.theme-admin .authfield input:focus, .authpage.theme-admin .authfield select:focus{
-    border-color:var(--red); box-shadow:0 0 0 3px rgba(214,69,69,0.18);
+    outline:none; border-color:var(--auth-accent); box-shadow:none;
   }
   .authfield input:disabled{ opacity:0.5; cursor:not-allowed; }
-  .authhint{ font-size:10px; color:var(--muted); margin-top:6px; line-height:1.4; }
+  .authhint{ font-size:11px; color:#64748b; margin-top:6px; line-height:1.4; }
 
   .authrow{ display:flex; gap:12px; }
   .authrow .authfield{ flex:1; }
@@ -374,21 +386,20 @@
   .authrow .authfield.suffix{ flex:0 0 118px; }
 
   .authbtn{
-    width:100%; padding:13px; border:none; border-radius:var(--r-xs); background:var(--orange);
-    color:#fff; font-size:12px; font-weight:700; letter-spacing:0.7px; cursor:pointer; margin-top:4px;
+    width:100%; padding:11px; border:none; border-radius:6px; background:var(--auth-accent);
+    color:#0f2148; font-size:11px; font-weight:900; letter-spacing:0.05em; text-transform:uppercase;
+    cursor:pointer; margin-top:6px; transition: background 0.25s ease;
   }
-  .authbtn:hover{ background:var(--orange-dark); }
-  .authpage.theme-admin .authbtn{ background:var(--red); }
-  .authpage.theme-admin .authbtn:hover{ background:#b93a3a; }
+  .authbtn:hover{ background:var(--auth-accent-hover); }
+  .authpage.theme-admin .authbtn{ color:#2b0a0a; }
 
-  .authfooter{ text-align:center; font-size:11.5px; color:var(--muted); margin-top:16px; }
-  .authfooter a{ color:var(--orange); font-weight:700; text-decoration:underline; cursor:pointer; }
-  .authpage.theme-admin .authfooter a{ color:var(--red); }
+  .authfooter{ text-align:center; font-size:11px; color:#94a3b8; margin-top:16px; }
+  .authfooter a{ color:var(--auth-accent); font-weight:700; text-decoration:underline; cursor:pointer; }
 
-  .autherror{ color:#ff8a8a; font-size:11.5px; margin-bottom:12px; display:none; background:rgba(214,69,69,0.12);
-    border:1px solid rgba(214,69,69,0.4); border-radius:var(--r-xs); padding:9px 12px; }
-  .authnotice{ color:#8fe0c0; font-size:11.5px; margin-bottom:12px; display:none; background:rgba(31,179,123,0.12);
-    border:1px solid rgba(31,179,123,0.4); border-radius:var(--r-xs); padding:9px 12px; }
+  .autherror{ font-size:11px; font-weight:700; margin-bottom:12px; display:none; padding:9px 12px; border-radius:6px;
+    background:rgba(185,28,28,0.15); color:#fca5a5; }
+  .authnotice{ font-size:11px; font-weight:700; margin-bottom:12px; display:none; padding:9px 12px; border-radius:6px;
+    background:rgba(22,101,52,0.2); color:#86efac; }
 
   .authview{ display:none; }
   .authview.active{ display:block; }
