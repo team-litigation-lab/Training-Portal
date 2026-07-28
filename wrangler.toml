@@ -1,6 +1,6 @@
 name = "lsh-training-app"
 compatibility_date = "2026-07-01"
-pages_build_output_dir = "public"
+pages_build_output_dir = "."
 
 # Your own D1 database for training-app data (days, activities, submissions,
 # grades, sessions). Create it once with:
