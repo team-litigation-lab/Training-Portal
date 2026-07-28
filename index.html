@@ -344,7 +344,7 @@
 
     <div class="nav-label">TRAINING ACTIVITIES</div>
     <div class="nav-list" id="navList"></div>
-    <button class="btn-full" id="addDayBtn" style="display:none; background:transparent; border:1px dashed var(--line); color:var(--muted); margin-top:2px;">+ ADD DAY AND ACTIVITY</button>
+    <button class="btn-full" id="addDayBtn" style="display:none; background:transparent; border:1px dashed var(--line); color:var(--muted); margin-top:2px;">+ ADD DAY</button>
 
     <div class="sidebar-spacer"></div>
     <button class="btn-full btn-green" id="primaryActionBtn">SUBMIT ANSWERS</button>
@@ -376,66 +376,56 @@
 
 <script>
 /* ================= CONFIG ================= */
-let DAY_KEYS = ["day1","day2","day3","day4","day5"];
-let DAY_LABELS = {
+const DEFAULT_DAY_KEYS = ["day1","day2","day3","day4","day5"];
+const DEFAULT_DAY_LABELS = {
   day1:{label:"Day 1", short:"DAY 1"},
   day2:{label:"Day 2", short:"DAY 2"},
   day3:{label:"Day 3", short:"DAY 3"},
   day4:{label:"Day 4", short:"DAY 4"},
   day5:{label:"Day 5", short:"DAY 5"},
 };
+let DAY_KEYS = [...DEFAULT_DAY_KEYS];
+let DAY_LABELS = {...DEFAULT_DAY_LABELS};
 
-/* ---- dynamic day list (persisted so trainers can add new days) ---- */
-async function loadDays(){
-  const stored = await getJSON('day_list', true);
-  if(stored && Array.isArray(stored)){
-    DAY_KEYS = stored.map(d=>d.key);
-    DAY_LABELS = {};
-    stored.forEach(d=>{ DAY_LABELS[d.key] = {label:d.label, short:d.short}; });
-  } else if(stored === null){
-    const seed = DAY_KEYS.map(k=>({key:k, label:DAY_LABELS[k].label, short:DAY_LABELS[k].short}));
-    await setJSON('day_list', seed, true);
-  }
+/* Trainer-added days beyond the default 5 are stored under a shared key so every
+   trainer/trainee session sees the same set. */
+async function loadExtraDays(){
+  const extra = await getJSON('config:extra_days', true);
+  if(!Array.isArray(extra)) return;
+  extra.forEach(d=>{
+    if(d && d.key && !DAY_KEYS.includes(d.key)){
+      DAY_KEYS.push(d.key);
+      DAY_LABELS[d.key] = { label: d.label || d.key, short: d.short || d.key.toUpperCase() };
+    }
+  });
 }
-async function persistDays(){
-  const list = DAY_KEYS.map(k=>({key:k, label:DAY_LABELS[k].label, short:DAY_LABELS[k].short}));
-  await setJSON('day_list', list, true);
+
+function nextDayNumber(){
+  let max = 0;
+  DAY_KEYS.forEach(k=>{
+    const m = k.match(/^day(\d+)$/);
+    if(m) max = Math.max(max, parseInt(m[1], 10));
+  });
+  return max + 1;
 }
-async function addNewDay(){
-  let n = 1;
-  while(DAY_KEYS.includes('day'+n)) n++;
-  const key = 'day'+n;
-  const input = window.prompt('Name this day (e.g. "Day 6" or "Bonus Session")', 'Day '+n);
+
+async function addDay(){
+  const n = nextDayNumber();
+  const suggested = `Day ${n}`;
+  const input = prompt('Name for the new day:', suggested);
   if(input === null) return;
-  const label = input.trim() || ('Day '+n);
+  const label = input.trim() || suggested;
+  const key = `day${n}`;
   const short = label.toUpperCase();
+
   DAY_KEYS.push(key);
-  DAY_LABELS[key] = {label, short};
-  await persistDays();
+  DAY_LABELS[key] = { label, short };
+
+  const extra = (await getJSON('config:extra_days', true)) || [];
+  extra.push({ key, label, short });
+  await setJSON('config:extra_days', extra, true);
+
   state.activeTab = key;
-  render();
-}
-async function removeDay(dayKey){
-  const label = DAY_LABELS[dayKey] ? DAY_LABELS[dayKey].label : dayKey;
-  if(!confirm(`Remove "${label}"? This permanently deletes its activity items, lesson deck, and all trainee submissions/grades for this day. This cannot be undone.`)) return;
-
-  await deleteKey(`activity_meta:${dayKey}`, true);
-  await deleteKey(`activity_items:${dayKey}`, true);
-  await deleteKey(`lesson:${dayKey}`, true);
-
-  const subKeys = await listKeys(`submission:${dayKey}:`, true);
-  for(const k of subKeys) await deleteKey(k, true);
-  const gradeKeys = await listKeys(`grade:${dayKey}:`, true);
-  for(const k of gradeKeys) await deleteKey(k, true);
-
-  DAY_KEYS = DAY_KEYS.filter(d => d !== dayKey);
-  delete DAY_LABELS[dayKey];
-  await persistDays();
-
-  if(state.activeTab === dayKey){
-    state.activeTab = DAY_KEYS[0] || 'leaderboard';
-  }
-  state.editingItemId = null;
   render();
 }
 
@@ -468,31 +458,36 @@ function formatDeadline(iso){
 
 /* ================= STORAGE HELPERS ================= */
 async function getJSON(key, shared){
-  try{ const r = await window.storage.get(key, shared); return r ? JSON.parse(r.value) : null; }
-  catch(e){ return null; }
+  try{
+    const res = await fetch(`/api/kv/${encodeURIComponent(key)}${shared ? '?shared=1' : ''}`, { credentials: 'include' });
+    if(res.status === 401){ location.reload(); return null; }
+    const data = await res.json();
+    return data.value ? JSON.parse(data.value) : null;
+  }catch(e){ return null; }
 }
 async function setJSON(key, val, shared){
-  try{ await window.storage.set(key, JSON.stringify(val), shared); return true; }
-  catch(e){ console.error("storage set failed", e); return false; }
+  try{
+    const res = await fetch(`/api/kv/${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: JSON.stringify(val), shared: !!shared }),
+    });
+    return res.ok;
+  }catch(e){ console.error("storage set failed", e); return false; }
 }
 async function listKeys(prefix, shared){
-  try{ const r = await window.storage.list(prefix, shared); return r ? r.keys : []; }
-  catch(e){ return []; }
-}
-async function deleteKey(key, shared){
-  try{ await window.storage.delete(key, shared); return true; }
-  catch(e){ return false; }
+  try{
+    const res = await fetch(`/api/kv?prefix=${encodeURIComponent(prefix)}${shared ? '&shared=1' : ''}`, { credentials: 'include' });
+    const data = await res.json();
+    return data.keys || [];
+  }catch(e){ return []; }
 }
 
 /* ================= ACTIVITY DATA ================= */
 async function getActivityMeta(day){
   const m = await getJSON(`activity_meta:${day}`, true);
-  return m || { title:"", description:"", instructions:"", deadline:"", openDeadline:false };
-}
-function deadlineMeta(meta){
-  if(meta.openDeadline) return ' · OPEN DEADLINE';
-  if(meta.deadline) return ' · DUE '+formatDeadline(meta.deadline);
-  return '';
+  return m || { title:"", description:"", instructions:"", deadline:"" };
 }
 async function setActivityMeta(day, meta){
   return setJSON(`activity_meta:${day}`, meta, true);
@@ -564,27 +559,17 @@ function startClock(){
 
 /* ================= HEADER BINDINGS ================= */
 function bindHeader(){
-  document.querySelectorAll('#roleToggle button').forEach(b=>{
-    b.onclick = ()=>{
-      state.role = b.dataset.role;
-      state.selectedTrainee = null;
-      state.trainerView = "manage";
-      state.editingItemId = null;
-      document.querySelectorAll('#roleToggle button').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-      render();
-    };
-  });
+  const roleToggle = document.getElementById('roleToggle');
+  if(roleToggle) roleToggle.style.display = 'none'; // role is now set by the server session, not chosen client-side
+
   const nameInput = document.getElementById('nameInput');
   nameInput.value = state.name;
-  nameInput.oninput = (e)=>{ state.name = e.target.value; };
-  nameInput.onblur = ()=>{ render(); };
+  nameInput.readOnly = true; // identity now comes from the authenticated account
 
-  document.getElementById('logoutBtn').onclick = ()=>{
-    state.name = "";
-    state.role = "trainee";
-    state.selectedTrainee = null;
-    render();
+  document.getElementById('logoutBtn').onclick = async ()=>{
+    try{ await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); }
+    catch(e){ /* ignore — reload will re-check session either way */ }
+    location.reload();
   };
 
   document.getElementById('portalTitle').textContent =
@@ -603,43 +588,41 @@ function bindHeader(){
 async function renderSidebarNav(){
   const nav = document.getElementById('navList');
   let html = '';
-  let anyContent = false;
+  const visibleDays = [];
   for(const d of DAY_KEYS){
+    const meta = DAY_LABELS[d];
     const items = await getActivityItems(d);
-    if(items.length > 0) anyContent = true;
-  }
+    const hasContent = items.length > 0;
 
-  if(state.role === 'trainee'){
-    for(const d of DAY_KEYS){
-      const meta = DAY_LABELS[d];
-      const active = state.activeTab === d ? 'active' : '';
-      const items = await getActivityItems(d);
-      const hasContent = items.length > 0;
-      if(!hasContent) continue; /* hide days with no activity for trainees */
-      const slug = slugify(state.name || '');
-      const grade = state.name.trim() ? await getJSON(`grade:${d}:${slug}`, true) : null;
-      const gradedCount = grade ? Object.keys(grade.items||{}).length : 0;
-      const sub = `${gradedCount}/${items.length} graded`;
-      html += `
-        <div class="nav-item ${active}" data-day="${d}">
-          <div class="title-row">
-            <span class="name">${meta.short}</span>
-            <span class="pill">${items.length} ITEMS</span>
-          </div>
-          <div class="sub">${sub}</div>
-        </div>`;
-    }
-    if(!anyContent){
-      html += `<div style="padding:10px 4px; font-size:11.5px; color:var(--muted); line-height:1.5;">No uploaded activities yet.</div>`;
-    }
-  }
+    /* Trainees only ever see a day once the trainer has added at least one activity item. */
+    if(state.role === 'trainee' && !hasContent) continue;
 
-  if(state.role === 'trainer'){
+    visibleDays.push(d);
+    const active = state.activeTab === d ? 'active' : '';
+    let sub = hasContent ? `${items.length} item${items.length===1?'':'s'}` : 'No activities assigned yet';
+    if(hasContent){
+      if(state.role === 'trainer'){
+        const keys = await listKeys(`submission:${d}:`, true);
+        sub = `${keys.length} trainee${keys.length===1?'':'s'} submitted`;
+      } else {
+        const slug = slugify(state.name || '');
+        const grade = state.name.trim() ? await getJSON(`grade:${d}:${slug}`, true) : null;
+        const gradedCount = grade ? Object.keys(grade.items||{}).length : 0;
+        sub = `${gradedCount}/${items.length} graded`;
+      }
+    }
     html += `
-      <div class="nav-item ${state.activeTab!=='leaderboard'?'active':''}" data-day="__manage__">
-        <div class="title-row"><span class="name">MANAGE ACTIVITIES</span></div>
-        <div class="sub">Build and grade training days — use the DAY dropdown inside to switch</div>
+      <div class="nav-item ${active}" data-day="${d}">
+        <div class="title-row">
+          <span class="name">${meta.short}</span>
+          <span class="pill ${hasContent ? '' : 'gray'}">${hasContent ? items.length+' ITEMS' : 'EMPTY'}</span>
+        </div>
+        <div class="sub">${sub}</div>
       </div>`;
+  }
+
+  if(state.role === 'trainee' && visibleDays.length === 0){
+    html += `<div class="empty-note" style="padding:6px 2px;">No activities assigned yet. Check back once your trainer publishes one.</div>`;
   }
 
   html += `
@@ -650,12 +633,7 @@ async function renderSidebarNav(){
   nav.innerHTML = html;
   nav.querySelectorAll('.nav-item').forEach(item=>{
     item.onclick = ()=>{
-      const val = item.dataset.day;
-      if(val === '__manage__'){
-        state.activeTab = DAY_KEYS.includes(state.activeTab) ? state.activeTab : (DAY_KEYS[0] || 'empty');
-      } else {
-        state.activeTab = val;
-      }
+      state.activeTab = item.dataset.day;
       state.selectedTrainee = null;
       state.trainerView = "manage";
       state.editingItemId = null;
@@ -664,56 +642,31 @@ async function renderSidebarNav(){
     };
   });
 
-  const addDayBtn = document.getElementById('addDayBtn');
-  if(addDayBtn){
-    addDayBtn.style.display = state.role === 'trainer' ? 'block' : 'none';
-    addDayBtn.onclick = addNewDay;
+  /* If the trainee's active tab points at a day that's no longer visible (e.g. the
+     trainer removed its last item, or the trainee just switched roles), fall back to
+     the first visible day, or the leaderboard if none are available yet. */
+  if(state.role === 'trainee' && state.activeTab !== 'leaderboard' && !visibleDays.includes(state.activeTab)){
+    state.activeTab = visibleDays.length ? visibleDays[0] : 'leaderboard';
   }
 }
 
 /* ================= MAIN RENDER ================= */
 async function render(){
-  if(state.role === 'trainee' && state.activeTab !== 'leaderboard' && state.activeTab !== 'empty'){
-    const currentItems = DAY_KEYS.includes(state.activeTab) ? await getActivityItems(state.activeTab) : [];
-    if(currentItems.length === 0){
-      let fallback = null;
-      for(const d of DAY_KEYS){
-        const it = await getActivityItems(d);
-        if(it.length > 0){ fallback = d; break; }
-      }
-      state.activeTab = fallback || 'empty';
-    }
-  }
-
-  if(state.role === 'trainer' && state.activeTab !== 'leaderboard' && state.activeTab !== 'empty' && !DAY_KEYS.includes(state.activeTab)){
-    state.activeTab = DAY_KEYS[0] || 'empty';
-  }
-
   bindHeader();
   await renderSidebarNav();
+
+  const addDayBtn = document.getElementById('addDayBtn');
+  if(addDayBtn){
+    addDayBtn.style.display = state.role === 'trainer' ? 'block' : 'none';
+    addDayBtn.onclick = addDay;
+  }
+
   const panel = document.getElementById('panel');
   const primaryBtn = document.getElementById('primaryActionBtn');
 
   if(state.activeTab === 'leaderboard'){
     primaryBtn.style.display = 'none';
     await renderLeaderboard(panel);
-    return;
-  }
-
-  if(state.activeTab === 'empty'){
-    primaryBtn.style.display = 'none';
-    const msg = state.role === 'trainer'
-      ? 'No training days yet. Click "+ ADD DAY AND ACTIVITY" in the sidebar to create one.'
-      : 'No uploaded activities yet. Check back once your trainer publishes a training day.';
-    panel.innerHTML = `
-      <div class="card">
-        <div class="card-head">
-          <div><h1>Training Activities</h1><div class="intro">No uploaded activities yet.</div></div>
-          <div><div class="stamp">${state.role.toUpperCase()}</div></div>
-        </div>
-      </div>
-      <div class="empty-state">${msg}</div>
-    `;
     return;
   }
 
@@ -842,7 +795,7 @@ async function renderTraineeDay(panel, dayKey){
         </div>
         <div>
           <div class="stamp">${state.role.toUpperCase()}</div>
-          <div class="meta-mini">${dayLabel.short}${deadlineMeta(meta)}</div>
+          <div class="meta-mini">${dayLabel.short}${meta.deadline ? ' · DUE '+formatDeadline(meta.deadline) : ' · OPEN DEADLINE'}</div>
         </div>
       </div>
       <div class="stat-bar">
@@ -895,7 +848,7 @@ async function renderTrainerDay(panel, dayKey){
     <div class="card">
       <div class="card-head">
         <div><h1>${meta.title || dayLabel.label}</h1><div class="intro">${meta.description || 'No description yet.'}</div></div>
-        <div><div class="stamp">TRAINER</div><div class="meta-mini">${dayLabel.short}${deadlineMeta(meta)}</div></div>
+        <div><div class="stamp">TRAINER</div><div class="meta-mini">${dayLabel.short}${meta.deadline ? ' · DUE '+formatDeadline(meta.deadline) : ' · OPEN DEADLINE'}</div></div>
       </div>
       ${subtabsHtml}
     </div>`;
@@ -941,6 +894,7 @@ function renderManageView(dayKey, meta, items){
   });
 
   const editing = items.find(it => it.id === state.editingItemId) || null;
+  const dayOptions = DAY_KEYS.map(d => `<option value="${d}" ${d===dayKey?'selected':''}>${DAY_LABELS[d].label}</option>`).join('');
   const deadlineVal = meta.deadline || '';
 
   return `
@@ -948,26 +902,19 @@ function renderManageView(dayKey, meta, items){
       <div class="dhead">ACTIVITY DETAILS</div>
       <div class="dbody">
         <div class="form-row">
-          <div class="form-field">
-            <label>DAY</label>
-            <div style="padding:10px 12px; background:var(--input-bg); border:1px solid var(--line-light); border-radius:var(--r-xs); font-size:12.5px; color:var(--ink); font-weight:700;">${DAY_LABELS[dayKey].label}</div>
-          </div>
+          <div class="form-field"><label>DAY</label><select id="dayPicker">${dayOptions}</select></div>
           <div class="form-field">
             <label>DEADLINE</label>
-            <input type="datetime-local" id="deadlineInput" value="${deadlineVal}" ${meta.openDeadline ? 'disabled' : ''} />
-            <label style="display:flex; align-items:center; gap:6px; margin-top:8px; font-weight:400; letter-spacing:0.3px; cursor:pointer; text-transform:none; font-size:11.5px; color:var(--muted-dark);">
-              <input type="checkbox" id="openDeadlineToggle" ${meta.openDeadline ? 'checked' : ''} style="width:auto;" />
-              Open deadline (no due date)
+            <input type="datetime-local" id="deadlineInput" value="${deadlineVal}" ${!deadlineVal ? 'disabled' : ''} />
+            <label style="display:flex; align-items:center; gap:6px; margin-top:8px; font-size:11px; letter-spacing:0.2px; color:var(--muted-dark); font-weight:400; text-transform:none;">
+              <input type="checkbox" id="openDeadlineToggle" ${!deadlineVal ? 'checked' : ''} style="width:auto; margin:0;" /> Open deadline (no due date)
             </label>
           </div>
         </div>
         <div class="form-field"><label>ACTIVITY TITLE</label><input type="text" id="dayTitleInput" value="${(meta.title||'').replace(/"/g,'&quot;')}" placeholder="e.g. Intake, Compliance & Treatment Advocacy" /></div>
         <div class="form-field"><label>DESCRIPTION</label><textarea id="dayDescInput" placeholder="Short summary shown to trainees">${meta.description||''}</textarea></div>
         <div class="form-field"><label>INSTRUCTIONS</label><textarea id="dayInstrInput" placeholder="Step-by-step instructions for completing this activity">${meta.instructions||''}</textarea></div>
-        <div class="row-actions">
-          <button class="btn ghost" id="removeDayBtn" style="color:var(--red); border-color:rgba(214,69,69,0.3);">Remove This Day</button>
-          <button class="btn orange" id="saveDayMetaBtn">Save Activity Details</button>
-        </div>
+        <button class="btn orange" id="saveDayMetaBtn">Save Activity Details</button>
       </div>
     </div>
 
@@ -997,24 +944,29 @@ function renderManageView(dayKey, meta, items){
 }
 
 function bindManageView(dayKey, meta, items, panel){
-  const openDeadlineToggle = document.getElementById('openDeadlineToggle');
-  const deadlineInputEl = document.getElementById('deadlineInput');
-  openDeadlineToggle.onchange = ()=>{
-    deadlineInputEl.disabled = openDeadlineToggle.checked;
-    if(openDeadlineToggle.checked) deadlineInputEl.value = '';
+  document.getElementById('dayPicker').onchange = (e)=>{
+    state.activeTab = e.target.value;
+    state.editingItemId = null;
+    render();
   };
+
+  const openDeadlineToggle = document.getElementById('openDeadlineToggle');
+  const deadlineInput = document.getElementById('deadlineInput');
+  if(openDeadlineToggle && deadlineInput){
+    openDeadlineToggle.onchange = ()=>{
+      deadlineInput.disabled = openDeadlineToggle.checked;
+      if(openDeadlineToggle.checked) deadlineInput.value = '';
+    };
+  }
 
   document.getElementById('saveDayMetaBtn').onclick = async ()=>{
     const title = document.getElementById('dayTitleInput').value.trim();
     const description = document.getElementById('dayDescInput').value.trim();
     const instructions = document.getElementById('dayInstrInput').value.trim();
-    const openDeadline = document.getElementById('openDeadlineToggle').checked;
-    const deadline = openDeadline ? '' : document.getElementById('deadlineInput').value;
-    await setActivityMeta(dayKey, { title, description, instructions, deadline, openDeadline });
+    const deadline = openDeadlineToggle && openDeadlineToggle.checked ? '' : deadlineInput.value;
+    await setActivityMeta(dayKey, { title, description, instructions, deadline });
     render();
   };
-
-  document.getElementById('removeDayBtn').onclick = ()=> removeDay(dayKey);
 
   document.getElementById('saveItemBtn').onclick = async ()=>{
     const title = document.getElementById('itemTitleInput').value.trim();
@@ -1198,9 +1150,60 @@ async function renderLeaderboard(panel){
   `;
 }
 
-(async function init(){
+async function checkSession(){
+  try{
+    const res = await fetch('/api/auth/me', { credentials: 'include' });
+    if(res.status === 401) return null;
+    const data = await res.json();
+    return data.user || null;
+  }catch(e){ return null; }
+}
+
+function renderLoginGate(){
+  document.body.innerHTML = `
+    <div style="max-width:360px; margin:80px auto; padding:32px; border:1px solid var(--line); border-radius:8px; font-family:inherit;">
+      <div style="font-size:13px; letter-spacing:1px; color:var(--muted); margin-bottom:18px;">LSH CASE MANAGEMENT — SIGN IN</div>
+      <div id="authError" style="color:#c0392b; font-size:12px; margin-bottom:10px; display:none;"></div>
+      <input id="authEmail" type="email" placeholder="Email" style="width:100%; margin-bottom:10px; padding:8px; box-sizing:border-box;" />
+      <input id="authPassword" type="password" placeholder="Password" style="width:100%; margin-bottom:14px; padding:8px; box-sizing:border-box;" />
+      <button id="authLoginBtn" class="btn orange" style="width:100%; margin-bottom:8px;">Log In</button>
+      <button id="authRegisterBtn" class="btn ghost" style="width:100%;">Create Account</button>
+    </div>
+  `;
+  const errBox = document.getElementById('authError');
+  const showErr = (msg)=>{ errBox.textContent = msg; errBox.style.display = 'block'; };
+
+  const doAuth = async (path)=>{
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    if(!email || !password){ showErr('Enter an email and password.'); return; }
+    try{
+      const res = await fetch(path, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if(!res.ok){
+        const data = await res.json().catch(()=>({}));
+        showErr(data.error || 'Something went wrong.');
+        return;
+      }
+      location.reload();
+    }catch(e){ showErr('Network error — please try again.'); }
+  };
+
+  document.getElementById('authLoginBtn').onclick = ()=> doAuth('/api/auth/login');
+  document.getElementById('authRegisterBtn').onclick = ()=> doAuth('/api/auth/register');
+}
+
+(async ()=>{
+  const user = await checkSession();
+  if(!user){ renderLoginGate(); return; }
+  state.role = user.role;
+  state.name = user.name || user.email;
+  await loadExtraDays();
   startClock();
-  await loadDays();
   render();
 })();
 </script>
