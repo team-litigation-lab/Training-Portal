@@ -1164,7 +1164,7 @@ function renderLoginGate(){
     <div style="max-width:360px; margin:80px auto; padding:32px; border:1px solid var(--line); border-radius:8px; font-family:inherit;">
       <div style="font-size:13px; letter-spacing:1px; color:var(--muted); margin-bottom:18px;">LSH CASE MANAGEMENT — SIGN IN</div>
       <div id="authError" style="color:#c0392b; font-size:12px; margin-bottom:10px; display:none;"></div>
-      <input id="authEmail" type="email" placeholder="Email" style="width:100%; margin-bottom:10px; padding:8px; box-sizing:border-box;" />
+      <input id="authUsername" type="text" placeholder="Username" style="width:100%; margin-bottom:10px; padding:8px; box-sizing:border-box;" />
       <input id="authPassword" type="password" placeholder="Password" style="width:100%; margin-bottom:14px; padding:8px; box-sizing:border-box;" />
       <button id="authLoginBtn" class="btn orange" style="width:100%; margin-bottom:8px;">Log In</button>
       <button id="authRegisterBtn" class="btn ghost" style="width:100%;">Create Account</button>
@@ -1173,16 +1173,16 @@ function renderLoginGate(){
   const errBox = document.getElementById('authError');
   const showErr = (msg)=>{ errBox.textContent = msg; errBox.style.display = 'block'; };
 
-  const doAuth = async (path)=>{
-    const email = document.getElementById('authEmail').value.trim();
+  const doLogin = async ()=>{
+    const username = document.getElementById('authUsername').value.trim();
     const password = document.getElementById('authPassword').value;
-    if(!email || !password){ showErr('Enter an email and password.'); return; }
+    if(!username || !password){ showErr('Enter a username and password.'); return; }
     try{
-      const res = await fetch(path, {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
       if(!res.ok){
         const data = await res.json().catch(()=>({}));
@@ -1193,8 +1193,8 @@ function renderLoginGate(){
     }catch(e){ showErr('Network error — please try again.'); }
   };
 
-  document.getElementById('authLoginBtn').onclick = ()=> doAuth('/api/auth/login');
-  document.getElementById('authRegisterBtn').onclick = ()=> doAuth('/api/auth/register');
+  document.getElementById('authLoginBtn').onclick = doLogin;
+  document.getElementById('authRegisterBtn').onclick = ()=> showErr('Account creation uses a separate email-based form — this button needs to be wired up separately if you want it here.');
 }
 
 (async ()=>{
