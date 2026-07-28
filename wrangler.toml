@@ -1,0 +1,21 @@
+name = "lsh-training-app"
+compatibility_date = "2026-07-01"
+pages_build_output_dir = "public"
+
+# Your own D1 database for training-app data (days, activities, submissions,
+# grades, sessions). Create it once with:
+#   npx wrangler d1 create lsh-training-db
+# then paste the printed database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "lsh-training-db"
+database_id = "9b1afc1b-a26f-4fc2-aadf-acb9e704b75f"
+
+# Non-secret vars — safe to check in.
+[vars]
+EXISTING_LOGIN_URL = "https://your-existing-site.example.com/api/login"
+EXISTING_REGISTER_URL = "https://your-existing-site.example.com/api/register"
+
+# Secret — set via `npx wrangler pages secret put TRAINER_EMAILS`, do NOT
+# commit this. Comma-separated list of emails that should get trainer access.
+# TRAINER_EMAILS = "lei@example.com,other-trainer@example.com"
