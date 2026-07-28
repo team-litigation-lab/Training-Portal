@@ -244,7 +244,7 @@
     color:var(--orange); background:rgba(232,121,46,0.08); display:inline-block; padding:8px 20px; margin-bottom:14px;
   }
 
-  /* ---------- subtabs (trainer: manage vs grade) ---------- */
+  /* ---------- subtabs (admin: manage vs grade) ---------- */
   .subtabs{ display:flex; gap:6px; margin-top:18px; }
   .subtab{
     padding:9px 16px; font-size:11px; letter-spacing:0.8px; font-weight:700; color:var(--muted-dark);
@@ -318,6 +318,80 @@
     .app{ flex-direction:column; }
     .sidebar{ width:100%; }
   }
+
+  /* ================= AUTH GATE (login / register) ================= */
+  .authpage{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background: radial-gradient(circle at 50% 15%, var(--navy-header) 0%, var(--bg-dark) 65%);
+    padding:40px 16px; font-family:Arial, Helvetica, sans-serif;
+    transition: background 0.4s ease;
+  }
+  .authpage.theme-admin{
+    background: radial-gradient(circle at 50% 15%, #4a1f1f 0%, #24100f 65%);
+  }
+  .authcard{
+    width:100%; max-width:400px; background:var(--bg-card-dark);
+    border-radius:var(--r-lg); border-top:3px solid var(--orange);
+    box-shadow:var(--shadow-lg); padding:26px 28px 30px; color:#fff;
+    transition: border-color 0.3s ease;
+  }
+  .authpage.theme-admin .authcard{ border-top-color:var(--red); }
+
+  .authbrand{ display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+  .authbrand .logo-box{ width:44px; height:44px; font-size:16px; }
+  .authbrand .l1{ font-size:15px; }
+  .authpage.theme-admin .authbrand .l2{ color:var(--red); }
+  .authpage.theme-admin .authbrand .logo-box{ background:var(--red); }
+
+  .authtabs{ display:flex; gap:8px; margin-bottom:20px; background:var(--bg-dark);
+    border:1px solid var(--line); border-radius:var(--r-xs); padding:3px; }
+  .authtabs button{
+    flex:1; border:none; background:transparent; color:var(--muted); border-radius:6px;
+    font-size:11px; letter-spacing:0.7px; font-weight:700; padding:9px 6px; cursor:pointer;
+  }
+  .authtabs button.active{ background:var(--orange); color:#fff; box-shadow:var(--shadow-sm); }
+  .authpage.theme-admin .authtabs button.active{ background:var(--red); }
+
+  .authfield{ margin-bottom:15px; }
+  .authfield label{ display:block; font-size:10px; letter-spacing:1.2px; color:var(--muted); margin-bottom:6px; }
+  .authfield input, .authfield select{
+    width:100%; padding:11px 12px; background:var(--bg-dark); border:1px solid var(--line);
+    color:#fff; font-size:12.5px; border-radius:var(--r-xs); font-family:inherit;
+  }
+  .authfield input::placeholder{ color:var(--muted-dark); }
+  .authfield input:focus, .authfield select:focus{
+    outline:none; border-color:var(--orange); box-shadow:0 0 0 3px rgba(232,121,46,0.18);
+  }
+  .authpage.theme-admin .authfield input:focus, .authpage.theme-admin .authfield select:focus{
+    border-color:var(--red); box-shadow:0 0 0 3px rgba(214,69,69,0.18);
+  }
+  .authfield input:disabled{ opacity:0.5; cursor:not-allowed; }
+  .authhint{ font-size:10px; color:var(--muted); margin-top:6px; line-height:1.4; }
+
+  .authrow{ display:flex; gap:12px; }
+  .authrow .authfield{ flex:1; }
+  .authrow .authfield.small{ flex:0 0 68px; }
+  .authrow .authfield.suffix{ flex:0 0 118px; }
+
+  .authbtn{
+    width:100%; padding:13px; border:none; border-radius:var(--r-xs); background:var(--orange);
+    color:#fff; font-size:12px; font-weight:700; letter-spacing:0.7px; cursor:pointer; margin-top:4px;
+  }
+  .authbtn:hover{ background:var(--orange-dark); }
+  .authpage.theme-admin .authbtn{ background:var(--red); }
+  .authpage.theme-admin .authbtn:hover{ background:#b93a3a; }
+
+  .authfooter{ text-align:center; font-size:11.5px; color:var(--muted); margin-top:16px; }
+  .authfooter a{ color:var(--orange); font-weight:700; text-decoration:underline; cursor:pointer; }
+  .authpage.theme-admin .authfooter a{ color:var(--red); }
+
+  .autherror{ color:#ff8a8a; font-size:11.5px; margin-bottom:12px; display:none; background:rgba(214,69,69,0.12);
+    border:1px solid rgba(214,69,69,0.4); border-radius:var(--r-xs); padding:9px 12px; }
+  .authnotice{ color:#8fe0c0; font-size:11.5px; margin-bottom:12px; display:none; background:rgba(31,179,123,0.12);
+    border:1px solid rgba(31,179,123,0.4); border-radius:var(--r-xs); padding:9px 12px; }
+
+  .authview{ display:none; }
+  .authview.active{ display:block; }
 </style>
 </head>
 <body>
@@ -334,7 +408,7 @@
 
     <div class="roletoggle" id="roleToggle">
       <button data-role="trainee" class="active">TRAINEE</button>
-      <button data-role="trainer">TRAINER</button>
+      <button data-role="admin">ADMIN</button>
     </div>
 
     <div>
@@ -387,8 +461,8 @@ const DEFAULT_DAY_LABELS = {
 let DAY_KEYS = [...DEFAULT_DAY_KEYS];
 let DAY_LABELS = {...DEFAULT_DAY_LABELS};
 
-/* Trainer-added days beyond the default 5 are stored under a shared key so every
-   trainer/trainee session sees the same set. */
+/* Admin-added days beyond the default 5 are stored under a shared key so every
+   admin/trainee session sees the same set. */
 async function loadExtraDays(){
   const extra = await getJSON('config:extra_days', true);
   if(!Array.isArray(extra)) return;
@@ -436,7 +510,7 @@ let state = {
   activeTab: "day1",
   selectedTrainee: null,
   search: "",
-  trainerView: "manage",
+  adminView: "manage",
   editingItemId: null,
 };
 
@@ -577,8 +651,8 @@ function bindHeader(){
 
   document.getElementById('announceText').textContent =
     state.activeTab === 'leaderboard'
-      ? 'Leaderboard updates live as trainers submit grades.'
-      : (state.role === 'trainer' ? 'Build or grade this activity from the panel below.' : 'Select a training activity to begin.');
+      ? 'Leaderboard updates live as admins submit grades.'
+      : (state.role === 'admin' ? 'Build or grade this activity from the panel below.' : 'Select a training activity to begin.');
 
   document.getElementById('signedInBlock').innerHTML = state.name.trim()
     ? `Signed in as: <b>${state.name.trim()}</b><br/>Role: <b>${state.role.toUpperCase()}</b>`
@@ -594,14 +668,14 @@ async function renderSidebarNav(){
     const items = await getActivityItems(d);
     const hasContent = items.length > 0;
 
-    /* Trainees only ever see a day once the trainer has added at least one activity item. */
+    /* Trainees only ever see a day once the admin has added at least one activity item. */
     if(state.role === 'trainee' && !hasContent) continue;
 
     visibleDays.push(d);
     const active = state.activeTab === d ? 'active' : '';
     let sub = hasContent ? `${items.length} item${items.length===1?'':'s'}` : 'No activities assigned yet';
     if(hasContent){
-      if(state.role === 'trainer'){
+      if(state.role === 'admin'){
         const keys = await listKeys(`submission:${d}:`, true);
         sub = `${keys.length} trainee${keys.length===1?'':'s'} submitted`;
       } else {
@@ -622,7 +696,7 @@ async function renderSidebarNav(){
   }
 
   if(state.role === 'trainee' && visibleDays.length === 0){
-    html += `<div class="empty-note" style="padding:6px 2px;">No activities assigned yet. Check back once your trainer publishes one.</div>`;
+    html += `<div class="empty-note" style="padding:6px 2px;">No activities assigned yet. Check back once your admin publishes one.</div>`;
   }
 
   html += `
@@ -635,7 +709,7 @@ async function renderSidebarNav(){
     item.onclick = ()=>{
       state.activeTab = item.dataset.day;
       state.selectedTrainee = null;
-      state.trainerView = "manage";
+      state.adminView = "manage";
       state.editingItemId = null;
       state.search = "";
       render();
@@ -643,7 +717,7 @@ async function renderSidebarNav(){
   });
 
   /* If the trainee's active tab points at a day that's no longer visible (e.g. the
-     trainer removed its last item, or the trainee just switched roles), fall back to
+     admin removed its last item, or the trainee just switched roles), fall back to
      the first visible day, or the leaderboard if none are available yet. */
   if(state.role === 'trainee' && state.activeTab !== 'leaderboard' && !visibleDays.includes(state.activeTab)){
     state.activeTab = visibleDays.length ? visibleDays[0] : 'leaderboard';
@@ -657,7 +731,7 @@ async function render(){
 
   const addDayBtn = document.getElementById('addDayBtn');
   if(addDayBtn){
-    addDayBtn.style.display = state.role === 'trainer' ? 'block' : 'none';
+    addDayBtn.style.display = state.role === 'admin' ? 'block' : 'none';
     addDayBtn.onclick = addDay;
   }
 
@@ -673,14 +747,14 @@ async function render(){
   if(state.role === 'trainee'){
     await renderTraineeDay(panel, state.activeTab);
   } else {
-    await renderTrainerDay(panel, state.activeTab);
+    await renderAdminDay(panel, state.activeTab);
   }
 }
 
 /* ================= LESSON DECK BLOCK ================= */
 async function renderLessonBlock(dayKey){
   const lesson = await getJSON(`lesson:${dayKey}`, true);
-  if(state.role === 'trainer'){
+  if(state.role === 'admin'){
     return `
       <div class="dcard alt">
         <div class="dhead">LESSON DECK — ${DAY_LABELS[dayKey].label.toUpperCase()}</div>
@@ -697,7 +771,7 @@ async function renderLessonBlock(dayKey){
       <div class="dcard alt">
         <div class="dhead">LESSON DECK — ${DAY_LABELS[dayKey].label.toUpperCase()}</div>
         <div class="dbody" style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
-          <div>${lesson ? `<strong>${lesson.filename}</strong><div class="empty-note">Uploaded by trainer</div>` : `<span class="empty-note">Not uploaded yet — check back before starting the activity.</span>`}</div>
+          <div>${lesson ? `<strong>${lesson.filename}</strong><div class="empty-note">Uploaded by admin</div>` : `<span class="empty-note">Not uploaded yet — check back before starting the activity.</span>`}</div>
           ${lesson ? `<a class="btn orange" href="${lesson.dataUrl}" download="${lesson.filename}" style="text-decoration:none;">REVIEW LESSON</a>` : ''}
         </div>
       </div>`;
@@ -749,7 +823,7 @@ async function renderTraineeDay(panel, dayKey){
         </div>
       </div>
       ${lessonHtml}
-      <div class="empty-state">No activities assigned yet for ${dayLabel.label}. Check back once your trainer uploads one.</div>
+      <div class="empty-state">No activities assigned yet for ${dayLabel.label}. Check back once your admin uploads one.</div>
     `;
     bindLessonUpload(dayKey);
     return;
@@ -780,7 +854,7 @@ async function renderTraineeDay(panel, dayKey){
         <div class="dbody">
           <div class="prompt">${q.prompt}</div>
           ${richEditorHTML(`rte-ans-${q.id}`, savedAns, 'Type your response here...', !!g)}
-          ${g && g.feedback ? `<div class="model-answer show"><strong>Trainer feedback:</strong> ${g.feedback}</div>` : ''}
+          ${g && g.feedback ? `<div class="model-answer show"><strong>Admin feedback:</strong> ${g.feedback}</div>` : ''}
           <div class="row-actions">${badge}<span></span></div>
         </div>
       </div>`;
@@ -831,8 +905,8 @@ async function renderTraineeDay(panel, dayKey){
   bindLessonUpload(dayKey);
 }
 
-/* ================= TRAINER VIEW ================= */
-async function renderTrainerDay(panel, dayKey){
+/* ================= ADMIN VIEW ================= */
+async function renderAdminDay(panel, dayKey){
   const meta = await getActivityMeta(dayKey);
   const items = await getActivityItems(dayKey);
   const dayLabel = DAY_LABELS[dayKey];
@@ -840,22 +914,22 @@ async function renderTrainerDay(panel, dayKey){
 
   const subtabsHtml = `
     <div class="subtabs">
-      <div class="subtab ${state.trainerView==='manage'?'active':''}" data-view="manage">MANAGE ACTIVITY</div>
-      <div class="subtab ${state.trainerView==='grade'?'active':''}" data-view="grade">GRADE SUBMISSIONS</div>
+      <div class="subtab ${state.adminView==='manage'?'active':''}" data-view="manage">MANAGE ACTIVITY</div>
+      <div class="subtab ${state.adminView==='grade'?'active':''}" data-view="grade">GRADE SUBMISSIONS</div>
     </div>`;
 
   const headerHtml = `
     <div class="card">
       <div class="card-head">
         <div><h1>${meta.title || dayLabel.label}</h1><div class="intro">${meta.description || 'No description yet.'}</div></div>
-        <div><div class="stamp">TRAINER</div><div class="meta-mini">${dayLabel.short}${meta.deadline ? ' · DUE '+formatDeadline(meta.deadline) : ' · OPEN DEADLINE'}</div></div>
+        <div><div class="stamp">ADMIN</div><div class="meta-mini">${dayLabel.short}${meta.deadline ? ' · DUE '+formatDeadline(meta.deadline) : ' · OPEN DEADLINE'}</div></div>
       </div>
       ${subtabsHtml}
     </div>`;
 
   document.getElementById('primaryActionBtn').style.display = 'none';
 
-  if(state.trainerView === 'manage'){
+  if(state.adminView === 'manage'){
     panel.innerHTML = headerHtml + renderManageView(dayKey, meta, items) + lessonHtml;
     bindManageView(dayKey, meta, items, panel);
     bindRichEditors(panel);
@@ -865,7 +939,7 @@ async function renderTrainerDay(panel, dayKey){
 
   panel.querySelectorAll('.subtab').forEach(t=>{
     t.onclick = ()=>{
-      state.trainerView = t.dataset.view;
+      state.adminView = t.dataset.view;
       state.editingItemId = null;
       state.search = "";
       render();
@@ -923,7 +997,7 @@ function renderManageView(dayKey, meta, items){
       <div class="dbody">
         <div class="form-field"><label>SCENARIO</label><input type="text" id="itemTitleInput" value="${editing ? editing.title.replace(/"/g,'&quot;') : ''}" placeholder="e.g. Analyzing Intake Bottlenecks" /></div>
         <div class="form-field"><label>QUESTION</label>${richEditorHTML('itemQuestionEditor', editing ? editing.prompt : '', 'What the trainee is asked to respond to')}</div>
-        <div class="form-field"><label>ANSWER</label>${richEditorHTML('itemAnswerEditor', editing ? editing.model : '', 'Key points the trainer checks the answer against')}</div>
+        <div class="form-field"><label>ANSWER</label>${richEditorHTML('itemAnswerEditor', editing ? editing.model : '', 'Key points the admin checks the answer against')}</div>
         <div class="row-actions">
           <span></span>
           <div style="display:flex; gap:10px;">
@@ -1134,7 +1208,7 @@ async function renderLeaderboard(panel){
   panel.innerHTML = `
     <div class="card">
       <div class="card-head">
-        <div><h1>Leaderboard</h1><div class="intro">Total points across all graded activities. Updates live as the trainer submits grades.</div></div>
+        <div><h1>Leaderboard</h1><div class="intro">Total points across all graded activities. Updates live as the admin submits grades.</div></div>
         <div><div class="stamp">RANKINGS</div></div>
       </div>
     </div>
@@ -1161,22 +1235,131 @@ async function checkSession(){
 
 function renderLoginGate(){
   document.body.innerHTML = `
-    <div style="max-width:360px; margin:80px auto; padding:32px; border:1px solid var(--line); border-radius:8px; font-family:inherit;">
-      <div style="font-size:13px; letter-spacing:1px; color:var(--muted); margin-bottom:18px;">LSH CASE MANAGEMENT — SIGN IN</div>
-      <div id="authError" style="color:#c0392b; font-size:12px; margin-bottom:10px; display:none;"></div>
-      <input id="authUsername" type="text" placeholder="Username" style="width:100%; margin-bottom:10px; padding:8px; box-sizing:border-box;" />
-      <input id="authPassword" type="password" placeholder="Password" style="width:100%; margin-bottom:14px; padding:8px; box-sizing:border-box;" />
-      <button id="authLoginBtn" class="btn orange" style="width:100%; margin-bottom:8px;">Log In</button>
-      <button id="authRegisterBtn" class="btn ghost" style="width:100%;">Create Account</button>
+    <div class="authpage" id="authPage">
+      <div class="authcard">
+
+        <div class="authbrand">
+          <div class="logo-box">CM</div>
+          <div class="logo-text">
+            <div class="l1">CASE MANAGEMENT</div>
+            <div class="l2">TRAINING INTERFACE</div>
+          </div>
+        </div>
+
+        <!-- LOGIN VIEW -->
+        <div id="authLoginView" class="authview active">
+          <div class="authtabs" id="authPortalTabs">
+            <button type="button" data-portal="trainee" class="active">TRAINEE PORTAL</button>
+            <button type="button" data-portal="admin">ADMIN PORTAL</button>
+          </div>
+
+          <div class="autherror" id="loginError"></div>
+
+          <div class="authfield">
+            <label>USERNAME</label>
+            <input id="authUsername" type="text" placeholder="Enter your username" />
+          </div>
+          <div class="authfield">
+            <label>PASSWORD</label>
+            <input id="authPassword" type="password" placeholder="Enter your password" />
+          </div>
+
+          <button id="authLoginBtn" class="authbtn">LOG IN</button>
+          <div class="authfooter">No account yet? <a id="goToRegister">Register here</a></div>
+        </div>
+
+        <!-- REGISTER VIEW -->
+        <div id="authRegisterView" class="authview">
+          <div class="autherror" id="registerError"></div>
+          <div class="authnotice" id="registerNotice"></div>
+
+          <div class="authrow">
+            <div class="authfield"><label>FIRST NAME</label><input id="regFirst" type="text" placeholder="e.g., Juan" /></div>
+            <div class="authfield small"><label>M.I.</label><input id="regMI" type="text" placeholder="M.I." maxlength="2" /></div>
+          </div>
+          <div class="authrow">
+            <div class="authfield"><label>LAST NAME</label><input id="regLast" type="text" placeholder="e.g., Dela Cruz" /></div>
+            <div class="authfield suffix"><label>SUFFIX (OPTIONAL)</label><input id="regSuffix" type="text" placeholder="Jr., III..." /></div>
+          </div>
+          <div class="authfield">
+            <label>EMAIL</label>
+            <input id="regEmail" type="email" placeholder="name@example.com" />
+          </div>
+          <div class="authfield">
+            <label>TYPE OF USER</label>
+            <select id="regRole">
+              <option value="trainee">Trainee</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div class="authfield">
+            <label>BATCH ID</label>
+            <input type="text" placeholder="Batch ID will be assigned upon approval" disabled />
+          </div>
+          <div class="authfield">
+            <label>USERNAME</label>
+            <input id="regUsername" type="text" placeholder="Choose a username" />
+          </div>
+          <div class="authfield">
+            <label>PASSWORD</label>
+            <input id="regPassword" type="password" placeholder="Create a password" />
+            <div class="authhint">At least 8 characters, letters and numbers only (must include at least one of each).</div>
+          </div>
+          <div class="authfield">
+            <label>RETYPE PASSWORD</label>
+            <input id="regPassword2" type="password" placeholder="Retype your password" />
+          </div>
+
+          <button id="authRegisterBtn" class="authbtn">SUBMIT REGISTRATION</button>
+          <div class="authfooter">Already have an account? <a id="goToLogin">Back to log in</a></div>
+        </div>
+
+      </div>
     </div>
   `;
-  const errBox = document.getElementById('authError');
-  const showErr = (msg)=>{ errBox.textContent = msg; errBox.style.display = 'block'; };
+
+  const page = document.getElementById('authPage');
+  const loginView = document.getElementById('authLoginView');
+  const registerView = document.getElementById('authRegisterView');
+  const portalTabs = document.querySelectorAll('#authPortalTabs button');
+  const regRole = document.getElementById('regRole');
+  const loginErr = document.getElementById('loginError');
+  const regErr = document.getElementById('registerError');
+  const regNotice = document.getElementById('registerNotice');
+
+  const showError = (box, msg)=>{ box.textContent = msg; box.style.display = 'block'; };
+  const hideError = (box)=>{ box.style.display = 'none'; };
+
+  const setTheme = (portal)=>{
+    page.classList.toggle('theme-admin', portal === 'admin');
+  };
+
+  portalTabs.forEach(btn=>{
+    btn.onclick = ()=>{
+      portalTabs.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      setTheme(btn.dataset.portal);
+    };
+  });
+
+  document.getElementById('goToRegister').onclick = ()=>{
+    loginView.classList.remove('active');
+    registerView.classList.add('active');
+    setTheme(regRole.value);
+  };
+  document.getElementById('goToLogin').onclick = ()=>{
+    registerView.classList.remove('active');
+    loginView.classList.add('active');
+    const activePortal = document.querySelector('#authPortalTabs button.active').dataset.portal;
+    setTheme(activePortal);
+  };
+  regRole.onchange = ()=> setTheme(regRole.value);
 
   const doLogin = async ()=>{
+    hideError(loginErr);
     const username = document.getElementById('authUsername').value.trim();
     const password = document.getElementById('authPassword').value;
-    if(!username || !password){ showErr('Enter a username and password.'); return; }
+    if(!username || !password){ showError(loginErr, 'Enter a username and password.'); return; }
     try{
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -1186,15 +1369,56 @@ function renderLoginGate(){
       });
       if(!res.ok){
         const data = await res.json().catch(()=>({}));
-        showErr(data.error || 'Something went wrong.');
+        showError(loginErr, data.error || 'Something went wrong.');
         return;
       }
       location.reload();
-    }catch(e){ showErr('Network error — please try again.'); }
+    }catch(e){ showError(loginErr, 'Network error — please try again.'); }
+  };
+
+  const doRegister = async ()=>{
+    hideError(regErr); regNotice.style.display = 'none';
+    const first = document.getElementById('regFirst').value.trim();
+    const mi = document.getElementById('regMI').value.trim();
+    const last = document.getElementById('regLast').value.trim();
+    const suffix = document.getElementById('regSuffix').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const role = regRole.value;
+    const username = document.getElementById('regUsername').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const password2 = document.getElementById('regPassword2').value;
+
+    if(!first || !last || !email || !username || !password){
+      showError(regErr, 'Please fill in all required fields.'); return;
+    }
+    const pwRule = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    if(!pwRule.test(password)){
+      showError(regErr, 'Password must be at least 8 characters and include letters and numbers.'); return;
+    }
+    if(password !== password2){
+      showError(regErr, 'Passwords do not match.'); return;
+    }
+
+    try{
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firstName: first, mi, lastName: last, suffix, email, role, username, password }),
+      });
+      if(!res.ok){
+        const data = await res.json().catch(()=>({}));
+        showError(regErr, data.error || 'Something went wrong. Please try again.');
+        return;
+      }
+      regNotice.textContent = 'Registration submitted. Please wait for admin approval, then log in.';
+      regNotice.style.display = 'block';
+      setTimeout(()=>{ document.getElementById('goToLogin').click(); }, 2200);
+    }catch(e){ showError(regErr, 'Network error — please try again.'); }
   };
 
   document.getElementById('authLoginBtn').onclick = doLogin;
-  document.getElementById('authRegisterBtn').onclick = ()=> showErr('Account creation uses a separate email-based form — this button needs to be wired up separately if you want it here.');
+  document.getElementById('authRegisterBtn').onclick = doRegister;
 }
 
 (async ()=>{
