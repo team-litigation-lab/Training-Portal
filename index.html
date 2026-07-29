@@ -1366,17 +1366,28 @@ function renderLoginGate(){
     hideError(loginErr);
     const username = document.getElementById('authUsername').value.trim();
     const password = document.getElementById('authPassword').value;
+    const portal = document.querySelector('#authPortalTabs button.active').dataset.portal;
     if(!username || !password){ showError(loginErr, 'Enter a username and password.'); return; }
     try{
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, portal }),
       });
       if(!res.ok){
         const data = await res.json().catch(()=>({}));
         showError(loginErr, data.error || 'Something went wrong.');
+        return;
+      }
+      const data = await res.json().catch(()=>({}));
+      const role = data && data.user && data.user.role;
+      if(role && role !== portal){
+        // Credentials were valid but the account's role doesn't match the portal selected.
+        // Kill the session immediately rather than let a mismatched role in.
+        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(()=>{});
+        const correctPortal = role === 'trainee' ? 'Trainee Portal' : 'Admin Portal';
+        showError(loginErr, `This account is registered as ${role === 'trainee' ? 'Trainee' : 'Admin'}. Please log in through the ${correctPortal}.`);
         return;
       }
       location.reload();
