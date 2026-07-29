@@ -425,7 +425,6 @@
 
     <div class="nav-label">TRAINING ACTIVITIES</div>
     <div class="nav-list" id="navList"></div>
-    <button class="btn-full" id="addDayBtn" style="display:none; background:transparent; border:1px dashed var(--line); color:var(--muted); margin-top:2px;">+ ADD DAY</button>
 
     <div class="sidebar-spacer"></div>
     <button class="btn-full btn-green" id="primaryActionBtn">SUBMIT ANSWERS</button>
@@ -479,35 +478,6 @@ async function loadExtraDays(){
       DAY_LABELS[d.key] = { label: d.label || d.key, short: d.short || d.key.toUpperCase() };
     }
   });
-}
-
-function nextDayNumber(){
-  let max = 0;
-  DAY_KEYS.forEach(k=>{
-    const m = k.match(/^day(\d+)$/);
-    if(m) max = Math.max(max, parseInt(m[1], 10));
-  });
-  return max + 1;
-}
-
-async function addDay(){
-  const n = nextDayNumber();
-  const suggested = `Day ${n}`;
-  const input = prompt('Name for the new day:', suggested);
-  if(input === null) return;
-  const label = input.trim() || suggested;
-  const key = `day${n}`;
-  const short = label.toUpperCase();
-
-  DAY_KEYS.push(key);
-  DAY_LABELS[key] = { label, short };
-
-  const extra = (await getJSON('config:extra_days', true)) || [];
-  extra.push({ key, label, short });
-  await setJSON('config:extra_days', extra, true);
-
-  state.activeTab = key;
-  render();
 }
 
 /* ================= STATE ================= */
@@ -735,12 +705,6 @@ async function renderSidebarNav(){
 async function render(){
   bindHeader();
   await renderSidebarNav();
-
-  const addDayBtn = document.getElementById('addDayBtn');
-  if(addDayBtn){
-    addDayBtn.style.display = state.role === 'admin' ? 'block' : 'none';
-    addDayBtn.onclick = addDay;
-  }
 
   const panel = document.getElementById('panel');
   const primaryBtn = document.getElementById('primaryActionBtn');
@@ -975,7 +939,6 @@ function renderManageView(dayKey, meta, items){
   });
 
   const editing = items.find(it => it.id === state.editingItemId) || null;
-  const dayOptions = DAY_KEYS.map(d => `<option value="${d}" ${d===dayKey?'selected':''}>${DAY_LABELS[d].label}</option>`).join('');
   const deadlineVal = meta.deadline || '';
 
   return `
@@ -983,7 +946,7 @@ function renderManageView(dayKey, meta, items){
       <div class="dhead">ACTIVITY DETAILS</div>
       <div class="dbody">
         <div class="form-row">
-          <div class="form-field"><label>DAY</label><select id="dayPicker">${dayOptions}</select></div>
+          <div class="form-field"><label>DAY</label><div style="padding:10px 12px; background:var(--input-bg); border:1px solid var(--line-light); border-radius:var(--r-xs); font-size:12.5px; font-weight:700; color:var(--ink);">${DAY_LABELS[dayKey].label}</div></div>
           <div class="form-field">
             <label>DEADLINE</label>
             <input type="datetime-local" id="deadlineInput" value="${deadlineVal}" ${!deadlineVal ? 'disabled' : ''} />
@@ -1025,12 +988,6 @@ function renderManageView(dayKey, meta, items){
 }
 
 function bindManageView(dayKey, meta, items, panel){
-  document.getElementById('dayPicker').onchange = (e)=>{
-    state.activeTab = e.target.value;
-    state.editingItemId = null;
-    render();
-  };
-
   const openDeadlineToggle = document.getElementById('openDeadlineToggle');
   const deadlineInput = document.getElementById('deadlineInput');
   if(openDeadlineToggle && deadlineInput){
