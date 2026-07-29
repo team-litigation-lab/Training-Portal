@@ -1,16 +1,21 @@
-// POST /api/auth/login   body: { username, password }
+// POST /api/auth/login   body: { username, password, portal }
 //
-// Combined admin+trainee login. Tries the EXISTING site's login endpoint
-// with portalMode 'Admin' first, then falls back to 'Trainee' if that
-// fails. Whichever portalMode the upstream account actually belongs to is
-// the one that will succeed; the other attempt is expected to fail and is
-// discarded. This lets a single username/password field on the client work
-// for both account types without asking the user to pick a role.
+// `portal` is provided by the client based on which portal tab the user
+// selected: 'admin' or 'trainee'. It maps 1:1 to the existing site's
+// portalMode ('Admin' / 'Trainee'), and only that single upstream mode is
+// ever tried — there is no guess-then-fallback anymore.
+//
+// This is what actually enforces "trainee accounts can only log in through
+// the Trainee Portal" (and, symmetrically, admin accounts through the Admin
+// Portal): an account that doesn't belong to the selected portalMode fails
+// upstream immediately, and no session is ever created for it.
 //
 // Matches the existing site's /api/login contract exactly:
 //   request:  { username, password, portalMode }
 //   success:  { success: true, user: { ...safeUser, fullName } }  (200)
 //   failure:  { success: false, error: '...' }                    (400/401/403)
+
+const PORTAL_TO_UPSTREAM_MODE = { admin: 'Admin', trainee: 'Trainee' };
 
 async function tryPortal(context, username, password, portalMode) {
   const upstream = await fetch(context.env.EXISTING_LOGIN_URL, {
@@ -23,7 +28,7 @@ async function tryPortal(context, username, password, portalMode) {
 }
 
 export async function onRequestPost(context) {
-  const { username, password } = await context.request.json();
+  const { username, password, portal } = await context.request.json();
 
   if (!username || !password) {
     return new Response(JSON.stringify({ error: 'Please enter both username and password.' }), {
@@ -32,28 +37,27 @@ export async function onRequestPost(context) {
     });
   }
 
-  // Try Admin first, then Trainee. Each portalMode is strictly validated
-  // upstream, so a trainee username tried as 'Admin' (and vice versa) will
-  // simply fail without side effects.
-  const adminAttempt = await tryPortal(context, username, password, 'Admin');
-  let result = adminAttempt;
-  let role = 'trainer';
-
-  if (!adminAttempt.ok) {
-    const traineeAttempt = await tryPortal(context, username, password, 'Trainee');
-    result = traineeAttempt;
-    role = 'trainee';
+  const upstreamMode = PORTAL_TO_UPSTREAM_MODE[portal];
+  if (!upstreamMode) {
+    return new Response(JSON.stringify({ error: 'Please select a portal.' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
+  // Only the selected portal's upstream mode is tried. A trainee account
+  // attempting the Admin portal (or an admin account attempting the Trainee
+  // portal) fails right here, with no session ever created.
+  const result = await tryPortal(context, username, password, upstreamMode);
+
   if (!result.ok) {
-    // Surface whichever upstream error came back last (most likely to be
-    // the relevant one, e.g. "Invalid credentials" or "pending approval").
     return new Response(
       JSON.stringify({ error: result.data.error || 'Invalid credentials' }),
       { status: result.status || 401, headers: { 'Content-Type': 'application/json' } }
     );
   }
 
+  const role = portal; // 'admin' | 'trainee' — always matches the portal actually authenticated against
   const name = result.data.user?.fullName || username;
 
   const sessionId = crypto.randomUUID();
