@@ -1,0 +1,16 @@
+{
+  "name": "cm-training-backend",
+  "version": "1.0.0",
+  "description": "Server-side backend for the CM Training Interface: auth, sessions, and shared/private key-value storage so admin-uploaded activities are visible to all users.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "bcryptjs": "^2.4.3"
+  }
+}
