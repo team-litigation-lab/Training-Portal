@@ -44,10 +44,10 @@
                 </div>
             </div>
             <div class="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-2">
-                <button onclick="switchView('trainee-landing')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 bg-slate-800 text-orange-400 view-nav-btn" id="nav-trainee-landing">🏠 Landing Page</button>
-                <button onclick="switchView('trainee-activities')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-trainee-activities">📚 Lesson Decks &amp; Activities</button>
-                <button onclick="switchView('trainee-lectures')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-trainee-lectures">🎥 Recorded Lectures</button>
-                <button onclick="switchView('trainee-grades')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-trainee-grades">📊 Grades &amp; Submissions</button>
+                <button onclick="switchView('trainee-landing')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 bg-slate-800 text-orange-400 view-nav-btn" id="nav-trainee-landing">Landing Page</button>
+                <button onclick="switchView('trainee-activities')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-trainee-activities">Lesson Decks &amp; Activities</button>
+                <button onclick="switchView('trainee-lectures')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-trainee-lectures">Recorded Lectures</button>
+                <button onclick="switchView('trainee-grades')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-trainee-grades">Grades &amp; Submissions</button>
             </div>
             <div id="session-footer-trainee" style="margin:16px;"></div>
         </aside>
@@ -62,10 +62,10 @@
                 </div>
             </div>
             <div class="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-2">
-                <button onclick="switchView('admin-landing')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 bg-slate-800 text-orange-400 view-nav-btn" id="nav-admin-landing">📈 Batch Statistics</button>
-                <button onclick="switchView('admin-activities')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-admin-activities">📚 Lesson Decks &amp; Activities</button>
-                <button onclick="switchView('admin-lectures')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-admin-lectures">🎥 Manage Lectures</button>
-                <button onclick="switchView('admin-grades')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-admin-grades">✅ Check &amp; Release Grades</button>
+                <button onclick="switchView('admin-landing')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 bg-slate-800 text-orange-400 view-nav-btn" id="nav-admin-landing">Batch Statistics</button>
+                <button onclick="switchView('admin-activities')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-admin-activities">Lesson Decks &amp; Activities</button>
+                <button onclick="switchView('admin-lectures')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-admin-lectures">Manage Lectures</button>
+                <button onclick="switchView('admin-grades')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-admin-grades">Check &amp; Release Grades</button>
             </div>
             <div id="session-footer-admin" style="margin:16px;"></div>
         </aside>
@@ -318,7 +318,7 @@
                                     <td class="font-bold">John Cruz</td>
                                     <td>Activity 1.1: Client Intake Form Extraction</td>
                                     <td>08/01/2026</td>
-                                    <td><a href="#" class="text-blue-600 font-bold">📎 Intake_Cruz.pdf</a></td>
+                                    <td><a href="#" class="text-blue-600 font-bold">Intake_Cruz.pdf</a></td>
                                     <td><span class="status-pill status-pending">Needs Review</span></td>
                                     <td><button onclick="openGradeModal('John Cruz', 'Activity 1.1: Client Intake Form Extraction')" class="bg-navy text-white px-2 py-1 rounded text-xs font-bold uppercase">Grade</button></td>
                                 </tr>
@@ -471,7 +471,7 @@
                 <div class="sub" id="admin-dash-session">Administrator Session</div>
             </div>
             <div style="display:flex; gap:10px;">
-                <button class="portal-toggle-btn" onclick="exitMasterControl()">⇄ Back to Workspace</button>
+                <button class="portal-toggle-btn" onclick="exitMasterControl()">Back to Workspace</button>
                 <button class="portal-toggle-btn" style="background:rgba(185,28,28,0.35); border-color:#b91c1c;" onclick="logoutSession()">Log Out</button>
             </div>
         </div>
@@ -526,16 +526,16 @@
 
             <!-- MONITORING -->
             <div class="mc-pane" id="admin-dash-monitoring">
-                <div class="mc-section-title">🟢 Trainees Online</div>
+                <div class="mc-section-title">Trainees Online</div>
                 <div id="monitoring-online-list"></div>
             </div>
 
             <!-- ACTIVITY LOGS -->
             <div class="mc-pane" id="admin-dash-activity-logs">
-                <div class="mc-section-title">🔍 Search Submissions</div>
+                <div class="mc-section-title">Search Submissions</div>
                 <input type="text" id="activity-logs-search" oninput="renderActivityLogs()" placeholder="Search by trainee name or activity title..." style="width:100%; padding:9px 12px; margin-bottom:16px; border-radius:6px; border:1px solid #e2e8f0; font-size:13px; outline:none;">
 
-                <div class="mc-section-title">📄 Timestamped Activity Submission Logs</div>
+                <div class="mc-section-title">Timestamped Activity Submission Logs</div>
                 <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Complete audit trail of all assignment uploads and grading events.</p>
                 <div id="activity-logs-list">
                     <div class="reg-row">
@@ -555,18 +555,18 @@
 
             <!-- ANNOUNCEMENTS -->
             <div class="mc-pane" id="admin-dash-announce">
-                <div class="mc-section-title">📢 Announcement Banner</div>
+                <div class="mc-section-title">Announcement Banner</div>
                 <div class="admin-tile">
                     <textarea id="announce-text-input" placeholder="Type the message to broadcast in the ticker..." style="width:100%;min-height:70px;padding:10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;margin-bottom:12px;"></textarea>
-                    <button class="btn-primary" onclick="makeAnnouncement()">📢 Broadcast Announcement</button>
+                    <button class="btn-primary" onclick="makeAnnouncement()">Broadcast Announcement</button>
                 </div>
             </div>
 
             <!-- ACCESS CONTROL -->
             <div class="mc-pane" id="admin-dash-access">
-                <div class="mc-section-title">⏸ Pause Activity</div>
+                <div class="mc-section-title">Pause Activity</div>
                 <div class="admin-tile">
-                    <button class="btn-primary" id="pause-toggle-btn" onclick="togglePause()">⏸ Pause All Activity</button>
+                    <button class="btn-primary" id="pause-toggle-btn" onclick="togglePause()">Pause All Activity</button>
                 </div>
             </div>
 
