@@ -14,8 +14,73 @@
 // every session, so there's nothing for the middleware to resolve. Verifies
 // credentials directly, clears the lock, and mints a fresh session so the
 // admin is logged back in immediately.
+//
+// Password verification: the shared `users` table stores passwords as
+// `pbkdf2:<iterations>:<salt>:<hash>` (base64url, no padding; salt & hash
+// both produced with SHA-256). This is verified natively via Web Crypto's
+// crypto.subtle — no external dependency needed, which also avoids the
+// "Could not resolve bcryptjs" esbuild failure since Pages Functions run on
+// the workerd runtime, not Node.
+//
+// >>> ASSUMPTION FLAGGED: the SHA-256 hash algorithm and base64url encoding
+// >>> were inferred from the stored string's shape (43-char output, `_`
+// >>> character present). Confirm with a real unlock attempt against a known
+// >>> admin password — if it fails, that assumption is what to revisit.
 
-import bcrypt from 'bcryptjs';
+function base64urlToBytes(b64url) {
+  let b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+function bytesToBase64url(buf) {
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+// Verifies a plaintext password against a stored "pbkdf2:<iters>:<salt>:<hash>" string.
+async function verifyPassword(password, stored) {
+  if (!stored || typeof stored !== 'string') return false;
+
+  const parts = stored.split(':');
+  if (parts.length !== 4 || parts[0] !== 'pbkdf2') return false;
+
+  const iterations = parseInt(parts[1], 10);
+  if (!iterations || iterations <= 0) return false;
+
+  const salt = base64urlToBytes(parts[2]);
+  const expectedHash = parts[3];
+
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(password),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  );
+
+  const derivedHash = bytesToBase64url(derivedBits);
+  return timingSafeEqual(derivedHash, expectedHash);
+}
 
 async function handleLock(context) {
   const user = context.data.user;
@@ -28,11 +93,11 @@ async function handleLock(context) {
   }
 
   const admin = await context.env.DB
-    .prepare("SELECT * FROM users WHERE role = 'admin' AND batch_id = ? AND approved = 1")
+    .prepare("SELECT * FROM users WHERE user_type = 'Admin' AND batch_id = ? AND status = 'Approved'")
     .bind(String(batchId).trim())
     .first();
 
-  if (!admin || !bcrypt.compareSync(password, admin.password_hash)) {
+  if (!admin || !(await verifyPassword(password, admin.password))) {
     return new Response(JSON.stringify({ error: 'Batch ID / password did not match an administrator record.' }), { status: 401 });
   }
 
@@ -59,11 +124,11 @@ async function handleUnlock(context) {
   }
 
   const admin = await context.env.DB
-    .prepare("SELECT * FROM users WHERE role = 'admin' AND username = ? AND approved = 1")
+    .prepare("SELECT * FROM users WHERE user_type = 'Admin' AND username = ? AND status = 'Approved'")
     .bind(String(username).trim())
     .first();
 
-  if (!admin || !bcrypt.compareSync(password, admin.password_hash)) {
+  if (!admin || !(await verifyPassword(password, admin.password))) {
     return new Response(JSON.stringify({ error: 'Invalid username or password.' }), { status: 401 });
   }
 
