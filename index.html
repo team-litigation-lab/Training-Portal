@@ -1,64 +1,579 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CM Training Interface — Trainee Portal</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LSH Training Activities Portal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="app">
 
-  <aside class="sidebar">
-    <div class="logo-row">
-      <div class="logo-box">CM</div>
-      <div class="logo-text">
-        <div class="l1">CASE MANAGEMENT</div>
-        <div class="l2">TRAINING INTERFACE</div>
-      </div>
+    <!-- CLASSIFICATION / TIME BAR -->
+    <div id="classification-bar" class="no-print">
+        <div class="cls-left">
+            <span class="cls-label">LSH</span>
+            <span id="portal-title">LEGAL SUPPORT HELP TRAINING INTERFACE</span>
+        </div>
+        <div class="announcement-ticker" id="announcement-ticker">
+            <span class="announcement-tag" id="announcement-tag">ANNOUNCEMENT:</span>
+            <div class="ticker-viewport">
+                <div class="ticker-track" id="ticker-track"><span id="ticker-text">Welcome to the LSH Training Activities Portal.</span></div>
+            </div>
+        </div>
+        <div class="clock-widget">
+            <span id="live-clock">--:--:--</span>
+            <select id="tz-select" onchange="refreshClock()" style="max-width:220px;">
+                <option value="Asia/Manila">Manila (PHT)</option>
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">New York (ET)</option>
+                <option value="America/Los_Angeles">Los Angeles (PT)</option>
+            </select>
+        </div>
     </div>
 
-    <div class="roletoggle" id="roleToggle">
-      <button data-role="trainee" class="active">TRAINEE</button>
-      <button data-role="admin">ADMIN</button>
+    <div id="app-shell">
+        <!-- TRAINEE SIDEBAR -->
+        <aside id="sidebar-trainee" class="no-print custom-sidebar-panel hidden" style="width:280px; background:var(--navy-deep); color:white; flex-direction:column; border-right:1px solid #0d1c3d;">
+            <div id="sidebar-header" style="padding:24px 26px 22px; border-bottom:1px solid #0d1c3d; display:flex; flex-direction:column; gap:14px; align-items:center; text-align:center;">
+                <div id="agency-seal" style="width:88px; height:88px; border-radius:10px; border:2px solid var(--orange); overflow:hidden; display:flex; align-items:center; justify-content:center; background:#0f172a;"></div>
+                <div>
+                    <h1 class="font-black text-white leading-tight uppercase tracking-tight serif" style="font-size:20px; margin:0;">Legal Support Help</h1>
+                    <div class="text-orange-500 mono" style="font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; margin-top:4px;">Trainee Workspace</div>
+                </div>
+            </div>
+            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-2">
+                <button onclick="switchView('trainee-landing')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 bg-slate-800 text-orange-400 view-nav-btn" id="nav-trainee-landing">🏠 Landing Page</button>
+                <button onclick="switchView('trainee-activities')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-trainee-activities">📚 Lesson Decks &amp; Activities</button>
+                <button onclick="switchView('trainee-lectures')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-trainee-lectures">🎥 Recorded Lectures</button>
+                <button onclick="switchView('trainee-grades')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-trainee-grades">📊 Grades &amp; Submissions</button>
+            </div>
+            <div id="session-footer-trainee" style="margin:16px;"></div>
+        </aside>
+
+        <!-- ADMIN SIDEBAR -->
+        <aside id="sidebar-admin" class="no-print custom-sidebar-panel hidden" style="width:280px; background:var(--navy-deep); color:white; flex-direction:column; border-right:1px solid #0d1c3d;">
+            <div id="sidebar-header-admin" style="padding:24px 26px 22px; border-bottom:1px solid #0d1c3d; display:flex; flex-direction:column; gap:14px; align-items:center; text-align:center;">
+                <div id="agency-seal-admin" style="width:88px; height:88px; border-radius:10px; border:2px solid var(--classified-red); overflow:hidden; display:flex; align-items:center; justify-content:center; background:#0f172a;"></div>
+                <div>
+                    <h1 class="font-black text-white leading-tight uppercase tracking-tight serif" style="font-size:20px; margin:0;">Legal Support Help</h1>
+                    <div class="text-red-500 mono" style="font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; margin-top:4px;">Admin Control Portal</div>
+                </div>
+            </div>
+            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-2">
+                <button onclick="switchView('admin-landing')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 bg-slate-800 text-orange-400 view-nav-btn" id="nav-admin-landing">📈 Batch Statistics</button>
+                <button onclick="switchView('admin-activities')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-admin-activities">📚 Lesson Decks &amp; Activities</button>
+                <button onclick="switchView('admin-lectures')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-admin-lectures">🎥 Manage Lectures</button>
+                <button onclick="switchView('admin-grades')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-admin-grades">✅ Check &amp; Release Grades</button>
+            </div>
+            <div id="session-footer-admin" style="margin:16px;"></div>
+        </aside>
+
+        <!-- MAIN CONTENT WORKSPACE -->
+        <main class="flex-1 flex flex-col overflow-hidden" id="main-workspace">
+            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar" id="capture-area">
+                
+                <!-- 1. TRAINEE LANDING PAGE -->
+                <div id="view-trainee-landing" class="portal-view-section">
+                    <div class="pdf-card border-l-4 border-orange-500 mb-6">
+                        <div class="section-head">Company Profile &amp; Mission</div>
+                        <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                            Welcome to the Legal Support Help (LSH) Training Activities Portal. Our mission is to prepare legal professionals and trainees with rigorous, practical exposure to real-world documentation, discovery, and case management workflows.
+                        </p>
+                        <div class="grid grid-cols-3 gap-4 border-t border-slate-100 pt-4">
+                            <div>
+                                <span class="block text-[10px] font-extrabold text-slate-400 uppercase">Current Batch</span>
+                                <span class="font-bold text-navy" id="trainee-batch-display">Batch —</span>
+                            </div>
+                            <div>
+                                <span class="block text-[10px] font-extrabold text-slate-400 uppercase">Training Phase</span>
+                                <span class="font-bold text-orange-600">Active Curriculum</span>
+                            </div>
+                            <div>
+                                <span class="block text-[10px] font-extrabold text-slate-400 uppercase">Your Standing</span>
+                                <span class="font-bold text-emerald-600">Good Standing</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PROGRESS BAR -->
+                    <div class="pdf-card border-l-4 border-blue-600 mb-6">
+                        <div class="section-head" style="background:#eff6ff; color:#1d4ed8;">Your Training Progress</div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-slate-600 uppercase">Overall Batch Completion</span>
+                            <span class="font-mono font-black text-blue-600" id="trainee-progress-pct">40%</span>
+                        </div>
+                        <div class="w-full bg-slate-200 h-4 rounded-full overflow-hidden">
+                            <div class="bg-blue-600 h-full transition-all duration-500" style="width: 40%;" id="trainee-progress-bar"></div>
+                        </div>
+                    </div>
+
+                    <!-- LEADERBOARDS -->
+                    <div class="pdf-card border-l-4 border-emerald-600">
+                        <div class="section-head" style="background:#f0fdf4; color:#166534;">Batch Leaderboard</div>
+                        <table class="treat-table w-full">
+                            <thead>
+                                <tr>
+                                    <th width="60">Rank</th>
+                                    <th>Trainee Name</th>
+                                    <th>Batch ID</th>
+                                    <th>Activities Completed</th>
+                                    <th>Current Rating</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-body">
+                                <tr>
+                                    <td class="font-mono font-bold">1</td>
+                                    <td class="font-bold text-navy">Maria Santos</td>
+                                    <td>B08032026-TRAINEE-001</td>
+                                    <td>12 / 12</td>
+                                    <td class="text-emerald-700 font-bold">98.5%</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-mono font-bold">2</td>
+                                    <td class="font-bold text-navy">John Cruz</td>
+                                    <td>B08032026-TRAINEE-004</td>
+                                    <td>11 / 12</td>
+                                    <td class="text-emerald-700 font-bold">96.0%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 2. TRAINEE ACTIVITIES & LESSON DECKS -->
+                <div id="view-trainee-activities" class="portal-view-section hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-black uppercase tracking-wide text-navy">Lesson Decks &amp; Activities</h2>
+                        <span class="text-xs font-bold text-slate-500 uppercase">Organized by Training Day</span>
+                    </div>
+                    <div id="trainee-days-accordion" class="space-y-4">
+                        <div class="pdf-card border-l-4 border-navy">
+                            <div class="section-head">Day 1: Introduction to Legal Documentation &amp; Intake</div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center p-3 bg-slate-50 rounded border">
+                                    <div>
+                                        <span class="text-xs font-bold text-navy block">Lesson Deck 1.1: Standard Case Anatomy</span>
+                                        <span class="text-[10px] text-slate-500">Uploaded by Admin · PDF Study Deck</span>
+                                    </div>
+                                    <button class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1 rounded text-xs font-bold uppercase">View Deck</button>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-slate-50 rounded border">
+                                    <div>
+                                        <span class="text-xs font-bold text-navy block">Activity 1.1: Client Intake Form Extraction</span>
+                                        <span class="text-[10px] text-orange-600 font-bold">Due: Today, 5:00 PM</span>
+                                    </div>
+                                    <button onclick="submitActivityModal('Activity 1.1: Client Intake Form Extraction')" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-xs font-bold uppercase">Submit Activity</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. TRAINEE LECTURES -->
+                <div id="view-trainee-lectures" class="portal-view-section hidden">
+                    <div class="mb-6">
+                        <h2 class="text-xl font-black uppercase tracking-wide text-navy">Recorded Lectures</h2>
+                        <p class="text-xs text-slate-500">Access video recordings embedded via Google Drive or YouTube.</p>
+                    </div>
+                    <div id="trainee-lectures-container" class="grid grid-cols-2 gap-6">
+                        <div class="pdf-card border-l-4 border-red-600">
+                            <div class="section-head" style="background:#fef2f2; color:#b91c1c;">Lecture 1: Intake Protocols &amp; Triage</div>
+                            <div class="aspect-video bg-slate-900 rounded mb-3 flex items-center justify-center text-slate-400">
+                                <span class="text-xs font-mono">[ Embedded Video Player / YouTube / GDrive ]</span>
+                            </div>
+                            <p class="text-xs text-slate-600">Recorded session covering initial intake interviews and documentation requirements.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. TRAINEE GRADES & SUBMISSIONS -->
+                <div id="view-trainee-grades" class="portal-view-section hidden">
+                    <div class="pdf-card border-l-4 border-emerald-600">
+                        <div class="section-head" style="background:#f0fdf4; color:#166534;">My Grades &amp; Submissions</div>
+                        <table class="treat-table w-full">
+                            <thead>
+                                <tr>
+                                    <th>Activity Title</th>
+                                    <th>Date Submitted</th>
+                                    <th>Status</th>
+                                    <th>Grade Released</th>
+                                    <th>Feedback / Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trainee-grades-body">
+                                <tr>
+                                    <td class="font-bold">Activity 1.1: Client Intake Form Extraction</td>
+                                    <td>08/01/2026</td>
+                                    <td><span class="status-pill status-approved">Graded</span></td>
+                                    <td class="font-mono font-bold text-emerald-700">95 / 100</td>
+                                    <td class="text-xs text-slate-500 italic">Excellent attention to detail on party identifiers.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 5. ADMIN LANDING PAGE -->
+                <div id="view-admin-landing" class="portal-view-section hidden">
+                    <div class="pdf-card border-l-4 border-red-600 mb-6">
+                        <div class="section-head" style="background:#fef2f2; color:#b91c1c;">Trainee Progress &amp; Batch Statistics</div>
+                        <div class="grid grid-cols-4 gap-4 mt-2">
+                            <div class="p-4 bg-slate-50 rounded border">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Active Trainees</span>
+                                <span class="text-2xl font-black font-mono text-navy">24</span>
+                            </div>
+                            <div class="p-4 bg-slate-50 rounded border">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Submissions</span>
+                                <span class="text-2xl font-black font-mono text-orange-600">186</span>
+                            </div>
+                            <div class="p-4 bg-slate-50 rounded border">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Avg Batch Score</span>
+                                <span class="text-2xl font-black font-mono text-emerald-600">92.4%</span>
+                            </div>
+                            <div class="p-4 bg-slate-50 rounded border">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Pending Grades</span>
+                                <span class="text-2xl font-black font-mono text-red-600">14</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pdf-card">
+                        <div class="section-head">Trainee Progress Tracker</div>
+                        <table class="treat-table w-full">
+                            <thead>
+                                <tr>
+                                    <th>Trainee Name</th>
+                                    <th>Batch ID</th>
+                                    <th>Completion Rate</th>
+                                    <th>Pending Checks</th>
+                                    <th>Overall Grade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="font-bold">Maria Santos</td>
+                                    <td>B08032026-TRAINEE-001</td>
+                                    <td><div class="w-24 bg-slate-200 h-2 rounded-full overflow-hidden inline-block mr-2"><div class="bg-emerald-600 h-full" style="width:100%;"></div></div> 100%</td>
+                                    <td>0</td>
+                                    <td class="font-mono font-bold">98.5%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 6. ADMIN LESSON DECKS & ACTIVITIES -->
+                <div id="view-admin-activities" class="portal-view-section hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-black uppercase tracking-wide text-navy">Manage Decks &amp; Activities</h2>
+                        <button onclick="openAddActivityModal()" class="add-btn">+ Add Activity and Lesson Deck</button>
+                    </div>
+                    <div id="admin-days-accordion" class="space-y-4">
+                        <div class="pdf-card border-l-4 border-navy">
+                            <div class="section-head">Day 1: Introduction to Legal Documentation &amp; Intake</div>
+                            <div class="space-y-3" id="admin-day-1-list">
+                                <div class="flex justify-between items-center p-3 bg-slate-50 rounded border">
+                                    <div>
+                                        <span class="text-xs font-bold text-navy block">Activity 1.1: Client Intake Form Extraction</span>
+                                        <span class="text-[10px] text-slate-500">Day 1 · Uploaded on 08/01/2026</span>
+                                    </div>
+                                    <button class="text-red-500 hover:text-red-700 font-bold text-xs uppercase">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. ADMIN LECTURES -->
+                <div id="view-admin-lectures" class="portal-view-section hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-xl font-black uppercase tracking-wide text-navy">Recorded Lectures</h2>
+                            <p class="text-xs text-slate-500">Use YouTube or Google Drive embed URLs to conserve storage.</p>
+                        </div>
+                        <button onclick="openAddLectureModal()" class="add-btn">+ Add Recorded Lecture</button>
+                    </div>
+                    <div id="admin-lectures-container" class="grid grid-cols-2 gap-6"></div>
+                </div>
+
+                <!-- 8. ADMIN GRADES & SUBMISSIONS -->
+                <div id="view-admin-grades" class="portal-view-section hidden">
+                    <div class="pdf-card border-l-4 border-navy">
+                        <div class="section-head">Submitted Activities &amp; Grading</div>
+                        <table class="treat-table w-full">
+                            <thead>
+                                <tr>
+                                    <th>Trainee Name</th>
+                                    <th>Activity Title</th>
+                                    <th>Date Submitted</th>
+                                    <th>Submission File</th>
+                                    <th>Status / Grade</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-submissions-body">
+                                <tr>
+                                    <td class="font-bold">John Cruz</td>
+                                    <td>Activity 1.1: Client Intake Form Extraction</td>
+                                    <td>08/01/2026</td>
+                                    <td><a href="#" class="text-blue-600 font-bold">📎 Intake_Cruz.pdf</a></td>
+                                    <td><span class="status-pill status-pending">Needs Review</span></td>
+                                    <td><button onclick="openGradeModal('John Cruz', 'Activity 1.1: Client Intake Form Extraction')" class="bg-navy text-white px-2 py-1 rounded text-xs font-bold uppercase">Grade</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
     </div>
 
-    <div>
-      <div class="field-label">YOUR NAME</div>
-      <input class="side-input" id="nameInput" type="text" placeholder="Enter your name" />
+    <!-- ===== AUTH GATE: LOGIN / REGISTER ===== -->
+    <div id="auth-gate" class="no-print">
+        <div class="auth-box">
+            <div class="auth-brand">
+                <div id="auth-seal" style="width:42px;height:42px;border-radius:6px;border:2px solid var(--orange);overflow:hidden;flex-shrink:0;"></div>
+                <div>
+                    <h1>Legal Support Help</h1>
+                    <span>Training Interface Access</span>
+                </div>
+            </div>
+
+            <!-- LOGIN VIEW -->
+            <div id="auth-login-view">
+                <div class="portal-tabs">
+                    <div class="portal-tab active" id="portal-tab-trainee" onclick="switchPortalTab('Trainee')">Trainee Portal</div>
+                    <div class="portal-tab" id="portal-tab-admin" onclick="switchPortalTab('Admin')">Admin Portal</div>
+                </div>
+                <div id="auth-login-msg" class="auth-msg"></div>
+                <div class="auth-field"><label>Username</label><input type="text" id="login-username" autocomplete="off" placeholder="Enter your username"></div>
+                <div class="auth-field"><label>Password</label><input type="password" id="login-password" autocomplete="off" placeholder="Enter your password"></div>
+                <button class="auth-submit" onclick="attemptLogin()">Log In</button>
+                <div class="auth-switch">No account yet? <a onclick="showRegisterView()">Register here</a></div>
+            </div>
+
+            <!-- REGISTER VIEW -->
+            <div id="auth-register-view" class="hidden">
+                <div id="auth-register-msg" class="auth-msg"></div>
+                <div class="auth-field" style="display:grid; grid-template-columns: 2fr 0.7fr; gap:8px;">
+                    <div><label>First Name</label><input type="text" id="reg-firstname" autocomplete="off" data-allow="name" placeholder="e.g., Juan"></div>
+                    <div><label>M.I.</label><input type="text" id="reg-middlename" autocomplete="off" maxlength="2" data-allow="alnum-upper" placeholder="M.I."></div>
+                </div>
+                <div class="auth-field" style="display:grid; grid-template-columns: 2fr 1fr; gap:8px;">
+                    <div><label>Last Name</label><input type="text" id="reg-lastname" autocomplete="off" data-allow="name" placeholder="e.g., Dela Cruz"></div>
+                    <div><label>Suffix <span style="text-transform:none;">(optional)</span></label><input type="text" id="reg-suffix" autocomplete="off" placeholder="Jr., III..."></div>
+                </div>
+                <div class="auth-field"><label>Email</label><input type="email" id="reg-email" placeholder="name@example.com" autocomplete="off" data-allow="email"></div>
+                <div class="auth-field"><label>Type of User</label>
+                    <select id="reg-usertype" onchange="onRegUserTypeChange()">
+                        <option value="Trainee">Trainee</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+                <div class="auth-field" id="reg-training-date-wrap"><label>Start of Training Date</label><input type="date" id="reg-training-date" autocomplete="off"></div>
+                <div class="auth-field"><label>Batch ID</label><input type="text" id="reg-batchid" autocomplete="off" readonly placeholder="Batch ID will be assigned upon the approval of your registration." disabled style="opacity:0.6; cursor:not-allowed;"></div>
+                <div class="auth-field"><label>Username</label><input type="text" id="reg-username" autocomplete="off" data-allow="alnum-underscore" placeholder="Choose a username"></div>
+                <div class="auth-field"><label>Password</label><input type="password" id="reg-password" autocomplete="new-password" placeholder="Create a password" minlength="8"><p style="font-size:11px;color:#64748b;margin:4px 0 0;line-height:1.4;">At least 8 characters, letters and numbers only (must include at least one of each).</p></div>
+                <div class="auth-field"><label>Retype Password</label><input type="password" id="reg-password2" autocomplete="new-password" placeholder="Retype your password" minlength="8"></div>
+                <button class="auth-submit" onclick="submitRegistration()">Submit Registration</button>
+                <div class="auth-switch">Already have an account? <a onclick="showLoginView()">Back to log in</a></div>
+            </div>
+        </div>
     </div>
 
-    <div class="nav-label">TRAINING ACTIVITIES</div>
-    <div class="nav-list" id="navList"></div>
-
-    <div class="sidebar-spacer"></div>
-    <button class="btn-full btn-green" id="primaryActionBtn">SUBMIT ANSWERS</button>
-    <div class="signed-in" id="signedInBlock">Not signed in</div>
-    <button class="btn-full btn-outline-red" id="logoutBtn">LOG OUT</button>
-  </aside>
-
-  <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
-    <div class="topbar">
-      <span class="badge">CM</span>
-      <span class="portal-title" id="portalTitle">CASE MANAGEMENT TRAINING INTERFACE — TRAINEE PORTAL</span>
-      <span class="announce">ANNOUNCEMENT:</span>
-      <span class="announce-text" id="announceText">Welcome to the CM Training Interface.</span>
-      <span class="spacer"></span>
-      <span class="clock" id="clock"></span>
-      <select class="loc">
-        <option>Manila</option>
-        <option>Caloocan</option>
-        <option>Quezon City</option>
-      </select>
+    <!-- ===== MODALS ===== -->
+    <!-- ADD ACTIVITY/LESSON DECK MODAL (Admin) -->
+    <div class="modal-overlay no-print" id="modal-add-activity">
+        <div class="modal-box">
+            <h2>Add Activity &amp; Lesson Deck</h2>
+            <div class="sub">Organize by Day &amp; Module</div>
+            <label>Title</label>
+            <input type="text" id="act-title-input" placeholder="e.g. Activity 2.1: Discovery Requests">
+            <label>Assigned Training Day</label>
+            <select id="act-day-input" class="prof-input mb-3">
+                <option value="Day 1">Day 1</option>
+                <option value="Day 2">Day 2</option>
+                <option value="Day 3">Day 3</option>
+                <option value="Day 4">Day 4</option>
+            </select>
+            <label>Type</label>
+            <select id="act-type-input" class="prof-input mb-3">
+                <option value="Activity">Activity Assignment</option>
+                <option value="Deck">Lesson Deck (Study Material)</option>
+            </select>
+            <label>Attach File / URL</label>
+            <input type="text" id="act-file-input" placeholder="GDrive / Attachment URL">
+            <div class="modal-btn-row">
+                <button class="btn-ghost" onclick="closeModals()">Cancel</button>
+                <button class="btn-primary" onclick="saveNewActivity()">Upload &amp; Assign</button>
+            </div>
+        </div>
     </div>
 
-    <div class="main">
-      <div id="panel"></div>
+    <!-- ADD LECTURE MODAL (Admin) -->
+    <div class="modal-overlay no-print" id="modal-add-lecture">
+        <div class="modal-box">
+            <h2>Embed Recorded Lecture</h2>
+            <div class="sub">GDrive or YouTube URL Required</div>
+            <label>Lecture Title</label>
+            <input type="text" id="lec-title-input" placeholder="e.g. Lecture 2: Rules of Discovery">
+            <label>Embed Link (YouTube / GDrive Video)</label>
+            <input type="text" id="lec-url-input" placeholder="https://www.youtube.com/embed/...">
+            <label>Summary</label>
+            <input type="text" id="lec-summary-input" placeholder="Brief overview of lecture...">
+            <div class="modal-btn-row">
+                <button class="btn-ghost" onclick="closeModals()">Cancel</button>
+                <button class="btn-primary" onclick="saveNewLecture()">Embed Lecture</button>
+            </div>
+        </div>
     </div>
-  </div>
 
-</div>
+    <!-- SUBMIT ACTIVITY MODAL (Trainee) -->
+    <div class="modal-overlay no-print" id="modal-submit-activity">
+        <div class="modal-box">
+            <h2>Submit Assignment</h2>
+            <div class="sub" id="submit-activity-title">Activity Title</div>
+            <label>Your Notes / Remarks</label>
+            <input type="text" id="sub-notes-input" placeholder="Optional comments for your evaluator...">
+            <label>Upload Work File</label>
+            <input type="file" id="sub-file-input" class="prof-input mb-4">
+            <div class="modal-btn-row">
+                <button class="btn-ghost" onclick="closeModals()">Cancel</button>
+                <button class="btn-primary" onclick="confirmSubmission()">Submit Work</button>
+            </div>
+        </div>
+    </div>
 
-<script src="app.js"></script>
+    <!-- GRADE SUBMISSION MODAL (Admin) -->
+    <div class="modal-overlay no-print" id="modal-grade-submission">
+        <div class="modal-box">
+            <h2>Grade Trainee Submission</h2>
+            <div class="sub" id="grade-modal-subtitle">Trainee Name - Activity Title</div>
+            <label>Grade / Score (0 - 100)</label>
+            <input type="text" id="grade-score-input" placeholder="e.g. 95">
+            <label>Evaluator Feedback / Remarks</label>
+            <input type="text" id="grade-feedback-input" placeholder="Enter constructive feedback...">
+            <div class="modal-btn-row">
+                <button class="btn-ghost" onclick="closeModals()">Cancel</button>
+                <button class="btn-primary" onclick="releaseGrade()">Release Grade</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MASTER CONTROL (Admin Control — Full Page) ===== -->
+    <div id="master-control-page" class="no-print">
+        <div class="mc-header">
+            <div>
+                <h2>Master Control</h2>
+                <div class="sub" id="admin-dash-session">Administrator Session</div>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="portal-toggle-btn" onclick="exitMasterControl()">⇄ Back to Workspace</button>
+                <button class="portal-toggle-btn" style="background:rgba(185,28,28,0.35); border-color:#b91c1c;" onclick="logoutSession()">Log Out</button>
+            </div>
+        </div>
+        <div class="mc-tabs">
+            <button class="mc-tab active" onclick="showAdminDashTab('overview')">Overview</button>
+            <button class="mc-tab" onclick="showAdminDashTab('registrations')">Registrations <span id="reg-pending-badge"></span></button>
+            <button class="mc-tab" onclick="showAdminDashTab('users')">Users</button>
+            <button class="mc-tab" onclick="showAdminDashTab('monitoring')">Monitoring</button>
+            <button class="mc-tab" onclick="showAdminDashTab('activity-logs')">Activity Logs</button>
+            <button class="mc-tab" onclick="showAdminDashTab('announce')">Broadcast &amp; Ping</button>
+            <button class="mc-tab" onclick="showAdminDashTab('access')">Access Control</button>
+        </div>
+        <div class="mc-body">
+
+            <!-- OVERVIEW -->
+            <div class="mc-pane active" id="admin-dash-overview">
+                <div class="admin-panel-grid">
+                    <div class="admin-tile">
+                        <h4>Total Training Activities</h4>
+                        <div class="admin-stat" id="admin-stat-total-activities">12</div>
+                        <div class="admin-stat-label">Active Modules Assigned</div>
+                    </div>
+                    <div class="admin-tile">
+                        <h4>Submissions Logged</h4>
+                        <div class="admin-stat" id="admin-stat-submissions" style="font-size:22px;">186</div>
+                        <div class="admin-stat-label">Total Trainee Uploads</div>
+                    </div>
+                    <div class="admin-tile">
+                        <h4>Trainees Online Now</h4>
+                        <div class="admin-stat" id="admin-stat-online">0</div>
+                        <div class="admin-stat-label">Active in the last 60 seconds</div>
+                    </div>
+                    <div class="admin-tile">
+                        <h4>Pending Registrations</h4>
+                        <div class="admin-stat" id="admin-stat-pending">0</div>
+                        <div class="admin-stat-label">Awaiting review</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REGISTRATIONS -->
+            <div class="mc-pane" id="admin-dash-registrations">
+                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Pending registrations submitted from the login screen.</p>
+                <div id="registrations-list"></div>
+            </div>
+
+            <!-- USERS -->
+            <div class="mc-pane" id="admin-dash-users">
+                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Approved accounts, segregated by Admin / Trainee.</p>
+                <div id="users-list"></div>
+            </div>
+
+            <!-- MONITORING -->
+            <div class="mc-pane" id="admin-dash-monitoring">
+                <div class="mc-section-title">🟢 Trainees Online</div>
+                <div id="monitoring-online-list"></div>
+            </div>
+
+            <!-- ACTIVITY LOGS -->
+            <div class="mc-pane" id="admin-dash-activity-logs">
+                <div class="mc-section-title">🔍 Search Submissions</div>
+                <input type="text" id="activity-logs-search" oninput="renderActivityLogs()" placeholder="Search by trainee name or activity title..." style="width:100%; padding:9px 12px; margin-bottom:16px; border-radius:6px; border:1px solid #e2e8f0; font-size:13px; outline:none;">
+
+                <div class="mc-section-title">📄 Timestamped Activity Submission Logs</div>
+                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Complete audit trail of all assignment uploads and grading events.</p>
+                <div id="activity-logs-list">
+                    <div class="reg-row">
+                        <div class="reg-info">
+                            <b>Maria Santos <span class="status-pill status-approved">SUBMITTED</span></b>
+                            <div class="reg-meta">Activity 1.1: Client Intake Form Extraction &middot; Timestamp: 08/01/2026 14:32:01 PHT</div>
+                        </div>
+                    </div>
+                    <div class="reg-row">
+                        <div class="reg-info">
+                            <b>John Cruz <span class="status-pill status-pending">SUBMITTED</span></b>
+                            <div class="reg-meta">Activity 1.1: Client Intake Form Extraction &middot; Timestamp: 08/01/2026 16:15:44 PHT</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ANNOUNCEMENTS -->
+            <div class="mc-pane" id="admin-dash-announce">
+                <div class="mc-section-title">📢 Announcement Banner</div>
+                <div class="admin-tile">
+                    <textarea id="announce-text-input" placeholder="Type the message to broadcast in the ticker..." style="width:100%;min-height:70px;padding:10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;margin-bottom:12px;"></textarea>
+                    <button class="btn-primary" onclick="makeAnnouncement()">📢 Broadcast Announcement</button>
+                </div>
+            </div>
+
+            <!-- ACCESS CONTROL -->
+            <div class="mc-pane" id="admin-dash-access">
+                <div class="mc-section-title">⏸ Pause Activity</div>
+                <div class="admin-tile">
+                    <button class="btn-primary" id="pause-toggle-btn" onclick="togglePause()">⏸ Pause All Activity</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script src="portal.js"></script>
 </body>
 </html>
