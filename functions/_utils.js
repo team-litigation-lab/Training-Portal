@@ -128,12 +128,6 @@ export async function requireSession(request, env, { adminOnly = false } = {}) {
     if (!alive) {
         return { ok: false, response: json({ success: false, error: 'Session expired.', code: 'SESSION_EXPIRED' }, 401) };
     }
-    // Re-check the account's live status on every request, not just at
-    // login. A signed session token + a live heartbeat alone would
-    // otherwise keep working for up to 12h even after an admin suspends
-    // (see suspend-user.js) or permanently revokes (see revoke-user.js)
-    // the account — this is what makes both of those take effect against
-    // an already-open session immediately instead of on next login.
     const liveUser = await env.DB.prepare(`SELECT status FROM users WHERE username = ?`).bind(payload.username).first();
     if (!liveUser || liveUser.status !== 'Approved') {
         return { ok: false, response: json({ success: false, error: 'Your access has been revoked.', code: 'ACCESS_REVOKED' }, 401) };
@@ -151,11 +145,6 @@ export async function getSiteState(db) {
 
 /* =====================================================================
    MASTER ACCOUNT
-   There is exactly one Master Account, identified by username. It has two
-   special properties enforced wherever revocation decisions are made
-   (see revoke-user.js):
-     1. It is the ONLY account allowed to revoke another Admin.
-     2. It can never itself be revoked, by anyone, including itself.
    ===================================================================== */
 export const MASTER_USERNAME = 'LSHADMIN123';
 
@@ -166,8 +155,6 @@ export function isMaster(session) {
 
 /**
  * Builds a person's display name from their users-table row fields.
- * Shared so login.js, register.js, and case-repository.js can't drift out
- * of sync on how a name is assembled.
  */
 export function buildFullName(user) {
     if (!user) return '';
@@ -177,25 +164,14 @@ export function buildFullName(user) {
 
 /**
  * Shared permission check for the server-side Case Repository: only the
- * case's original owner or an Admin may modify/delete it. Everyone else
- * gets read-only access (and, for drafts, no access at all — see
- * case-repository.js).
+ * case's original owner or an Admin may modify/delete it.
  */
 export function isOwnerOrAdmin(session, ownerUsername) {
     return !!session && (session.userType === 'Admin' || session.username === ownerUsername);
 }
 
-
 /* =====================================================================
-   PASSWORD HASHING (PBKDF2-SHA256 via Web Crypto — no external deps
-   needed, works in the Workers/Pages runtime).
-
-   Stored format: pbkdf2:<iterations>:<saltB64url>:<hashB64url>
-
-   isLegacyPlaintext()/upgradePasswordHash() exist so existing accounts
-   (currently stored as plaintext) keep working and get transparently
-   upgraded to a hash the next time that user logs in successfully —
-   no manual DB migration required.
+   PASSWORD HASHING (PBKDF2-SHA256 via Web Crypto)
    ===================================================================== */
 async function pbkdf2(password, saltBytes, iterations) {
     const enc = new TextEncoder();
@@ -214,7 +190,6 @@ export async function hashPassword(password) {
 export async function verifyPassword(password, stored) {
     if (!stored) return false;
     if (!stored.startsWith('pbkdf2:')) {
-        // Legacy plaintext row.
         return stored === password;
     }
     const parts = stored.split(':');
@@ -236,7 +211,6 @@ export async function upgradePasswordHash(db, userId, plainPassword) {
         const newHash = await hashPassword(plainPassword);
         await db.prepare(`UPDATE users SET password = ? WHERE id = ?`).bind(newHash, userId).run();
     } catch (e) {
-        // Never let a migration failure break the login/lock flow.
         console.error('password upgrade failed', e);
     }
 }
@@ -244,25 +218,6 @@ export async function upgradePasswordHash(db, userId, plainPassword) {
 /* =====================================================================
    BATCH ID / CREDENTIAL HELPERS
    ===================================================================== */
-// Batch ID format: B<DD><MM><YYYY>-LSH<TYPE>-<XXX>
-// For Admins, DD/MM/YYYY is their registration date (users.created_at).
-// For Trainees, DD/MM/YYYY is their start-of-training date, which they
-// supply at registration (users.training_start_date) — see register.js.
-// XXX is a three-digit sequence number, chronological per user type.
-//
-// XXX comes from an atomic, per-user-type D1 counter (same UPDATE ...
-// RETURNING pattern as nextCaseId() below), rather than a COUNT(*)
-// read-then-write — the old approach could let two admins approving two
-// different users of the same type at nearly the same moment both read
-// the same count before either write landed, producing a collision.
-//
-// Requires this table to exist (run once via wrangler d1 execute):
-//   CREATE TABLE IF NOT EXISTS batch_id_counter (
-//     user_type TEXT PRIMARY KEY,
-//     value INTEGER NOT NULL DEFAULT 0
-//   );
-//   INSERT OR IGNORE INTO batch_id_counter (user_type, value) VALUES ('Admin', 0);
-//   INSERT OR IGNORE INTO batch_id_counter (user_type, value) VALUES ('Trainee', 0);
 export async function nextBatchId(db, userType, referenceDate) {
     const d = referenceDate ? new Date(referenceDate) : new Date();
     const dd = String(d.getUTCDate()).padStart(2, '0');
@@ -274,7 +229,7 @@ export async function nextBatchId(db, userType, referenceDate) {
         `UPDATE batch_id_counter SET value = value + 1 WHERE user_type = ? RETURNING value`
     ).bind(userType).first();
     if (!row || typeof row.value !== 'number') {
-        throw new Error(`batch_id_counter has no row for user_type=${userType} — run the migration in _utils.js (see nextBatchId comment) before issuing Batch IDs.`);
+        throw new Error(`batch_id_counter has no row for user_type=${userType} — run the migration in _utils.js before issuing Batch IDs.`);
     }
     const xxx = String(row.value).padStart(3, '0');
     return `B${dd}${mm}${yyyy}-${prefix}-${xxx}`;
@@ -282,25 +237,6 @@ export async function nextBatchId(db, userType, referenceDate) {
 
 /* =====================================================================
    PERMANENT REVOCATION / TOMBSTONE
-   "Permanent Revocation" deletes the live users row entirely (disabling
-   login), while keeping that user's saved cases intact (cases are linked
-   by username, not by a foreign key to this row — see cases.js). To make
-   sure a brand-new registrant can never accidentally inherit a deleted
-   user's old cases by re-using their username, every deleted username is
-   recorded here and permanently blocked from re-registration (see
-   isUsernameTombstoned(), used by register.js).
-
-   Requires this table to exist (run once via wrangler d1 execute):
-     CREATE TABLE IF NOT EXISTS deleted_users (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
-       username TEXT NOT NULL,
-       user_type TEXT,
-       batch_id TEXT,
-       email TEXT,
-       full_name TEXT,
-       deleted_by TEXT,
-       deleted_at TEXT NOT NULL
-     );
    ===================================================================== */
 export async function tombstoneUser(db, user, deletedByUsername) {
     const fullName = [user.first_name, user.mi, user.last_name].filter(Boolean).join(' ');
@@ -317,28 +253,13 @@ export async function isUsernameTombstoned(db, username) {
 
 /* =====================================================================
    CASE ID GENERATION (server-enforced, cross-device unique)
-   Format: LSH-<Year>-<TypeCode>-<XXXXXX>
-
-   The XXXXXX sequence comes from a single-row counter table incremented
-   with `UPDATE ... RETURNING`. This is one atomic SQL statement — D1
-   executes each individual statement atomically even though it doesn't
-   support multi-statement BEGIN/COMMIT transactions — so two Save Case
-   requests arriving from different devices at the same moment can never
-   receive the same number.
-
-   Requires this table to exist (run once via wrangler d1 execute):
-     CREATE TABLE IF NOT EXISTS case_id_counter (
-       id INTEGER PRIMARY KEY CHECK (id = 1),
-       value INTEGER NOT NULL DEFAULT 0
-     );
-     INSERT OR IGNORE INTO case_id_counter (id, value) VALUES (1, 0);
    ===================================================================== */
 export async function nextCaseId(db, typeCode) {
     const row = await db.prepare(
         `UPDATE case_id_counter SET value = value + 1 WHERE id = 1 RETURNING value`
     ).first();
     if (!row || typeof row.value !== 'number') {
-        throw new Error('case_id_counter is not set up — run the migration (see _utils.js nextCaseId comment) before issuing Case IDs.');
+        throw new Error('case_id_counter is not set up — run the migration before issuing Case IDs.');
     }
     const year = new Date().getUTCFullYear();
     const safeType = (typeCode || 'CASE').toString().replace(/[^A-Za-z0-9]/g, '').toUpperCase().substring(0, 4) || 'CASE';
@@ -348,19 +269,6 @@ export async function nextCaseId(db, typeCode) {
 
 /* =====================================================================
    PRINT SEQUENCE GENERATION (server-enforced, cross-device unique)
-   Tracks how many times a given case's PDF summary has been downloaded,
-   as a real atomic per-case counter — mirrors nextCaseId()'s pattern, so
-   two people downloading the same case from two different devices at the
-   same moment can never receive the same sequence number. This replaces
-   an earlier implementation that tracked downloadCount purely in
-   client-side localStorage, which could not be kept unique across
-   devices/users at all.
-
-   Requires this table to exist (run once via wrangler d1 execute):
-     CREATE TABLE IF NOT EXISTS print_sequence_counter (
-       case_id TEXT PRIMARY KEY,
-       value INTEGER NOT NULL DEFAULT 0
-     );
    ===================================================================== */
 export async function nextPrintSequence(db, caseId) {
     const row = await db.prepare(
@@ -369,7 +277,7 @@ export async function nextPrintSequence(db, caseId) {
          RETURNING value`
     ).bind(caseId).first();
     if (!row || typeof row.value !== 'number') {
-        throw new Error('print_sequence_counter is not set up — run the migration (see _utils.js nextPrintSequence comment) before issuing print sequences.');
+        throw new Error('print_sequence_counter is not set up — run the migration before issuing print sequences.');
     }
     return row.value;
 }
@@ -395,6 +303,14 @@ export async function verifyUsernamePassword(db, username, password, userType) {
     return user;
 }
 
+/* =====================================================================
+   ACTIVITY LOGGING
+   ===================================================================== */
+
+/**
+ * Existing general activity logger — writes to whichever DB is passed.
+ * Used by login.js, register.js, and admin access controls (writes to env.DB).
+ */
 export async function logActivity(db, actorUsername, actorBatch, action, details) {
     try {
         await db.prepare(
@@ -402,5 +318,26 @@ export async function logActivity(db, actorUsername, actorBatch, action, details
         ).bind(actorUsername || null, actorBatch || null, action, details ? JSON.stringify(details) : null).run();
     } catch (e) {
         console.error('activity log failed', e);
+    }
+}
+
+/**
+ * NEW: Dedicated training activity logger for the Training Activities Portal.
+ * Ensures submissions, grades, and deck uploads are always logged to env.TRAINING_DB
+ * so they appear in the new Master Control Panel Activity Logs tab.
+ */
+export async function logTrainingActivity(trainingDb, actorUsername, actorBatch, actionType, description) {
+    try {
+        await trainingDb.prepare(
+            `INSERT INTO activity_log (actor_username, actor_batch, action, details, timestamp) 
+             VALUES (?, ?, ?, ?, datetime('now'))`
+        ).bind(
+            actorUsername || 'System', 
+            actorBatch || 'UNASSIGNED', 
+            actionType,                      // e.g., 'ACTIVITY_SUBMITTED', 'GRADE_RELEASED'
+            description                      // Plain text description or JSON string
+        ).run();
+    } catch (e) {
+        console.error('training activity log failed', e);
     }
 }
