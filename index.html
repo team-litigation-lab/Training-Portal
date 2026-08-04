@@ -490,53 +490,89 @@
             <div class="mc-pane active" id="admin-dash-overview">
                 <div class="admin-panel-grid">
                     <div class="admin-tile">
-                        <h4>Total Training Activities</h4>
-                        <div class="admin-stat" id="admin-stat-total-activities">12</div>
+                        <h4>Total Assigned Activities</h4>
+                        <div class="admin-stat" id="admin-stat-total-activities">0</div>
                         <div class="admin-stat-label">Active Modules Assigned</div>
                     </div>
                     <div class="admin-tile">
-                        <h4>Submissions Logged</h4>
-                        <div class="admin-stat" id="admin-stat-submissions" style="font-size:22px;">186</div>
+                        <h4>Total Submissions</h4>
+                        <div class="admin-stat" id="admin-stat-submissions" style="font-size:22px;">0</div>
                         <div class="admin-stat-label">Total Trainee Uploads</div>
                     </div>
                     <div class="admin-tile">
-                        <h4>Trainees Online Now</h4>
+                        <h4>Total Users</h4>
+                        <div class="admin-stat" id="admin-stat-total-users">0</div>
+                        <div class="admin-stat-label">Approved Admin + Trainee Accounts</div>
+                    </div>
+                    <div class="admin-tile">
+                        <h4>Online Users</h4>
                         <div class="admin-stat" id="admin-stat-online">0</div>
                         <div class="admin-stat-label">Active in the last 60 seconds</div>
                     </div>
                     <div class="admin-tile">
-                        <h4>Pending Registrations</h4>
+                        <h4>Offline Users</h4>
+                        <div class="admin-stat" id="admin-stat-offline">0</div>
+                        <div class="admin-stat-label">Approved accounts not currently active</div>
+                    </div>
+                    <div class="admin-tile">
+                        <h4>Pending Registration</h4>
                         <div class="admin-stat" id="admin-stat-pending">0</div>
                         <div class="admin-stat-label">Awaiting review</div>
+                    </div>
+                </div>
+                <div class="mc-section-title">Site-Wide Status</div>
+                <div class="admin-panel-grid">
+                    <div class="admin-tile">
+                        <h4>Activity State</h4>
+                        <div class="admin-stat" id="ov-pause-state" style="font-size:16px;">Active</div>
+                        <div class="admin-stat-label">Pause / Resume from Access Control</div>
+                    </div>
+                    <div class="admin-tile">
+                        <h4>Access State</h4>
+                        <div class="admin-stat" id="ov-lock-state" style="font-size:16px;">Unlocked</div>
+                        <div class="admin-stat-label">Lock / Unlock from Access Control</div>
+                    </div>
+                    <div class="admin-tile">
+                        <h4>Current Alert</h4>
+                        <div class="admin-stat" id="ov-alert-state" style="font-size:16px;">None Active</div>
+                        <div class="admin-stat-label">Manage from Broadcast &amp; Ping</div>
                     </div>
                 </div>
             </div>
 
             <!-- REGISTRATIONS -->
             <div class="mc-pane" id="admin-dash-registrations">
-                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Pending registrations submitted from the login screen.</p>
+                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Pending registrations submitted from the login screen. Approve to move an account into the <b>Users</b> tab and issue its Batch ID.</p>
                 <div id="registrations-list"></div>
             </div>
 
             <!-- USERS -->
             <div class="mc-pane" id="admin-dash-users">
-                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Approved accounts, segregated by Admin / Trainee.</p>
+                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">All approved accounts stored in the D1 database, segregated by Admin / Trainee. Each group is sorted by the <b>B&lt;XXXXXX&gt;</b> portion of the Batch ID. Revocation and other account-management actions remain available on each row.</p>
                 <div id="users-list"></div>
             </div>
 
             <!-- MONITORING -->
             <div class="mc-pane" id="admin-dash-monitoring">
-                <div class="mc-section-title">Trainees Online</div>
+                <div class="mc-section-title">🟢 Users Online</div>
+                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Live view of every Admin and Trainee currently signed in to this page, separated by type and sorted by the B&lt;XXXXXX&gt; portion of their Batch ID. Click a name to view their latest activity, read-only.</p>
                 <div id="monitoring-online-list"></div>
+
+                <div class="mc-section-title">🗄 Server Logs</div>
+                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Timestamped log of log-ins, log-outs, and the functions used by Admins and Trainees on this page.</p>
+                <div class="admin-tile" style="cursor:pointer;" onclick="openServerLogs()" onkeydown="if(event.key==='Enter')openServerLogs()" tabindex="0" role="button">
+                    <h4>Server Logs</h4>
+                    <p style="font-size:12px;color:var(--navy);font-weight:700;margin:0;">Click to view the full activity record &rarr;</p>
+                </div>
             </div>
 
             <!-- ACTIVITY LOGS -->
             <div class="mc-pane" id="admin-dash-activity-logs">
-                <div class="mc-section-title">Search Submissions</div>
+                <div class="mc-section-title">🔍 Search Activity Logs</div>
                 <input type="text" id="activity-logs-search" oninput="renderActivityLogs()" placeholder="Search by trainee name or activity title..." style="width:100%; padding:9px 12px; margin-bottom:16px; border-radius:6px; border:1px solid #e2e8f0; font-size:13px; outline:none;">
 
-                <div class="mc-section-title">Timestamped Activity Submission Logs</div>
-                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Complete audit trail of all assignment uploads and grading events.</p>
+                <div class="mc-section-title">📄 Timestamped Activity Logs — Most Recent First</div>
+                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Complete audit trail of activity uploads (by Admins), submissions (by Trainees), and gradings, each timestamped as they occur.</p>
                 <div id="activity-logs-list">
                     <div class="reg-row">
                         <div class="reg-info">
@@ -553,23 +589,174 @@
                 </div>
             </div>
 
-            <!-- ANNOUNCEMENTS -->
+            <!-- ANNOUNCEMENTS & ALERTS (Broadcast & Ping) -->
             <div class="mc-pane" id="admin-dash-announce">
-                <div class="mc-section-title">Announcement Banner</div>
+                <div class="mc-section-title">📢 Announcement (shows in the scrolling ticker, top bar only)</div>
                 <div class="admin-tile">
-                    <textarea id="announce-text-input" placeholder="Type the message to broadcast in the ticker..." style="width:100%;min-height:70px;padding:10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;margin-bottom:12px;"></textarea>
-                    <button class="btn-primary" onclick="makeAnnouncement()">Broadcast Announcement</button>
+                    <p id="announce-current-preview" style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:14px;">Welcome to the LSH Training Activities Portal.</p>
+                    <textarea id="announce-text-input" placeholder="Type the message to broadcast in the ticker..." style="width:100%;min-height:70px;padding:10px;border:1px solid #e2e8f0;border-radius:6px;font-family:'IBM Plex Sans',Arial,sans-serif;font-size:13px;margin-bottom:12px;"></textarea>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn-primary" style="border-radius:6px;padding:10px 16px;font-size:11px;" onclick="makeAnnouncement()">📢 Broadcast Announcement</button>
+                        <button class="btn-ghost" style="border-radius:6px;padding:10px 16px;" onclick="clearAnnouncement()">Clear Ticker</button>
+                    </div>
+                </div>
+
+                <div class="mc-section-title">⚠ Alert (covers the entire screen for every user of this page until stopped or expired)</div>
+                <div class="admin-tile">
+                    <div id="alert-status-line" style="font-size:12px; font-weight:800; color:var(--classified-red); margin-bottom:12px;">No alert is currently active.</div>
+
+                    <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;">Alert Text</label>
+                    <textarea id="alert-text-input" placeholder="Type the full-screen alert message..." style="width:100%;min-height:60px;padding:10px;border:1px solid #e2e8f0;border-radius:6px;font-family:'IBM Plex Sans',Arial,sans-serif;font-size:13px;margin:6px 0 14px;"></textarea>
+
+                    <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;">Attach Image (optional)</label>
+                    <div style="display:flex;align-items:center;gap:12px;margin:6px 0 14px;">
+                        <label class="btn-ghost" style="cursor:pointer;padding:8px 14px;border-radius:6px;font-size:10.5px;">
+                            Choose Image
+                            <input type="file" accept="image/*" class="hidden" id="alert-image-input" onchange="previewAlertImage(this)">
+                        </label>
+                        <img id="alert-image-preview" style="display:none;height:44px;border-radius:6px;">
+                        <button class="btn-ghost" style="border-radius:6px;padding:8px 14px;font-size:10.5px;" onclick="clearAlertImage()">Remove Image</button>
+                    </div>
+
+                    <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;">Background Color</label>
+                    <div class="swatch-row" id="alert-bg-swatches" style="margin-top:6px;"></div>
+                    <input type="color" id="alert-bg-color" value="#b91c1c" style="width:60px;height:32px;border:none;border-radius:6px;cursor:pointer;margin-bottom:14px;">
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                        <div>
+                            <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;">Duration</label><br>
+                            <select id="alert-duration-select" style="width:100%;padding:9px;border-radius:6px;border:1px solid #e2e8f0;font-size:12px;margin-top:6px;">
+                                <option value="0">Until manually stopped</option>
+                                <option value="15">15 seconds</option>
+                                <option value="30">30 seconds</option>
+                                <option value="60">1 minute</option>
+                                <option value="300">5 minutes</option>
+                                <option value="900">15 minutes</option>
+                                <option value="3600">1 hour</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;">Set Alert Time (optional — leave blank to fire immediately)</label><br>
+                            <input type="datetime-local" id="alert-schedule-input" style="width:100%;padding:8px;border-radius:6px;border:1px solid #e2e8f0;font-size:12px;margin-top:6px;">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn-primary" style="background:var(--classified-red);color:white;border-radius:6px;padding:10px 16px;font-size:11px;" onclick="setAlert()">⚠ Set Alert</button>
+                        <button class="btn-ghost" style="border-radius:6px;padding:10px 16px;" onclick="stopAlert()">⏹ Stop / Cancel Alert</button>
+                    </div>
+                </div>
+
+                <div class="mc-section-title">📣 Ping (instant toast notification with a loud, distinct alert tone)</div>
+                <div class="admin-tile">
+                    <p style="font-size:11px;color:#64748b;margin-bottom:12px;">Sends an instant on-screen notification to one user or to everyone currently on this page. It uses its own louder, longer alert tone (not the login-confirmation sound) so it actually gets noticed, and shows who it's from — no full-screen takeover, no ticker change, just a quick attention-getter.</p>
+
+                    <div style="display:flex; gap:8px; margin-bottom:12px;">
+                        <button type="button" class="mini-btn" id="ping-mode-single-btn" style="background:var(--navy);color:white;padding:8px 14px;" onclick="setPingMode('single')">👤 Specific User(s)</button>
+                        <button type="button" class="mini-btn" id="ping-mode-all-btn" style="background:#94a3b8;color:white;padding:8px 14px;" onclick="setPingMode('all')">📢 All Users</button>
+                    </div>
+
+                    <div id="ping-user-row" style="margin-bottom:12px;">
+                        <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;">Recipient(s)</label><br>
+                        <div id="ping-user-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
+                        <div style="position:relative;">
+                            <input type="text" id="ping-user-search" placeholder="Search by name, username, batch ID, or type…" autocomplete="off"
+                                style="width:100%;padding:9px;border-radius:6px;border:1px solid #e2e8f0;font-size:12px;margin-top:6px;"
+                                oninput="filterPingUserList()" onfocus="openPingUserList()"
+                                onkeydown="if(event.key==='Escape'){closePingUserList();this.blur();}">
+                            <input type="hidden" id="ping-user-select" value="">
+                            <div id="ping-user-list" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:230px;overflow-y:auto;background:white;border:1px solid #e2e8f0;border-radius:6px;box-shadow:0 10px 26px rgba(0,0,0,0.14);z-index:80;margin-top:4px;"></div>
+                        </div>
+                        <div style="font-size:10px;color:#94a3b8;margin-top:4px;">Click a name to toggle it &middot; click outside or press Esc to close the list</div>
+                    </div>
+
+                    <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;">Message</label>
+                    <textarea id="ping-text-input" placeholder="Type the ping message..." style="width:100%;min-height:56px;padding:10px;border:1px solid #e2e8f0;border-radius:6px;font-family:'IBM Plex Sans',Arial,sans-serif;font-size:13px;margin:6px 0 14px;"></textarea>
+
+                    <button class="btn-primary" style="border-radius:6px;padding:10px 16px;font-size:11px;" onclick="sendPing()">📣 Send Ping</button>
                 </div>
             </div>
 
-            <!-- ACCESS CONTROL -->
+            <!-- ACCESS CONTROL (Pause vs Lock) -->
             <div class="mc-pane" id="admin-dash-access">
-                <div class="mc-section-title">Pause Activity</div>
+                <div class="mc-section-title">⏸ Pause Activity (this page only, no logout, resumable)</div>
                 <div class="admin-tile">
-                    <button class="btn-primary" id="pause-toggle-btn" onclick="togglePause()">Pause All Activity</button>
+                    <p style="font-size:11px; color:#64748b; margin-bottom:10px;">Pausing freezes activity for every user currently connected to this page. Nobody is logged out and no progress is lost — when you Resume, everyone continues exactly where they left off.</p>
+                    <div style="font-size:12px;font-weight:800;margin-bottom:10px;">Current state: <span id="pause-state-label" style="color:var(--classified-red);">Active (not paused)</span></div>
+                    <button class="btn-primary" id="pause-toggle-btn" style="border-radius:6px;padding:10px 16px;font-size:11px;" onclick="togglePause()">⏸ Pause All Activity</button>
+                </div>
+
+                <div class="mc-section-title">🔒 Lock Access (this page only, forces logout, requires unlock)</div>
+                <div class="admin-tile">
+                    <p style="font-size:11px; color:#64748b; margin-bottom:10px;">Locking immediately signs out every user of this page and blocks the page entirely until an administrator unlocks it again. This requires Batch ID + password confirmation before it takes effect.</p>
+                    <div style="font-size:12px;font-weight:800;margin-bottom:10px;">Current state: <span id="lock-state-label" style="color:#166534;">Unlocked</span></div>
+                    <button class="btn-primary" style="background:var(--classified-red);color:white;border-radius:6px;padding:10px 16px;font-size:11px;" onclick="openLockConfirm()">🔒 Lock This Page</button>
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- ===== LOCK CONFIRMATION MODAL (required to engage Lock) ===== -->
+    <div class="modal-overlay no-print" id="lock-confirm-modal" style="z-index:2900;">
+        <div class="modal-box">
+            <h2 class="serif">🔒 Confirm Page Lock</h2>
+            <div class="sub mono">Administrator Verification Required</div>
+            <p style="font-size:12px; color:#475569; margin-bottom:14px; line-height:1.5;">
+                Locking will immediately log out every user of this page and block access until unlocked. Enter your admin Batch ID and password to confirm.
+            </p>
+            <div id="lock-confirm-error" style="display:none;color:var(--classified-red);font-size:11px;font-weight:700;margin-bottom:8px;">Batch ID / password did not match an administrator record.</div>
+            <label>Batch ID</label>
+            <input type="text" id="lock-confirm-batchid" autocomplete="off" placeholder="Your admin Batch ID" class="mono">
+            <label>Password</label>
+            <input type="password" id="lock-confirm-password" autocomplete="off" placeholder="Your password">
+            <div class="modal-btn-row">
+                <button class="btn-ghost" onclick="closeLockConfirm()">Cancel</button>
+                <button class="btn-primary" style="background:var(--classified-red);color:white;" onclick="confirmLock()">Confirm &amp; Lock</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PAUSE OVERLAY (page frozen, nobody logged out) ===== -->
+    <div id="pause-overlay">
+        <div style="font-size:40px;">⏸</div>
+        <h2 class="serif" style="margin:14px 0 4px;">Activity Paused by Administrator</h2>
+        <p class="mono" style="font-size:11px; color:#cbd5e1; max-width:360px;">Your session and progress are safe. This screen will disappear automatically the moment an administrator resumes activity.</p>
+    </div>
+
+    <!-- ===== ALERT OVERLAY (full-screen, separate from ticker announcement) ===== -->
+    <div id="alert-overlay">
+        <div class="alert-box">
+            <span class="alert-tag">⚠ ALERT</span>
+            <img id="alert-overlay-image" class="alert-image" style="display:none;">
+            <div class="alert-text" id="alert-overlay-text"></div>
+            <button class="alert-dismiss" onclick="dismissAlertLocally()">Dismiss</button>
+        </div>
+    </div>
+
+    <!-- ===== LOCK SCREEN ===== -->
+    <div id="lock-overlay">
+        <div style="font-size:40px;">🔒</div>
+        <h2 class="serif" style="margin:14px 0 4px;">Page Locked by Administrator</h2>
+        <div id="lock-locked-by">Locked By: Batch ID —</div>
+        <p class="mono" style="font-size:11px; color:#94a3b8; margin-bottom:20px;">Enter administrator credentials to resume access.</p>
+        <div style="width:300px;">
+            <input type="text" id="unlock-user" placeholder="Username" style="width:100%;padding:10px;margin-bottom:8px;border-radius:6px;border:none;font-family:'IBM Plex Mono', 'Courier New', monospace;background:#ffffff;color:#0f172a;">
+            <input type="password" id="unlock-pass" placeholder="Password" style="width:100%;padding:10px;margin-bottom:12px;border-radius:6px;border:none;font-family:'IBM Plex Mono', 'Courier New', monospace;background:#ffffff;color:#0f172a;">
+            <div id="unlock-error" style="display:none;color:#f87171;font-size:11px;margin-bottom:8px;">Invalid credentials.</div>
+            <button class="btn-primary" style="width:100%;padding:10px;border-radius:6px;" onclick="attemptUnlock()">Unlock Page</button>
+        </div>
+    </div>
+
+    <!-- ===== SERVER LOGS MODAL (Admin > Monitoring > Server Logs) ===== -->
+    <div class="modal-overlay no-print" id="server-logs-modal" style="z-index:2960;">
+        <div class="modal-box wide" style="max-height:80vh; display:flex; flex-direction:column;">
+            <h2 class="serif">Server Logs</h2>
+            <div class="sub mono">Log-ins, log-outs, pauses, pings, locks &amp; revocations — this page only</div>
+            <div id="server-logs-list" style="overflow-y:auto; flex:1;"></div>
+            <div class="modal-btn-row">
+                <button class="btn-ghost" onclick="closeServerLogs()">Close</button>
+            </div>
         </div>
     </div>
 
