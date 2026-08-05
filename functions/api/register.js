@@ -58,7 +58,7 @@ export async function onRequestPost({ request, env }) {
             first_name, mi, last_name, suffix, full_name,
             email, user_type, batch_id, username, password, status, training_start_date
          )
-         VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, 'Pending', ?)`
+         VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 'Pending', ?)`
     ).bind(
         firstName, mi || null, lastName, suffix || null, fullName,
         email, userType, username, hashedPassword, normalizedTrainingStartDate
