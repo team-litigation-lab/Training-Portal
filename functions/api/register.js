@@ -51,16 +51,15 @@ export async function onRequestPost({ request, env }) {
     }
 
     const hashedPassword = await hashPassword(password);
-    const fullName = [firstName, mi ? mi + '.' : '', lastName, suffix].filter(Boolean).join(' ');
 
     await db.prepare(
         `INSERT INTO users (
-            first_name, mi, last_name, suffix, full_name,
+            first_name, mi, last_name, suffix,
             email, user_type, batch_id, username, password, status, training_start_date
          )
-         VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 'Pending', ?)`
+         VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, 'Pending', ?)`
     ).bind(
-        firstName, mi || null, lastName, suffix || null, fullName,
+        firstName, mi || null, lastName, suffix || null,
         email, userType, username, hashedPassword, normalizedTrainingStartDate
     ).run();
 
