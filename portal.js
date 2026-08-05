@@ -2,6 +2,20 @@
 // PUBLIC PORTAL: REGISTRATION + LOGIN (Cloudflare API backed)
 // ==========================================
 
+function showRegisterView() {
+    const loginView = document.getElementById('auth-login-view');
+    const registerView = document.getElementById('auth-register-view');
+    if (loginView) loginView.classList.add('hidden');
+    if (registerView) registerView.classList.remove('hidden');
+}
+
+function showLoginView() {
+    const loginView = document.getElementById('auth-login-view');
+    const registerView = document.getElementById('auth-register-view');
+    if (registerView) registerView.classList.add('hidden');
+    if (loginView) loginView.classList.remove('hidden');
+}
+
 let currentPortalMode = "Trainee";
 function switchPortalTab(mode) {
     currentPortalMode = mode;
