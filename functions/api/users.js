@@ -1,4 +1,4 @@
-import { json, requireSession } from '../_utils.js';
+import { json, requireSession, buildFullName } from '../_utils.js';
 
 export async function onRequestGet({ request, env }) {
     // Requires an authenticated Admin session
@@ -9,7 +9,7 @@ export async function onRequestGet({ request, env }) {
         // Fetch all accounts from env.DB, excluding passwords
         const { results } = await env.DB.prepare(`
             SELECT 
-                id, first_name, mi, last_name, suffix, full_name,
+                id, first_name, mi, last_name, suffix,
                 email, user_type, batch_id, username, status,
                 training_start_date, created_at
             FROM users 
@@ -19,7 +19,7 @@ export async function onRequestGet({ request, env }) {
         // Format names cleanly for frontend grouping
         const formattedUsers = (results || []).map(u => ({
             ...u,
-            fullName: u.full_name || `${u.first_name || ''} ${u.last_name || ''}`.trim(),
+            fullName: buildFullName(u),
             userType: u.user_type || 'Trainee',
             batchId: u.batch_id || 'UNASSIGNED',
             trainingStartDate: u.training_start_date || null
