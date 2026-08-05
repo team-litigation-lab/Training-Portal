@@ -161,6 +161,7 @@ function openAdminDashboard() {
     const session = getSession();
     if (!session || session.userType !== 'Admin') return;
     document.getElementById('master-control-page').classList.add('open');
+    loadUsersData();
 }
 function exitMasterControl() {
     document.getElementById('master-control-page').classList.remove('open');
@@ -171,7 +172,157 @@ function showAdminDashTab(tab) {
     document.querySelectorAll('.mc-pane').forEach(p => p.classList.remove('active'));
     const pane = document.getElementById('admin-dash-' + tab);
     if (pane) pane.classList.add('active');
+    if (tab === 'registrations' || tab === 'users') loadUsersData();
 }
+
+// =========================================================
+// 3b. REGISTRATIONS & USERS (Master Control: fetch, render, actions)
+// =========================================================
+let __usersCache = [];
+
+async function loadUsersData() {
+    try {
+        const res = await fetch('/api/users', { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok || data.success === false) {
+            showToast((data && data.error) || 'Failed to load user data.', 'error');
+            return;
+        }
+        __usersCache = Array.isArray(data) ? data : [];
+        renderRegistrations();
+        renderUsersList();
+        updateUserStats();
+    } catch (e) {
+        console.error('loadUsersData failed', e);
+        showToast('Network error while loading users.', 'error');
+    }
+}
+
+function updateUserStats() {
+    const pending = __usersCache.filter(u => u.status === 'Pending').length;
+    const approvedCount = __usersCache.filter(u => u.status === 'Approved').length;
+
+    const badge = document.getElementById('reg-pending-badge');
+    if (badge) badge.textContent = pending > 0 ? pending : '';
+
+    const statPending = document.getElementById('admin-stat-pending');
+    if (statPending) statPending.textContent = pending;
+
+    const statTotal = document.getElementById('admin-stat-total-users');
+    if (statTotal) statTotal.textContent = approvedCount;
+}
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function renderRegistrations() {
+    const container = document.getElementById('registrations-list');
+    if (!container) return;
+
+    const pending = __usersCache
+        .filter(u => u.status === 'Pending')
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+    if (pending.length === 0) {
+        container.innerHTML = `<p style="font-size:12px;color:#94a3b8;">No pending registrations.</p>`;
+        return;
+    }
+
+    container.innerHTML = pending.map(u => `
+        <div class="admin-tile" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;text-align:left;">
+            <div>
+                <div style="font-weight:800;font-size:13px;color:var(--navy);">
+                    ${escapeHtml(u.fullName)}
+                    <span style="font-weight:600;color:#64748b;font-size:11px;">(${escapeHtml(u.userType)})</span>
+                </div>
+                <div style="font-size:11px;color:#64748b;margin-top:2px;">${escapeHtml(u.username)} &middot; ${escapeHtml(u.email || '')}</div>
+                ${u.trainingStartDate ? `<div style="font-size:11px;color:#64748b;">Training start: ${escapeHtml(u.trainingStartDate)}</div>` : ''}
+            </div>
+            <div style="display:flex;gap:8px;flex-shrink:0;">
+                <button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="approveRegistration(${u.id})">Approve</button>
+                <button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;color:var(--classified-red);border-color:var(--classified-red);" onclick="rejectRegistration(${u.id})">Reject</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderUsersList() {
+    const container = document.getElementById('users-list');
+    if (!container) return;
+
+    const visible = __usersCache.filter(u => u.status === 'Approved' || u.status === 'Suspended');
+    if (visible.length === 0) {
+        container.innerHTML = `<p style="font-size:12px;color:#94a3b8;">No accounts yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = ['Admin', 'Trainee'].map(type => {
+        const rows = visible
+            .filter(u => u.userType === type)
+            .sort((a, b) => String(a.batchId).localeCompare(String(b.batchId)));
+        if (rows.length === 0) return '';
+        return `
+            <div class="mc-section-title">${type} Accounts</div>
+            ${rows.map(renderUserRow).join('')}
+        `;
+    }).join('');
+}
+
+function renderUserRow(u) {
+    const isSuspended = u.status === 'Suspended';
+    const statusColor = isSuspended ? 'var(--classified-red)' : '#059669';
+    const safeName = escapeHtml(u.fullName).replace(/'/g, "\\'");
+    return `
+        <div class="admin-tile" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;text-align:left;">
+            <div>
+                <div style="font-weight:800;font-size:13px;color:var(--navy);">
+                    ${escapeHtml(u.fullName)}
+                    <span style="font-weight:700;font-size:10px;color:${statusColor};border:1px solid ${statusColor};border-radius:4px;padding:1px 6px;margin-left:6px;">${escapeHtml(u.status)}</span>
+                </div>
+                <div style="font-size:11px;color:#64748b;margin-top:2px;">${escapeHtml(u.batchId)} &middot; ${escapeHtml(u.username)} &middot; ${escapeHtml(u.email || '')}</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-shrink:0;">
+                ${isSuspended
+                    ? `<button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="reactivateUser(${u.id})">Reactivate</button>`
+                    : `<button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="suspendUser(${u.id})">Suspend</button>`
+                }
+                <button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;color:var(--classified-red);border-color:var(--classified-red);" onclick="revokeUser(${u.id}, '${safeName}')">Revoke</button>
+            </div>
+        </div>
+    `;
+}
+
+async function performUserAction(id, action, confirmMessage) {
+    if (confirmMessage && !confirm(confirmMessage)) return;
+    try {
+        const res = await fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ id, action })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+            showToast((data && data.error) || 'Action failed.', 'error');
+            return;
+        }
+        showToast(data.message || 'Done.', 'success');
+        loadUsersData();
+    } catch (e) {
+        console.error('performUserAction failed', e);
+        showToast('Network error. Action not completed.', 'error');
+    }
+}
+
+function approveRegistration(id) { performUserAction(id, 'approve'); }
+function rejectRegistration(id) { performUserAction(id, 'reject', 'Reject this registration? The applicant will need to re-register.'); }
+function suspendUser(id) { performUserAction(id, 'suspend', 'Suspend this account? The user will be signed out and unable to log back in until reactivated.'); }
+function reactivateUser(id) { performUserAction(id, 'reactivate'); }
+function revokeUser(id, name) { performUserAction(id, 'revoke', `Permanently revoke ${name}'s account? This cannot be undone \u2014 they will need to submit a brand-new registration.`); }
 
 // 4. MODALS (ACTIVITIES, LECTURES, SUBMISSIONS)
 function closeModals() {
