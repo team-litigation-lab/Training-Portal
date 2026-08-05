@@ -50,6 +50,8 @@ export async function onRequestDelete({ request, env }) {
     try {
         const url = new URL(request.url);
         const id = url.searchParams.get('id');
+        if (!id) return json({ success: false, error: "Lecture ID is required." }, 400);
+
         await env.TRAINING_DB.prepare("DELETE FROM lectures WHERE id = ?").bind(id).run();
         return json({ success: true });
     } catch (err) {
