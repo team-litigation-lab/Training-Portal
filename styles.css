@@ -557,3 +557,10 @@
     }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+    /* Sidebar panel default layout + guaranteed hide state.
+       !important on the hidden state ensures it always wins even if
+       JS sets an inline style on these elements, so the trainee and
+       admin sidebars can never both render at the same time. */
+    .custom-sidebar-panel { display: flex; }
+    .custom-sidebar-panel.hidden { display: none !important; }
