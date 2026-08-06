@@ -135,25 +135,7 @@
                         <span class="text-xs font-bold text-slate-500 uppercase">Organized by Training Day</span>
                     </div>
                     <div id="trainee-days-accordion" class="space-y-4">
-                        <div class="pdf-card border-l-4 border-navy">
-                            <div class="section-head">Day 1: Introduction to Legal Documentation &amp; Intake</div>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center p-3 bg-slate-50 rounded border">
-                                    <div>
-                                        <span class="text-xs font-bold text-navy block">Lesson Deck 1.1: Standard Case Anatomy</span>
-                                        <span class="text-[10px] text-slate-500">Uploaded by Admin · PDF Study Deck</span>
-                                    </div>
-                                    <button class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1 rounded text-xs font-bold uppercase">View Deck</button>
-                                </div>
-                                <div class="flex justify-between items-center p-3 bg-slate-50 rounded border">
-                                    <div>
-                                        <span class="text-xs font-bold text-navy block">Activity 1.1: Client Intake Form Extraction</span>
-                                        <span class="text-[10px] text-orange-600 font-bold">Due: Today, 5:00 PM</span>
-                                    </div>
-                                    <button onclick="submitActivityModal('Activity 1.1: Client Intake Form Extraction')" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-xs font-bold uppercase">Submit Activity</button>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="text-xs text-slate-500 p-4">Loading decks &amp; activities...</div>
                     </div>
                 </div>
 
@@ -250,18 +232,7 @@
                         <button onclick="openAddActivityModal()" class="add-btn">+ Add Activity and Lesson Deck</button>
                     </div>
                     <div id="admin-days-accordion" class="space-y-4">
-                        <div class="pdf-card border-l-4 border-navy">
-                            <div class="section-head">Day 1: Introduction to Legal Documentation &amp; Intake</div>
-                            <div class="space-y-3" id="admin-day-1-list">
-                                <div class="flex justify-between items-center p-3 bg-slate-50 rounded border">
-                                    <div>
-                                        <span class="text-xs font-bold text-navy block">Activity 1.1: Client Intake Form Extraction</span>
-                                        <span class="text-[10px] text-slate-500">Day 1 · Uploaded on 08/01/2026</span>
-                                    </div>
-                                    <button class="text-red-500 hover:text-red-700 font-bold text-xs uppercase">Remove</button>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="text-xs text-slate-500 p-4">Loading decks &amp; activities...</div>
                     </div>
                 </div>
 
@@ -716,6 +687,109 @@
             <div class="modal-btn-row">
                 <button class="btn-ghost" onclick="closeServerLogs()">Close</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ===== LESSON DECK VIEWER (Draggable, View-Only PPTX Pane) ===== -->
+    <style>
+        #deck-viewer-pane {
+            position: fixed;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 820px;
+            max-width: calc(100vw - 40px);
+            height: 600px;
+            max-height: calc(100vh - 120px);
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+            display: none;
+            flex-direction: column;
+            z-index: 3000;
+            overflow: hidden;
+            resize: both;
+            min-width: 420px;
+            min-height: 320px;
+        }
+        #deck-viewer-pane.open { display: flex; }
+        #deck-viewer-header {
+            background: var(--navy-deep, #0f172a);
+            color: #fff;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: move;
+            user-select: none;
+            flex-shrink: 0;
+            border-bottom: 2px solid var(--classified-red, #dc2626);
+        }
+        #deck-viewer-title {
+            font-family: 'IBM Plex Sans', Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 12px;
+        }
+        #deck-viewer-close {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.4);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-radius: 5px;
+            padding: 4px 10px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        #deck-viewer-close:hover { background: var(--classified-red, #dc2626); border-color: var(--classified-red, #dc2626); }
+        #deck-viewer-body {
+            flex: 1;
+            position: relative;
+            background: #f1f5f9;
+        }
+        #deck-viewer-body iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        #deck-viewer-watermark {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            font-family: 'IBM Plex Mono', 'Courier New', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--classified-red, #dc2626);
+            background: rgba(255,255,255,0.85);
+            padding: 2px 8px;
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 2;
+        }
+        #deck-viewer-fallback {
+            padding: 40px 24px;
+            text-align: center;
+            font-family: 'IBM Plex Sans', Arial, sans-serif;
+            font-size: 12px;
+            color: #64748b;
+        }
+    </style>
+    <div id="deck-viewer-pane" class="no-print">
+        <div id="deck-viewer-header">
+            <span id="deck-viewer-title">Lesson Deck</span>
+            <button id="deck-viewer-close" onclick="closeDeckViewer()">✕ Close</button>
+        </div>
+        <div id="deck-viewer-body">
+            <span id="deck-viewer-watermark">VIEW ONLY</span>
+            <div id="deck-viewer-frame-holder"></div>
         </div>
     </div>
 
