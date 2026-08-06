@@ -61,7 +61,6 @@ function applySessionUI() {
 
     if (session.userType === 'Admin') {
         adminSidebar.classList.remove('hidden');
-        adminSidebar.style.display = 'flex';
         traineeSidebar.classList.add('hidden');
         document.getElementById('session-footer-admin').innerHTML = `
             <div class="session-user-tag text-center text-xs text-slate-400 mb-2 font-mono">Signed in as: <b class="text-white">${session.fullName || session.username}</b></div>
@@ -71,7 +70,6 @@ function applySessionUI() {
         switchView('admin-landing');
     } else {
         traineeSidebar.classList.remove('hidden');
-        traineeSidebar.style.display = 'flex';
         adminSidebar.classList.add('hidden');
         document.getElementById('session-footer-trainee').innerHTML = `
             <div class="session-user-tag text-center text-xs text-slate-400 mb-2 font-mono">Signed in as: <b class="text-white">${session.fullName || session.username}</b></div>
