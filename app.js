@@ -38,6 +38,10 @@ function switchView(viewId) {
         navBtn.classList.remove('text-slate-300');
         navBtn.classList.add('bg-slate-800', 'text-orange-400');
     }
+
+    if (viewId === 'admin-activities' || viewId === 'trainee-activities') {
+        loadActivitiesData();
+    }
 }
 
 // 2. SESSION & UI BOOTSTRAP
@@ -379,8 +383,268 @@ function openGradeModal(traineeName, activityTitle) {
     document.getElementById('modal-grade-submission').classList.add('open');
 }
 
+// ACTIVITIES & LESSON DECKS (backed by /api/activities)
+async function loadActivitiesData() {
+    const adminContainer = document.getElementById('admin-days-accordion');
+    const traineeContainer = document.getElementById('trainee-days-accordion');
+    if (!adminContainer && !traineeContainer) return;
+
+    try {
+        const res = await fetch('/api/activities', { credentials: 'include' });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed to load activities.');
+        if (adminContainer) renderAdminActivities(data.activities);
+        if (traineeContainer) renderTraineeActivities(data.activities);
+    } catch (e) {
+        const msg = `<div class="text-xs text-red-500 p-4">Failed to load: ${escapeHtml(e.message)}</div>`;
+        if (adminContainer) adminContainer.innerHTML = msg;
+        if (traineeContainer) traineeContainer.innerHTML = msg;
+    }
+}
+
+function renderAdminActivities(activities) {
+    const container = document.getElementById('admin-days-accordion');
+    if (!container) return;
+
+    if (!activities || activities.length === 0) {
+        container.innerHTML = `<div class="text-xs text-slate-500 p-4">No activities or lesson decks added yet.</div>`;
+        return;
+    }
+
+    // Group by day_label, preserving the order the API returned (already sorted by day_label, created_at)
+    const groups = new Map();
+    activities.forEach(a => {
+        if (!groups.has(a.day_label)) groups.set(a.day_label, []);
+        groups.get(a.day_label).push(a);
+    });
+
+    let html = '';
+    for (const [day, items] of groups) {
+        html += `
+            <div class="pdf-card border-l-4 border-navy">
+                <div class="section-head">${escapeHtml(day)}</div>
+                <div class="space-y-3">
+                    ${items.map(item => `
+                        <div class="flex justify-between items-center p-3 bg-slate-50 rounded border">
+                            <div>
+                                <span class="text-xs font-bold text-navy block">${escapeHtml(item.title)}</span>
+                                <span class="text-[10px] text-slate-500">${escapeHtml(item.type === 'Deck' ? 'Lesson Deck' : 'Activity')} &middot; Uploaded on ${formatDate(item.created_at)}</span>
+                            </div>
+                            <button class="text-red-500 hover:text-red-700 font-bold text-xs uppercase" onclick="deleteActivity(${item.id})">Remove</button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+}
+
+function renderTraineeActivities(activities) {
+    const container = document.getElementById('trainee-days-accordion');
+    if (!container) return;
+
+    if (!activities || activities.length === 0) {
+        container.innerHTML = `<div class="text-xs text-slate-500 p-4">No activities or lesson decks have been posted yet.</div>`;
+        return;
+    }
+
+    const groups = new Map();
+    activities.forEach(a => {
+        if (!groups.has(a.day_label)) groups.set(a.day_label, []);
+        groups.get(a.day_label).push(a);
+    });
+
+    let html = '';
+    for (const [day, items] of groups) {
+        html += `
+            <div class="pdf-card border-l-4 border-navy">
+                <div class="section-head">${escapeHtml(day)}</div>
+                <div class="space-y-3">
+                    ${items.map(item => {
+                        if (item.type === 'Deck') {
+                            return `
+                                <div class="flex justify-between items-center p-3 bg-slate-50 rounded border">
+                                    <div>
+                                        <span class="text-xs font-bold text-navy block">${escapeHtml(item.title)}</span>
+                                        <span class="text-[10px] text-slate-500">Uploaded by Admin &middot; PDF Study Deck</span>
+                                    </div>
+                                    <button class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1 rounded text-xs font-bold uppercase" onclick="viewDeck(${item.id}, '${escapeJs(item.title)}', '${escapeJs(item.file_url || '')}')">View Deck</button>
+                                </div>
+                            `;
+                        }
+                        return `
+                            <div class="flex justify-between items-center p-3 bg-slate-50 rounded border">
+                                <div>
+                                    <span class="text-xs font-bold text-navy block">${escapeHtml(item.title)}</span>
+                                    <span class="text-[10px] text-orange-600 font-bold">Posted ${formatDate(item.created_at)}</span>
+                                </div>
+                                <button onclick="submitActivityModal('${escapeJs(item.title)}')" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-xs font-bold uppercase">Submit Activity</button>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+}
+
+function escapeJs(str) {
+    return String(str == null ? '' : str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+// ===== LESSON DECK VIEWER (draggable, view-only PPTX pane) =====
+function getDeckEmbedUrl(fileUrl) {
+    if (!fileUrl) return null;
+    const driveMatch = fileUrl.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    if (driveMatch) {
+        return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+    }
+    if (/^https?:\/\//i.test(fileUrl) && /\.(pptx|ppt)(\?|$)/i.test(fileUrl)) {
+        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+    }
+    return null; // unrecognized format, fall back to a link
+}
+
+function viewDeck(id, title, fileUrl) {
+    const pane = document.getElementById('deck-viewer-pane');
+    const titleEl = document.getElementById('deck-viewer-title');
+    const holder = document.getElementById('deck-viewer-frame-holder');
+
+    titleEl.textContent = title || 'Lesson Deck';
+
+    const embedUrl = getDeckEmbedUrl(fileUrl);
+    if (embedUrl) {
+        holder.innerHTML = `<iframe src="${embedUrl}" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups"></iframe>`;
+    } else if (fileUrl) {
+        holder.innerHTML = `<div id="deck-viewer-fallback">This deck's file link can't be previewed inline.<br><a href="${fileUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--navy);font-weight:700;">Open in a new tab &rarr;</a></div>`;
+    } else {
+        holder.innerHTML = `<div id="deck-viewer-fallback">No file has been attached to this lesson deck yet.</div>`;
+    }
+
+    // Reset position/size each time it's opened
+    pane.style.top = '90px';
+    pane.style.left = '50%';
+    pane.style.transform = 'translateX(-50%)';
+    pane.style.width = '820px';
+    pane.style.height = '600px';
+
+    pane.classList.add('open');
+}
+
+function closeDeckViewer() {
+    const pane = document.getElementById('deck-viewer-pane');
+    pane.classList.remove('open');
+    document.getElementById('deck-viewer-frame-holder').innerHTML = '';
+}
+
+// Drag support for the deck viewer pane (mouse + touch)
+(function initDeckViewerDrag() {
+    document.addEventListener('DOMContentLoaded', () => {
+        const pane = document.getElementById('deck-viewer-pane');
+        const header = document.getElementById('deck-viewer-header');
+        if (!pane || !header) return;
+
+        let dragging = false;
+        let offsetX = 0, offsetY = 0;
+
+        function startDrag(clientX, clientY) {
+            const rect = pane.getBoundingClientRect();
+            // Switch from centered transform to absolute top/left so dragging works predictably
+            pane.style.transform = 'none';
+            pane.style.left = rect.left + 'px';
+            pane.style.top = rect.top + 'px';
+            offsetX = clientX - rect.left;
+            offsetY = clientY - rect.top;
+            dragging = true;
+        }
+
+        function moveDrag(clientX, clientY) {
+            if (!dragging) return;
+            const maxLeft = window.innerWidth - 60;
+            const maxTop = window.innerHeight - 40;
+            let newLeft = clientX - offsetX;
+            let newTop = clientY - offsetY;
+            newLeft = Math.max(-pane.offsetWidth + 120, Math.min(newLeft, maxLeft));
+            newTop = Math.max(0, Math.min(newTop, maxTop));
+            pane.style.left = newLeft + 'px';
+            pane.style.top = newTop + 'px';
+        }
+
+        function endDrag() { dragging = false; }
+
+        header.addEventListener('mousedown', (e) => {
+            if (e.target.id === 'deck-viewer-close') return;
+            startDrag(e.clientX, e.clientY);
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
+        document.addEventListener('mouseup', endDrag);
+
+        header.addEventListener('touchstart', (e) => {
+            if (e.target.id === 'deck-viewer-close') return;
+            const t = e.touches[0];
+            startDrag(t.clientX, t.clientY);
+        }, { passive: true });
+        document.addEventListener('touchmove', (e) => {
+            if (!dragging) return;
+            const t = e.touches[0];
+            moveDrag(t.clientX, t.clientY);
+        }, { passive: true });
+        document.addEventListener('touchend', endDrag);
+    });
+})();
+
+function formatDate(isoString) {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    if (isNaN(d)) return escapeHtml(isoString);
+    return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+}
+
+async function saveNewActivity() {
+    const title = document.getElementById('act-title-input').value.trim();
+    const dayLabel = document.getElementById('act-day-input').value;
+    const type = document.getElementById('act-type-input').value;
+    const fileUrl = document.getElementById('act-file-input').value.trim();
+
+    if (!title) {
+        showToast('Title is required.', 'error');
+        return;
+    }
+
+    try {
+        await postJson('/api/activities', { title, dayLabel, type, fileUrl });
+        closeModals();
+        document.getElementById('act-title-input').value = '';
+        document.getElementById('act-file-input').value = '';
+        showToast('Activity / Deck uploaded successfully!', 'success');
+        loadActivitiesData();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+async function deleteActivity(id) {
+    if (!confirm('Remove this activity / lesson deck?')) return;
+    try {
+        const res = await fetch(`/api/activities?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || !data.success) {
+            throw new Error((data && data.error) || 'Failed to remove.');
+        }
+        showToast('Removed.', 'success');
+        loadActivitiesData();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
 // Placeholder Actions for Backend Attachment
-function saveNewActivity() { closeModals(); alert("Activity / Deck uploaded successfully!"); }
 function saveNewLecture() { closeModals(); alert("Lecture embed added successfully!"); }
 function confirmSubmission() { closeModals(); alert("Assignment submitted successfully!"); }
 function releaseGrade() { closeModals(); alert("Grade released to trainee!"); }
