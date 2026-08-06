@@ -296,33 +296,75 @@ function renderUserRow(u) {
     `;
 }
 
-async function performUserAction(id, action, confirmMessage) {
-    if (confirmMessage && !confirm(confirmMessage)) return;
+// Three dedicated endpoints, matching the backend's split: update-status.js
+// (Approve/Reject a pending registration), update-access.js (Suspend/
+// Reactivate an existing account), and revoke-user.js (permanent, one-way).
+async function postJson(endpoint, payload) {
+    const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data || !data.success) {
+        throw new Error((data && data.error) || 'Action failed.');
+    }
+    return data;
+}
+
+async function approveRegistration(id) {
     try {
-        const res = await fetch('/api/users', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ id, action })
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-            showToast((data && data.error) || 'Action failed.', 'error');
-            return;
-        }
-        showToast(data.message || 'Done.', 'success');
+        const data = await postJson('/api/update-status', { userId: id, newStatus: 'Approved' });
+        showToast(data.batchId ? `Approved. Batch ID ${data.batchId} assigned.` : 'Registration approved.', 'success');
         loadUsersData();
     } catch (e) {
-        console.error('performUserAction failed', e);
-        showToast('Network error. Action not completed.', 'error');
+        showToast(e.message, 'error');
     }
 }
 
-function approveRegistration(id) { performUserAction(id, 'approve'); }
-function rejectRegistration(id) { performUserAction(id, 'reject', 'Reject this registration? The applicant will need to re-register.'); }
-function suspendUser(id) { performUserAction(id, 'suspend', 'Suspend this account? The user will be signed out and unable to log back in until reactivated.'); }
-function reactivateUser(id) { performUserAction(id, 'reactivate'); }
-function revokeUser(id, name) { performUserAction(id, 'revoke', `Permanently revoke ${name}'s account? This cannot be undone \u2014 they will need to submit a brand-new registration.`); }
+async function rejectRegistration(id) {
+    if (!confirm('Reject this registration? The applicant will need to re-register.')) return;
+    try {
+        await postJson('/api/update-status', { userId: id, newStatus: 'Rejected' });
+        showToast('Registration rejected.', 'success');
+        loadUsersData();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+async function suspendUser(id) {
+    if (!confirm('Suspend this account? The user will be signed out and unable to log back in until reactivated.')) return;
+    try {
+        await postJson('/api/update-access', { userId: id, newStatus: 'Suspended' });
+        showToast('Account suspended.', 'success');
+        loadUsersData();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+async function reactivateUser(id) {
+    try {
+        await postJson('/api/update-access', { userId: id, newStatus: 'Approved' });
+        showToast('Account reactivated.', 'success');
+        loadUsersData();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+async function revokeUser(id, name) {
+    if (!confirm(`Permanently revoke ${name}'s account? This cannot be undone \u2014 they will need to submit a brand-new registration.`)) return;
+    try {
+        await postJson('/api/revoke-user', { userId: id });
+        showToast('Account permanently revoked.', 'success');
+        loadUsersData();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
 
 // 4. MODALS (ACTIVITIES, LECTURES, SUBMISSIONS)
 function closeModals() {
