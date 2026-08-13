@@ -36,7 +36,7 @@ export async function onRequestPost({ request, env }) {
     }
 
     await db.prepare(`UPDATE users SET status = ? WHERE id = ?`).bind(newStatus, userId).run();
-    await logActivity(db, session.username, session.batchId, 'update-access', { userId, newStatus });
+    await logActivity(db, session.username, session.batchId, 'update-access', { userId, username: user.username, newStatus });
 
     return json({ success: true });
 }
