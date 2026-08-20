@@ -1,12 +1,10 @@
 import { json, requireSession, logActivity } from '../_utils.js';
 
-// NOTE: This file wasn't part of the upload that added the ticker's
-// frontend wiring (loadAnnouncement/makeAnnouncement/clearAnnouncement in
-// app.js) — only the frontend calls to /api/announcement came through. If
-// a real announcement.js already exists in the deployed functions/api/
-// folder, keep that one instead of this — this is a best-effort
-// reconstruction matching the exact GET/POST/DELETE contract the frontend
-// expects.
+// Bug fix: GET previously queried env.TRAINING_TRAINING_DB (a typo — no such
+// binding exists), so it always threw, was caught by the try/catch below,
+// and silently fell back to DEFAULT_TEXT. POST/DELETE already used the
+// correct env.TRAINING_DB, so an admin's announcement was actually being
+// saved — it just never displayed, since GET could never see it.
 
 const DEFAULT_TEXT = 'Welcome to the LSH Training Activities Portal.';
 
@@ -14,7 +12,7 @@ const DEFAULT_TEXT = 'Welcome to the LSH Training Activities Portal.';
 // top bar on the login screen too, before anyone has a session.
 export async function onRequestGet({ request, env }) {
     try {
-        const row = await env.TRAINING_TRAINING_DB.prepare(
+        const row = await env.TRAINING_DB.prepare(
             "SELECT value FROM site_settings WHERE key = 'announcement'"
         ).first();
         return json({ success: true, text: (row && row.value) || DEFAULT_TEXT });
