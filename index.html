@@ -162,13 +162,7 @@
                         <h2 class="text-xl font-black uppercase tracking-wide text-navy">Recorded Lectures</h2>
                         <p class="text-xs text-slate-500">Access video recordings embedded via Google Drive or YouTube.</p>
                     </div>
-                    <div class="pdf-card border-l-4 border-red-600" style="max-width:520px;">
-                        <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;display:block;margin-bottom:6px;">Select a Lecture</label>
-                        <select id="trainee-lecture-select" onchange="openLectureViewerFromSelect('trainee-lecture-select')" style="width:100%; padding:9px 12px; border-radius:6px; border:1px solid #e2e8f0; font-size:13px; outline:none;">
-                            <option value="">— Choose a recorded lecture —</option>
-                        </select>
-                        <p id="trainee-lecture-summary" style="font-size:11px;color:#64748b;margin-top:10px;"></p>
-                    </div>
+                    <div id="trainee-lectures-list" class="space-y-3"></div>
                 </div>
 
                 <!-- 4. TRAINEE GRADES & SUBMISSIONS -->
@@ -300,14 +294,7 @@
                         </div>
                         <button onclick="openAddLectureModal()" class="add-btn">+ Add Recorded Lecture</button>
                     </div>
-                    <div class="pdf-card border-l-4 border-red-600" style="max-width:520px;">
-                        <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;display:block;margin-bottom:6px;">Select a Lecture</label>
-                        <select id="admin-lecture-select" onchange="openLectureViewerFromSelect('admin-lecture-select')" style="width:100%; padding:9px 12px; border-radius:6px; border:1px solid #e2e8f0; font-size:13px; outline:none;">
-                            <option value="">— Choose a recorded lecture —</option>
-                        </select>
-                        <p id="admin-lecture-summary" style="font-size:11px;color:#64748b;margin-top:10px;"></p>
-                        <button onclick="deleteSelectedLecture('admin-lecture-select')" class="btn-ghost" style="margin-top:12px;padding:8px 14px;font-size:11px;border-radius:6px;color:var(--classified-red);border-color:var(--classified-red);">Delete Selected Lecture</button>
-                    </div>
+                    <div id="admin-lectures-list" class="space-y-3"></div>
                 </div>
 
                 <!-- 8. ADMIN GRADES & SUBMISSIONS -->
@@ -911,13 +898,12 @@
     <style>
         #lecture-viewer-pane {
             position: fixed;
-            top: 90px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 560px;
-            max-width: calc(100vw - 40px);
-            height: 380px;
-            max-height: calc(100vh - 120px);
+            right: 24px;
+            bottom: 24px;
+            width: 380px;
+            max-width: calc(100vw - 48px);
+            height: 250px;
+            max-height: calc(100vh - 48px);
             background: #ffffff;
             border: 1px solid #cbd5e1;
             border-radius: 10px;
@@ -927,8 +913,8 @@
             z-index: 3000;
             overflow: hidden;
             resize: both;
-            min-width: 320px;
-            min-height: 220px;
+            min-width: 280px;
+            min-height: 190px;
         }
         #lecture-viewer-pane.open { display: flex; }
         /* Native Fullscreen API target — browser chrome handles sizing,
@@ -961,19 +947,21 @@
             text-overflow: ellipsis;
             padding-right: 12px;
         }
-        #lecture-viewer-actions { display: flex; gap: 6px; flex-shrink: 0; }
-        #lecture-viewer-fullscreen, #lecture-viewer-close {
+        #lecture-viewer-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+        #lecture-viewer-open-link, #lecture-viewer-fullscreen, #lecture-viewer-close {
             background: transparent;
             border: 1px solid rgba(255,255,255,0.4);
             color: #fff;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 700;
-            text-transform: uppercase;
             border-radius: 5px;
-            padding: 4px 10px;
+            padding: 4px 8px;
             cursor: pointer;
+            text-decoration: none;
+            line-height: 1.4;
+            display: inline-block;
         }
-        #lecture-viewer-fullscreen:hover { background: rgba(255,255,255,0.15); }
+        #lecture-viewer-open-link:hover, #lecture-viewer-fullscreen:hover { background: rgba(255,255,255,0.15); }
         #lecture-viewer-close:hover { background: var(--classified-red, #dc2626); border-color: var(--classified-red, #dc2626); }
         #lecture-viewer-body {
             flex: 1;
@@ -998,8 +986,9 @@
         <div id="lecture-viewer-header">
             <span id="lecture-viewer-title">Recorded Lecture</span>
             <div id="lecture-viewer-actions">
-                <button id="lecture-viewer-fullscreen" onclick="toggleLectureFullscreen()">⛶ Full Screen</button>
-                <button id="lecture-viewer-close" onclick="closeLectureViewer()">✕ Close</button>
+                <a id="lecture-viewer-open-link" href="#" target="_blank" rel="noopener noreferrer" title="Open the original link in a new tab">↗</a>
+                <button id="lecture-viewer-fullscreen" onclick="toggleLectureFullscreen()" title="Full Screen">⛶</button>
+                <button id="lecture-viewer-close" onclick="closeLectureViewer()" title="Close">✕</button>
             </div>
         </div>
         <div id="lecture-viewer-body">
