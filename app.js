@@ -1018,33 +1018,36 @@ function closeDeckViewer() {
     document.getElementById('deck-viewer-frame-holder').innerHTML = '';
 }
 
-// ===== RECORDED LECTURES (dropdown selector + draggable pop-out viewer) =====
+// ===== RECORDED LECTURES (clickable list + confirm + draggable pop-out viewer) =====
 // A raw youtube.com/watch?v=..., youtu.be/..., youtube.com/shorts/..., or
 // drive.google.com/file/d/.../view URL can't be framed directly — this
 // converts to the embeddable form, mirroring getDeckEmbedUrl's approach
 // for lesson decks above.
 function getLectureEmbedUrl(rawUrl) {
     if (!rawUrl) return null;
-    if (/youtube(-nocookie)?\.com\/embed\//i.test(rawUrl) || /drive\.google\.com\/.*\/preview/i.test(rawUrl)) {
-        return rawUrl; // already embeddable
+    const url = String(rawUrl).trim();
+    if (!url) return null;
+
+    if (/youtube(-nocookie)?\.com\/embed\//i.test(url) || /drive\.google\.com\/.*\/preview/i.test(url)) {
+        return url; // already embeddable
     }
-    const driveFileMatch = rawUrl.match(/drive\.google\.com\/file\/d\/([^/?]+)/);
+    const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([^/?]+)/i);
     if (driveFileMatch) {
         return `https://drive.google.com/file/d/${driveFileMatch[1]}/preview`;
     }
-    const driveOpenMatch = rawUrl.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+    const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/i);
     if (driveOpenMatch) {
         return `https://drive.google.com/file/d/${driveOpenMatch[1]}/preview`;
     }
-    const ytWatchMatch = rawUrl.match(/[?&]v=([a-zA-Z0-9_-]{6,})/);
+    const ytWatchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{6,})/);
     if (ytWatchMatch) {
         return `https://www.youtube.com/embed/${ytWatchMatch[1]}`;
     }
-    const ytShortLinkMatch = rawUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{6,})/);
+    const ytShortLinkMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{6,})/i);
     if (ytShortLinkMatch) {
         return `https://www.youtube.com/embed/${ytShortLinkMatch[1]}`;
     }
-    const ytShortsMatch = rawUrl.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{6,})/);
+    const ytShortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{6,})/i);
     if (ytShortsMatch) {
         return `https://www.youtube.com/embed/${ytShortsMatch[1]}`;
     }
@@ -1059,35 +1062,40 @@ async function loadLecturesData() {
         const data = await res.json().catch(() => null);
         if (!data || !data.success) return;
         __lecturesCache = data.lectures || [];
-        renderLectureOptions();
+        renderLectureList('trainee-lectures-list', false);
+        renderLectureList('admin-lectures-list', true);
     } catch (e) { /* leave whatever was last rendered */ }
 }
 
-function renderLectureOptions() {
-    ['trainee-lecture-select', 'admin-lecture-select'].forEach(selectId => {
-        const select = document.getElementById(selectId);
-        if (!select) return;
-        const previousValue = select.value;
-        select.innerHTML = '<option value="">— Choose a recorded lecture —</option>' +
-            __lecturesCache.map(lec => `<option value="${lec.id}">${escapeHtml(lec.title)}</option>`).join('');
-        // Keep the current selection across a refresh (e.g. after adding a
-        // new lecture) instead of silently resetting to the placeholder.
-        if (previousValue && __lecturesCache.some(lec => String(lec.id) === previousValue)) {
-            select.value = previousValue;
-        }
-    });
+function renderLectureList(containerId, isAdmin) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (__lecturesCache.length === 0) {
+        container.innerHTML = '<p style="font-size:12px;color:#94a3b8;">No recorded lectures yet.</p>';
+        return;
+    }
+
+    container.innerHTML = __lecturesCache.map(lec => {
+        const deleteBtn = isAdmin
+            ? `<button onclick="event.stopPropagation(); deleteLecture(${lec.id})" style="background:none;border:none;color:#b91c1c;cursor:pointer;font-size:11px;font-weight:700;flex-shrink:0;">Delete</button>`
+            : '';
+        return `<div onclick="confirmWatchLecture(${lec.id})" class="pdf-card border-l-4 border-red-600" style="cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+            <div>
+                <div class="section-head" style="background:#fef2f2; color:#b91c1c;">${escapeHtml(lec.title)}</div>
+                <p class="text-xs text-slate-600" style="margin-top:6px;">${escapeHtml(lec.summary || '')}</p>
+            </div>
+            ${deleteBtn}
+        </div>`;
+    }).join('');
 }
 
-function openLectureViewerFromSelect(selectId) {
-    const select = document.getElementById(selectId);
-    if (!select || !select.value) return;
-    const lec = __lecturesCache.find(l => String(l.id) === select.value);
+// The list only shows title + summary — clicking an item confirms intent
+// before actually loading the embed, rather than auto-playing on click.
+function confirmWatchLecture(id) {
+    const lec = __lecturesCache.find(l => String(l.id) === String(id));
     if (!lec) return;
-
-    const summaryId = selectId === 'trainee-lecture-select' ? 'trainee-lecture-summary' : 'admin-lecture-summary';
-    const summaryEl = document.getElementById(summaryId);
-    if (summaryEl) summaryEl.textContent = lec.summary || '';
-
+    if (!confirm(`Do you want to watch this lecture?\n\n"${lec.title}"`)) return;
     viewLecture(lec);
 }
 
@@ -1095,17 +1103,39 @@ function viewLecture(lec) {
     const pane = document.getElementById('lecture-viewer-pane');
     const titleEl = document.getElementById('lecture-viewer-title');
     const holder = document.getElementById('lecture-viewer-frame-holder');
+    const openLink = document.getElementById('lecture-viewer-open-link');
     if (!pane || !titleEl || !holder) return;
 
     titleEl.textContent = lec.title || 'Recorded Lecture';
+
+    // Always point the header's "open in new tab" link at the original
+    // link, regardless of whether the inline embed works — a specific
+    // video/file can have its OWN sharing or embedding permission turned
+    // off by whoever uploaded it, which no amount of code here can fix,
+    // so this is the guaranteed-to-work fallback.
+    if (openLink) {
+        if (lec.embed_url) {
+            openLink.href = lec.embed_url;
+            openLink.style.display = 'inline-block';
+        } else {
+            openLink.style.display = 'none';
+        }
+    }
 
     const embedUrl = getLectureEmbedUrl(lec.embed_url);
     if (embedUrl) {
         // Deliberately NOT sandboxed, unlike the deck viewer's PPTX/GDrive
         // iframe above — sandboxing YouTube's player blocks the nested
-        // iframes and postMessage calls it needs to initialize, which is
-        // what was causing the embed to silently fail. This is YouTube's
-        // own recommended embed `allow` list instead.
+        // iframes and postMessage calls it needs to initialize. This is
+        // YouTube's own recommended embed `allow` list instead.
+        //
+        // If the video still won't play after this, it's very likely the
+        // video/file's OWN permissions (YouTube "embedding disabled" by the
+        // uploader, or a Google Drive file not shared as "Anyone with the
+        // link") — YouTube/Drive will show their own error message inside
+        // the iframe in that case, which is a content-permissions issue on
+        // that specific video, not a bug in this page. The ↗ link above
+        // always works regardless.
         holder.innerHTML = `<iframe src="${embedUrl}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
     } else if (lec.embed_url) {
         holder.innerHTML = `<div id="lecture-viewer-fallback">This lecture's link can't be previewed inline.<br><a href="${lec.embed_url}" target="_blank" rel="noopener noreferrer">Open in a new tab &rarr;</a></div>`;
@@ -1113,12 +1143,15 @@ function viewLecture(lec) {
         holder.innerHTML = `<div id="lecture-viewer-fallback">No video link has been attached to this lecture yet.</div>`;
     }
 
-    // Reset position/size each time it's opened, same as the deck viewer.
-    pane.style.top = '90px';
-    pane.style.left = '50%';
-    pane.style.transform = 'translateX(-50%)';
-    pane.style.width = '560px';
-    pane.style.height = '380px';
+    // Reset to the default small bottom-right corner position/size each
+    // time it's opened, undoing any previous drag/resize.
+    pane.style.top = '';
+    pane.style.left = '';
+    pane.style.transform = '';
+    pane.style.right = '24px';
+    pane.style.bottom = '24px';
+    pane.style.width = '380px';
+    pane.style.height = '250px';
 
     pane.classList.add('open');
 }
@@ -1145,13 +1178,13 @@ function toggleLectureFullscreen() {
         const request = pane.requestFullscreen || pane.webkitRequestFullscreen;
         if (request) {
             request.call(pane);
-            if (btn) btn.textContent = '⤢ Exit Full Screen';
+            if (btn) { btn.textContent = '⤢'; btn.title = 'Exit Full Screen'; }
         }
     } else {
         const exit = document.exitFullscreen || document.webkitExitFullscreen;
         if (exit) {
             exit.call(document);
-            if (btn) btn.textContent = '⛶ Full Screen';
+            if (btn) { btn.textContent = '⛶'; btn.title = 'Full Screen'; }
         }
     }
 }
@@ -1170,17 +1203,9 @@ async function deleteLecture(id) {
     }
 }
 
-function deleteSelectedLecture(selectId) {
-    const select = document.getElementById(selectId);
-    if (!select || !select.value) {
-        showToast('Select a lecture first.', 'error');
-        return;
-    }
-    deleteLecture(select.value);
-}
-
 // Drag support for the deck viewer pane (mouse + touch)
-function initDraggablePane(paneId, headerId, nonDragIds) {
+function initDraggablePane(paneId, headerId, nonDragIds, options = {}) {
+    const minLeft = options.minLeft; // if unset, keeps the old permissive (near off-screen) behavior
     document.addEventListener('DOMContentLoaded', () => {
         const pane = document.getElementById(paneId);
         const header = document.getElementById(headerId);
@@ -1210,7 +1235,8 @@ function initDraggablePane(paneId, headerId, nonDragIds) {
             const maxTop = window.innerHeight - 40;
             let newLeft = clientX - offsetX;
             let newTop = clientY - offsetY;
-            newLeft = Math.max(-pane.offsetWidth + 120, Math.min(newLeft, maxLeft));
+            const lowerBound = (minLeft !== undefined) ? minLeft : (-pane.offsetWidth + 120);
+            newLeft = Math.max(lowerBound, Math.min(newLeft, maxLeft));
             newTop = Math.max(0, Math.min(newTop, maxTop));
             pane.style.left = newLeft + 'px';
             pane.style.top = newTop + 'px';
@@ -1241,7 +1267,10 @@ function initDraggablePane(paneId, headerId, nonDragIds) {
 }
 
 initDraggablePane('deck-viewer-pane', 'deck-viewer-header', ['deck-viewer-close']);
-initDraggablePane('lecture-viewer-pane', 'lecture-viewer-header', ['lecture-viewer-close', 'lecture-viewer-fullscreen']);
+// minLeft: 280 matches the fixed sidebar width (see #sidebar-trainee /
+// #sidebar-admin) — this pane can only ever be open while logged in, so
+// one of those two sidebars is always occupying that space.
+initDraggablePane('lecture-viewer-pane', 'lecture-viewer-header', ['lecture-viewer-close', 'lecture-viewer-fullscreen', 'lecture-viewer-open-link'], { minLeft: 280 });
 
 function formatDate(isoString) {
     if (!isoString) return '';
