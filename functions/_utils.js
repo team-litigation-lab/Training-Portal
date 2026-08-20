@@ -124,6 +124,16 @@ export async function requireSession(request, env, { adminOnly = false } = {}) {
     if (!payload) {
         return { ok: false, response: json({ success: false, error: 'Not authenticated.', code: 'NOT_AUTHENTICATED' }, 401) };
     }
+    // A site-wide Lock blocks all API access, even for an otherwise-valid
+    // session — checked before the heartbeat check below so a heartbeat
+    // re-seeded by a login attempted mid-lockout can't slip past it. Only
+    // site-state.js's UNLOCK action can clear this, and it bypasses
+    // requireSession entirely (see that file) since a locked-out admin has
+    // no valid session left to check.
+    const state = await getSiteState(env.DB);
+    if (state.locked) {
+        return { ok: false, response: json({ success: false, error: 'This page has been locked by an administrator.', code: 'SITE_LOCKED' }, 423) };
+    }
     const alive = await isSessionHeartbeatAlive(env.DB, payload.username);
     if (!alive) {
         return { ok: false, response: json({ success: false, error: 'Session expired.', code: 'SESSION_EXPIRED' }, 401) };
@@ -139,8 +149,12 @@ export async function requireSession(request, env, { adminOnly = false } = {}) {
 }
 
 export async function getSiteState(db) {
-    const row = await db.prepare(`SELECT locked, locked_by_batch FROM site_state WHERE id = 1`).first();
-    return { locked: !!(row && row.locked), lockedBy: row ? row.locked_by_batch : null };
+    const row = await db.prepare(`SELECT locked, locked_by_batch, paused FROM site_state WHERE id = 1`).first();
+    return {
+        locked: !!(row && row.locked),
+        lockedBy: row ? row.locked_by_batch : null,
+        paused: !!(row && row.paused)
+    };
 }
 
 /* =====================================================================
