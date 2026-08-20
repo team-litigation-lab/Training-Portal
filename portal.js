@@ -190,3 +190,451 @@ function attemptLogin() {
         showToast("Network error. Failed to hit validation server.", 'error');
     });
 }
+
+// ==========================================
+// REGISTRATION FIXES
+// submitRegistration() above already calls validateRegPassword() and
+// expects onRegUserTypeChange()/data-allow filtering to exist — none of
+// these were actually defined anywhere. Password rule mirrors
+// functions/api/register.js's own REG_PASSWORD_RE exactly, so client and
+// server reject/accept the same passwords.
+// ==========================================
+function validateRegPassword(password) {
+    if (!/^(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]{8,}$/.test(password)) {
+        return 'Password must be at least 8 characters long and contain only letters and numbers (at least one letter and one number).';
+    }
+    return null;
+}
+
+// Admin registrations have no "Start of Training Date" concept (register.js
+// only requires/accepts trainingStartDate when userType === 'Trainee') —
+// hide the field to match.
+function onRegUserTypeChange() {
+    const type = document.getElementById('reg-usertype').value;
+    const wrap = document.getElementById('reg-training-date-wrap');
+    if (wrap) wrap.classList.toggle('hidden', type === 'Admin');
+}
+
+const DATA_ALLOW_PATTERNS = {
+    'name': /[^A-Za-z\s'-]/g,
+    'alnum-upper': /[^A-Za-z0-9]/g,
+    'email': /[^A-Za-z0-9@._+-]/g,
+    'alnum-underscore': /[^A-Za-z0-9_]/g
+};
+function initDataAllowFilters() {
+    document.querySelectorAll('[data-allow]').forEach(el => {
+        const pattern = DATA_ALLOW_PATTERNS[el.dataset.allow];
+        if (!pattern) return;
+        el.addEventListener('input', () => {
+            let v = el.value.replace(pattern, '');
+            if (el.dataset.allow === 'alnum-upper') v = v.toUpperCase();
+            if (v !== el.value) el.value = v;
+        });
+    });
+}
+
+// ==========================================
+// ALERT (full-screen, admin controls + polling)
+// Backed by the real functions/api/alert.js — field names below
+// (bgColor/image/durationSeconds/startAt, response.id) match that file
+// exactly, not the fire_at/expires_at/image_data shape from an earlier,
+// different draft of this feature.
+// ==========================================
+let __alertImageData = null;
+let __lastShownAlertId = null;
+let __alertDismissedId = null;
+
+function renderAlertSwatches() {
+    const container = document.getElementById('alert-bg-swatches');
+    if (!container || container.dataset.rendered) return;
+    const colors = ['#b91c1c', '#c2410c', '#0f172a', '#166534', '#1d4ed8', '#000000'];
+    container.innerHTML = colors.map(c =>
+        `<button type="button" class="swatch" style="width:26px;height:26px;border-radius:5px;border:2px solid #e2e8f0;background:${c};margin-right:6px;cursor:pointer;" onclick="document.getElementById('alert-bg-color').value='${c}'"></button>`
+    ).join('');
+    container.dataset.rendered = '1';
+}
+
+function previewAlertImage(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        __alertImageData = reader.result;
+        const img = document.getElementById('alert-image-preview');
+        if (img) { img.src = __alertImageData; img.style.display = 'inline-block'; }
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearAlertImage() {
+    __alertImageData = null;
+    const input = document.getElementById('alert-image-input');
+    const img = document.getElementById('alert-image-preview');
+    if (input) input.value = '';
+    if (img) { img.style.display = 'none'; img.removeAttribute('src'); }
+}
+
+async function setAlert() {
+    const text = document.getElementById('alert-text-input').value.trim();
+    if (!text) { showToast('Alert text is required.', 'error'); return; }
+
+    const bgColor = document.getElementById('alert-bg-color').value;
+    const durationSeconds = parseInt(document.getElementById('alert-duration-select').value, 10) || 0;
+    const scheduleVal = document.getElementById('alert-schedule-input').value;
+    const startAt = scheduleVal ? new Date(scheduleVal).toISOString() : undefined;
+
+    try {
+        const res = await fetch('/api/alert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ text, bgColor, image: __alertImageData, durationSeconds, startAt })
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || !data.success) throw new Error((data && data.error) || 'Failed to set alert.');
+        showToast('Alert set.', 'success');
+        document.getElementById('alert-status-line').textContent = 'An alert is active.';
+        pollAlert();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+async function stopAlert() {
+    try {
+        const res = await fetch('/api/alert', { method: 'DELETE', credentials: 'include' });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || !data.success) throw new Error((data && data.error) || 'Failed to stop alert.');
+        showToast('Alert stopped.', 'success');
+        document.getElementById('alert-status-line').textContent = 'No alert is currently active.';
+        pollAlert();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+async function pollAlert() {
+    try {
+        // GET /api/alert is intentionally public (no requireSession) — it
+        // has to work for a logged-out visitor sitting at the login screen too.
+        const res = await fetch('/api/alert', { credentials: 'include' });
+        const data = await res.json().catch(() => null);
+        if (!data) return;
+
+        const overlay = document.getElementById('alert-overlay');
+        if (!data.active) {
+            if (overlay) overlay.classList.remove('open');
+            __lastShownAlertId = null;
+            return;
+        }
+
+        __lastShownAlertId = data.id;
+        if (__alertDismissedId === data.id) return; // this exact alert was already dismissed locally
+
+        const textEl = document.getElementById('alert-overlay-text');
+        const imgEl = document.getElementById('alert-overlay-image');
+        const box = overlay ? overlay.querySelector('.alert-box') : null;
+        if (textEl) textEl.textContent = data.text || '';
+        if (imgEl) {
+            if (data.image) { imgEl.src = data.image; imgEl.style.display = 'block'; }
+            else { imgEl.style.display = 'none'; imgEl.removeAttribute('src'); }
+        }
+        if (box) box.style.background = data.bgColor || '';
+        if (overlay) overlay.classList.add('open');
+    } catch (e) { /* retry next tick */ }
+}
+
+function dismissAlertLocally() {
+    const overlay = document.getElementById('alert-overlay');
+    if (overlay) overlay.classList.remove('open');
+    __alertDismissedId = __lastShownAlertId;
+}
+
+// ==========================================
+// SITE LOCK / PAUSE
+// Overrides app.js's `refreshSiteState()` no-op stub (see its "2c. STUBS"
+// comment) now that a real backend exists. GET /api/site-state is public,
+// so this polls regardless of login state — a locked-out admin still
+// needs to see the lock screen.
+// ==========================================
+let __siteState = { locked: false, paused: false };
+
+async function refreshSiteState() {
+    try {
+        const res = await fetch('/api/site-state', { credentials: 'include' });
+        const data = await res.json().catch(() => null);
+        if (!data || data.success === false) return;
+        __siteState = data;
+        applySiteStateUI(data);
+    } catch (e) { /* transient network error — next poll retries */ }
+}
+
+function applySiteStateUI(state) {
+    const lockOverlay = document.getElementById('lock-overlay');
+    const pauseOverlay = document.getElementById('pause-overlay');
+    if (lockOverlay) lockOverlay.classList.toggle('open', !!state.locked);
+    // Lock takes visual precedence over Pause if somehow both are true.
+    if (pauseOverlay) pauseOverlay.classList.toggle('open', !state.locked && !!state.paused);
+
+    const lockedByEl = document.getElementById('lock-locked-by');
+    if (lockedByEl) lockedByEl.textContent = 'Locked By: Batch ID ' + (state.lockedBy || '—');
+
+    const lockLabel = document.getElementById('lock-state-label');
+    if (lockLabel) {
+        lockLabel.textContent = state.locked ? 'Locked' : 'Unlocked';
+        lockLabel.style.color = state.locked ? 'var(--classified-red)' : '#166534';
+    }
+
+    const pauseLabel = document.getElementById('pause-state-label');
+    if (pauseLabel) {
+        pauseLabel.textContent = state.paused ? 'Paused' : 'Active (not paused)';
+        pauseLabel.style.color = state.paused ? '#b45309' : 'var(--classified-red)';
+    }
+
+    const pauseBtn = document.getElementById('pause-toggle-btn');
+    if (pauseBtn) pauseBtn.textContent = state.paused ? '▶ Resume All Activity' : '⏸ Pause All Activity';
+}
+
+async function togglePause() {
+    try {
+        const res = await fetch('/api/site-state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ action: __siteState.paused ? 'RESUME' : 'PAUSE' })
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || !data.success) throw new Error((data && data.error) || 'Failed to update pause state.');
+        refreshSiteState();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+function openLockConfirm() {
+    document.getElementById('lock-confirm-batchid').value = '';
+    document.getElementById('lock-confirm-password').value = '';
+    document.getElementById('lock-confirm-error').style.display = 'none';
+    document.getElementById('lock-confirm-modal').classList.add('open');
+}
+function closeLockConfirm() {
+    document.getElementById('lock-confirm-modal').classList.remove('open');
+}
+
+async function confirmLock() {
+    const batchId = document.getElementById('lock-confirm-batchid').value.trim();
+    const password = document.getElementById('lock-confirm-password').value;
+    const errEl = document.getElementById('lock-confirm-error');
+    if (errEl) errEl.style.display = 'none';
+
+    if (!batchId || !password) {
+        if (errEl) { errEl.textContent = 'Batch ID and password are required.'; errEl.style.display = 'block'; }
+        return;
+    }
+    try {
+        const res = await fetch('/api/site-state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ action: 'LOCK', batchId, password })
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || !data.success) throw new Error((data && data.error) || 'Failed to lock the page.');
+        closeLockConfirm();
+        showToast('Page locked.', 'success');
+        // LOCK wipes the entire heartbeats table server-side (see
+        // site-state.js), killing the locking admin's own session too — the
+        // lock-overlay (shown by refreshSiteState below) takes over regardless.
+        refreshSiteState();
+    } catch (e) {
+        if (errEl) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+    }
+}
+
+async function attemptUnlock() {
+    const username = document.getElementById('unlock-user').value.trim();
+    const password = document.getElementById('unlock-pass').value;
+    const errEl = document.getElementById('unlock-error');
+    if (errEl) errEl.style.display = 'none';
+
+    if (!username || !password) {
+        if (errEl) { errEl.textContent = 'Username and password are required.'; errEl.style.display = 'block'; }
+        return;
+    }
+    try {
+        const res = await fetch('/api/site-state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ action: 'UNLOCK', username, password })
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || !data.success) throw new Error((data && data.error) || 'Invalid credentials.');
+        document.getElementById('unlock-user').value = '';
+        document.getElementById('unlock-pass').value = '';
+        showToast('Page unlocked.', 'success');
+        // Every session's heartbeat row was wiped at LOCK time, so any
+        // locally-stored session (including the unlocker's own) is stale —
+        // send everyone through a fresh login.
+        clearSession();
+        applySessionUI();
+        refreshSiteState();
+    } catch (e) {
+        if (errEl) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+    }
+}
+
+// ==========================================
+// PINGS — recipient picker, send, poll + toast/tone
+// Field names (text/target/fired_at/by) match the live `pings` table.
+// ==========================================
+let __pingMode = 'single';
+let __pingSelectedUsers = [];
+let __lastPingAt = null;
+
+function setPingMode(mode) {
+    __pingMode = mode;
+    const singleBtn = document.getElementById('ping-mode-single-btn');
+    const allBtn = document.getElementById('ping-mode-all-btn');
+    if (singleBtn) singleBtn.style.background = mode === 'single' ? 'var(--navy)' : '#94a3b8';
+    if (allBtn) allBtn.style.background = mode === 'all' ? 'var(--navy)' : '#94a3b8';
+    const row = document.getElementById('ping-user-row');
+    if (row) row.classList.toggle('hidden', mode === 'all');
+    if (mode === 'all') { __pingSelectedUsers = []; renderPingUserChips(); }
+}
+
+function openPingUserList() {
+    if (__pingMode !== 'single') return;
+    if (!__usersCache || __usersCache.length === 0) loadUsersData();
+    filterPingUserList();
+    const list = document.getElementById('ping-user-list');
+    if (list) list.style.display = 'block';
+}
+function closePingUserList() {
+    const list = document.getElementById('ping-user-list');
+    if (list) list.style.display = 'none';
+}
+
+function filterPingUserList() {
+    const q = (document.getElementById('ping-user-search').value || '').toLowerCase();
+    const list = document.getElementById('ping-user-list');
+    if (!list) return;
+
+    const candidates = (__usersCache || []).filter(u => u.status === 'Approved');
+    const matches = candidates.filter(u => {
+        const hay = [u.fullName, u.username, u.batchId, u.userType].filter(Boolean).join(' ').toLowerCase();
+        return !q || hay.includes(q);
+    }).slice(0, 30);
+
+    list.innerHTML = matches.map(u => {
+        const selected = __pingSelectedUsers.includes(u.username);
+        return `<div onclick="togglePingUser('${escapeHtml(u.username)}')" style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid #f1f5f9;${selected ? 'background:#eff6ff;font-weight:700;' : ''}">${escapeHtml(u.fullName)} <span style="color:#94a3b8;">(${escapeHtml(u.username)} &middot; ${escapeHtml(u.batchId)})</span></div>`;
+    }).join('') || '<div style="padding:10px;font-size:11px;color:#94a3b8;">No matching users.</div>';
+    list.style.display = 'block';
+}
+
+function togglePingUser(username) {
+    const idx = __pingSelectedUsers.indexOf(username);
+    if (idx === -1) __pingSelectedUsers.push(username); else __pingSelectedUsers.splice(idx, 1);
+    renderPingUserChips();
+    filterPingUserList();
+}
+
+function renderPingUserChips() {
+    const container = document.getElementById('ping-user-chips');
+    if (!container) return;
+    container.innerHTML = __pingSelectedUsers.map(u =>
+        `<span class="mini-btn" style="background:#eff6ff;color:var(--navy);padding:4px 10px;border-radius:12px;font-size:11px;">${escapeHtml(u)} <span style="cursor:pointer;color:#94a3b8;" onclick="togglePingUser('${escapeHtml(u)}')">&times;</span></span>`
+    ).join('');
+}
+
+// Close the recipient dropdown on outside click (Esc is already wired
+// directly in the markup's onkeydown).
+document.addEventListener('click', (e) => {
+    const row = document.getElementById('ping-user-row');
+    if (!row) return;
+    if (!row.contains(e.target)) closePingUserList();
+});
+
+async function sendPing() {
+    const message = document.getElementById('ping-text-input').value.trim();
+    if (!message) { showToast('Ping message is required.', 'error'); return; }
+    if (__pingMode === 'single' && __pingSelectedUsers.length === 0) {
+        showToast('Select at least one recipient.', 'error');
+        return;
+    }
+    try {
+        const res = await fetch('/api/pings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ mode: __pingMode, usernames: __pingSelectedUsers, message })
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || !data.success) throw new Error((data && data.error) || 'Failed to send ping.');
+        showToast('Ping sent.', 'success');
+        document.getElementById('ping-text-input').value = '';
+        __pingSelectedUsers = [];
+        renderPingUserChips();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+// Distinct two-tone beep so a ping doesn't sound like the login chime —
+// generated via Web Audio API since no sound asset exists in the project.
+function playPingTone() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const beep = (freq, delayMs, durationSec) => {
+            setTimeout(() => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.001, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durationSec);
+                osc.connect(gain).connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + durationSec + 0.05);
+            }, delayMs);
+        };
+        beep(880, 0, 0.5);
+        beep(1046, 250, 0.4);
+    } catch (e) { /* audio unavailable — ignore */ }
+}
+
+async function pollPings() {
+    // Unlike /api/alert and /api/site-state, GET /api/pings requires a
+    // session (requireSession, not adminOnly) — skip silently while logged out
+    // rather than generating a 401 on every tick.
+    if (!getSession()) return;
+    try {
+        const url = '/api/pings' + (__lastPingAt ? ('?since=' + encodeURIComponent(__lastPingAt)) : '');
+        const res = await fetch(url, { credentials: 'include' });
+        const data = await res.json().catch(() => null);
+        if (!data || data.success === false || !Array.isArray(data.pings)) return;
+
+        data.pings.forEach(p => {
+            showToast(`\u{1F4E3} ${p.by}: ${p.text}`, 'info', 6000);
+            playPingTone();
+            __lastPingAt = p.fired_at;
+        });
+    } catch (e) { /* retry next tick */ }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    initDataAllowFilters();
+    renderAlertSwatches();
+
+    refreshSiteState();
+    pollAlert();
+    pollPings();
+
+    setInterval(() => {
+        refreshSiteState();
+        pollAlert();
+        pollPings();
+    }, 3000);
+});
