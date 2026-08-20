@@ -1028,29 +1028,31 @@ function getLectureEmbedUrl(rawUrl) {
     const url = String(rawUrl).trim();
     if (!url) return null;
 
-    if (/youtube(-nocookie)?\.com\/embed\//i.test(url) || /drive\.google\.com\/.*\/preview/i.test(url)) {
-        return url; // already embeddable
-    }
-    const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([^/?]+)/i);
-    if (driveFileMatch) {
-        return `https://drive.google.com/file/d/${driveFileMatch[1]}/preview`;
-    }
-    const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/i);
-    if (driveOpenMatch) {
-        return `https://drive.google.com/file/d/${driveOpenMatch[1]}/preview`;
-    }
+    // Already in embeddable iframe form — pass through unchanged.
+    if (/youtube(-nocookie)?\.com\/embed\//i.test(url)) return url;
+    if (/drive\.google\.com\/.*\/preview/i.test(url)) return url;
+
+    // Google Drive: /file/d/ID/(view|preview|edit), or /open?id=ID, or /uc?id=ID
+    const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i);
+    if (driveFileMatch) return `https://drive.google.com/file/d/${driveFileMatch[1]}/preview`;
+    const driveIdParamMatch = url.match(/drive\.google\.com\/(?:open|uc)\?[^#]*\bid=([a-zA-Z0-9_-]+)/i);
+    if (driveIdParamMatch) return `https://drive.google.com/file/d/${driveIdParamMatch[1]}/preview`;
+
+    // YouTube: watch?v=ID works regardless of domain/path around it (also
+    // catches m.youtube.com and youtube.com/watch?...&v=ID with extra params).
     const ytWatchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{6,})/);
-    if (ytWatchMatch) {
-        return `https://www.youtube.com/embed/${ytWatchMatch[1]}`;
-    }
+    if (ytWatchMatch) return `https://www.youtube.com/embed/${ytWatchMatch[1]}`;
+
     const ytShortLinkMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{6,})/i);
-    if (ytShortLinkMatch) {
-        return `https://www.youtube.com/embed/${ytShortLinkMatch[1]}`;
-    }
+    if (ytShortLinkMatch) return `https://www.youtube.com/embed/${ytShortLinkMatch[1]}`;
     const ytShortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{6,})/i);
-    if (ytShortsMatch) {
-        return `https://www.youtube.com/embed/${ytShortsMatch[1]}`;
-    }
+    if (ytShortsMatch) return `https://www.youtube.com/embed/${ytShortsMatch[1]}`;
+    const ytLiveMatch = url.match(/youtube\.com\/live\/([a-zA-Z0-9_-]{6,})/i);
+    if (ytLiveMatch) return `https://www.youtube.com/embed/${ytLiveMatch[1]}`;
+
+    // A bare 11-character YouTube video ID with no surrounding URL at all.
+    if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return `https://www.youtube.com/embed/${url}`;
+
     return null; // unrecognized format, fall back to a link
 }
 
@@ -1099,6 +1101,18 @@ function confirmWatchLecture(id) {
     viewLecture(lec);
 }
 
+function resetLectureViewerPosition() {
+    const pane = document.getElementById('lecture-viewer-pane');
+    if (!pane) return;
+    pane.style.top = '';
+    pane.style.left = '';
+    pane.style.transform = '';
+    pane.style.right = '24px';
+    pane.style.bottom = '24px';
+    pane.style.width = '380px';
+    pane.style.height = '250px';
+}
+
 function viewLecture(lec) {
     const pane = document.getElementById('lecture-viewer-pane');
     const titleEl = document.getElementById('lecture-viewer-title');
@@ -1138,21 +1152,16 @@ function viewLecture(lec) {
         // always works regardless.
         holder.innerHTML = `<iframe src="${embedUrl}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
     } else if (lec.embed_url) {
-        holder.innerHTML = `<div id="lecture-viewer-fallback">This lecture's link can't be previewed inline.<br><a href="${lec.embed_url}" target="_blank" rel="noopener noreferrer">Open in a new tab &rarr;</a></div>`;
+        // Shows the actual stored link so a broken/unrecognized format is
+        // visible and diagnosable, instead of a generic dead-end message.
+        holder.innerHTML = `<div id="lecture-viewer-fallback">This link isn't a recognized YouTube or Google Drive link, so it can't be previewed inline.<br><a href="${escapeHtml(lec.embed_url)}" target="_blank" rel="noopener noreferrer">Open in a new tab &rarr;</a><div style="font-size:10px;color:#94a3b8;word-break:break-all;margin-top:10px;">${escapeHtml(lec.embed_url)}</div></div>`;
     } else {
         holder.innerHTML = `<div id="lecture-viewer-fallback">No video link has been attached to this lecture yet.</div>`;
     }
 
     // Reset to the default small bottom-right corner position/size each
-    // time it's opened, undoing any previous drag/resize.
-    pane.style.top = '';
-    pane.style.left = '';
-    pane.style.transform = '';
-    pane.style.right = '24px';
-    pane.style.bottom = '24px';
-    pane.style.width = '380px';
-    pane.style.height = '250px';
-
+    // time it's opened, undoing any previous drag or leftover fullscreen state.
+    resetLectureViewerPosition();
     pane.classList.add('open');
 }
 
@@ -1162,7 +1171,8 @@ function closeLectureViewer() {
     // Exiting fullscreen before closing avoids leaving the browser stuck
     // in fullscreen with nothing visible underneath.
     if (document.fullscreenElement === pane || document.webkitFullscreenElement === pane) {
-        toggleLectureFullscreen();
+        const exit = document.exitFullscreen || document.webkitExitFullscreen;
+        if (exit) exit.call(document);
     }
     pane.classList.remove('open');
     document.getElementById('lecture-viewer-frame-holder').innerHTML = '';
@@ -1172,22 +1182,57 @@ function toggleLectureFullscreen() {
     const pane = document.getElementById('lecture-viewer-pane');
     if (!pane) return;
     const isFullscreen = document.fullscreenElement === pane || document.webkitFullscreenElement === pane;
-    const btn = document.getElementById('lecture-viewer-fullscreen');
 
     if (!isFullscreen) {
         const request = pane.requestFullscreen || pane.webkitRequestFullscreen;
-        if (request) {
-            request.call(pane);
-            if (btn) { btn.textContent = '⤢'; btn.title = 'Exit Full Screen'; }
-        }
+        if (request) request.call(pane);
     } else {
         const exit = document.exitFullscreen || document.webkitExitFullscreen;
-        if (exit) {
-            exit.call(document);
-            if (btn) { btn.textContent = '⛶'; btn.title = 'Full Screen'; }
-        }
+        if (exit) exit.call(document);
+    }
+    // Actual positioning/label updates happen in syncLectureFullscreenUI,
+    // driven by the fullscreenchange event below — not here. The
+    // request/exit calls above are asynchronous and can also be rejected
+    // by the browser, so updating UI state right after calling them (as a
+    // previous version did) could desync from what actually happened.
+}
+
+// The real fullscreenchange event is the source of truth for fullscreen
+// state — it also fires if the user exits via Esc or the browser's own
+// fullscreen UI, which toggleLectureFullscreen()'s button click alone
+// would otherwise miss and leave the button's label wrong.
+function syncLectureFullscreenUI() {
+    const pane = document.getElementById('lecture-viewer-pane');
+    const btn = document.getElementById('lecture-viewer-fullscreen');
+    if (!pane || !btn) return;
+    const isFullscreen = document.fullscreenElement === pane || document.webkitFullscreenElement === pane;
+
+    if (isFullscreen) {
+        // Explicit inline positioning, not a CSS :fullscreen pseudo-class
+        // rule — the pane's default corner position is ALSO set via
+        // inline right/bottom (see resetLectureViewerPosition), and inline
+        // styles always beat stylesheet rules. A stylesheet :fullscreen
+        // rule trying to set top/left while inline right/bottom stayed in
+        // place left the box over-constrained and rendered unreliably.
+        // Setting every relevant property inline here, in one place,
+        // removes that conflict entirely.
+        pane.style.top = '0';
+        pane.style.left = '0';
+        pane.style.right = 'auto';
+        pane.style.bottom = 'auto';
+        pane.style.width = '100%';
+        pane.style.height = '100%';
+        pane.style.transform = 'none';
+        btn.textContent = '⤢';
+        btn.title = 'Exit Full Screen';
+    } else {
+        resetLectureViewerPosition();
+        btn.textContent = '⛶';
+        btn.title = 'Full Screen';
     }
 }
+document.addEventListener('fullscreenchange', syncLectureFullscreenUI);
+document.addEventListener('webkitfullscreenchange', syncLectureFullscreenUI);
 
 async function deleteLecture(id) {
     if (!confirm('Delete this lecture?')) return;
