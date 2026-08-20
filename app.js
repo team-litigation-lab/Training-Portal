@@ -59,6 +59,9 @@ function switchView(viewId) {
     if (viewId === 'admin-grades') {
         loadAdminSubmissions();
     }
+    if (viewId === 'trainee-lectures' || viewId === 'admin-lectures') {
+        loadLecturesData();
+    }
 }
 
 // 2. SESSION & UI BOOTSTRAP
@@ -219,6 +222,8 @@ function showAdminDashTab(tab) {
     const pane = document.getElementById('admin-dash-' + tab);
     if (pane) pane.classList.add('active');
     if (tab === 'registrations' || tab === 'users') loadUsersData();
+    if (tab === 'activity-logs') renderActivityLogs();
+    if (tab === 'monitoring') loadMonitoringData();
 }
 
 // =========================================================
@@ -316,6 +321,106 @@ function renderUsersList() {
             ${rows.map(renderUserRow).join('')}
         `;
     }).join('');
+}
+
+// =========================================================
+// ACTIVITY LOGS (Master Control: search + timestamped audit trail)
+// =========================================================
+async function renderActivityLogs() {
+    const container = document.getElementById('activity-logs-list');
+    if (!container) return;
+    const searchEl = document.getElementById('activity-logs-search');
+    const q = searchEl ? searchEl.value.trim() : '';
+
+    try {
+        const res = await fetch('/api/activity-logs' + (q ? ('?q=' + encodeURIComponent(q)) : ''), { credentials: 'include' });
+        const data = await res.json().catch(() => null);
+        if (!data || !data.success) {
+            container.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Failed to load activity logs.</p>';
+            return;
+        }
+        if (!data.logs || data.logs.length === 0) {
+            container.innerHTML = '<p style="font-size:12px;color:#94a3b8;">No activity logs found.</p>';
+            return;
+        }
+
+        container.innerHTML = data.logs.map(row => {
+            let details = {};
+            try { details = row.details ? JSON.parse(row.details) : {}; } catch (e) { /* leave empty */ }
+
+            let label;
+            switch (row.action) {
+                case 'ACTIVITY_SUBMITTED':
+                    label = `submitted <strong>${escapeHtml(details.activityTitle || 'an activity')}</strong>`;
+                    break;
+                case 'GRADE_RELEASED':
+                    label = `released a grade of <strong>${escapeHtml(String(details.score))}</strong> for submission #${escapeHtml(String(details.submissionId))}`;
+                    break;
+                case 'ACTIVITY_ADDED':
+                    label = `added activity <strong>${escapeHtml(details.title || '')}</strong>${details.dayLabel ? ' (' + escapeHtml(details.dayLabel) + ')' : ''}`;
+                    break;
+                case 'LECTURE_ADDED':
+                    label = `added lecture <strong>${escapeHtml(details.title || '')}</strong>`;
+                    break;
+                default:
+                    label = escapeHtml(row.action);
+            }
+
+            // Matches the +'Z' convention already used in server-logs.js —
+            // datetime('now') is stored without a zone suffix (UTC).
+            const when = row.timestamp ? new Date(row.timestamp + 'Z').toLocaleString() : '';
+            return `<div style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:12.5px;">
+                <span style="font-weight:700;color:var(--navy);">${escapeHtml(row.actor_username || 'Unknown')}</span> ${label}
+                <div style="font-size:10.5px;color:#94a3b8;margin-top:2px;">${when}</div>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        container.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Network error loading activity logs.</p>';
+    }
+}
+
+// =========================================================
+// MONITORING (Master Control: who's online right now)
+// GET /api/heartbeat returns a bare array with raw (snake_case) SQL
+// column names — unlike users.js, this endpoint does no camelCase
+// aliasing, so fields are read as full_name/batch_id/user_type/
+// current_case, not fullName/batchId/userType.
+// =========================================================
+async function loadMonitoringData() {
+    const container = document.getElementById('monitoring-online-list');
+    if (!container) return;
+
+    try {
+        const res = await fetch('/api/heartbeat', { credentials: 'include' });
+        const rows = await res.json().catch(() => null);
+        if (!Array.isArray(rows)) {
+            container.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Failed to load online users.</p>';
+            return;
+        }
+        if (rows.length === 0) {
+            container.innerHTML = '<p style="font-size:12px;color:#94a3b8;">No one is currently online.</p>';
+            return;
+        }
+
+        container.innerHTML = ['Admin', 'Trainee'].map(type => {
+            const group = rows
+                .filter(r => r.user_type === type)
+                .sort((a, b) => String(a.batch_id).localeCompare(String(b.batch_id)));
+            if (group.length === 0) return '';
+            return `
+                <div class="mc-section-title">${type}s Online</div>
+                ${group.map(r => `
+                    <div onclick="this.querySelector('.monitor-detail').classList.toggle('hidden')" style="padding:8px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;font-size:12.5px;">
+                        <span style="font-weight:700;color:var(--navy);">${escapeHtml(r.full_name || r.username)}</span>
+                        <span style="color:#94a3b8;"> &middot; ${escapeHtml(r.batch_id || '—')}</span>
+                        <div class="monitor-detail hidden" style="font-size:11px;color:#64748b;margin-top:4px;">Currently Viewing: ${escapeHtml(r.current_case || 'N/A')}</div>
+                    </div>
+                `).join('')}
+            `;
+        }).join('');
+    } catch (e) {
+        container.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Network error loading online users.</p>';
+    }
 }
 
 function renderUserRow(u) {
@@ -913,6 +1018,87 @@ function closeDeckViewer() {
     document.getElementById('deck-viewer-frame-holder').innerHTML = '';
 }
 
+// ===== RECORDED LECTURES (trainee view, admin management) =====
+// A raw youtube.com/watch?v=... or drive.google.com/file/d/.../view URL
+// can't be framed directly — this converts to the embeddable form,
+// mirroring getDeckEmbedUrl's approach for lesson decks above.
+function getLectureEmbedUrl(rawUrl) {
+    if (!rawUrl) return null;
+    if (/youtube\.com\/embed\//i.test(rawUrl) || /drive\.google\.com\/.*\/preview/i.test(rawUrl)) {
+        return rawUrl; // already embeddable
+    }
+    const driveMatch = rawUrl.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    if (driveMatch) {
+        return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+    }
+    const ytWatchMatch = rawUrl.match(/[?&]v=([a-zA-Z0-9_-]{6,})/);
+    if (ytWatchMatch) {
+        return `https://www.youtube.com/embed/${ytWatchMatch[1]}`;
+    }
+    const ytShortMatch = rawUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{6,})/);
+    if (ytShortMatch) {
+        return `https://www.youtube.com/embed/${ytShortMatch[1]}`;
+    }
+    return null; // unrecognized format, fall back to a link
+}
+
+let __lecturesCache = [];
+
+async function loadLecturesData() {
+    try {
+        const res = await fetch('/api/lectures', { credentials: 'include' });
+        const data = await res.json().catch(() => null);
+        if (!data || !data.success) return;
+        __lecturesCache = data.lectures || [];
+        renderTraineeLectures();
+        renderAdminLectures();
+    } catch (e) { /* leave whatever was last rendered */ }
+}
+
+function renderLectureCard(lec, isAdmin) {
+    const embedUrl = getLectureEmbedUrl(lec.embed_url);
+    const player = embedUrl
+        ? `<iframe src="${embedUrl}" allowfullscreen class="aspect-video bg-slate-900 rounded mb-3 w-full" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>`
+        : `<div class="aspect-video bg-slate-900 rounded mb-3 flex items-center justify-center text-slate-400"><a href="${escapeHtml(lec.embed_url)}" target="_blank" rel="noopener noreferrer" class="text-xs font-mono text-orange-400">Open lecture link &rarr;</a></div>`;
+    const deleteBtn = isAdmin
+        ? `<button onclick="deleteLecture(${lec.id})" style="float:right;background:none;border:none;color:#b91c1c;cursor:pointer;font-size:11px;font-weight:700;">Delete</button>`
+        : '';
+    return `<div class="pdf-card border-l-4 border-red-600">
+        <div class="section-head" style="background:#fef2f2; color:#b91c1c;">${escapeHtml(lec.title)}${deleteBtn}</div>
+        ${player}
+        <p class="text-xs text-slate-600">${escapeHtml(lec.summary || '')}</p>
+    </div>`;
+}
+
+function renderTraineeLectures() {
+    const container = document.getElementById('trainee-lectures-container');
+    if (!container) return;
+    container.innerHTML = __lecturesCache.length
+        ? __lecturesCache.map(lec => renderLectureCard(lec, false)).join('')
+        : '<p style="font-size:12px;color:#94a3b8;">No recorded lectures yet.</p>';
+}
+
+function renderAdminLectures() {
+    const container = document.getElementById('admin-lectures-container');
+    if (!container) return;
+    container.innerHTML = __lecturesCache.length
+        ? __lecturesCache.map(lec => renderLectureCard(lec, true)).join('')
+        : '<p style="font-size:12px;color:#94a3b8;">No recorded lectures yet.</p>';
+}
+
+async function deleteLecture(id) {
+    if (!confirm('Delete this lecture?')) return;
+    try {
+        const res = await fetch('/api/lectures?id=' + encodeURIComponent(id), { method: 'DELETE', credentials: 'include' });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || !data.success) throw new Error((data && data.error) || 'Failed to delete lecture.');
+        showToast('Lecture deleted.', 'success');
+        loadLecturesData();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
 // Drag support for the deck viewer pane (mouse + touch)
 (function initDeckViewerDrag() {
     document.addEventListener('DOMContentLoaded', () => {
@@ -1419,7 +1605,28 @@ async function loadArchiveData() {
 }
 
 // Placeholder Action — lecture embeds not in scope for this pass
-function saveNewLecture() { closeModals(); alert("Lecture embed added successfully!"); }
+async function saveNewLecture() {
+    const title = document.getElementById('lec-title-input').value.trim();
+    const embedUrl = document.getElementById('lec-url-input').value.trim();
+    const summary = document.getElementById('lec-summary-input').value.trim();
+
+    if (!title || !embedUrl) {
+        showToast('Title and Embed URL are required.', 'error');
+        return;
+    }
+
+    try {
+        await postJson('/api/lectures', { title, embedUrl, summary });
+        closeModals();
+        document.getElementById('lec-title-input').value = '';
+        document.getElementById('lec-url-input').value = '';
+        document.getElementById('lec-summary-input').value = '';
+        showToast('Lecture embed added successfully!', 'success');
+        loadLecturesData();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
 
 // Collects everything typed/selected in the answer modal and submits it —
 // answered, submitted, and (where objective) graded, all without a file upload.
