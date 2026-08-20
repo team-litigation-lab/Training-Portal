@@ -105,6 +105,11 @@ function applySessionUI() {
 function logoutSession() {
     stopHeartbeat();
     stopLiveDataPolling();
+    // Fire-and-forget: clears the server-side cookie and logs the 'logout'
+    // event (see functions/api/logout.js). Local state is cleared
+    // immediately below regardless of whether this network call succeeds —
+    // the user shouldn't be stuck "logged in" locally over a network blip.
+    fetch('/api/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     clearSession();
     applySessionUI();
 }
