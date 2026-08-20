@@ -1018,26 +1018,35 @@ function closeDeckViewer() {
     document.getElementById('deck-viewer-frame-holder').innerHTML = '';
 }
 
-// ===== RECORDED LECTURES (trainee view, admin management) =====
-// A raw youtube.com/watch?v=... or drive.google.com/file/d/.../view URL
-// can't be framed directly — this converts to the embeddable form,
-// mirroring getDeckEmbedUrl's approach for lesson decks above.
+// ===== RECORDED LECTURES (dropdown selector + draggable pop-out viewer) =====
+// A raw youtube.com/watch?v=..., youtu.be/..., youtube.com/shorts/..., or
+// drive.google.com/file/d/.../view URL can't be framed directly — this
+// converts to the embeddable form, mirroring getDeckEmbedUrl's approach
+// for lesson decks above.
 function getLectureEmbedUrl(rawUrl) {
     if (!rawUrl) return null;
-    if (/youtube\.com\/embed\//i.test(rawUrl) || /drive\.google\.com\/.*\/preview/i.test(rawUrl)) {
+    if (/youtube(-nocookie)?\.com\/embed\//i.test(rawUrl) || /drive\.google\.com\/.*\/preview/i.test(rawUrl)) {
         return rawUrl; // already embeddable
     }
-    const driveMatch = rawUrl.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-    if (driveMatch) {
-        return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+    const driveFileMatch = rawUrl.match(/drive\.google\.com\/file\/d\/([^/?]+)/);
+    if (driveFileMatch) {
+        return `https://drive.google.com/file/d/${driveFileMatch[1]}/preview`;
+    }
+    const driveOpenMatch = rawUrl.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+    if (driveOpenMatch) {
+        return `https://drive.google.com/file/d/${driveOpenMatch[1]}/preview`;
     }
     const ytWatchMatch = rawUrl.match(/[?&]v=([a-zA-Z0-9_-]{6,})/);
     if (ytWatchMatch) {
         return `https://www.youtube.com/embed/${ytWatchMatch[1]}`;
     }
-    const ytShortMatch = rawUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{6,})/);
-    if (ytShortMatch) {
-        return `https://www.youtube.com/embed/${ytShortMatch[1]}`;
+    const ytShortLinkMatch = rawUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{6,})/);
+    if (ytShortLinkMatch) {
+        return `https://www.youtube.com/embed/${ytShortLinkMatch[1]}`;
+    }
+    const ytShortsMatch = rawUrl.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{6,})/);
+    if (ytShortsMatch) {
+        return `https://www.youtube.com/embed/${ytShortsMatch[1]}`;
     }
     return null; // unrecognized format, fall back to a link
 }
@@ -1050,40 +1059,101 @@ async function loadLecturesData() {
         const data = await res.json().catch(() => null);
         if (!data || !data.success) return;
         __lecturesCache = data.lectures || [];
-        renderTraineeLectures();
-        renderAdminLectures();
+        renderLectureOptions();
     } catch (e) { /* leave whatever was last rendered */ }
 }
 
-function renderLectureCard(lec, isAdmin) {
+function renderLectureOptions() {
+    ['trainee-lecture-select', 'admin-lecture-select'].forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+        const previousValue = select.value;
+        select.innerHTML = '<option value="">— Choose a recorded lecture —</option>' +
+            __lecturesCache.map(lec => `<option value="${lec.id}">${escapeHtml(lec.title)}</option>`).join('');
+        // Keep the current selection across a refresh (e.g. after adding a
+        // new lecture) instead of silently resetting to the placeholder.
+        if (previousValue && __lecturesCache.some(lec => String(lec.id) === previousValue)) {
+            select.value = previousValue;
+        }
+    });
+}
+
+function openLectureViewerFromSelect(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select || !select.value) return;
+    const lec = __lecturesCache.find(l => String(l.id) === select.value);
+    if (!lec) return;
+
+    const summaryId = selectId === 'trainee-lecture-select' ? 'trainee-lecture-summary' : 'admin-lecture-summary';
+    const summaryEl = document.getElementById(summaryId);
+    if (summaryEl) summaryEl.textContent = lec.summary || '';
+
+    viewLecture(lec);
+}
+
+function viewLecture(lec) {
+    const pane = document.getElementById('lecture-viewer-pane');
+    const titleEl = document.getElementById('lecture-viewer-title');
+    const holder = document.getElementById('lecture-viewer-frame-holder');
+    if (!pane || !titleEl || !holder) return;
+
+    titleEl.textContent = lec.title || 'Recorded Lecture';
+
     const embedUrl = getLectureEmbedUrl(lec.embed_url);
-    const player = embedUrl
-        ? `<iframe src="${embedUrl}" allowfullscreen class="aspect-video bg-slate-900 rounded mb-3 w-full" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>`
-        : `<div class="aspect-video bg-slate-900 rounded mb-3 flex items-center justify-center text-slate-400"><a href="${escapeHtml(lec.embed_url)}" target="_blank" rel="noopener noreferrer" class="text-xs font-mono text-orange-400">Open lecture link &rarr;</a></div>`;
-    const deleteBtn = isAdmin
-        ? `<button onclick="deleteLecture(${lec.id})" style="float:right;background:none;border:none;color:#b91c1c;cursor:pointer;font-size:11px;font-weight:700;">Delete</button>`
-        : '';
-    return `<div class="pdf-card border-l-4 border-red-600">
-        <div class="section-head" style="background:#fef2f2; color:#b91c1c;">${escapeHtml(lec.title)}${deleteBtn}</div>
-        ${player}
-        <p class="text-xs text-slate-600">${escapeHtml(lec.summary || '')}</p>
-    </div>`;
+    if (embedUrl) {
+        // Deliberately NOT sandboxed, unlike the deck viewer's PPTX/GDrive
+        // iframe above — sandboxing YouTube's player blocks the nested
+        // iframes and postMessage calls it needs to initialize, which is
+        // what was causing the embed to silently fail. This is YouTube's
+        // own recommended embed `allow` list instead.
+        holder.innerHTML = `<iframe src="${embedUrl}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+    } else if (lec.embed_url) {
+        holder.innerHTML = `<div id="lecture-viewer-fallback">This lecture's link can't be previewed inline.<br><a href="${lec.embed_url}" target="_blank" rel="noopener noreferrer">Open in a new tab &rarr;</a></div>`;
+    } else {
+        holder.innerHTML = `<div id="lecture-viewer-fallback">No video link has been attached to this lecture yet.</div>`;
+    }
+
+    // Reset position/size each time it's opened, same as the deck viewer.
+    pane.style.top = '90px';
+    pane.style.left = '50%';
+    pane.style.transform = 'translateX(-50%)';
+    pane.style.width = '560px';
+    pane.style.height = '380px';
+
+    pane.classList.add('open');
 }
 
-function renderTraineeLectures() {
-    const container = document.getElementById('trainee-lectures-container');
-    if (!container) return;
-    container.innerHTML = __lecturesCache.length
-        ? __lecturesCache.map(lec => renderLectureCard(lec, false)).join('')
-        : '<p style="font-size:12px;color:#94a3b8;">No recorded lectures yet.</p>';
+function closeLectureViewer() {
+    const pane = document.getElementById('lecture-viewer-pane');
+    if (!pane) return;
+    // Exiting fullscreen before closing avoids leaving the browser stuck
+    // in fullscreen with nothing visible underneath.
+    if (document.fullscreenElement === pane || document.webkitFullscreenElement === pane) {
+        toggleLectureFullscreen();
+    }
+    pane.classList.remove('open');
+    document.getElementById('lecture-viewer-frame-holder').innerHTML = '';
 }
 
-function renderAdminLectures() {
-    const container = document.getElementById('admin-lectures-container');
-    if (!container) return;
-    container.innerHTML = __lecturesCache.length
-        ? __lecturesCache.map(lec => renderLectureCard(lec, true)).join('')
-        : '<p style="font-size:12px;color:#94a3b8;">No recorded lectures yet.</p>';
+function toggleLectureFullscreen() {
+    const pane = document.getElementById('lecture-viewer-pane');
+    if (!pane) return;
+    const isFullscreen = document.fullscreenElement === pane || document.webkitFullscreenElement === pane;
+    const btn = document.getElementById('lecture-viewer-fullscreen');
+
+    if (!isFullscreen) {
+        const request = pane.requestFullscreen || pane.webkitRequestFullscreen;
+        if (request) {
+            request.call(pane);
+            if (btn) btn.textContent = '⤢ Exit Full Screen';
+        }
+    } else {
+        const exit = document.exitFullscreen || document.webkitExitFullscreen;
+        if (exit) {
+            exit.call(document);
+            if (btn) btn.textContent = '⛶ Full Screen';
+        }
+    }
 }
 
 async function deleteLecture(id) {
@@ -1093,21 +1163,35 @@ async function deleteLecture(id) {
         const data = await res.json().catch(() => null);
         if (!res.ok || !data || !data.success) throw new Error((data && data.error) || 'Failed to delete lecture.');
         showToast('Lecture deleted.', 'success');
+        closeLectureViewer();
         loadLecturesData();
     } catch (e) {
         showToast(e.message, 'error');
     }
 }
 
+function deleteSelectedLecture(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select || !select.value) {
+        showToast('Select a lecture first.', 'error');
+        return;
+    }
+    deleteLecture(select.value);
+}
+
 // Drag support for the deck viewer pane (mouse + touch)
-(function initDeckViewerDrag() {
+function initDraggablePane(paneId, headerId, nonDragIds) {
     document.addEventListener('DOMContentLoaded', () => {
-        const pane = document.getElementById('deck-viewer-pane');
-        const header = document.getElementById('deck-viewer-header');
+        const pane = document.getElementById(paneId);
+        const header = document.getElementById(headerId);
         if (!pane || !header) return;
 
         let dragging = false;
         let offsetX = 0, offsetY = 0;
+
+        function isNonDragTarget(target) {
+            return nonDragIds.includes(target.id);
+        }
 
         function startDrag(clientX, clientY) {
             const rect = pane.getBoundingClientRect();
@@ -1135,7 +1219,7 @@ async function deleteLecture(id) {
         function endDrag() { dragging = false; }
 
         header.addEventListener('mousedown', (e) => {
-            if (e.target.id === 'deck-viewer-close') return;
+            if (isNonDragTarget(e.target)) return;
             startDrag(e.clientX, e.clientY);
             e.preventDefault();
         });
@@ -1143,7 +1227,7 @@ async function deleteLecture(id) {
         document.addEventListener('mouseup', endDrag);
 
         header.addEventListener('touchstart', (e) => {
-            if (e.target.id === 'deck-viewer-close') return;
+            if (isNonDragTarget(e.target)) return;
             const t = e.touches[0];
             startDrag(t.clientX, t.clientY);
         }, { passive: true });
@@ -1154,7 +1238,10 @@ async function deleteLecture(id) {
         }, { passive: true });
         document.addEventListener('touchend', endDrag);
     });
-})();
+}
+
+initDraggablePane('deck-viewer-pane', 'deck-viewer-header', ['deck-viewer-close']);
+initDraggablePane('lecture-viewer-pane', 'lecture-viewer-header', ['lecture-viewer-close', 'lecture-viewer-fullscreen']);
 
 function formatDate(isoString) {
     if (!isoString) return '';
