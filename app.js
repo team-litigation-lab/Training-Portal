@@ -1023,9 +1023,27 @@ function closeDeckViewer() {
 // drive.google.com/file/d/.../view URL can't be framed directly — this
 // converts to the embeddable form, mirroring getDeckEmbedUrl's approach
 // for lesson decks above.
+//
+// Admins sometimes paste YouTube/Drive's own "Share > Embed" button
+// output — the FULL <iframe ...></iframe> snippet — into the Embed Link
+// field, rather than just the video's URL. Pull the real src="" out of
+// that first: without this, a string like
+//   <iframe src="https://youtube.com/embed/XYZ" ...></iframe>
+// would match the "already embeddable" check below on its raw text and
+// get used as-is as an iframe's src attribute, producing
+// <iframe src="<iframe src="https://..." ...></iframe>" ...> — a quote
+// inside the pasted snippet prematurely closes the src attribute, so the
+// browser renders broken markup instead of the video.
+function extractSrcFromIframeSnippet(rawUrl) {
+    const str = String(rawUrl);
+    if (!/<iframe[\s>]/i.test(str)) return str; // not a pasted snippet, leave as-is
+    const srcMatch = str.match(/\bsrc=["']([^"']+)["']/i);
+    return srcMatch ? srcMatch[1] : str;
+}
+
 function getLectureEmbedUrl(rawUrl) {
     if (!rawUrl) return null;
-    const url = String(rawUrl).trim();
+    let url = extractSrcFromIframeSnippet(rawUrl).trim();
     if (!url) return null;
 
     // Already in embeddable iframe form — pass through unchanged.
@@ -1126,10 +1144,14 @@ function viewLecture(lec) {
     // link, regardless of whether the inline embed works — a specific
     // video/file can have its OWN sharing or embedding permission turned
     // off by whoever uploaded it, which no amount of code here can fix,
-    // so this is the guaranteed-to-work fallback.
+    // so this is the guaranteed-to-work fallback. Uses the extracted URL,
+    // not the raw stored value — if that value is a pasted <iframe>
+    // snippet rather than a bare URL, an href set to the raw value would
+    // be just as broken as the src bug this same extraction fixes below.
+    const cleanedUrl = lec.embed_url ? extractSrcFromIframeSnippet(lec.embed_url).trim() : '';
     if (openLink) {
-        if (lec.embed_url) {
-            openLink.href = lec.embed_url;
+        if (cleanedUrl) {
+            openLink.href = cleanedUrl;
             openLink.style.display = 'inline-block';
         } else {
             openLink.style.display = 'none';
@@ -1154,7 +1176,7 @@ function viewLecture(lec) {
     } else if (lec.embed_url) {
         // Shows the actual stored link so a broken/unrecognized format is
         // visible and diagnosable, instead of a generic dead-end message.
-        holder.innerHTML = `<div id="lecture-viewer-fallback">This link isn't a recognized YouTube or Google Drive link, so it can't be previewed inline.<br><a href="${escapeHtml(lec.embed_url)}" target="_blank" rel="noopener noreferrer">Open in a new tab &rarr;</a><div style="font-size:10px;color:#94a3b8;word-break:break-all;margin-top:10px;">${escapeHtml(lec.embed_url)}</div></div>`;
+        holder.innerHTML = `<div id="lecture-viewer-fallback">This link isn't a recognized YouTube or Google Drive link, so it can't be previewed inline.<br><a href="${escapeHtml(cleanedUrl)}" target="_blank" rel="noopener noreferrer">Open in a new tab &rarr;</a><div style="font-size:10px;color:#94a3b8;word-break:break-all;margin-top:10px;">${escapeHtml(cleanedUrl)}</div></div>`;
     } else {
         holder.innerHTML = `<div id="lecture-viewer-fallback">No video link has been attached to this lecture yet.</div>`;
     }
