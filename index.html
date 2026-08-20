@@ -912,18 +912,8 @@
             flex-direction: column;
             z-index: 3000;
             overflow: hidden;
-            resize: both;
-            min-width: 280px;
-            min-height: 190px;
         }
         #lecture-viewer-pane.open { display: flex; }
-        /* Native Fullscreen API target — browser chrome handles sizing,
-           this just makes sure the pane fills whatever it's given. */
-        #lecture-viewer-pane:fullscreen,
-        #lecture-viewer-pane:-webkit-full-screen {
-            width: 100%; height: 100%; max-width: none; max-height: none;
-            top: 0; left: 0; transform: none; border-radius: 0;
-        }
         #lecture-viewer-header {
             background: var(--navy-deep, #0f172a);
             color: #fff;
