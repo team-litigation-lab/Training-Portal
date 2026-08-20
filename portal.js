@@ -321,26 +321,39 @@ async function pollAlert() {
         const data = await res.json().catch(() => null);
         if (!data) return;
 
+        const statusLine = document.getElementById('alert-status-line');
         const overlay = document.getElementById('alert-overlay');
+
         if (!data.active) {
             if (overlay) overlay.classList.remove('open');
+            // Previously only set inside setAlert()/stopAlert() — meant a
+            // fresh page load, or a different admin's tab, always showed
+            // "No alert is currently active." even while one genuinely was.
+            if (statusLine) statusLine.textContent = 'No alert is currently active.';
             __lastShownAlertId = null;
             return;
         }
 
+        if (statusLine) statusLine.textContent = 'An alert is active.';
         __lastShownAlertId = data.id;
         if (__alertDismissedId === data.id) return; // this exact alert was already dismissed locally
 
         const textEl = document.getElementById('alert-overlay-text');
         const imgEl = document.getElementById('alert-overlay-image');
-        const box = overlay ? overlay.querySelector('.alert-box') : null;
         if (textEl) textEl.textContent = data.text || '';
         if (imgEl) {
             if (data.image) { imgEl.src = data.image; imgEl.style.display = 'block'; }
             else { imgEl.style.display = 'none'; imgEl.removeAttribute('src'); }
         }
-        if (box) box.style.background = data.bgColor || '';
-        if (overlay) overlay.classList.add('open');
+        // The color has to go on #alert-overlay itself (the fixed,
+        // full-screen backdrop) — .alert-box is just a content wrapper
+        // with no background of its own, so setting it there left the
+        // page's normal content fully visible behind a small floating
+        // text block instead of the intended full-screen color takeover.
+        if (overlay) {
+            overlay.style.background = data.bgColor || '#b91c1c';
+            overlay.classList.add('open');
+        }
     } catch (e) { /* retry next tick */ }
 }
 
@@ -503,9 +516,14 @@ function setPingMode(mode) {
     if (mode === 'all') { __pingSelectedUsers = []; renderPingUserChips(); }
 }
 
-function openPingUserList() {
+async function openPingUserList() {
     if (__pingMode !== 'single') return;
-    if (!__usersCache || __usersCache.length === 0) loadUsersData();
+    if (!__usersCache || __usersCache.length === 0) {
+        // Must be awaited — filterPingUserList() reads __usersCache
+        // synchronously right after, and without this it would run before
+        // the fetch resolves, showing "No matching users" on first open.
+        await loadUsersData();
+    }
     filterPingUserList();
     const list = document.getElementById('ping-user-list');
     if (list) list.style.display = 'block';
