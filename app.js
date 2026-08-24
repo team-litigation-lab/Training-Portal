@@ -1119,6 +1119,46 @@ function confirmWatchLecture(id) {
     viewLecture(lec);
 }
 
+// Keeps the video's actual 16:9 shape regardless of the pane's current
+// size — plain width:100%/height:100% (the CSS fallback above) stretches
+// to fill whatever box it's in, distorting the picture whenever the
+// pane's aspect ratio doesn't happen to match the video's. This computes
+// the largest 16:9 rectangle that fits within the available space and
+// centers it (letterboxed/pillarboxed via the body's flex centering).
+function fitLectureIframeToBox() {
+    const body = document.getElementById('lecture-viewer-body');
+    const iframe = body ? body.querySelector('iframe') : null;
+    if (!body || !iframe) return;
+
+    const availW = body.clientWidth;
+    const availH = body.clientHeight;
+    if (availW <= 0 || availH <= 0) return;
+
+    const targetRatio = 16 / 9;
+    let w = availW;
+    let h = w / targetRatio;
+    if (h > availH) {
+        h = availH;
+        w = h * targetRatio;
+    }
+
+    iframe.style.width = Math.round(w) + 'px';
+    iframe.style.height = Math.round(h) + 'px';
+}
+
+// A ResizeObserver on the body means the iframe re-fits itself whenever
+// the pane's available space changes for ANY reason — minimize, maximize,
+// a manual drag, or just the browser window itself being resized — not
+// only the two specific toggles this file happens to trigger explicitly.
+let __lectureResizeObserver = null;
+function initLectureViewerResizeObserver() {
+    const body = document.getElementById('lecture-viewer-body');
+    if (!body || !window.ResizeObserver) return;
+    __lectureResizeObserver = new ResizeObserver(() => fitLectureIframeToBox());
+    __lectureResizeObserver.observe(body);
+}
+document.addEventListener('DOMContentLoaded', initLectureViewerResizeObserver);
+
 function resetLectureViewerPosition() {
     const pane = document.getElementById('lecture-viewer-pane');
     if (!pane) return;
@@ -1190,6 +1230,11 @@ function viewLecture(lec) {
     if (fsBtn) { fsBtn.textContent = '⛶'; fsBtn.title = 'Full Screen'; }
     resetLectureViewerPosition();
     pane.classList.add('open');
+
+    // Immediate fit — the ResizeObserver above also catches this, but its
+    // callback fires on the next frame, so this avoids a brief flash of a
+    // stretched/wrong-sized video right as the pane opens.
+    fitLectureIframeToBox();
 }
 
 function closeLectureViewer() {
@@ -1232,6 +1277,10 @@ function toggleLectureFullscreen() {
         btn.textContent = '⛶';
         btn.title = 'Full Screen';
     }
+
+    // Same immediate-fit reasoning as in viewLecture() — don't wait on the
+    // ResizeObserver's next-frame callback for this explicit toggle.
+    fitLectureIframeToBox();
 }
 
 async function deleteLecture(id) {
