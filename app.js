@@ -1129,6 +1129,8 @@ function resetLectureViewerPosition() {
     pane.style.bottom = '24px';
     pane.style.width = '380px';
     pane.style.height = '250px';
+    pane.style.maxWidth = '';
+    pane.style.maxHeight = '';
 }
 
 function viewLecture(lec) {
@@ -1182,7 +1184,10 @@ function viewLecture(lec) {
     }
 
     // Reset to the default small bottom-right corner position/size each
-    // time it's opened, undoing any previous drag or leftover fullscreen state.
+    // time it's opened, undoing any previous drag or leftover maximized state.
+    pane.classList.remove('maximized');
+    const fsBtn = document.getElementById('lecture-viewer-fullscreen');
+    if (fsBtn) { fsBtn.textContent = '⛶'; fsBtn.title = 'Full Screen'; }
     resetLectureViewerPosition();
     pane.classList.add('open');
 }
@@ -1190,71 +1195,44 @@ function viewLecture(lec) {
 function closeLectureViewer() {
     const pane = document.getElementById('lecture-viewer-pane');
     if (!pane) return;
-    // Exiting fullscreen before closing avoids leaving the browser stuck
-    // in fullscreen with nothing visible underneath.
-    if (document.fullscreenElement === pane || document.webkitFullscreenElement === pane) {
-        const exit = document.exitFullscreen || document.webkitExitFullscreen;
-        if (exit) exit.call(document);
-    }
+    pane.classList.remove('maximized');
     pane.classList.remove('open');
     document.getElementById('lecture-viewer-frame-holder').innerHTML = '';
 }
 
+// "Full Screen" here means the page's main content area — everything
+// below the 38px classification bar and to the right of the 280px
+// sidebar — NOT a literal OS-level takeover via the browser's Fullscreen
+// API. This is a plain CSS/inline-style toggle; the 'maximized' class is
+// only used as a state flag (checked via classList.contains below), not
+// as a styling hook, so there's no risk of a stylesheet rule and an
+// inline style fighting over the same properties.
 function toggleLectureFullscreen() {
-    const pane = document.getElementById('lecture-viewer-pane');
-    if (!pane) return;
-    const isFullscreen = document.fullscreenElement === pane || document.webkitFullscreenElement === pane;
-
-    if (!isFullscreen) {
-        const request = pane.requestFullscreen || pane.webkitRequestFullscreen;
-        if (request) request.call(pane);
-    } else {
-        const exit = document.exitFullscreen || document.webkitExitFullscreen;
-        if (exit) exit.call(document);
-    }
-    // Actual positioning/label updates happen in syncLectureFullscreenUI,
-    // driven by the fullscreenchange event below — not here. The
-    // request/exit calls above are asynchronous and can also be rejected
-    // by the browser, so updating UI state right after calling them (as a
-    // previous version did) could desync from what actually happened.
-}
-
-// The real fullscreenchange event is the source of truth for fullscreen
-// state — it also fires if the user exits via Esc or the browser's own
-// fullscreen UI, which toggleLectureFullscreen()'s button click alone
-// would otherwise miss and leave the button's label wrong.
-function syncLectureFullscreenUI() {
     const pane = document.getElementById('lecture-viewer-pane');
     const btn = document.getElementById('lecture-viewer-fullscreen');
     if (!pane || !btn) return;
-    const isFullscreen = document.fullscreenElement === pane || document.webkitFullscreenElement === pane;
 
-    if (isFullscreen) {
-        // Explicit inline positioning, not a CSS :fullscreen pseudo-class
-        // rule — the pane's default corner position is ALSO set via
-        // inline right/bottom (see resetLectureViewerPosition), and inline
-        // styles always beat stylesheet rules. A stylesheet :fullscreen
-        // rule trying to set top/left while inline right/bottom stayed in
-        // place left the box over-constrained and rendered unreliably.
-        // Setting every relevant property inline here, in one place,
-        // removes that conflict entirely.
-        pane.style.top = '0';
-        pane.style.left = '0';
-        pane.style.right = 'auto';
-        pane.style.bottom = 'auto';
-        pane.style.width = '100%';
-        pane.style.height = '100%';
+    const isMaximized = pane.classList.contains('maximized');
+    if (!isMaximized) {
+        pane.classList.add('maximized');
+        pane.style.top = '38px';      // classification bar height
+        pane.style.left = '280px';    // sidebar width
+        pane.style.right = '0';
+        pane.style.bottom = '0';
+        pane.style.width = 'auto';
+        pane.style.height = 'auto';
+        pane.style.maxWidth = 'none';
+        pane.style.maxHeight = 'none';
         pane.style.transform = 'none';
         btn.textContent = '⤢';
         btn.title = 'Exit Full Screen';
     } else {
+        pane.classList.remove('maximized');
         resetLectureViewerPosition();
         btn.textContent = '⛶';
         btn.title = 'Full Screen';
     }
 }
-document.addEventListener('fullscreenchange', syncLectureFullscreenUI);
-document.addEventListener('webkitfullscreenchange', syncLectureFullscreenUI);
 
 async function deleteLecture(id) {
     if (!confirm('Delete this lecture?')) return;
@@ -1311,8 +1289,17 @@ function initDraggablePane(paneId, headerId, nonDragIds, options = {}) {
 
         function endDrag() { dragging = false; }
 
+        function isDraggable() {
+            // A 'maximized' pane (see toggleLectureFullscreen) is anchored
+            // via right/bottom in addition to left/top — dragging it would
+            // fight that anchoring and resize rather than move it. Only
+            // the lecture pane ever gets this class; deck-viewer-pane never
+            // has it, so this check is a no-op there.
+            return !pane.classList.contains('maximized');
+        }
+
         header.addEventListener('mousedown', (e) => {
-            if (isNonDragTarget(e.target)) return;
+            if (isNonDragTarget(e.target) || !isDraggable()) return;
             startDrag(e.clientX, e.clientY);
             e.preventDefault();
         });
@@ -1320,7 +1307,7 @@ function initDraggablePane(paneId, headerId, nonDragIds, options = {}) {
         document.addEventListener('mouseup', endDrag);
 
         header.addEventListener('touchstart', (e) => {
-            if (isNonDragTarget(e.target)) return;
+            if (isNonDragTarget(e.target) || !isDraggable()) return;
             const t = e.touches[0];
             startDrag(t.clientX, t.clientY);
         }, { passive: true });
