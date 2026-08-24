@@ -957,8 +957,15 @@
             flex: 1;
             position: relative;
             background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
         }
         #lecture-viewer-body iframe {
+            /* Fallback only — fitLectureIframeToBox() in app.js sets exact
+               pixel width/height to preserve the video's 16:9 aspect ratio
+               within whatever size the pane currently is. */
             width: 100%;
             height: 100%;
             border: none;
