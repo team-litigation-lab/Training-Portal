@@ -151,7 +151,8 @@ function attemptLogin() {
         if (loginBtn) loginBtn.disabled = false;
         if (data.success) {
             if (loginMsgDiv) { loginMsgDiv.className = "auth-msg success"; loginMsgDiv.innerText = "Access granted! Redirecting..."; }
-            showToast(`Access granted. Welcome back!`, 'success');
+            playSound('login');
+            showToast(`Access granted. Welcome back!`, 'success', 3500, { skipSound: true });
 
             const rawUser = data.user;
             const normalizedUser = {
@@ -178,7 +179,8 @@ function attemptLogin() {
             }, 1200);
         } else {
             if (loginMsgDiv) { loginMsgDiv.className = "auth-msg error"; loginMsgDiv.innerText = data.error || "Login unauthorized."; }
-            showToast(data.error || "Login unauthorized.", 'error');
+            playSound('loginError');
+            showToast(data.error || "Login unauthorized.", 'error', 3500, { skipSound: true });
         }
     })
     .catch(error => {
@@ -187,7 +189,8 @@ function attemptLogin() {
         if (loginBtn) loginBtn.disabled = false;
         console.error("Authentication connection failure:", error);
         if (loginMsgDiv) { loginMsgDiv.className = "auth-msg error"; loginMsgDiv.innerText = "Network error. Failed to hit validation server."; }
-        showToast("Network error. Failed to hit validation server.", 'error');
+        playSound('loginError');
+        showToast("Network error. Failed to hit validation server.", 'error', 3500, { skipSound: true });
     });
 }
 
@@ -232,6 +235,91 @@ function initDataAllowFilters() {
         });
     });
 }
+
+// ==========================================
+// SOUND ENGINE — Crystal & Bell
+// Every event below is an original short bell-tone phrase on a C-major
+// pentatonic scale, with a quiet octave-up harmonic layered on each note
+// for a touch of real bell overtone character. One system, used
+// app-wide — see the individual call sites (attemptLogin, showToast,
+// the window.confirm wrapper below, pollAlert, pollPings, togglePause,
+// confirmLock/attemptUnlock, makeAnnouncement) for where each fires.
+// ==========================================
+let __soundCtx = null;
+function getSoundCtx() {
+    if (!__soundCtx) __soundCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (__soundCtx.state === 'suspended') __soundCtx.resume();
+    return __soundCtx;
+}
+
+function soundBeep(c, { freq, type = 'sine', dur = 0.2, gain = 0.3, delay = 0 }) {
+    const t0 = c.currentTime + delay;
+    const osc = c.createOscillator();
+    const g = c.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain, t0 + Math.min(0.02, dur / 3));
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g).connect(c.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.05);
+}
+function soundBellNote(c, freq, delay, dur, gain) {
+    soundBeep(c, { freq: freq, type: 'sine', dur: dur, gain: gain, delay: delay });
+    soundBeep(c, { freq: freq * 2, type: 'sine', dur: dur * 0.6, gain: gain * 0.22, delay: delay });
+}
+function soundBellPhrase(notes) {
+    const c = getSoundCtx();
+    notes.forEach(n => soundBellNote(c, n.f, n.d, n.dur, n.g));
+}
+
+const SOUND_NOTE = {
+    C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880.00,
+    C6: 1046.5, D6: 1174.66, E6: 1318.51, G4: 392.00
+};
+
+const SOUND_PHRASES = {
+    login: [{ f: SOUND_NOTE.C5, d: 0, dur: 0.3, g: 0.3 }, { f: SOUND_NOTE.E5, d: 0.18, dur: 0.3, g: 0.3 }, { f: SOUND_NOTE.G5, d: 0.36, dur: 0.3, g: 0.32 }, { f: SOUND_NOTE.C6, d: 0.54, dur: 0.55, g: 0.34 }],
+    loginError: [{ f: SOUND_NOTE.E5, d: 0, dur: 0.22, g: 0.28 }, { f: SOUND_NOTE.C5, d: 0.16, dur: 0.4, g: 0.26 }],
+    logout: [{ f: SOUND_NOTE.C6, d: 0, dur: 0.3, g: 0.32 }, { f: SOUND_NOTE.G5, d: 0.18, dur: 0.3, g: 0.3 }, { f: SOUND_NOTE.E5, d: 0.36, dur: 0.3, g: 0.3 }, { f: SOUND_NOTE.C5, d: 0.54, dur: 0.55, g: 0.3 }],
+    submitSuccess: [{ f: SOUND_NOTE.E5, d: 0, dur: 0.22, g: 0.32 }, { f: SOUND_NOTE.G5, d: 0.14, dur: 0.22, g: 0.32 }, { f: SOUND_NOTE.C6, d: 0.28, dur: 0.5, g: 0.36 }],
+    submitError: [{ f: SOUND_NOTE.E5, d: 0, dur: 0.25, g: 0.28 }, { f: SOUND_NOTE.D5, d: 0.18, dur: 0.25, g: 0.26 }, { f: SOUND_NOTE.C5, d: 0.36, dur: 0.45, g: 0.26 }],
+    notification: [{ f: SOUND_NOTE.G5, d: 0, dur: 0.35, g: 0.28 }],
+    prompt: [{ f: SOUND_NOTE.E5, d: 0, dur: 0.16, g: 0.24 }, { f: SOUND_NOTE.A5, d: 0.12, dur: 0.3, g: 0.26 }],
+    announcement: [{ f: SOUND_NOTE.C5, d: 0, dur: 0.2, g: 0.3 }, { f: SOUND_NOTE.G5, d: 0.14, dur: 0.2, g: 0.3 }, { f: SOUND_NOTE.E6, d: 0.28, dur: 0.5, g: 0.32 }],
+    alert: [{ f: SOUND_NOTE.G5, d: 0, dur: 0.22, g: 0.34 }, { f: SOUND_NOTE.C6, d: 0.24, dur: 0.22, g: 0.34 }, { f: SOUND_NOTE.G5, d: 0.48, dur: 0.22, g: 0.34 }, { f: SOUND_NOTE.C6, d: 0.72, dur: 0.32, g: 0.36 }],
+    ping: [{ f: SOUND_NOTE.C6, d: 0, dur: 0.18, g: 0.32 }, { f: SOUND_NOTE.E6, d: 0.12, dur: 0.18, g: 0.32 }, { f: SOUND_NOTE.G5, d: 0.24, dur: 0.35, g: 0.3 }],
+    lock: [{ f: SOUND_NOTE.G5, d: 0, dur: 0.22, g: 0.32 }, { f: SOUND_NOTE.E5, d: 0.16, dur: 0.22, g: 0.3 }, { f: SOUND_NOTE.C5, d: 0.32, dur: 0.22, g: 0.3 }, { f: SOUND_NOTE.G4, d: 0.48, dur: 0.5, g: 0.3 }],
+    unlock: [{ f: SOUND_NOTE.G4, d: 0, dur: 0.22, g: 0.28 }, { f: SOUND_NOTE.C5, d: 0.16, dur: 0.22, g: 0.3 }, { f: SOUND_NOTE.E5, d: 0.32, dur: 0.22, g: 0.3 }, { f: SOUND_NOTE.G5, d: 0.48, dur: 0.5, g: 0.32 }],
+    pause: [{ f: SOUND_NOTE.E5, d: 0, dur: 0.2, g: 0.28 }, { f: SOUND_NOTE.C5, d: 0.14, dur: 0.35, g: 0.26 }],
+    resume: [{ f: SOUND_NOTE.C5, d: 0, dur: 0.2, g: 0.26 }, { f: SOUND_NOTE.E5, d: 0.14, dur: 0.35, g: 0.28 }]
+};
+
+function playSound(eventKey) {
+    const phrase = SOUND_PHRASES[eventKey];
+    if (!phrase) return;
+    try { soundBellPhrase(phrase); } catch (e) { /* audio unavailable — ignore */ }
+}
+
+// showToast's type ('success'/'error'/'info') already covers most of the
+// app's feedback moments (submissions, grading, registrations, lecture
+// management, etc.) — hooking it once here means those get a sound
+// without touching every individual call site.
+function playToastSound(type) {
+    if (type === 'success') playSound('submitSuccess');
+    else if (type === 'error') playSound('submitError');
+    else if (type === 'info') playSound('notification');
+}
+
+// Every confirm() dialog in the app gets a short "prompt" tone right
+// before the native dialog opens — one wrapper here instead of adding a
+// call at each individual confirm() site.
+const __nativeConfirm = window.confirm.bind(window);
+window.confirm = function (message) {
+    playSound('prompt');
+    return __nativeConfirm(message);
+};
 
 // ==========================================
 // ALERT (full-screen, admin controls + polling)
@@ -335,6 +423,7 @@ async function pollAlert() {
         }
 
         if (statusLine) statusLine.textContent = 'An alert is active.';
+        const isNewAlert = __lastShownAlertId !== data.id;
         __lastShownAlertId = data.id;
         if (__alertDismissedId === data.id) return; // this exact alert was already dismissed locally
 
@@ -354,6 +443,7 @@ async function pollAlert() {
             overlay.style.background = data.bgColor || '#b91c1c';
             overlay.classList.add('open');
         }
+        if (isNewAlert) playSound('alert');
     } catch (e) { /* retry next tick */ }
 }
 
@@ -409,15 +499,17 @@ function applySiteStateUI(state) {
 }
 
 async function togglePause() {
+    const willResume = !!__siteState.paused;
     try {
         const res = await fetch('/api/site-state', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ action: __siteState.paused ? 'RESUME' : 'PAUSE' })
+            body: JSON.stringify({ action: willResume ? 'RESUME' : 'PAUSE' })
         });
         const data = await res.json().catch(() => null);
         if (!res.ok || !data || !data.success) throw new Error((data && data.error) || 'Failed to update pause state.');
+        playSound(willResume ? 'resume' : 'pause');
         refreshSiteState();
     } catch (e) {
         showToast(e.message, 'error');
@@ -454,7 +546,8 @@ async function confirmLock() {
         const data = await res.json().catch(() => null);
         if (!res.ok || !data || !data.success) throw new Error((data && data.error) || 'Failed to lock the page.');
         closeLockConfirm();
-        showToast('Page locked.', 'success');
+        playSound('lock');
+        showToast('Page locked.', 'success', 3500, { skipSound: true });
         // LOCK wipes the entire heartbeats table server-side (see
         // site-state.js), killing the locking admin's own session too — the
         // lock-overlay (shown by refreshSiteState below) takes over regardless.
@@ -485,7 +578,8 @@ async function attemptUnlock() {
         if (!res.ok || !data || !data.success) throw new Error((data && data.error) || 'Invalid credentials.');
         document.getElementById('unlock-user').value = '';
         document.getElementById('unlock-pass').value = '';
-        showToast('Page unlocked.', 'success');
+        playSound('unlock');
+        showToast('Page unlocked.', 'success', 3500, { skipSound: true });
         // Every session's heartbeat row was wiped at LOCK time, so any
         // locally-stored session (including the unlocker's own) is stale —
         // send everyone through a fresh login.
@@ -601,28 +695,6 @@ async function sendPing() {
 
 // Distinct two-tone beep so a ping doesn't sound like the login chime —
 // generated via Web Audio API since no sound asset exists in the project.
-function playPingTone() {
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const beep = (freq, delayMs, durationSec) => {
-            setTimeout(() => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0.001, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durationSec);
-                osc.connect(gain).connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + durationSec + 0.05);
-            }, delayMs);
-        };
-        beep(880, 0, 0.5);
-        beep(1046, 250, 0.4);
-    } catch (e) { /* audio unavailable — ignore */ }
-}
-
 async function pollPings() {
     // Unlike /api/alert and /api/site-state, GET /api/pings requires a
     // session (requireSession, not adminOnly) — skip silently while logged out
@@ -635,8 +707,8 @@ async function pollPings() {
         if (!data || data.success === false || !Array.isArray(data.pings)) return;
 
         data.pings.forEach(p => {
-            showToast(`\u{1F4E3} ${p.by}: ${p.text}`, 'info', 6000);
-            playPingTone();
+            showToast(`\u{1F4E3} ${p.by}: ${p.text}`, 'info', 6000, { skipSound: true });
+            playSound('ping');
             __lastPingAt = p.fired_at;
         });
     } catch (e) { /* retry next tick */ }
