@@ -8,6 +8,7 @@ const SESSION_KEY = 'LSH_SESSION_V1';
 const HEARTBEAT_INTERVAL_MS = 2000;
 const LIVE_DATA_INTERVAL_MS = 15000;
 let heartbeatIntervalId = null;
+let __heartbeatVisibilityHandler = null;
 let liveDataIntervalId = null;
 let __activitiesCache = [];
 let __submissionsCache = [];
@@ -32,35 +33,59 @@ function clearSession() {
 
 // 1. NAVIGATION & ROLE VIEW SWITCHING
 function switchView(viewId) {
-    document.querySelectorAll('.portal-view-section').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.view-nav-btn').forEach(btn => {
-        btn.classList.remove('bg-slate-800', 'text-orange-400');
-        btn.classList.add('text-slate-300');
-    });
-
     const target = document.getElementById('view-' + viewId);
-    const navBtn = document.getElementById('nav-' + viewId);
-    if (target) target.classList.remove('hidden');
-    if (navBtn) {
-        navBtn.classList.remove('text-slate-300');
-        navBtn.classList.add('bg-slate-800', 'text-orange-400');
+    const outgoing = document.querySelector('.portal-view-section:not(.hidden)');
+
+    function completeSwitch() {
+        document.querySelectorAll('.portal-view-section').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.view-nav-btn').forEach(btn => {
+            btn.classList.remove('bg-slate-800', 'text-orange-400');
+            btn.classList.add('text-slate-300');
+        });
+
+        const navBtn = document.getElementById('nav-' + viewId);
+        if (target) {
+            target.classList.remove('hidden');
+            target.classList.remove('view-fade-out');
+            // Restart the animation even if this view was recently shown
+            void target.offsetWidth;
+            target.classList.add('view-fade-in');
+            target.addEventListener('animationend', () => target.classList.remove('view-fade-in'), { once: true });
+        }
+        if (navBtn) {
+            navBtn.classList.remove('text-slate-300');
+            navBtn.classList.add('bg-slate-800', 'text-orange-400');
+        }
+
+        if (viewId === 'admin-activities' || viewId === 'trainee-activities') {
+            loadActivitiesData();
+        }
+        if (viewId === 'trainee-landing' || viewId === 'admin-landing') {
+            loadProgressData();
+            loadLeaderboardData();
+        }
+        if (viewId === 'trainee-grades') {
+            loadTraineeGrades();
+        }
+        if (viewId === 'admin-grades') {
+            loadAdminSubmissions();
+        }
+        if (viewId === 'trainee-lectures' || viewId === 'admin-lectures') {
+            loadLecturesData();
+        }
     }
 
-    if (viewId === 'admin-activities' || viewId === 'trainee-activities') {
-        loadActivitiesData();
-    }
-    if (viewId === 'trainee-landing' || viewId === 'admin-landing') {
-        loadProgressData();
-        loadLeaderboardData();
-    }
-    if (viewId === 'trainee-grades') {
-        loadTraineeGrades();
-    }
-    if (viewId === 'admin-grades') {
-        loadAdminSubmissions();
-    }
-    if (viewId === 'trainee-lectures' || viewId === 'admin-lectures') {
-        loadLecturesData();
+    // Fade the currently-visible section out first (opacity only, still
+    // display:block) so there's something to transition — .hidden is
+    // display:none, which can't itself be animated.
+    if (outgoing && outgoing !== target) {
+        outgoing.classList.add('view-fade-out');
+        setTimeout(() => {
+            outgoing.classList.remove('view-fade-out');
+            completeSwitch();
+        }, 160);
+    } else {
+        completeSwitch();
     }
 }
 
@@ -108,6 +133,7 @@ function applySessionUI() {
 function logoutSession() {
     stopHeartbeat();
     stopLiveDataPolling();
+    playSound('logout');
     // Fire-and-forget: clears the server-side cookie and logs the 'logout'
     // event (see functions/api/logout.js). Local state is cleared
     // immediately below regardless of whether this network call succeeds —
@@ -182,12 +208,26 @@ function startHeartbeat() {
 
     sendHeartbeat(); // fire immediately so the row exists right after login/refresh
     heartbeatIntervalId = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
+
+    // Browsers throttle setInterval() in backgrounded tabs, so the regular
+    // tick alone can lag well behind HEARTBEAT_GRACE_SECONDS after the tab
+    // has been in the background a while. Firing one immediately the
+    // moment the tab is foregrounded again closes that gap right away
+    // instead of waiting on a throttled timer to catch up.
+    __heartbeatVisibilityHandler = () => {
+        if (document.visibilityState === 'visible') sendHeartbeat();
+    };
+    document.addEventListener('visibilitychange', __heartbeatVisibilityHandler);
 }
 
 function stopHeartbeat() {
     if (heartbeatIntervalId) {
         clearInterval(heartbeatIntervalId);
         heartbeatIntervalId = null;
+    }
+    if (__heartbeatVisibilityHandler) {
+        document.removeEventListener('visibilitychange', __heartbeatVisibilityHandler);
+        __heartbeatVisibilityHandler = null;
     }
 }
 
@@ -647,7 +687,8 @@ async function makeAnnouncement() {
     try {
         await postJson('/api/announcement', { text });
         if (input) input.value = '';
-        showToast('Announcement broadcast.', 'success');
+        playSound('announcement');
+        showToast('Announcement broadcast.', 'success', 3500, { skipSound: true });
         loadAnnouncement();
     } catch (e) {
         showToast(e.message, 'error');
@@ -974,15 +1015,28 @@ function escapeJs(str) {
 }
 
 // ===== LESSON DECK VIEWER (draggable, view-only PPTX pane) =====
+// Same robustness as getLectureEmbedUrl() below: trims input and pulls
+// the real src="" out of a pasted <iframe> embed snippet first, since
+// admins can paste either a bare URL or a full embed snippet from
+// Google Drive / Office Online just as easily as from YouTube.
 function getDeckEmbedUrl(fileUrl) {
     if (!fileUrl) return null;
-    const driveMatch = fileUrl.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-    if (driveMatch) {
-        return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+    const url = extractSrcFromIframeSnippet(fileUrl).trim();
+    if (!url) return null;
+
+    if (/drive\.google\.com\/.*\/preview/i.test(url)) return url; // already embeddable
+
+    const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i);
+    if (driveFileMatch) return `https://drive.google.com/file/d/${driveFileMatch[1]}/preview`;
+    const driveIdParamMatch = url.match(/drive\.google\.com\/(?:open|uc)\?[^#]*\bid=([a-zA-Z0-9_-]+)/i);
+    if (driveIdParamMatch) return `https://drive.google.com/file/d/${driveIdParamMatch[1]}/preview`;
+
+    if (/view\.officeapps\.live\.com\/op\/embed\.aspx/i.test(url)) return url; // already embeddable
+
+    if (/^https?:\/\//i.test(url) && /\.(pptx|ppt)(\?|$)/i.test(url)) {
+        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
     }
-    if (/^https?:\/\//i.test(fileUrl) && /\.(pptx|ppt)(\?|$)/i.test(fileUrl)) {
-        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
-    }
+
     return null; // unrecognized format, fall back to a link
 }
 
@@ -993,11 +1047,12 @@ function viewDeck(id, title, fileUrl) {
 
     titleEl.textContent = title || 'Lesson Deck';
 
+    const cleanedUrl = fileUrl ? extractSrcFromIframeSnippet(fileUrl).trim() : '';
     const embedUrl = getDeckEmbedUrl(fileUrl);
     if (embedUrl) {
         holder.innerHTML = `<iframe src="${embedUrl}" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups"></iframe>`;
-    } else if (fileUrl) {
-        holder.innerHTML = `<div id="deck-viewer-fallback">This deck's file link can't be previewed inline.<br><a href="${fileUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--navy);font-weight:700;">Open in a new tab &rarr;</a></div>`;
+    } else if (cleanedUrl) {
+        holder.innerHTML = `<div id="deck-viewer-fallback">This deck's file link can't be previewed inline.<br><a href="${escapeHtml(cleanedUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--navy);font-weight:700;">Open in a new tab &rarr;</a><div style="font-size:10px;color:#94a3b8;word-break:break-all;margin-top:10px;">${escapeHtml(cleanedUrl)}</div></div>`;
     } else {
         holder.innerHTML = `<div id="deck-viewer-fallback">No file has been attached to this lesson deck yet.</div>`;
     }
@@ -1946,9 +2001,216 @@ async function loadTraineeGrades() {
                 </tr>
             `;
         }).join('');
+
+        const hasPerfectScore = data.submissions.some(s => s.status === 'Graded' && Number(s.score) === 100);
+        if (hasPerfectScore) celebratePerfectGrade();
     } catch (e) {
         body.innerHTML = `<tr><td colspan="5" class="text-xs text-red-500 p-4">Failed to load: ${escapeHtml(e.message)}</td></tr>`;
     }
+}
+
+// ===== PERFECT SCORE CELEBRATION (confetti + 10s rock "Auld Lang Syne") =====
+// Fires every time the Grades & Submissions view is opened while at least
+// one graded submission is a perfect 100 — see loadTraineeGrades() above.
+function celebratePerfectGrade() {
+    showConfettiCelebration();
+    showPerfectScoreBanner();
+    playRockAuldLangSyne();
+}
+
+function showPerfectScoreBanner() {
+    const banner = document.createElement('div');
+    banner.textContent = '🎉 Perfect Score! 🎉';
+    banner.style.cssText = `
+        position: fixed; top: 90px; left: 50%; transform: translateX(-50%) scale(0.85);
+        background: linear-gradient(135deg, #f97316, #dc2626);
+        color: #fff; font-family: 'IBM Plex Sans', Arial, sans-serif;
+        font-size: 22px; font-weight: 900; letter-spacing: 0.03em;
+        padding: 14px 32px; border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+        z-index: 9998; opacity: 0; transition: opacity 0.4s ease, transform 0.4s ease;
+        pointer-events: none;
+    `;
+    document.body.appendChild(banner);
+    requestAnimationFrame(() => {
+        banner.style.opacity = '1';
+        banner.style.transform = 'translateX(-50%) scale(1)';
+    });
+    setTimeout(() => {
+        banner.style.opacity = '0';
+        banner.style.transform = 'translateX(-50%) scale(0.9)';
+        setTimeout(() => banner.remove(), 450);
+    }, 3200);
+}
+
+function showConfettiCelebration() {
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9997;';
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    const ctx2d = canvas.getContext('2d');
+
+    const colors = ['#f97316', '#facc15', '#22c55e', '#3b82f6', '#ec4899', '#ffffff', '#dc2626'];
+    const particles = [];
+    const count = 180;
+    for (let i = 0; i < count; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: -20 - Math.random() * canvas.height * 0.5,
+            w: 6 + Math.random() * 6,
+            h: 10 + Math.random() * 8,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            speedY: 2 + Math.random() * 3,
+            speedX: (Math.random() - 0.5) * 2,
+            rotation: Math.random() * 360,
+            rotSpeed: (Math.random() - 0.5) * 10
+        });
+    }
+
+    let frame = 0;
+    const maxFrames = 60 * 6; // ~6 seconds at 60fps
+    function animate() {
+        ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+            p.y += p.speedY;
+            p.x += p.speedX;
+            p.rotation += p.rotSpeed;
+            ctx2d.save();
+            ctx2d.translate(p.x, p.y);
+            ctx2d.rotate(p.rotation * Math.PI / 180);
+            ctx2d.fillStyle = p.color;
+            ctx2d.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            ctx2d.restore();
+        });
+        frame++;
+        if (frame < maxFrames) {
+            requestAnimationFrame(animate);
+        } else {
+            canvas.remove();
+        }
+    }
+    animate();
+}
+
+// Original rock-style arrangement of the traditional "Auld Lang Syne"
+// melody (public domain — Robert Burns, 1788) — not a reproduction of any
+// particular recording or copyrighted arrangement. ~10 seconds: drums,
+// bass power chords, and a distorted lead carrying the tune.
+function makeRockDistortionCurve(amount) {
+    const samples = 44100;
+    const curve = new Float32Array(samples);
+    const deg = Math.PI / 180;
+    for (let i = 0; i < samples; i++) {
+        const x = (i * 2) / samples - 1;
+        curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
+    }
+    return curve;
+}
+
+function playRockAuldLangSyne() {
+    let c;
+    try {
+        c = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) { return; }
+
+    const BPM = 150;
+    const beatSec = 60 / BPM;
+
+    const distortion = c.createWaveShaper();
+    distortion.curve = makeRockDistortionCurve(320);
+    distortion.oversample = '4x';
+
+    function leadNote(freq, beat, durBeats, gain) {
+        const t0 = c.currentTime + beat * beatSec;
+        const dur = durBeats * beatSec * 0.92;
+        const osc = c.createOscillator();
+        const g = c.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, t0);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(gain, t0 + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        osc.connect(distortion).connect(g).connect(c.destination);
+        osc.start(t0);
+        osc.stop(t0 + dur + 0.05);
+    }
+
+    function powerChordHit(freq, beat, durBeats, gain) {
+        const t0 = c.currentTime + beat * beatSec;
+        const dur = durBeats * beatSec * 0.9;
+        [freq, freq * 1.5].forEach(f => {
+            const osc = c.createOscillator();
+            const g = c.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(f, t0);
+            g.gain.setValueAtTime(0.0001, t0);
+            g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01);
+            g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+            osc.connect(distortion).connect(g).connect(c.destination);
+            osc.start(t0);
+            osc.stop(t0 + dur + 0.05);
+        });
+    }
+
+    function kick(beat) {
+        const t0 = c.currentTime + beat * beatSec;
+        const osc = c.createOscillator();
+        const g = c.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150, t0);
+        osc.frequency.exponentialRampToValueAtTime(45, t0 + 0.12);
+        g.gain.setValueAtTime(0.9, t0);
+        g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.15);
+        osc.connect(g).connect(c.destination);
+        osc.start(t0);
+        osc.stop(t0 + 0.2);
+    }
+
+    function noiseHit(beat, dur, gain, filterFreq, isHat) {
+        const t0 = c.currentTime + beat * beatSec;
+        const bufferSize = Math.max(1, Math.floor(c.sampleRate * dur));
+        const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = c.createBufferSource();
+        noise.buffer = buffer;
+        const filter = c.createBiquadFilter();
+        filter.type = isHat ? 'highpass' : 'bandpass';
+        filter.frequency.value = filterFreq;
+        const g = c.createGain();
+        g.gain.setValueAtTime(gain, t0);
+        g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+        noise.connect(filter).connect(g).connect(c.destination);
+        noise.start(t0);
+    }
+    const snare = beat => noiseHit(beat, 0.15, 0.5, 1800, false);
+    const hihat = (beat, open) => noiseHit(beat, open ? 0.18 : 0.05, 0.18, 8000, true);
+
+    // Driving 4-beat drum pattern, looped across the whole piece.
+    for (let b = 0; b < 26; b += 4) {
+        kick(b); kick(b + 2);
+        snare(b + 1); snare(b + 3);
+        for (let h = 0; h < 4; h += 0.5) hihat(b + h, h === 3.5);
+    }
+
+    // Bass / power chords — simple I-IV-V-I progression under the melody.
+    const C3 = 130.81, F3 = 174.61, G3 = 196.00;
+    [
+        { f: C3, b: 0, d: 4 }, { f: F3, b: 4, d: 4 }, { f: G3, b: 8, d: 4 }, { f: C3, b: 12, d: 4 },
+        { f: C3, b: 16, d: 4 }, { f: F3, b: 20, d: 4 }, { f: C3, b: 24, d: 2 }
+    ].forEach(n => powerChordHit(n.f, n.b, n.d, 0.22));
+
+    // Lead melody — the traditional Auld Lang Syne tune, transposed to C major.
+    const C5 = 523.25, D5 = 587.33, E5 = 659.25, F5 = 698.46, G5 = 783.99, G4 = 392.00;
+    [
+        { f: G4, b: 0, d: 1 }, { f: C5, b: 1, d: 1 }, { f: C5, b: 2, d: 1 }, { f: D5, b: 3, d: 1 },
+        { f: C5, b: 4, d: 1 }, { f: F5, b: 5, d: 1 }, { f: E5, b: 6, d: 2 },
+        { f: C5, b: 8, d: 1 }, { f: C5, b: 9, d: 1 }, { f: D5, b: 10, d: 1 }, { f: C5, b: 11, d: 1 },
+        { f: G5, b: 12, d: 1 }, { f: F5, b: 13, d: 2 },
+        { f: C5, b: 16, d: 1 }, { f: E5, b: 17, d: 1 }, { f: D5, b: 18, d: 1 }, { f: C5, b: 19, d: 1 },
+        { f: D5, b: 20, d: 1 }, { f: C5, b: 21, d: 3 },
+        { f: C5, b: 24, d: 2 }
+    ].forEach(n => leadNote(n.f, n.b, n.d, 0.28));
 }
 
 // ===== ADMIN: SUBMITTED ACTIVITIES & GRADING =====
@@ -2001,7 +2263,7 @@ function refreshClock() {
 }
 setInterval(refreshClock, 1000);
 
-function showToast(message, type = 'info', duration = 3500) {
+function showToast(message, type = 'info', duration = 3500, options = {}) {
     let container = document.getElementById('toast-container');
     if (!container) {
         container = document.createElement('div');
@@ -2013,6 +2275,12 @@ function showToast(message, type = 'info', duration = 3500) {
     toast.textContent = message;
     container.appendChild(toast);
     setTimeout(() => toast.remove(), duration);
+    // playToastSound is defined in portal.js — covers submitSuccess/
+    // submitError/notification automatically for every toast in the app,
+    // unless the caller already played a more specific dedicated sound
+    // (login, announcement, lock, etc.) and passed skipSound to avoid
+    // doubling up.
+    if (!options.skipSound && typeof playToastSound === 'function') playToastSound(type);
 }
 
 // 6. DYNAMIC BRAND MARK INJECTION
