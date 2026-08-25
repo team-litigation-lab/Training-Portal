@@ -85,8 +85,20 @@ export function clearSessionCookie() {
     return `lsh_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
 }
 
-/** Client heartbeat interval is 2s; grace window is 3× that. */
-export const HEARTBEAT_GRACE_SECONDS = 6;
+/**
+ * Client heartbeat interval is 2s, but this window needs to survive
+ * realistic browser behavior, not just the nominal interval: most
+ * browsers throttle setInterval() timers in backgrounded tabs — often
+ * down to once every several seconds, and much further after a few
+ * minutes backgrounded. A trainee alt-tabbing to check something else for
+ * under a minute is completely normal, not a dead session. A 6-second
+ * window (3x the nominal interval) died on exactly that, intermittently,
+ * which is why this looked like "sometimes it just doesn't work" rather
+ * than a consistent failure. Widened to comfortably outlast normal
+ * backgrounding while still catching a genuinely closed/crashed tab
+ * reasonably quickly.
+ */
+export const HEARTBEAT_GRACE_SECONDS = 90;
 
 /**
  * True when the user's heartbeats row was touched within the grace window.
