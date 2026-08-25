@@ -194,11 +194,14 @@
     .pdf-card {
         background: white;
         border: 1px solid #e2e8f0;
-        border-radius: 10px;
+        border-radius: 16px;
         padding: 22px;
         margin-bottom: 18px;
         position: relative;
+        box-shadow: 0 4px 16px rgba(15, 33, 72, 0.05);
+        transition: box-shadow 0.2s ease, transform 0.2s ease;
     }
+    .pdf-card[style*="cursor:pointer"]:hover { box-shadow: 0 12px 32px rgba(15, 33, 72, 0.12); transform: translateY(-2px); }
     .section-head {
         background: var(--navy);
         color: var(--orange);
@@ -233,7 +236,8 @@
     .contact-label { color: var(--navy-deep) !important; }
     body.bg-photo-active .contact-label { color: #60a5fa !important; }
 
-    select.prof-input { background: #f8fafc; border: 1px solid #eef2f7; border-radius: 4px; padding: 8px 10px; font-size: 13px; font-weight: 700; outline: none; width: 100%; color: #0f172a; cursor: pointer; }
+    select.prof-input { background: #f8fafc; border: 1px solid #eef2f7; border-radius: 10px; padding: 9px 12px; font-size: 13px; font-weight: 700; outline: none; width: 100%; color: #0f172a; cursor: pointer; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    select.prof-input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
 
     .treat-table { width: 100%; border-collapse: collapse; }
     .treat-table th { background: #f8fafc; text-align: left; font-size: 10px; text-transform: uppercase; color: #64748b; padding: 12px; border-bottom: 2px solid #e2e8f0; letter-spacing:0.04em; }
@@ -250,12 +254,14 @@
         font-size: 10px !important;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        padding: 7px 16px !important;
-        border-radius: 5px !important;
+        padding: 8px 18px !important;
+        border-radius: 999px !important;
         border: none !important;
         cursor: pointer;
+        transition: background 0.18s ease, color 0.18s ease, transform 0.12s ease;
     }
-    .add-btn:hover { background: #0f172a !important; color: var(--orange) !important; }
+    .add-btn:hover { background: #0f172a !important; color: var(--orange) !important; transform: translateY(-1px); }
+    .add-btn:active { transform: translateY(0) scale(0.97); }
 
     .revert-btn { background: var(--orange); color: white; font-size: 12px; padding: 4px 8px; border-radius: 6px; cursor: pointer; margin-left: 5px; display: none; font-weight: 900; }
 
@@ -319,29 +325,34 @@
 
     /* ===== MODALS ===== */
     .modal-overlay {
-        position: fixed; inset: 0; background: rgba(5,7,10,0.82);
+        position: fixed; inset: 0; background: rgba(5,7,10,0.78);
         display: none; align-items: center; justify-content: center;
-        z-index: 900; backdrop-filter: blur(2px);
+        z-index: 900; backdrop-filter: blur(4px);
     }
     .modal-overlay.open { display: flex; }
     .modal-box {
-        background: white; border-radius: 10px; width: 380px; max-width: 90vw;
-        padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        background: white; border-radius: 18px; width: 380px; max-width: 90vw;
+        padding: 28px; box-shadow: 0 24px 64px rgba(15, 33, 72, 0.28);
         border-top: 6px solid var(--orange);
+        animation: modalPop 0.22s cubic-bezier(.2,.9,.3,1.2);
     }
+    @keyframes modalPop { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
     .modal-box.wide { width: 560px; }
     .modal-box h2 { font-family:'IBM Plex Mono', 'Courier New', monospace; font-size:19px; font-weight:800; margin:0 0 4px; }
     .modal-box .sub { font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:18px; }
     .modal-box input[type=text], .modal-box input[type=password] {
-        width:100%; padding:10px 12px; border:1px solid #e2e8f0; border-radius:6px;
+        width:100%; padding:10px 12px; border:1px solid #e2e8f0; border-radius:10px;
         font-family:'IBM Plex Mono', 'Courier New', monospace; font-size:13px; margin-bottom:12px; outline:none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
-    .modal-box input:focus { border-color: var(--orange); }
+    .modal-box input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(249,115,22,0.12); }
     .modal-btn-row { display:flex; gap:8px; margin-top:16px; }
     .modal-btn-row button {
-        flex:1; padding:10px; border-radius:6px; font-weight:800; font-size:11px;
+        flex:1; padding:10px; border-radius:10px; font-weight:800; font-size:11px;
         text-transform:uppercase; letter-spacing:0.04em; cursor:pointer; border:none;
+        transition: background 0.15s ease, transform 0.1s ease;
     }
+    .modal-btn-row button:active { transform: scale(0.97); }
     .btn-primary { background: var(--navy); color: var(--orange); }
     .btn-primary:hover { background: var(--navy-deep); }
     .btn-ghost { background: #f1f5f9; color:#64748b; }
@@ -349,7 +360,8 @@
     #admin-error { color:var(--classified-red); font-size:11px; font-weight:700; margin-bottom:8px; display:none; }
 
     .admin-panel-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:6px; }
-    .admin-tile { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; }
+    .admin-tile { background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:16px; transition: box-shadow 0.2s ease; }
+    .admin-tile:hover { box-shadow: 0 8px 20px rgba(15, 33, 72, 0.06); }
     .admin-tile h4 { font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8; font-weight:800; margin:0 0 10px; }
     .admin-stat { font-family:'IBM Plex Mono', 'Courier New', monospace; font-size:22px; font-weight:800; color:var(--navy); }
     .admin-stat-label { font-size:10px; color:#64748b; font-weight:700; text-transform:uppercase; }
@@ -395,10 +407,11 @@
     .auth-field { margin-bottom:12px; }
     .auth-field label { color:#94a3b8; font-size:9.5px; }
     .auth-field input, .auth-field select {
-        width:100%; padding:10px 12px; border-radius:6px; border:1px solid #1e2c4d;
+        width:100%; padding:10px 12px; border-radius:10px; border:1px solid #1e2c4d;
         background:#0d1c3d; color:white; font-family:'IBM Plex Mono','Courier New',monospace; font-size:13px; outline:none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
-    .auth-field input:focus, .auth-field select:focus { border-color: var(--auth-accent); }
+    .auth-field input:focus, .auth-field select:focus { border-color: var(--auth-accent); box-shadow: 0 0 0 3px rgba(249,115,22,0.12); }
     /* Keep browser autofill from flashing white over dark auth/repo inputs */
     .auth-field input:-webkit-autofill,
     .auth-field input:-webkit-autofill:hover,
@@ -415,14 +428,15 @@
         transition: background-color 99999s ease-out 0s;
     }
     .auth-submit {
-        width:100%; padding:11px; border-radius:6px; border:none; background: var(--auth-accent); color:#0f2148;
+        width:100%; padding:12px; border-radius:10px; border:none; background: var(--auth-accent); color:#0f2148;
         font-weight:900; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; cursor:pointer; margin-top:6px;
-        transition: background 0.25s ease;
+        transition: background 0.25s ease, transform 0.12s ease;
     }
-    .auth-submit:hover { background: var(--auth-accent-hover); }
+    .auth-submit:hover { background: var(--auth-accent-hover); transform: translateY(-1px); }
+    .auth-submit:active { transform: translateY(0) scale(0.98); }
     .auth-switch { text-align:center; margin-top:16px; font-size:11px; color:#94a3b8; }
     .auth-switch a { color: var(--auth-accent); cursor:pointer; font-weight:700; text-decoration:underline; }
-    .auth-msg { font-size:11px; font-weight:700; margin-bottom:12px; padding:9px 12px; border-radius:6px; display:none; }
+    .auth-msg { font-size:11px; font-weight:700; margin-bottom:12px; padding:10px 14px; border-radius:10px; display:none; }
     .auth-msg.error { background:rgba(185,28,28,0.15); color:#fca5a5; display:block; animation: msgPop .25s ease; }
     .auth-msg.success { background:rgba(22,101,52,0.2); color:#86efac; display:block; animation: msgPop .25s ease; }
     .auth-msg.info { background:rgba(249,115,22,0.15); color:#fdba74; display:block; animation: msgPop .25s ease; }
@@ -437,13 +451,13 @@
         display: flex; flex-direction: column; gap: 10px; pointer-events: none;
     }
     .toast {
-        min-width: 240px; max-width: 340px; padding: 12px 16px 12px 14px;
-        border-radius: 8px; font-size: 12px; font-weight: 700; color: white;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3); border-left: 4px solid rgba(255,255,255,0.4);
-        opacity: 0; transform: translateX(40px); transition: opacity .3s ease, transform .3s ease;
+        min-width: 240px; max-width: 340px; padding: 13px 18px 13px 16px;
+        border-radius: 14px; font-size: 12px; font-weight: 700; color: white;
+        box-shadow: 0 12px 32px rgba(15, 33, 72, 0.18); border-left: 4px solid rgba(255,255,255,0.4);
+        opacity: 0; transform: translateX(24px) scale(0.97); transition: opacity .32s cubic-bezier(.2,.9,.3,1.2), transform .32s cubic-bezier(.2,.9,.3,1.2);
         pointer-events: auto; font-family: 'IBM Plex Sans', Arial, sans-serif;
     }
-    .toast.show { opacity: 1; transform: translateX(0); }
+    .toast.show { opacity: 1; transform: translateX(0) scale(1); }
     .toast.success { background: var(--success); }
     .toast.error { background: var(--classified-red); }
     .toast.info { background: var(--navy); }
@@ -485,8 +499,7 @@
     .mc-tab.active { color: var(--orange); border-bottom-color: var(--orange); background:#f8fafc; }
     .mc-body { flex:1; overflow-y:auto; padding:26px 30px; background:#f8fafc; }
     .mc-pane { display:none; }
-    .mc-pane.active { display:block; animation: mcFade .2s ease; }
-    @keyframes mcFade { from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+    .mc-pane.active { display:block; animation: viewFadeInGlow .5s ease; }
     .mc-section-title { font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.05em; color:var(--navy); margin:26px 0 12px; display:flex; align-items:center; gap:8px; }
     .mc-section-title:first-child { margin-top:0; }
 
@@ -569,3 +582,20 @@
        admin sidebars can never both render at the same time. */
     .custom-sidebar-panel { display: flex; }
     .custom-sidebar-panel.hidden { display: none !important; }
+
+    /* View transition: fade + brief accent glow pulse on switchView().
+       .hidden is Tailwind's display:none, which can't be transitioned —
+       switchView() in app.js sequences fade-out (opacity only, while
+       still display:block) then swaps .hidden before fading the new
+       section in with the glow. */
+    .portal-view-section { transition: opacity 0.16s ease; }
+    .portal-view-section.view-fade-out { opacity: 0; }
+    .portal-view-section.view-fade-in { animation: viewFadeInGlow 0.5s ease; }
+    @keyframes viewFadeInGlow {
+        0%   { opacity: 0; transform: translateY(6px); box-shadow: 0 0 0 rgba(249, 115, 22, 0); }
+        40%  { opacity: 1; transform: translateY(0); box-shadow: 0 0 28px rgba(249, 115, 22, 0.3); }
+        100% { opacity: 1; transform: translateY(0); box-shadow: 0 0 0 rgba(249, 115, 22, 0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .portal-view-section, .portal-view-section.view-fade-in { transition: none; animation: none; }
+    }
