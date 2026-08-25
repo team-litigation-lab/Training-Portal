@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LSH Training Portal — Case Management Onboarding</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    :root {
+        --navy: #0f2148;
+        --navy-deep: #081226;
+        --navy-mid: #132a5c;
+        --orange: #f97316;
+        --orange-soft: #fb923c;
+        --slate: #64748b;
+        --paper: #faf8f4;
+        --paper-warm: #f5f0e8;
+        --success: #166534;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+        margin: 0;
+        font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif;
+        background: var(--paper);
+        color: var(--navy);
+        -webkit-font-smoothing: antialiased;
+    }
+    .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+    .eyebrow {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--orange);
+    }
+
+    /* ===== NAV ===== */
+    nav {
+        position: sticky; top: 0; z-index: 50;
+        background: rgba(250, 248, 244, 0.85);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(15, 33, 72, 0.08);
+    }
+    .nav-inner {
+        max-width: 1120px; margin: 0 auto; padding: 16px 24px;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 17px; color: var(--navy); }
+    .brand-mark {
+        width: 34px; height: 34px; border-radius: 10px;
+        background: linear-gradient(135deg, var(--navy), var(--navy-mid));
+        display: flex; align-items: center; justify-content: center;
+        color: var(--orange); font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 15px;
+    }
+    .btn-primary {
+        background: var(--navy); color: #fff; font-weight: 700; font-size: 14px;
+        padding: 11px 24px; border-radius: 999px; text-decoration: none;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        box-shadow: 0 8px 20px rgba(15, 33, 72, 0.18);
+        display: inline-block;
+    }
+    .btn-primary:hover { background: var(--navy-mid); transform: translateY(-1px); box-shadow: 0 12px 28px rgba(15, 33, 72, 0.24); }
+    .btn-ghost {
+        color: var(--navy); font-weight: 700; font-size: 14px; text-decoration: none;
+        padding: 11px 20px; border-radius: 999px; border: 1.5px solid rgba(15, 33, 72, 0.15);
+        transition: border-color 0.15s ease, background 0.15s ease;
+        display: inline-block;
+    }
+    .btn-ghost:hover { border-color: var(--navy); background: rgba(15, 33, 72, 0.04); }
+
+    /* ===== HERO ===== */
+    .hero { position: relative; overflow: hidden; padding: 100px 24px 120px; }
+    .hero-glow {
+        position: absolute; border-radius: 50%; filter: blur(70px);
+        opacity: 0.35; pointer-events: none;
+    }
+    .hero-glow.g1 { width: 480px; height: 480px; background: var(--orange-soft); top: -160px; right: -120px; }
+    .hero-glow.g2 { width: 380px; height: 380px; background: var(--navy-mid); bottom: -140px; left: -100px; opacity: 0.15; }
+    .hero-inner { position: relative; max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 56px; align-items: center; }
+    @media (max-width: 900px) { .hero-inner { grid-template-columns: 1fr; } }
+    .hero h1 {
+        font-size: clamp(34px, 5vw, 54px); font-weight: 800; line-height: 1.08; letter-spacing: -0.02em;
+        margin: 18px 0 20px; color: var(--navy);
+    }
+    .hero h1 span { color: var(--orange); }
+    .hero p.lead { font-size: 17px; line-height: 1.65; color: var(--slate); max-width: 480px; margin-bottom: 32px; }
+    .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
+
+    .reveal { opacity: 0; transform: translateY(16px); animation: revealUp 0.7s ease forwards; }
+    .reveal.d1 { animation-delay: 0.05s; }
+    .reveal.d2 { animation-delay: 0.15s; }
+    .reveal.d3 { animation-delay: 0.25s; }
+    .reveal.d4 { animation-delay: 0.35s; }
+    @keyframes revealUp { to { opacity: 1; transform: translateY(0); } }
+    @media (prefers-reduced-motion: reduce) { .reveal, .file-stack .file-card { animation: none !important; opacity: 1 !important; transform: none !important; } }
+
+    /* ===== SIGNATURE: floating case-file stack ===== */
+    .file-stack { position: relative; height: 360px; }
+    .file-card {
+        position: absolute; width: 260px; border-radius: 18px;
+        background: #fff; border: 1px solid rgba(15, 33, 72, 0.08);
+        box-shadow: 0 20px 50px rgba(15, 33, 72, 0.12);
+        padding: 18px 20px; animation: floatCard 7s ease-in-out infinite;
+    }
+    .file-card .tag {
+        font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+        letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px;
+        display: inline-block; margin-bottom: 10px;
+    }
+    .file-card .tag.orange { background: rgba(249, 115, 22, 0.12); color: #c2410c; }
+    .file-card .tag.navy { background: rgba(15, 33, 72, 0.08); color: var(--navy); }
+    .file-card .tag.green { background: rgba(22, 101, 52, 0.1); color: var(--success); }
+    .file-card .title { font-weight: 700; font-size: 14px; color: var(--navy); margin-bottom: 6px; }
+    .file-card .meta { font-size: 12px; color: var(--slate); }
+    .file-card.c1 { top: 10px; left: 40px; z-index: 3; animation-delay: 0s; }
+    .file-card.c2 { top: 100px; left: 190px; z-index: 2; animation-delay: 1.2s; }
+    .file-card.c3 { top: 200px; left: 20px; z-index: 1; animation-delay: 2.4s; }
+    @keyframes floatCard { 0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); } 50% { transform: translateY(-10px) rotate(var(--rot, 0deg)); } }
+    .file-card.c1 { --rot: -3deg; }
+    .file-card.c2 { --rot: 2deg; }
+    .file-card.c3 { --rot: -1.5deg; }
+
+    /* ===== STATS STRIP ===== */
+    .stats-strip { background: var(--navy-deep); padding: 36px 24px; }
+    .stats-inner { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; text-align: center; }
+    @media (max-width: 700px) { .stats-inner { grid-template-columns: repeat(2, 1fr); } }
+    .stat-num { font-size: 30px; font-weight: 800; color: #fff; }
+    .stat-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-top: 4px; }
+
+    /* ===== FEATURES ===== */
+    .section { max-width: 1120px; margin: 0 auto; padding: 100px 24px; }
+    .section-head { max-width: 620px; margin-bottom: 56px; }
+    .section-head h2 { font-size: clamp(26px, 3.4vw, 36px); font-weight: 800; letter-spacing: -0.01em; margin: 14px 0 12px; color: var(--navy); }
+    .section-head p { font-size: 15.5px; color: var(--slate); line-height: 1.6; }
+
+    .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
+    @media (max-width: 760px) { .feature-grid { grid-template-columns: 1fr; } }
+    .feature-card {
+        background: #fff; border-radius: 20px; padding: 28px 26px;
+        border: 1px solid rgba(15, 33, 72, 0.07);
+        box-shadow: 0 8px 24px rgba(15, 33, 72, 0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .feature-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(15, 33, 72, 0.1); }
+    .feature-icon {
+        width: 46px; height: 46px; border-radius: 13px;
+        background: linear-gradient(135deg, var(--navy), var(--navy-mid));
+        display: flex; align-items: center; justify-content: center;
+        font-size: 20px; margin-bottom: 16px;
+    }
+    .feature-card h3 { font-size: 16.5px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+    .feature-card p { font-size: 13.5px; color: var(--slate); line-height: 1.6; }
+
+    /* ===== BATCH SECTION ===== */
+    .batch-section { background: var(--paper-warm); }
+    .batch-inner { max-width: 1120px; margin: 0 auto; padding: 90px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+    @media (max-width: 860px) { .batch-inner { grid-template-columns: 1fr; } }
+    .batch-visual {
+        background: var(--navy-deep); border-radius: 22px; padding: 28px;
+        box-shadow: 0 24px 60px rgba(8, 18, 38, 0.3);
+    }
+    .batch-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .batch-row:last-child { border-bottom: none; }
+    .batch-id { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--orange-soft); font-weight: 600; }
+    .batch-name { font-size: 13px; color: #fff; font-weight: 600; }
+    .batch-pct { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: rgba(255,255,255,0.6); }
+
+    /* ===== CTA BANNER ===== */
+    .cta-banner {
+        background: linear-gradient(135deg, var(--navy), var(--navy-deep));
+        border-radius: 28px; margin: 0 24px 100px; max-width: 1072px; margin-left: auto; margin-right: auto;
+        padding: 64px 40px; text-align: center; position: relative; overflow: hidden;
+    }
+    .cta-banner::before {
+        content: ''; position: absolute; width: 320px; height: 320px; border-radius: 50%;
+        background: var(--orange); opacity: 0.18; filter: blur(60px); top: -100px; right: -60px;
+    }
+    .cta-banner h2 { position: relative; color: #fff; font-size: clamp(24px, 3.2vw, 32px); font-weight: 800; margin-bottom: 14px; }
+    .cta-banner p { position: relative; color: rgba(255,255,255,0.7); font-size: 15px; margin-bottom: 30px; }
+
+    /* ===== FOOTER ===== */
+    footer { border-top: 1px solid rgba(15, 33, 72, 0.08); padding: 32px 24px; }
+    .footer-inner { max-width: 1120px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    footer .foot-brand { font-weight: 700; font-size: 13px; color: var(--navy); }
+    footer .foot-note { font-size: 12px; color: var(--slate); }
+</style>
+</head>
+<body>
+
+<nav>
+    <div class="nav-inner">
+        <div class="brand"><span class="brand-mark">LSH</span> Training Portal</div>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <a href="index.html" class="btn-ghost">Log In</a>
+            <a href="index.html" class="btn-primary">Get Started</a>
+        </div>
+    </div>
+</nav>
+
+<section class="hero">
+    <div class="hero-glow g1"></div>
+    <div class="hero-glow g2"></div>
+    <div class="hero-inner">
+        <div>
+            <div class="eyebrow reveal d1">Case Management Trainee Onboarding</div>
+            <h1 class="reveal d2">Where new case managers become <span>confident</span> ones.</h1>
+            <p class="lead reveal d3">Structured activities, recorded lectures, and real-time progress tracking — everything a trainee needs to ramp up, and everything an admin needs to see how it's going, in one place.</p>
+            <div class="hero-ctas reveal d4">
+                <a href="index.html" class="btn-primary">Enter the Portal &rarr;</a>
+                <a href="#features" class="btn-ghost">See how it works</a>
+            </div>
+        </div>
+        <div class="file-stack reveal d3">
+            <div class="file-card c1">
+                <span class="tag orange">Day 3</span>
+                <div class="title">Intake Protocols &amp; Triage</div>
+                <div class="meta">Auto-graded &middot; 12 questions</div>
+            </div>
+            <div class="file-card c2">
+                <span class="tag green">Graded</span>
+                <div class="title">Docket Filing Basics</div>
+                <div class="meta">Score: 100 / 100</div>
+            </div>
+            <div class="file-card c3">
+                <span class="tag navy">Recorded</span>
+                <div class="title">Case File Walkthrough</div>
+                <div class="meta">18 min lecture</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="stats-strip">
+    <div class="stats-inner">
+        <div><div class="stat-num">100%</div><div class="stat-label">Auto-Graded Practice</div></div>
+        <div><div class="stat-num">Live</div><div class="stat-label">Progress &amp; Leaderboard</div></div>
+        <div><div class="stat-num">1</div><div class="stat-label">Portal, Every Batch</div></div>
+        <div><div class="stat-num">24/7</div><div class="stat-label">Lecture Access</div></div>
+    </div>
+</div>
+
+<section class="section" id="features">
+    <div class="section-head">
+        <div class="eyebrow">What's inside</div>
+        <h2>Built around how trainees actually learn.</h2>
+        <p>No scattered spreadsheets or email threads — activities, lectures, grades, and announcements all live in the same place, for every batch.</p>
+    </div>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="feature-icon">📋</div>
+            <h3>Structured Daily Activities</h3>
+            <p>Short, day-by-day modules with objective questions that grade themselves instantly, plus admin review for anything that needs a human eye.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🎬</div>
+            <h3>Recorded Lectures, On Demand</h3>
+            <p>Watch training sessions embedded straight from Drive or YouTube in a small pop-out player — pause, rewatch, or expand to full view, any time.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📈</div>
+            <h3>Real-Time Progress &amp; Leaderboard</h3>
+            <p>Trainees always know exactly where they stand. Admins see completion and grading status across every batch, live.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📣</div>
+            <h3>Announcements, Alerts &amp; Pings</h3>
+            <p>Reach one trainee or the whole portal instantly — a scrolling ticker for updates, full-screen alerts for anything urgent.</p>
+        </div>
+    </div>
+</section>
+
+<section class="batch-section">
+    <div class="batch-inner">
+        <div>
+            <div class="eyebrow">Organized by batch</div>
+            <h2 style="font-size:30px; font-weight:800; margin:14px 0 14px; color:var(--navy);">Every trainee has a home — their Batch ID.</h2>
+            <p style="font-size:15px; color:var(--slate); line-height:1.65;">Registration, grading, monitoring, and leaderboards are all organized around the batch a trainee belongs to, so admins can see how a whole cohort is progressing at a glance — not just one person at a time.</p>
+        </div>
+        <div class="batch-visual">
+            <div class="batch-row"><span class="batch-id">B-2026-014</span><span class="batch-name">Trainee Cohort</span><span class="batch-pct">92% complete</span></div>
+            <div class="batch-row"><span class="batch-id">B-2026-015</span><span class="batch-name">Trainee Cohort</span><span class="batch-pct">78% complete</span></div>
+            <div class="batch-row"><span class="batch-id">B-2026-016</span><span class="batch-name">Trainee Cohort</span><span class="batch-pct">41% complete</span></div>
+            <div class="batch-row"><span class="batch-id">B-2026-017</span><span class="batch-name">Trainee Cohort</span><span class="batch-pct">12% complete</span></div>
+        </div>
+    </div>
+</section>
+
+<div class="cta-banner">
+    <h2>Ready to pick up where you left off?</h2>
+    <p>Log in with your batch credentials to continue training, or review your team's progress.</p>
+    <a href="index.html" class="btn-primary" style="background:var(--orange); box-shadow:0 8px 24px rgba(249,115,22,0.35);">Go to the Portal &rarr;</a>
+</div>
+
+<footer>
+    <div class="footer-inner">
+        <div class="foot-brand">LSH Training Portal</div>
+        <div class="foot-note">Legal Support Help &middot; Case Management Trainee Onboarding</div>
+    </div>
+</footer>
+
+</body>
+</html>
