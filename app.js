@@ -12,11 +12,13 @@ let __heartbeatVisibilityHandler = null;
 let liveDataIntervalId = null;
 let __activitiesCache = [];
 let __submissionsCache = [];
+let __mySubmissionsCache = [];
 let __currentAnswerActivity = null;
+let __activityStartTime = null;
 let __currentDetailActivity = null;
 let __questionRowCounter = 0;
 // Fallback base64 seal if local favicon file fails to load
-const AGENCY_LOGO = "data:image/png;base64,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";
+const AGENCY_LOGO = "data:image/png;base64,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";
 
 function getSession() {
     try {
@@ -725,6 +727,7 @@ function openAnswerActivityModal(activityId) {
     if (!activity) { showToast('Activity not found.', 'error'); return; }
 
     __currentAnswerActivity = activity;
+    __activityStartTime = Date.now();
     document.getElementById('answer-activity-title').innerText = activity.title;
     document.getElementById('sub-notes-input').value = '';
 
@@ -789,29 +792,10 @@ function openAnswerActivityModal(activityId) {
     document.getElementById('modal-answer-activity').classList.add('open');
 }
 
-// Opens the grading modal for a specific submission id, showing every
-// answer alongside auto-graded correctness so the admin doesn't need to
-// cross-reference the answer key separately.
-async function openGradeModal(submissionId) {
-    const sub = __submissionsCache.find(s => s.id === submissionId);
-    if (!sub) { showToast('Submission not found.', 'error'); return; }
-
-    if (!__activitiesCache.length) {
-        try {
-            const res = await fetch('/api/activities', { credentials: 'include' });
-            const data = await res.json();
-            if (data.success) __activitiesCache = data.activities;
-        } catch (e) { /* grading still works without the answer-key cross-reference */ }
-    }
-
-    document.getElementById('grade-modal-subtitle').innerText = `${sub.trainee_name} - ${sub.activity_title}`;
-    document.getElementById('grade-score-input').value = sub.status === 'Graded'
-        ? sub.score
-        : (sub.auto_score !== null && sub.auto_score !== undefined ? sub.auto_score : '');
-    document.getElementById('grade-feedback-input').value = sub.feedback || '';
-    document.getElementById('modal-grade-submission').dataset.submissionId = submissionId;
-
-    const activity = __activitiesCache.find(a => a.id === sub.activity_id);
+// Builds the per-question answer breakdown HTML for a submission — shared
+// by the admin grade modal, the trainee's own read-only detail view, and
+// the PDF report generator, so all three always show the same thing.
+function renderSubmissionAnswersHtml(sub, activity) {
     const questions = activity && Array.isArray(activity.questions) ? activity.questions : [];
     const answers = Array.isArray(sub.answers) ? sub.answers : [];
     const answerByQ = new Map(answers.map(a => [a.questionId, a.response]));
@@ -847,7 +831,67 @@ async function openGradeModal(submissionId) {
         html += `<div class="admin-tile" style="text-align:left;margin-top:8px;"><div style="font-weight:800;font-size:11px;color:var(--navy);margin-bottom:4px;">Trainee Notes</div><div style="font-size:12px;">${escapeHtml(sub.notes)}</div></div>`;
     }
 
-    document.getElementById('grade-modal-answers').innerHTML = html;
+    return html;
+}
+
+// Plain-text (non-HTML) version of the same breakdown, for the PDF report.
+function buildSubmissionReportLines(sub, activity) {
+    const questions = activity && Array.isArray(activity.questions) ? activity.questions : [];
+    const answers = Array.isArray(sub.answers) ? sub.answers : [];
+    const answerByQ = new Map(answers.map(a => [a.questionId, a.response]));
+    const lines = [];
+
+    if (questions.length === 0) {
+        lines.push({ type: 'label', text: 'Response' });
+        lines.push({ type: 'body', text: answerByQ.get('general') || '(no response recorded)' });
+    } else {
+        questions.forEach((q, i) => {
+            const given = answerByQ.get(q.id);
+            lines.push({ type: 'question', text: `${i + 1}. ${q.prompt} (${q.points} pt${q.points === 1 ? '' : 's'})` });
+            if (q.scenario) lines.push({ type: 'scenario', text: q.scenario });
+            lines.push({ type: 'body', text: `Answer: ${given !== undefined ? given : '(no response)'}` });
+            if (q.type !== 'essay') {
+                const isCorrect = given !== undefined && String(given).trim().toLowerCase() === String(q.correctAnswer || '').trim().toLowerCase();
+                if (given === undefined) lines.push({ type: 'status-neutral', text: 'NOT ANSWERED' });
+                else if (isCorrect) lines.push({ type: 'status-good', text: 'CORRECT' });
+                else lines.push({ type: 'status-bad', text: `INCORRECT \u2014 Answer key: ${q.correctAnswer || ''}` });
+            }
+            lines.push({ type: 'spacer' });
+        });
+    }
+
+    if (sub.notes) {
+        lines.push({ type: 'label', text: 'Trainee Notes' });
+        lines.push({ type: 'body', text: sub.notes });
+    }
+
+    return lines;
+}
+
+// Opens the grading modal for a specific submission id, showing every
+// answer alongside auto-graded correctness so the admin doesn't need to
+// cross-reference the answer key separately.
+async function openGradeModal(submissionId) {
+    const sub = __submissionsCache.find(s => s.id === submissionId);
+    if (!sub) { showToast('Submission not found.', 'error'); return; }
+
+    if (!__activitiesCache.length) {
+        try {
+            const res = await fetch('/api/activities', { credentials: 'include' });
+            const data = await res.json();
+            if (data.success) __activitiesCache = data.activities;
+        } catch (e) { /* grading still works without the answer-key cross-reference */ }
+    }
+
+    document.getElementById('grade-modal-subtitle').innerText = `${sub.trainee_name} - ${sub.activity_title}`;
+    document.getElementById('grade-score-input').value = sub.status === 'Graded'
+        ? sub.score
+        : (sub.auto_score !== null && sub.auto_score !== undefined ? sub.auto_score : '');
+    document.getElementById('grade-feedback-input').value = sub.feedback || '';
+    document.getElementById('modal-grade-submission').dataset.submissionId = submissionId;
+
+    const activity = __activitiesCache.find(a => a.id === sub.activity_id);
+    document.getElementById('grade-modal-answers').innerHTML = renderSubmissionAnswersHtml(sub, activity);
     document.getElementById('modal-grade-submission').classList.add('open');
 }
 
@@ -1919,6 +1963,9 @@ async function confirmSubmission() {
 
     const notes = document.getElementById('sub-notes-input').value.trim();
     const activity = __currentAnswerActivity;
+    // Sent regardless of whether the backend currently stores it — see the
+    // note in submissions.js about the pending time_spent_seconds column.
+    const timeSpentSeconds = __activityStartTime ? Math.round((Date.now() - __activityStartTime) / 1000) : null;
 
     try {
         await postJson('/api/submissions', {
@@ -1926,10 +1973,12 @@ async function confirmSubmission() {
             activityId: activity.id,
             activityTitle: activity.title,
             answers,
-            notes
+            notes,
+            timeSpentSeconds
         });
         closeModals();
         __currentAnswerActivity = null;
+        __activityStartTime = null;
         showToast('Submitted for grading!', 'success');
         loadActivitiesData();
         loadProgressData();
@@ -1977,9 +2026,10 @@ async function loadTraineeGrades() {
         const res = await fetch('/api/submissions', { credentials: 'include' });
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Failed to load submissions.');
+        __mySubmissionsCache = data.submissions;
 
         if (!data.submissions.length) {
-            body.innerHTML = `<tr><td colspan="5" class="text-xs text-slate-400 p-4">You haven't submitted anything yet.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="6" class="text-xs text-slate-400 p-4">You haven't submitted anything yet.</td></tr>`;
             return;
         }
 
@@ -1998,6 +2048,10 @@ async function loadTraineeGrades() {
                     <td>${statusPill}</td>
                     <td>${grade}</td>
                     <td class="text-xs text-slate-500 italic">${escapeHtml(feedbackText)}</td>
+                    <td style="white-space:nowrap;">
+                        <button class="mini-btn" onclick="viewMySubmissionDetail(${s.id})">Details</button>
+                        <button class="mini-btn approve" onclick="downloadSubmissionReport(${s.id})">PDF</button>
+                    </td>
                 </tr>
             `;
         }).join('');
@@ -2005,8 +2059,167 @@ async function loadTraineeGrades() {
         const hasPerfectScore = data.submissions.some(s => s.status === 'Graded' && Number(s.score) === 100);
         if (hasPerfectScore) celebratePerfectGrade();
     } catch (e) {
-        body.innerHTML = `<tr><td colspan="5" class="text-xs text-red-500 p-4">Failed to load: ${escapeHtml(e.message)}</td></tr>`;
+        body.innerHTML = `<tr><td colspan="6" class="text-xs text-red-500 p-4">Failed to load: ${escapeHtml(e.message)}</td></tr>`;
     }
+}
+
+// Read-only detail view for a trainee's own past submission — same
+// per-question breakdown the admin sees, minus grading controls.
+async function viewMySubmissionDetail(submissionId) {
+    const sub = __mySubmissionsCache.find(s => s.id === submissionId);
+    if (!sub) { showToast('Submission not found.', 'error'); return; }
+
+    if (!__activitiesCache.length) {
+        try {
+            const res = await fetch('/api/activities', { credentials: 'include' });
+            const data = await res.json();
+            if (data.success) __activitiesCache = data.activities;
+        } catch (e) { /* detail view still works without the answer-key cross-reference */ }
+    }
+
+    document.getElementById('my-submission-subtitle').innerText = sub.activity_title;
+    const metaEl = document.getElementById('my-submission-meta');
+    const scoreText = (sub.status === 'Graded' && sub.score !== null && sub.score !== undefined)
+        ? `${sub.score} / 100`
+        : 'Awaiting review';
+    metaEl.innerHTML = `Submitted ${escapeHtml(formatDate(sub.submitted_at))} &middot; Status: ${escapeHtml(sub.status)} &middot; Score: ${escapeHtml(String(scoreText))}`;
+
+    const activity = __activitiesCache.find(a => a.id === sub.activity_id);
+    document.getElementById('my-submission-answers').innerHTML = renderSubmissionAnswersHtml(sub, activity);
+    document.getElementById('modal-my-submission').dataset.submissionId = submissionId;
+    document.getElementById('modal-my-submission').classList.add('open');
+}
+
+// Generates a PDF report for a submission — works from either cache
+// (__submissionsCache for admins, __mySubmissionsCache for trainees),
+// whichever the calling context has populated. Same underlying content
+// as the on-screen detail views (renderSubmissionAnswersHtml /
+// buildSubmissionReportLines), just laid out for print.
+async function downloadSubmissionReport(submissionId) {
+    const sub = __submissionsCache.find(s => s.id === submissionId) || __mySubmissionsCache.find(s => s.id === submissionId);
+    if (!sub) { showToast('Submission not found.', 'error'); return; }
+
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        showToast('PDF library failed to load — check your connection and try again.', 'error');
+        return;
+    }
+
+    if (!__activitiesCache.length) {
+        try {
+            const res = await fetch('/api/activities', { credentials: 'include' });
+            const data = await res.json();
+            if (data.success) __activitiesCache = data.activities;
+        } catch (e) { /* report still generates without the answer-key cross-reference */ }
+    }
+    const activity = __activitiesCache.find(a => a.id === sub.activity_id);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const marginX = 48;
+    const maxWidth = pageWidth - marginX * 2;
+    let y = 0;
+
+    function ensureSpace(height) {
+        if (y + height > pageHeight - 56) {
+            doc.addPage();
+            y = 48;
+        }
+    }
+
+    // Header band
+    doc.setFillColor(15, 33, 72);
+    doc.rect(0, 0, pageWidth, 70, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text('LSH Training Portal', marginX, 30);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('Activity Report', marginX, 48);
+
+    y = 96;
+    doc.setTextColor(15, 33, 72);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text(sub.activity_title || 'Activity', marginX, y);
+    y += 22;
+
+    // This is the one piece "Time Spent" is waiting on — the submissions
+    // table doesn't have a time-tracking column yet, so this shows
+    // "Not tracked" until that's added server-side.
+    const scoreText = (sub.status === 'Graded' && sub.score !== null && sub.score !== undefined) ? `${sub.score} / 100` : 'Awaiting review';
+    const timeSpentText = (sub.time_spent_seconds !== undefined && sub.time_spent_seconds !== null)
+        ? `${Math.floor(sub.time_spent_seconds / 60)}m ${sub.time_spent_seconds % 60}s`
+        : 'Not tracked';
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    [
+        `Trainee: ${sub.trainee_name || sub.trainee_username}`,
+        `Submitted: ${formatDate(sub.submitted_at)}`,
+        `Status: ${sub.status}`,
+        `Score: ${scoreText}`,
+        `Time Spent: ${timeSpentText}`
+    ].forEach(line => { doc.text(line, marginX, y); y += 14; });
+
+    y += 8;
+    doc.setDrawColor(226, 232, 240);
+    doc.line(marginX, y, pageWidth - marginX, y);
+    y += 20;
+
+    buildSubmissionReportLines(sub, activity).forEach(line => {
+        if (line.type === 'spacer') { y += 10; return; }
+
+        let color = [30, 41, 59], font = ['helvetica', 'normal'], size = 10;
+        if (line.type === 'question') { color = [15, 33, 72]; font = ['helvetica', 'bold']; size = 11; }
+        else if (line.type === 'scenario') { color = [100, 116, 139]; font = ['helvetica', 'italic']; size = 9; }
+        else if (line.type === 'label') { color = [15, 33, 72]; font = ['helvetica', 'bold']; size = 10; }
+        else if (line.type === 'status-good') { color = [22, 101, 52]; font = ['helvetica', 'bold']; size = 9; }
+        else if (line.type === 'status-bad') { color = [185, 28, 28]; font = ['helvetica', 'bold']; size = 9; }
+        else if (line.type === 'status-neutral') { color = [148, 163, 184]; font = ['helvetica', 'bold']; size = 9; }
+
+        doc.setFont(font[0], font[1]);
+        doc.setFontSize(size);
+        doc.setTextColor(color[0], color[1], color[2]);
+        const wrapped = doc.splitTextToSize(line.text, maxWidth);
+        ensureSpace(wrapped.length * 12 + 6);
+        doc.text(wrapped, marginX, y);
+        y += wrapped.length * 12 + 4;
+    });
+
+    if (sub.feedback) {
+        ensureSpace(40);
+        y += 10;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(15, 33, 72);
+        doc.text('Evaluator Feedback', marginX, y);
+        y += 14;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(30, 41, 59);
+        const wrapped = doc.splitTextToSize(sub.feedback, maxWidth);
+        ensureSpace(wrapped.length * 12);
+        doc.text(wrapped, marginX, y);
+        y += wrapped.length * 12;
+    }
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= pageCount; p++) {
+        doc.setPage(p);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Generated ${new Date().toLocaleString()} \u2014 LSH Training Portal`, marginX, pageHeight - 30);
+        doc.text(`Page ${p} of ${pageCount}`, pageWidth - marginX - 60, pageHeight - 30);
+    }
+
+    const safeTrainee = (sub.trainee_username || 'trainee').replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+    const safeTitle = (sub.activity_title || 'activity').replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+    doc.save(`${safeTrainee}_${safeTitle}_report.pdf`);
+    playSound('notification');
 }
 
 // ===== PERFECT SCORE CELEBRATION (confetti + 10s rock "Auld Lang Syne") =====
