@@ -75,7 +75,14 @@ export async function onRequestPost({ request, env }) {
     if (!auth.ok) return auth.response;
 
     try {
-        const { action, activityId, activityTitle, notes, answers, submissionId, score, feedback } = await request.json();
+        const { action, activityId, activityTitle, notes, answers, submissionId, score, feedback, timeSpentSeconds } = await request.json();
+        // NOTE: timeSpentSeconds arrives from the client (app.js tracks it
+        // from when the activity modal opens to when SUBMIT fires) but is
+        // not yet written to the submissions table below — that needs a
+        // time_spent_seconds column added first. Confirm the live schema
+        // (SELECT sql FROM sqlite_master WHERE type='table' AND
+        // name='submissions') before adding it, rather than guessing
+        // whether it already exists under a different name.
 
         // 1. Trainee submitting an activity — answered in-page, no file upload.
         if (action === 'SUBMIT') {
