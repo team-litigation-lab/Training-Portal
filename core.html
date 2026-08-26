@@ -180,10 +180,11 @@
                                     <th>Status</th>
                                     <th>Grade Released</th>
                                     <th>Feedback / Notes</th>
+                                    <th>Report</th>
                                 </tr>
                             </thead>
                             <tbody id="trainee-grades-body">
-                                <tr><td colspan="5" class="text-xs text-slate-400 p-4">Loading your submissions...</td></tr>
+                                <tr><td colspan="6" class="text-xs text-slate-400 p-4">Loading your submissions...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -503,8 +504,24 @@
             <label>Evaluator Feedback / Remarks</label>
             <input type="text" id="grade-feedback-input" placeholder="Enter constructive feedback...">
             <div class="modal-btn-row">
+                <button class="btn-ghost" onclick="downloadSubmissionReport(Number(document.getElementById('modal-grade-submission').dataset.submissionId))">Download Report</button>
                 <button class="btn-ghost" onclick="closeModals()">Cancel</button>
                 <button class="btn-primary" onclick="releaseGrade()">Release Grade</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trainee's own read-only view of a past submission — same rendering
+         as the admin grade modal above, minus the grading controls. -->
+    <div class="modal-overlay no-print" id="modal-my-submission">
+        <div class="modal-box wide" style="max-height:88vh; overflow-y:auto;">
+            <h2>Submission Details</h2>
+            <div class="sub" id="my-submission-subtitle">Activity Title</div>
+            <div id="my-submission-meta" style="font-size:12px; color:#64748b; margin-bottom:14px;"></div>
+            <div id="my-submission-answers" class="mb-4"></div>
+            <div class="modal-btn-row">
+                <button class="btn-ghost" onclick="downloadSubmissionReport(Number(document.getElementById('modal-my-submission').dataset.submissionId))">Download Report</button>
+                <button class="btn-primary" onclick="closeModals()">Close</button>
             </div>
         </div>
     </div>
@@ -996,6 +1013,7 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="app.js"></script>
     <script src="portal.js"></script>
 </body>
