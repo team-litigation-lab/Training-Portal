@@ -34,9 +34,18 @@ function clearSession() {
 }
 
 // 1. NAVIGATION & ROLE VIEW SWITCHING
+const VIEW_LABELS = {
+    'trainee-landing': 'Dashboard', 'admin-landing': 'Dashboard',
+    'trainee-activities': 'Activities & Practice', 'admin-activities': 'Manage Activities',
+    'trainee-grades': 'Grades & Submissions', 'admin-grades': 'Review Submissions',
+    'trainee-lectures': 'Recorded Lectures', 'admin-lectures': 'Manage Lectures'
+};
+let __currentViewLabel = null;
+
 function switchView(viewId) {
     const target = document.getElementById('view-' + viewId);
     const outgoing = document.querySelector('.portal-view-section:not(.hidden)');
+    __currentViewLabel = VIEW_LABELS[viewId] || viewId;
 
     function completeSwitch() {
         document.querySelectorAll('.portal-view-section').forEach(el => el.classList.add('hidden'));
@@ -99,36 +108,42 @@ function applySessionUI() {
     const traineeSidebar = document.getElementById('sidebar-trainee');
     const adminSidebar = document.getElementById('sidebar-admin');
 
+    // app.js/portal.js now run on multiple pages (dedicated login pages,
+    // registration, and the dashboard) that each only have a subset of
+    // this markup — every element here needs its own null-check so this
+    // doesn't throw on a page that simply doesn't have a sidebar or title.
     if (!session) {
         if (gate) gate.classList.add('open');
-        traineeSidebar.classList.add('hidden');
-        adminSidebar.classList.add('hidden');
-        title.innerText = 'LEGAL SUPPORT HELP TRAINING INTERFACE';
+        if (traineeSidebar) traineeSidebar.classList.add('hidden');
+        if (adminSidebar) adminSidebar.classList.add('hidden');
+        if (title) title.innerText = 'LEGAL SUPPORT HELP TRAINING INTERFACE';
         stopLiveDataPolling();
         return;
     }
 
     if (gate) gate.classList.remove('open');
     startLiveDataPolling();
-    title.innerText = `LEGAL SUPPORT HELP TRAINING INTERFACE - ${session.userType.toUpperCase()} PORTAL`;
+    if (title) title.innerText = `LEGAL SUPPORT HELP TRAINING INTERFACE - ${session.userType.toUpperCase()} PORTAL`;
 
     if (session.userType === 'Admin') {
-        adminSidebar.classList.remove('hidden');
-        traineeSidebar.classList.add('hidden');
-        document.getElementById('session-footer-admin').innerHTML = `
+        if (adminSidebar) adminSidebar.classList.remove('hidden');
+        if (traineeSidebar) traineeSidebar.classList.add('hidden');
+        const adminFooter = document.getElementById('session-footer-admin');
+        if (adminFooter) adminFooter.innerHTML = `
             <div class="session-user-tag text-center text-xs text-slate-400 mb-2 font-mono">Signed in as: <b class="text-white">${session.fullName || session.username}</b></div>
             <button class="w-full border border-emerald-600 text-emerald-400 py-2 rounded text-xs font-bold uppercase mb-2" onclick="openAdminDashboard()">⇄ Master Control</button>
             <button class="w-full border border-red-800 text-red-400 py-2 rounded text-xs font-bold uppercase" onclick="logoutSession()">Log Out</button>
         `;
-        switchView('admin-landing');
+        if (typeof switchView === 'function' && document.getElementById('view-admin-landing')) switchView('admin-landing');
     } else {
-        traineeSidebar.classList.remove('hidden');
-        adminSidebar.classList.add('hidden');
-        document.getElementById('session-footer-trainee').innerHTML = `
+        if (traineeSidebar) traineeSidebar.classList.remove('hidden');
+        if (adminSidebar) adminSidebar.classList.add('hidden');
+        const traineeFooter = document.getElementById('session-footer-trainee');
+        if (traineeFooter) traineeFooter.innerHTML = `
             <div class="session-user-tag text-center text-xs text-slate-400 mb-2 font-mono">Signed in as: <b class="text-white">${session.fullName || session.username}</b></div>
             <button class="w-full border border-red-800 text-red-400 py-2 rounded text-xs font-bold uppercase" onclick="logoutSession()">Log Out</button>
         `;
-        switchView('trainee-landing');
+        if (typeof switchView === 'function' && document.getElementById('view-trainee-landing')) switchView('trainee-landing');
     }
 }
 
@@ -142,7 +157,10 @@ function logoutSession() {
     // the user shouldn't be stuck "logged in" locally over a network blip.
     fetch('/api/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     clearSession();
-    applySessionUI();
+    // core.html's auth-gate is just an empty placeholder now that login
+    // lives on its own pages — go to the landing page instead of trying
+    // to show in-page login content that no longer exists here.
+    window.location.href = '/index.html';
 }
 
 // 2b-i. LIVE PROGRESS & LEADERBOARD POLLING
@@ -180,7 +198,7 @@ function startHeartbeat() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ fullName: session.fullName || session.username, currentCase: null })
+            body: JSON.stringify({ fullName: session.fullName || session.username, currentCase: __currentViewLabel })
         })
         .then(response => {
             if (response.ok) return null;
@@ -252,20 +270,92 @@ function openAdminDashboard() {
     const session = getSession();
     if (!session || session.userType !== 'Admin') return;
     document.getElementById('master-control-page').classList.add('open');
+    __currentViewLabel = MC_TAB_LABELS.overview;
     loadUsersData();
+    loadOverviewStats();
+    applyLockPermissionUI();
+}
+
+// Locking/unlocking is restricted to the Master Account (see
+// functions/api/site-state.js) — this just keeps the button from being
+// shown to admins who'd only get a rejection if they tried it.
+function applyLockPermissionUI() {
+    const session = getSession();
+    // 'LSHADMIN123' mirrors MASTER_USERNAME in functions/_utils.js — the
+    // client can't import from a Pages Function module, so this is
+    // duplicated here for the UI-only check. The actual security boundary
+    // is enforced server-side in functions/api/site-state.js; if
+    // MASTER_USERNAME ever changes there, update this to match.
+    const isMasterAccount = !!(session && session.username === 'LSHADMIN123');
+    const lockBtn = document.getElementById('lock-page-btn');
+    const note = document.getElementById('lock-master-only-note');
+    if (lockBtn) lockBtn.classList.toggle('hidden', !isMasterAccount);
+    if (note) note.classList.toggle('hidden', isMasterAccount);
 }
 function exitMasterControl() {
     document.getElementById('master-control-page').classList.remove('open');
 }
 const MC_TABS = ['overview', 'registrations', 'users', 'monitoring', 'activity-logs', 'announce', 'access'];
+const MC_TAB_LABELS = {
+    overview: 'Master Control — Overview', registrations: 'Master Control — Registrations',
+    users: 'Master Control — Users', monitoring: 'Master Control — Monitoring',
+    'activity-logs': 'Master Control — Activity Logs', announce: 'Master Control — Announcements & Alerts',
+    access: 'Master Control — Access Control'
+};
 function showAdminDashTab(tab) {
+    __currentViewLabel = MC_TAB_LABELS[tab] || ('Master Control — ' + tab);
     document.querySelectorAll('.mc-tab').forEach((t, i) => t.classList.toggle('active', MC_TABS[i] === tab));
     document.querySelectorAll('.mc-pane').forEach(p => p.classList.remove('active'));
     const pane = document.getElementById('admin-dash-' + tab);
     if (pane) pane.classList.add('active');
+    if (tab === 'overview') loadOverviewStats();
     if (tab === 'registrations' || tab === 'users') loadUsersData();
     if (tab === 'activity-logs') renderActivityLogs();
     if (tab === 'monitoring') loadMonitoringData();
+}
+
+// Overview's 6 top tiles and 3 site-status tiles were mostly decorative —
+// only Total Users / Pending Registration were ever actually wired (via
+// updateUserStats(), called from loadUsersData()). This fills in the rest:
+// Total Assigned Activities, Total Submissions, Online/Offline Users, and
+// hands the site-status tiles (ov-lock-state/ov-pause-state/ov-alert-state)
+// off to be kept current by the existing Lock/Pause/Alert polling in
+// portal.js, since that's where the live data already lives.
+async function loadOverviewStats() {
+    try {
+        const res = await fetch('/api/activities', { credentials: 'include' });
+        const data = await res.json().catch(() => null);
+        if (data && data.success) {
+            const el = document.getElementById('admin-stat-total-activities');
+            if (el) el.textContent = data.activities.filter(a => a.status === 'Published').length;
+        }
+    } catch (e) { /* leave whatever was last shown */ }
+
+    try {
+        const res = await fetch('/api/submissions', { credentials: 'include' });
+        const data = await res.json().catch(() => null);
+        if (data && data.success) {
+            const el = document.getElementById('admin-stat-submissions');
+            if (el) el.textContent = data.submissions.length;
+        }
+    } catch (e) { /* leave whatever was last shown */ }
+
+    try {
+        const res = await fetch('/api/heartbeat', { credentials: 'include' });
+        const rows = await res.json().catch(() => null);
+        if (Array.isArray(rows)) {
+            const onlineEl = document.getElementById('admin-stat-online');
+            if (onlineEl) onlineEl.textContent = rows.length;
+
+            const approvedCount = __usersCache.filter(u => u.status === 'Approved').length;
+            const offlineEl = document.getElementById('admin-stat-offline');
+            if (offlineEl) offlineEl.textContent = Math.max(0, approvedCount - rows.length);
+        }
+    } catch (e) { /* leave whatever was last shown */ }
+
+    // Total Users / Pending Registration: reflect whatever loadUsersData()
+    // most recently cached rather than re-fetching here too.
+    if (__usersCache.length) updateUserStats();
 }
 
 // =========================================================
@@ -871,6 +961,75 @@ function buildSubmissionReportLines(sub, activity) {
 // Opens the grading modal for a specific submission id, showing every
 // answer alongside auto-graded correctness so the admin doesn't need to
 // cross-reference the answer key separately.
+// AI-Assisted Review (Gemini) — shows different content depending on
+// viewer: trainees see traineeCommentary + keyToCorrection, admins get
+// the fuller adminCommentary + insights + gradingSuggestion, plus a
+// "Regenerate" control and a shortcut to apply the suggested score.
+// sub.ai_review is null until generateAiReview() (see _utils.js) finishes
+// — that happens automatically a few seconds after submission, or
+// on-demand via the Regenerate button below.
+function renderAiReviewHtml(sub, isAdminView) {
+    const review = sub.ai_review;
+    if (!review) {
+        return `<div class="admin-tile" style="text-align:left;background:#f8fafc;margin-bottom:8px;">
+            <div style="font-weight:800;font-size:11px;color:var(--navy);margin-bottom:4px;">🤖 AI-Assisted Review</div>
+            <div style="font-size:12px;color:#94a3b8;">Not yet available — this is usually ready within a few seconds of submitting.${isAdminView ? ' Click "Regenerate AI Review" below once it\'s configured.' : ' Check back shortly.'}</div>
+            ${isAdminView ? `<button class="btn-ghost" style="margin-top:8px;padding:8px 14px;font-size:11px;border-radius:6px;" onclick="regenerateAiReview(${sub.id})">🔄 Generate AI Review</button>` : ''}
+        </div>`;
+    }
+
+    if (!isAdminView) {
+        return `
+            <div class="admin-tile" style="text-align:left;background:#fff7ed;border-color:#fed7aa;margin-bottom:8px;">
+                <div style="font-weight:800;font-size:11px;color:#c2410c;margin-bottom:6px;">🤖 AI Commentary</div>
+                <div style="font-size:12.5px;line-height:1.6;">${escapeHtml(review.traineeCommentary || '')}</div>
+            </div>
+            <div class="admin-tile" style="text-align:left;background:#fff7ed;border-color:#fed7aa;margin-bottom:8px;">
+                <div style="font-weight:800;font-size:11px;color:#c2410c;margin-bottom:6px;">🔑 Key to Correction</div>
+                <div style="font-size:12.5px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(review.keyToCorrection || '')}</div>
+            </div>
+        `;
+    }
+
+    const scoreBtn = (review.suggestedScore !== undefined && review.suggestedScore !== null)
+        ? `<button class="mini-btn" style="margin-top:6px;" onclick="document.getElementById('grade-score-input').value='${escapeHtml(String(review.suggestedScore))}'">Use Suggested Score (${escapeHtml(String(review.suggestedScore))})</button>`
+        : '';
+
+    return `
+        <div class="admin-tile" style="text-align:left;background:#fff7ed;border-color:#fed7aa;margin-bottom:8px;">
+            <div style="font-weight:800;font-size:11px;color:#c2410c;margin-bottom:6px;">🤖 AI Commentary (Admin View)</div>
+            <div style="font-size:12.5px;line-height:1.6;">${escapeHtml(review.adminCommentary || '')}</div>
+        </div>
+        <div class="admin-tile" style="text-align:left;background:#fff7ed;border-color:#fed7aa;margin-bottom:8px;">
+            <div style="font-weight:800;font-size:11px;color:#c2410c;margin-bottom:6px;">💡 Insights</div>
+            <div style="font-size:12.5px;line-height:1.6;">${escapeHtml(review.insights || '')}</div>
+        </div>
+        <div class="admin-tile" style="text-align:left;background:#fff7ed;border-color:#fed7aa;margin-bottom:8px;">
+            <div style="font-weight:800;font-size:11px;color:#c2410c;margin-bottom:6px;">📊 Grading Suggestion</div>
+            <div style="font-size:12.5px;line-height:1.6;margin-bottom:4px;">${escapeHtml(review.gradingSuggestion || '')}</div>
+            ${scoreBtn}
+        </div>
+        <div class="admin-tile" style="text-align:left;background:#fff7ed;border-color:#fed7aa;margin-bottom:8px;">
+            <div style="font-weight:800;font-size:11px;color:#c2410c;margin-bottom:6px;">🔑 Key to Correction (also shown to the trainee)</div>
+            <div style="font-size:12.5px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(review.keyToCorrection || '')}</div>
+        </div>
+        <button class="btn-ghost" style="margin-bottom:8px;padding:8px 14px;font-size:11px;border-radius:6px;" onclick="regenerateAiReview(${sub.id})">🔄 Regenerate AI Review</button>
+    `;
+}
+
+async function regenerateAiReview(submissionId) {
+    showToast('Regenerating AI review...', 'info');
+    try {
+        const data = await postJson('/api/ai-review', { submissionId });
+        const sub = __submissionsCache.find(s => s.id === submissionId);
+        if (sub) sub.ai_review = data.review;
+        showToast('AI review updated.', 'success');
+        openGradeModal(submissionId); // re-render with the fresh data
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
 async function openGradeModal(submissionId) {
     const sub = __submissionsCache.find(s => s.id === submissionId);
     if (!sub) { showToast('Submission not found.', 'error'); return; }
@@ -891,7 +1050,7 @@ async function openGradeModal(submissionId) {
     document.getElementById('modal-grade-submission').dataset.submissionId = submissionId;
 
     const activity = __activitiesCache.find(a => a.id === sub.activity_id);
-    document.getElementById('grade-modal-answers').innerHTML = renderSubmissionAnswersHtml(sub, activity);
+    document.getElementById('grade-modal-answers').innerHTML = renderAiReviewHtml(sub, true) + renderSubmissionAnswersHtml(sub, activity);
     document.getElementById('modal-grade-submission').classList.add('open');
 }
 
@@ -2085,7 +2244,7 @@ async function viewMySubmissionDetail(submissionId) {
     metaEl.innerHTML = `Submitted ${escapeHtml(formatDate(sub.submitted_at))} &middot; Status: ${escapeHtml(sub.status)} &middot; Score: ${escapeHtml(String(scoreText))}`;
 
     const activity = __activitiesCache.find(a => a.id === sub.activity_id);
-    document.getElementById('my-submission-answers').innerHTML = renderSubmissionAnswersHtml(sub, activity);
+    document.getElementById('my-submission-answers').innerHTML = renderAiReviewHtml(sub, false) + renderSubmissionAnswersHtml(sub, activity);
     document.getElementById('modal-my-submission').dataset.submissionId = submissionId;
     document.getElementById('modal-my-submission').classList.add('open');
 }
@@ -2466,9 +2625,12 @@ async function loadAdminSubmissions() {
 
 // 5. CLOCK & NOTIFICATIONS
 function refreshClock() {
-    const tz = document.getElementById('tz-select').value;
+    const tzSelect = document.getElementById('tz-select');
+    const clockEl = document.getElementById('live-clock');
+    if (!tzSelect || !clockEl) return; // this page has no clock widget — nothing to do
+    const tz = tzSelect.value;
     const now = new Date();
-    document.getElementById('live-clock').innerText = new Intl.DateTimeFormat('en-US', {
+    clockEl.innerText = new Intl.DateTimeFormat('en-US', {
         year: 'numeric', month: 'short', day: '2-digit',
         hour: '2-digit', minute: '2-digit', second: '2-digit',
         timeZone: tz, hour12: true
@@ -2510,5 +2672,9 @@ window.addEventListener('DOMContentLoaded', () => {
     refreshClock();
     applySessionUI();
     loadAnnouncement();
-    if (getSession()) startHeartbeat();
+    // Runs on every page load with a valid session — not just right after
+    // login — so it also covers a session that was already active when
+    // core.html loads directly (bookmarked link, tab restore, etc.), not
+    // only the moment right after attemptLogin()'s redirect.
+    if (getSession()) { startHeartbeat(); startIdleTracking(); }
 });
