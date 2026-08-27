@@ -367,3 +367,104 @@ export async function logTrainingActivity(trainingDb, actorUsername, actorBatch,
         console.error('training activity log failed', e);
     }
 }
+
+/**
+ * AI-Assisted Review (Gemini) — generates trainee-facing commentary + a
+ * Key to Correction, and admin-facing commentary + insights + a grading
+ * suggestion, for a single submission. Called two ways: automatically
+ * right after a trainee submits (see submissions.js, fired via
+ * context.waitUntil so it doesn't add latency to their submit response),
+ * and on-demand from functions/api/ai-review.js when an admin wants to
+ * regenerate it.
+ *
+ * Requires env.GEMINI_API_KEY (a Cloudflare Pages secret) to do anything —
+ * silently no-ops without it, so the rest of the app works normally even
+ * before that's configured.
+ *
+ * Model name is deliberately read from env.GEMINI_MODEL with a fallback,
+ * not hardcoded bare — Google has deprecated/retired Gemini model IDs
+ * several times within a single year (2.0 Flash retired, 2.5 Flash pulled
+ * ahead of its own posted deprecation date), so this needs to be
+ * update-able without a code change if the default one below stops
+ * working. Check https://ai.google.dev/gemini-api/docs/models for the
+ * current list if this starts failing.
+ */
+export async function generateAiReview(env, { submissionId, activityTitle, questions, answers, notes }) {
+    const apiKey = env.GEMINI_API_KEY;
+    if (!apiKey) {
+        console.error('generateAiReview: GEMINI_API_KEY is not configured — skipping.');
+        return { ok: false, error: 'AI review is not configured yet (missing GEMINI_API_KEY).' };
+    }
+    const model = env.GEMINI_MODEL || 'gemini-3.6-flash';
+
+    try {
+        const answerByQ = new Map((answers || []).map(a => [a.questionId, a.response]));
+        let questionBlock;
+        if (Array.isArray(questions) && questions.length > 0) {
+            questionBlock = questions.map((q, i) => {
+                const given = answerByQ.get(q.id);
+                const scenarioLine = q.scenario ? `Scenario: ${q.scenario}\n` : '';
+                const answerKeyLine = q.type !== 'essay' ? `Correct answer: ${q.correctAnswer || ''}` : '(This is an open-ended/essay question — there is no single correct answer.)';
+                return `Q${i + 1}: ${q.prompt}\n${scenarioLine}Trainee's answer: ${given !== undefined ? given : '(no response given)'}\n${answerKeyLine}`;
+            }).join('\n\n');
+        } else {
+            questionBlock = `This activity has no structured questions — the trainee submitted the following free-form response:\n${notes || '(no response given)'}`;
+        }
+
+        const prompt = `You are an expert reviewer for a legal case-management trainee onboarding program at a legal support company. Review this trainee's submission for the activity "${activityTitle}".
+
+${questionBlock}
+
+Respond ONLY with a JSON object matching this exact shape, with no other text before or after it:
+{
+  "traineeCommentary": "A supportive, plain-language paragraph (3-5 sentences) written directly to the trainee about their overall performance — professional but encouraging.",
+  "keyToCorrection": "For each question the trainee got wrong or left blank, briefly explain the correct answer and the reasoning behind it so they can learn from it. If everything was correct, briefly reinforce why their answers were right.",
+  "adminCommentary": "A more technical, detailed assessment for the admin reviewer — what the trainee demonstrated, and where their understanding was weaker.",
+  "insights": "Any pattern worth flagging — a recurring misunderstanding, a notable strength, or a suggestion for what this trainee might need extra support with.",
+  "gradingSuggestion": "A short rationale for what score you'd suggest and why.",
+  "suggestedScore": 0
+}
+"suggestedScore" must be a plain number from 0 to 100.`;
+
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: 'application/json' }
+            })
+        });
+
+        if (!res.ok) {
+            const errText = await res.text().catch(() => '');
+            console.error('generateAiReview: Gemini API error', res.status, errText);
+            return { ok: false, error: `Gemini API error (${res.status}). The configured model may need updating — see https://ai.google.dev/gemini-api/docs/models.` };
+        }
+
+        const data = await res.json();
+        const rawText = data && data.candidates && data.candidates[0] && data.candidates[0].content &&
+            data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
+        if (!rawText) {
+            console.error('generateAiReview: no usable content in Gemini response', JSON.stringify(data));
+            return { ok: false, error: 'Gemini returned no usable content.' };
+        }
+
+        let parsed;
+        try {
+            parsed = JSON.parse(rawText);
+        } catch (e) {
+            console.error('generateAiReview: failed to parse Gemini JSON response', rawText);
+            return { ok: false, error: 'Could not parse the AI response.' };
+        }
+
+        parsed.generatedAt = new Date().toISOString();
+
+        await env.TRAINING_DB.prepare(`UPDATE submissions SET ai_review = ? WHERE id = ?`)
+            .bind(JSON.stringify(parsed), submissionId).run();
+
+        return { ok: true, review: parsed };
+    } catch (err) {
+        console.error('generateAiReview failed:', err);
+        return { ok: false, error: err.message };
+    }
+}
