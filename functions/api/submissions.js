@@ -1,4 +1,4 @@
-import { json, requireSession, logActivity } from '../_utils.js';
+import { json, requireSession, logActivity, generateAiReview } from '../_utils.js';
 
 function safeParseQuestions(raw) {
     if (!raw) return [];
@@ -62,7 +62,12 @@ export async function onRequestGet({ request, env }) {
         const { results } = await env.TRAINING_DB.prepare(query).bind(...binds).all();
         const submissions = (results || []).map(s => ({
             ...s,
-            answers: safeParseAnswers(s.answers)
+            answers: safeParseAnswers(s.answers),
+            // ai_review is stored as a JSON string (see generateAiReview in
+            // _utils.js) — null/undefined here just means it hasn't been
+            // generated yet (still pending, generation failed, or the
+            // ai_review column doesn't exist on this table yet).
+            ai_review: s.ai_review ? (() => { try { return JSON.parse(s.ai_review); } catch (e) { return null; } })() : null
         }));
         return json({ success: true, submissions });
     } catch (err) {
@@ -70,7 +75,7 @@ export async function onRequestGet({ request, env }) {
     }
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
     const auth = await requireSession(request, env);
     if (!auth.ok) return auth.response;
 
@@ -158,7 +163,23 @@ export async function onRequestPost({ request, env }) {
                 { activityTitle }
             );
 
-            return json({ success: true, id: res.meta.last_row_id });
+            // AI-Assisted Review (Gemini): generates the trainee's commentary
+            // + Key to Correction and the admin's commentary/insights/grading
+            // suggestion in one call, stored on this same row. Runs via
+            // waitUntil so it happens after this response is already on its
+            // way back — the trainee isn't kept waiting on a Gemini round-trip
+            // just to see "Submitted!". No-ops safely if GEMINI_API_KEY isn't
+            // configured yet (see generateAiReview in _utils.js).
+            const submissionId = res.meta.last_row_id;
+            waitUntil(generateAiReview(env, {
+                submissionId,
+                activityTitle,
+                questions,
+                answers: Array.isArray(answers) ? answers : [],
+                notes
+            }));
+
+            return json({ success: true, id: submissionId });
         }
 
         // 2. Admin grading a submission
