@@ -1,4 +1,4 @@
-import { json, requireSession, getSiteState, verifyAdminCredentials, verifyUsernamePassword, logActivity } from '../_utils.js';
+import { json, requireSession, getSiteState, verifyAdminCredentials, verifyUsernamePassword, logActivity, MASTER_USERNAME, isMaster } from '../_utils.js';
 
 // GET is intentionally public (no requireSession) — its job is to tell any
 // client, logged in or not, whether to show the lock/pause overlay. That
@@ -29,6 +29,13 @@ export async function onRequestPost({ request, env }) {
             const { username, password } = body;
             if (!username || !password) return json({ success: false, error: 'Username and password are required.' }, 400);
 
+            // Only the Master Account may unlock — checked before verifying
+            // the password at all, so a non-master admin's correct password
+            // never even gets a chance to succeed here.
+            if (username !== MASTER_USERNAME) {
+                return json({ success: false, error: 'Only the system administrator may unlock this page.' }, 403);
+            }
+
             const user = await verifyUsernamePassword(db, username, password, 'Admin');
             if (!user) return json({ success: false, error: 'Invalid credentials.' }, 401);
 
@@ -48,11 +55,24 @@ export async function onRequestPost({ request, env }) {
         const { session } = auth;
 
         if (action === 'LOCK') {
+            // Checked against the currently logged-in session first — a
+            // non-master admin shouldn't even get to the credential-entry
+            // step for an action they can't perform.
+            if (!isMaster(session)) {
+                return json({ success: false, error: 'Only the system administrator may lock this page.' }, 403);
+            }
+
             const { batchId, password } = body;
             if (!batchId || !password) return json({ success: false, error: 'Batch ID and password are required.' }, 400);
 
             const user = await verifyAdminCredentials(db, batchId, password);
             if (!user) return json({ success: false, error: 'Batch ID / password did not match an administrator record.' }, 401);
+            // Belt-and-braces: also confirm the credentials just verified
+            // actually belong to the master account, not just any admin
+            // whose batchId+password happened to be entered into the form.
+            if (user.username !== MASTER_USERNAME) {
+                return json({ success: false, error: 'Only the system administrator may lock this page.' }, 403);
+            }
 
             await db.prepare(
                 `INSERT INTO site_state (id, locked, locked_by_batch, updated_at) VALUES (1, 1, ?, datetime('now'))
