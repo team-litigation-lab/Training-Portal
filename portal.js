@@ -3,17 +3,11 @@
 // ==========================================
 
 function showRegisterView() {
-    const loginView = document.getElementById('auth-login-view');
-    const registerView = document.getElementById('auth-register-view');
-    if (loginView) loginView.classList.add('hidden');
-    if (registerView) registerView.classList.remove('hidden');
+    window.location.href = '/registration.html';
 }
 
 function showLoginView() {
-    const loginView = document.getElementById('auth-login-view');
-    const registerView = document.getElementById('auth-register-view');
-    if (registerView) registerView.classList.add('hidden');
-    if (loginView) loginView.classList.remove('hidden');
+    window.location.href = '/trainee-login.html';
 }
 
 let currentPortalMode = "Trainee";
@@ -90,7 +84,8 @@ function submitRegistration() {
         if (data.success) {
             if (msgDiv) { msgDiv.className = "auth-msg success"; msgDiv.innerText = "Batch ID will be assigned upon the approval of registration."; }
             showToast("Registration submitted successfully!", 'success');
-            setTimeout(() => { showLoginView(); }, 2400);
+            const loginPage = payload.userType === 'Admin' ? '/admin-login.html' : '/trainee-login.html';
+            setTimeout(() => { window.location.href = loginPage; }, 2400);
         } else {
             if (msgDiv) { msgDiv.className = "auth-msg error"; msgDiv.innerText = data.error || "Registration failed."; }
             showToast(data.error || "Registration failed.", 'error');
@@ -163,20 +158,15 @@ function attemptLogin() {
             };
 
             setSession(normalizedUser);
-            applySessionUI();
-            startHeartbeat();
-            startIdleTracking();
-            refreshSiteState();
 
+            // Login now lives on its own page, separate from the dashboard —
+            // redirect there instead of toggling dashboard DOM that doesn't
+            // exist on this page. core.html's own bootstrap (applySessionUI,
+            // via DOMContentLoaded) picks the session up from there and
+            // shows the right sidebar/view.
             setTimeout(() => {
-                const authGate = document.getElementById('auth-gate');
-                if (authGate) authGate.classList.remove('open');
-                if (normalizedUser.userType === "Admin") {
-                    openAdminDashboard();
-                } else if (typeof showTraineeDashboard === "function") {
-                    showTraineeDashboard();
-                }
-            }, 1200);
+                window.location.href = '/core.html';
+            }, 900);
         } else {
             if (loginMsgDiv) { loginMsgDiv.className = "auth-msg error"; loginMsgDiv.innerText = data.error || "Login unauthorized."; }
             playSound('loginError');
@@ -411,6 +401,7 @@ async function pollAlert() {
 
         const statusLine = document.getElementById('alert-status-line');
         const overlay = document.getElementById('alert-overlay');
+        const ovAlert = document.getElementById('ov-alert-state');
 
         if (!data.active) {
             if (overlay) overlay.classList.remove('open');
@@ -418,13 +409,24 @@ async function pollAlert() {
             // fresh page load, or a different admin's tab, always showed
             // "No alert is currently active." even while one genuinely was.
             if (statusLine) statusLine.textContent = 'No alert is currently active.';
+            if (ovAlert) ovAlert.textContent = 'None Active';
             __lastShownAlertId = null;
             return;
         }
 
         if (statusLine) statusLine.textContent = 'An alert is active.';
+        if (ovAlert) ovAlert.textContent = 'Active';
         const isNewAlert = __lastShownAlertId !== data.id;
         __lastShownAlertId = data.id;
+
+        // Alert is a trainee-facing broadcast, not something an admin's own
+        // screen should be taken over by — they already know about it
+        // (they can see it's active from the status line/controls right
+        // here in Master Control), and a full-screen takeover would just
+        // get in the way of them actually managing it or doing other work.
+        const alertSession = getSession();
+        if (alertSession && alertSession.userType === 'Admin') return;
+
         if (__alertDismissedId === data.id) return; // this exact alert was already dismissed locally
 
         const textEl = document.getElementById('alert-overlay-text');
@@ -475,9 +477,18 @@ async function refreshSiteState() {
 function applySiteStateUI(state) {
     const lockOverlay = document.getElementById('lock-overlay');
     const pauseOverlay = document.getElementById('pause-overlay');
+    // Lock deliberately affects everyone, admins included — resolving it
+    // requires an admin logging in through the Unlock screen, so it has to
+    // actually show to admins for that flow to work at all.
     if (lockOverlay) lockOverlay.classList.toggle('open', !!state.locked);
-    // Lock takes visual precedence over Pause if somehow both are true.
-    if (pauseOverlay) pauseOverlay.classList.toggle('open', !state.locked && !!state.paused);
+
+    // Pause, like Alert, is a trainee-facing effect — an admin who paused
+    // the site (or a different admin checking in) shouldn't have their own
+    // screen blocked by it; they can already see the Paused/Active state
+    // in the label below and the toggle button right here in Master Control.
+    const pauseSession = getSession();
+    const isAdminUser = !!(pauseSession && pauseSession.userType === 'Admin');
+    if (pauseOverlay) pauseOverlay.classList.toggle('open', !isAdminUser && !state.locked && !!state.paused);
 
     const lockedByEl = document.getElementById('lock-locked-by');
     if (lockedByEl) lockedByEl.textContent = 'Locked By: Batch ID ' + (state.lockedBy || '—');
@@ -493,6 +504,14 @@ function applySiteStateUI(state) {
         pauseLabel.textContent = state.paused ? 'Paused' : 'Active (not paused)';
         pauseLabel.style.color = state.paused ? '#b45309' : 'var(--classified-red)';
     }
+
+    // Overview tab's Site-Wide Status tiles — same data, different display,
+    // previously never wired to anything (always showed their hardcoded
+    // placeholder text regardless of actual state).
+    const ovLock = document.getElementById('ov-lock-state');
+    if (ovLock) ovLock.textContent = state.locked ? 'Locked' : 'Unlocked';
+    const ovPause = document.getElementById('ov-pause-state');
+    if (ovPause) ovPause.textContent = state.paused ? 'Paused' : 'Active';
 
     const pauseBtn = document.getElementById('pause-toggle-btn');
     if (pauseBtn) pauseBtn.textContent = state.paused ? '▶ Resume All Activity' : '⏸ Pause All Activity';
@@ -581,11 +600,12 @@ async function attemptUnlock() {
         playSound('unlock');
         showToast('Page unlocked.', 'success', 3500, { skipSound: true });
         // Every session's heartbeat row was wiped at LOCK time, so any
-        // locally-stored session (including the unlocker's own) is stale —
-        // send everyone through a fresh login.
+        // locally-stored session (including the unlocker's own) is stale.
+        // Redirect to the landing page rather than calling applySessionUI()
+        // in place — if this fired while sitting on core.html, that would
+        // leave a blank dashboard shell with no login form to get back in from.
         clearSession();
-        applySessionUI();
-        refreshSiteState();
+        window.location.href = '/index.html';
     } catch (e) {
         if (errEl) { errEl.textContent = e.message; errEl.style.display = 'block'; }
     }
