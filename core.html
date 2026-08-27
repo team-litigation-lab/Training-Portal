@@ -12,6 +12,25 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<script>
+    // Login now lives on its own pages, not embedded in this one — so an
+    // unauthenticated visitor landing here directly (bookmark, stale tab,
+    // expired session) has nowhere to log in from on this page anymore.
+    // Redirect to the landing page immediately, before any dashboard
+    // markup renders, rather than showing a broken/empty shell.
+    // Duplicates app.js's getSession() check inline (rather than waiting
+    // for app.js to load) specifically to run before first paint.
+    (function () {
+        try {
+            const raw = sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1');
+            if (!raw || raw === 'null') {
+                window.location.replace('/index.html');
+            }
+        } catch (e) {
+            window.location.replace('/index.html');
+        }
+    })();
+</script>
 
     <!-- CLASSIFICATION / TIME BAR -->
     <div id="classification-bar" class="no-print">
@@ -327,57 +346,15 @@
     </div>
 
     <!-- ===== AUTH GATE: LOGIN / REGISTER ===== -->
-    <div id="auth-gate" class="no-print">
-        <div class="auth-box">
-            <div class="auth-brand">
-                <div id="auth-seal" style="width:42px;height:42px;border-radius:6px;border:2px solid var(--orange);overflow:hidden;flex-shrink:0;"></div>
-                <div>
-                    <h1>Legal Support Help</h1>
-                    <span>Training Activities Module</span>
-                </div>
-            </div>
-
-            <!-- LOGIN VIEW -->
-            <div id="auth-login-view">
-                <div class="portal-tabs">
-                    <div class="portal-tab active" id="portal-tab-trainee" onclick="switchPortalTab('Trainee')">Trainee Portal</div>
-                    <div class="portal-tab" id="portal-tab-admin" onclick="switchPortalTab('Admin')">Admin Portal</div>
-                </div>
-                <div id="auth-login-msg" class="auth-msg"></div>
-                <div class="auth-field"><label>Username</label><input type="text" id="login-username" autocomplete="off" placeholder="Enter your username"></div>
-                <div class="auth-field"><label>Password</label><input type="password" id="login-password" autocomplete="off" placeholder="Enter your password"></div>
-                <button class="auth-submit" onclick="attemptLogin()">Log In</button>
-                <div class="auth-switch">No account yet? <a onclick="showRegisterView()">Register here</a></div>
-            </div>
-
-            <!-- REGISTER VIEW -->
-            <div id="auth-register-view" class="hidden">
-                <div id="auth-register-msg" class="auth-msg"></div>
-                <div class="auth-field" style="display:grid; grid-template-columns: 2fr 0.7fr; gap:8px;">
-                    <div><label>First Name</label><input type="text" id="reg-firstname" autocomplete="off" data-allow="name" placeholder="e.g., Juan"></div>
-                    <div><label>M.I.</label><input type="text" id="reg-middlename" autocomplete="off" maxlength="2" data-allow="alnum-upper" placeholder="M.I."></div>
-                </div>
-                <div class="auth-field" style="display:grid; grid-template-columns: 2fr 1fr; gap:8px;">
-                    <div><label>Last Name</label><input type="text" id="reg-lastname" autocomplete="off" data-allow="name" placeholder="e.g., Dela Cruz"></div>
-                    <div><label>Suffix <span style="text-transform:none;">(optional)</span></label><input type="text" id="reg-suffix" autocomplete="off" placeholder="Jr., III..."></div>
-                </div>
-                <div class="auth-field"><label>Email</label><input type="email" id="reg-email" placeholder="name@example.com" autocomplete="off" data-allow="email"></div>
-                <div class="auth-field"><label>Type of User</label>
-                    <select id="reg-usertype" onchange="onRegUserTypeChange()">
-                        <option value="Trainee">Trainee</option>
-                        <option value="Admin">Admin</option>
-                    </select>
-                </div>
-                <div class="auth-field" id="reg-training-date-wrap"><label>Start of Training Date</label><input type="date" id="reg-training-date" autocomplete="off"></div>
-                <div class="auth-field"><label>Batch ID</label><input type="text" id="reg-batchid" autocomplete="off" readonly placeholder="Batch ID will be assigned upon the approval of your registration." disabled style="opacity:0.6; cursor:not-allowed;"></div>
-                <div class="auth-field"><label>Username</label><input type="text" id="reg-username" autocomplete="off" data-allow="alnum-underscore" placeholder="Choose a username"></div>
-                <div class="auth-field"><label>Password</label><input type="password" id="reg-password" autocomplete="new-password" placeholder="Create a password" minlength="8"><p style="font-size:11px;color:#64748b;margin:4px 0 0;line-height:1.4;">At least 8 characters, letters and numbers only (must include at least one of each).</p></div>
-                <div class="auth-field"><label>Retype Password</label><input type="password" id="reg-password2" autocomplete="new-password" placeholder="Retype your password" minlength="8"></div>
-                <button class="auth-submit" onclick="submitRegistration()">Submit Registration</button>
-                <div class="auth-switch">Already have an account? <a onclick="showLoginView()">Back to log in</a></div>
-            </div>
-        </div>
-    </div>
+    <!-- Login and Registration now live on their own pages
+         (admin-login.html, trainee-login.html, registration.html) — see
+         the session guard script at the top of <body> for how an
+         unauthenticated visitor lands there instead of seeing this page.
+         auth-gate itself is kept as an empty, harmless target for
+         applySessionUI()'s existing (defensively null-checked) reference
+         to it, so that shared function doesn't need a special case for
+         this page. -->
+    <div id="auth-gate" class="no-print hidden"></div>
 
     <!-- ===== MODALS ===== -->
     <!-- ADD ACTIVITY MODAL (Admin) — Title only. Starts as a Draft; everything else is filled in via the edit view. -->
@@ -739,9 +716,10 @@
 
                 <div class="mc-section-title">🔒 Lock Access (this page only, forces logout, requires unlock)</div>
                 <div class="admin-tile">
-                    <p style="font-size:11px; color:#64748b; margin-bottom:10px;">Locking immediately signs out every user of this page and blocks the page entirely until an administrator unlocks it again. This requires Batch ID + password confirmation before it takes effect.</p>
+                    <p style="font-size:11px; color:#64748b; margin-bottom:10px;">Locking immediately signs out every user of this page and blocks the page entirely until the system administrator unlocks it again. This requires the system administrator's own Batch ID + password confirmation before it takes effect.</p>
                     <div style="font-size:12px;font-weight:800;margin-bottom:10px;">Current state: <span id="lock-state-label" style="color:#166534;">Unlocked</span></div>
-                    <button class="btn-primary" style="background:var(--classified-red);color:white;border-radius:6px;padding:10px 16px;font-size:11px;" onclick="openLockConfirm()">🔒 Lock This Page</button>
+                    <button class="btn-primary" id="lock-page-btn" style="background:var(--classified-red);color:white;border-radius:6px;padding:10px 16px;font-size:11px;" onclick="openLockConfirm()">🔒 Lock This Page</button>
+                    <p id="lock-master-only-note" class="hidden" style="font-size:11px;color:#94a3b8;font-style:italic;margin-top:8px;">Only the system administrator (master account) can lock or unlock this page.</p>
                 </div>
             </div>
 
@@ -790,7 +768,7 @@
         <div style="font-size:40px;">🔒</div>
         <h2 class="serif" style="margin:14px 0 4px;">Page Locked by Administrator</h2>
         <div id="lock-locked-by">Locked By: Batch ID —</div>
-        <p class="mono" style="font-size:11px; color:#94a3b8; margin-bottom:20px;">Enter administrator credentials to resume access.</p>
+        <p class="mono" style="font-size:11px; color:#94a3b8; margin-bottom:20px;">Enter the system administrator's credentials to resume access.</p>
         <div style="width:300px;">
             <input type="text" id="unlock-user" placeholder="Username" style="width:100%;padding:10px;margin-bottom:8px;border-radius:6px;border:none;font-family:'IBM Plex Mono', 'Courier New', monospace;background:#ffffff;color:#0f172a;">
             <input type="password" id="unlock-pass" placeholder="Password" style="width:100%;padding:10px;margin-bottom:12px;border-radius:6px;border:none;font-family:'IBM Plex Mono', 'Courier New', monospace;background:#ffffff;color:#0f172a;">
