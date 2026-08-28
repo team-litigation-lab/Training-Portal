@@ -33,27 +33,37 @@
 </script>
 
     <!-- CLASSIFICATION / TIME BAR -->
-    <div id="classification-bar" class="no-print">
-        <div class="cls-left">
-            <span class="cls-label">LSH</span>
-            <span id="portal-title">LEGAL SUPPORT HELP TRAINING AND RESOURCE CENTER</span>
+    <div class="top-bar-modern no-print" id="classification-bar">
+        <div class="top-search">
+            <span class="icon">🔍</span>
+            <input type="text" placeholder="Search..." disabled title="Search coming soon">
         </div>
-        <div class="announcement-ticker" id="announcement-ticker">
-            <span class="announcement-tag" id="announcement-tag">ANNOUNCEMENT:</span>
-            <div class="ticker-viewport">
-                <div class="ticker-track" id="ticker-track"><span id="ticker-text">Welcome to the Legal Support Help Training and Resource Center (LSH TRC).</span></div>
+        <div class="top-bar-right">
+            <div class="top-ticker-mini" id="announcement-ticker">
+                <span class="tag" id="announcement-tag">Announcement:</span>
+                <div class="ticker-viewport">
+                    <div class="ticker-track" id="ticker-track"><span id="ticker-text">Welcome to the Legal Support Help Training and Resource Center (LSH TRC).</span></div>
+                </div>
+            </div>
+            <div class="top-clock">
+                <span id="live-clock">--:--:--</span>
+                <select id="tz-select" onchange="refreshClock()" style="border:none;background:none;color:#94a3b8;font-size:11px;font-weight:600;">
+                    <option value="Asia/Manila">Manila (PHT)</option>
+                    <option value="UTC">UTC</option>
+                    <option value="America/New_York">New York (ET)</option>
+                    <option value="America/Los_Angeles">Los Angeles (PT)</option>
+                </select>
+            </div>
+            <div class="top-user">
+                <div class="top-user-avatar" id="top-user-avatar">--</div>
+                <div>
+                    <div class="top-user-name" id="top-user-name">&nbsp;</div>
+                    <div class="top-user-role" id="top-user-role">&nbsp;</div>
+                </div>
             </div>
         </div>
-        <div class="clock-widget">
-            <span id="live-clock">--:--:--</span>
-            <select id="tz-select" onchange="refreshClock()" style="max-width:220px;">
-                <option value="Asia/Manila">Manila (PHT)</option>
-                <option value="UTC">UTC</option>
-                <option value="America/New_York">New York (ET)</option>
-                <option value="America/Los_Angeles">Los Angeles (PT)</option>
-            </select>
-        </div>
     </div>
+    <span id="portal-title" class="hidden"></span>
 
     <div id="app-shell">
         <!-- TRAINEE SIDEBAR -->
@@ -66,10 +76,10 @@
                 </div>
             </div>
             <div class="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-2">
-                <button onclick="switchView('trainee-landing')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 bg-slate-800 text-orange-400 view-nav-btn" id="nav-trainee-landing">Landing Page</button>
-                <button onclick="switchView('trainee-activities')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-trainee-activities">Lesson Decks &amp; Activities</button>
-                <button onclick="switchView('trainee-lectures')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-trainee-lectures">Recorded Lectures</button>
-                <button onclick="switchView('trainee-grades')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-trainee-grades">Grades &amp; Submissions</button>
+                <button onclick="switchView('trainee-landing')" class="side-nav-btn active view-nav-btn" id="nav-trainee-landing"><span>🏠</span> Landing Page</button>
+                <button onclick="switchView('trainee-activities')" class="side-nav-btn view-nav-btn" id="nav-trainee-activities"><span>📋</span> Lesson Decks &amp; Activities</button>
+                <button onclick="switchView('trainee-lectures')" class="side-nav-btn view-nav-btn" id="nav-trainee-lectures"><span>🎬</span> Recorded Lectures</button>
+                <button onclick="switchView('trainee-grades')" class="side-nav-btn view-nav-btn" id="nav-trainee-grades"><span>📊</span> Grades &amp; Submissions</button>
             </div>
             <div id="session-footer-trainee" style="margin:16px;"></div>
         </aside>
@@ -84,10 +94,10 @@
                 </div>
             </div>
             <div class="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-2">
-                <button onclick="switchView('admin-landing')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 bg-slate-800 text-orange-400 view-nav-btn" id="nav-admin-landing">Batch Statistics</button>
-                <button onclick="switchView('admin-activities')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-admin-activities">Lesson Decks &amp; Activities</button>
-                <button onclick="switchView('admin-lectures')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-admin-lectures">Manage Lectures</button>
-                <button onclick="switchView('admin-grades')" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs uppercase transition hover:bg-slate-800 text-slate-300 view-nav-btn" id="nav-admin-grades">Check &amp; Release Grades</button>
+                <button onclick="switchView('admin-landing')" class="side-nav-btn active view-nav-btn" id="nav-admin-landing"><span>🏠</span> Batch Statistics</button>
+                <button onclick="switchView('admin-activities')" class="side-nav-btn view-nav-btn" id="nav-admin-activities"><span>📋</span> Lesson Decks &amp; Activities</button>
+                <button onclick="switchView('admin-lectures')" class="side-nav-btn view-nav-btn" id="nav-admin-lectures"><span>🎬</span> Manage Lectures</button>
+                <button onclick="switchView('admin-grades')" class="side-nav-btn view-nav-btn" id="nav-admin-grades"><span>📊</span> Check &amp; Release Grades</button>
             </div>
             <div id="session-footer-admin" style="margin:16px;"></div>
         </aside>
@@ -98,57 +108,64 @@
                 
                 <!-- 1. TRAINEE LANDING PAGE -->
                 <div id="view-trainee-landing" class="portal-view-section">
-                    <div class="pdf-card border-l-4 border-orange-500 mb-6">
-                        <div class="section-head">Company Profile &amp; Mission</div>
-                        <p class="text-sm text-slate-600 leading-relaxed mb-4">
-                            Welcome to the Legal Support Help Training and Resource Center (LSH TRC). Our mission is to prepare legal professionals and trainees with rigorous, practical exposure to real-world documentation, discovery, and case management workflows.
-                        </p>
-                        <div class="grid grid-cols-3 gap-4 border-t border-slate-100 pt-4">
-                            <div>
-                                <span class="block text-[10px] font-extrabold text-slate-400 uppercase">Current Batch</span>
-                                <span class="font-bold text-navy" id="trainee-batch-display">Batch —</span>
-                            </div>
-                            <div>
-                                <span class="block text-[10px] font-extrabold text-slate-400 uppercase">Training Phase</span>
-                                <span class="font-bold text-orange-600">Active Curriculum</span>
-                            </div>
-                            <div>
-                                <span class="block text-[10px] font-extrabold text-slate-400 uppercase">Your Standing</span>
-                                <span class="font-bold text-emerald-600">Good Standing</span>
-                            </div>
+                    <div class="dash-hero mb-6">
+                        <svg class="dash-hero-rings" viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="130" cy="130" r="120" stroke="#f97316" stroke-width="1.5"/>
+                            <circle cx="130" cy="130" r="95" stroke="#c06128" stroke-width="1.5"/>
+                            <circle cx="130" cy="130" r="70" stroke="#864e39" stroke-width="1.5"/>
+                            <circle cx="130" cy="130" r="45" stroke="#4c3c4a" stroke-width="1.5"/>
+                        </svg>
+                        <div class="dash-hero-copy">
+                            <div class="eyebrow">Welcome back</div>
+                            <h2>Let's keep your training moving.</h2>
+                            <p>Complete activities, watch lectures, and climb the leaderboard — your progress updates live below.</p>
+                        </div>
+                        <div class="dash-hero-stats">
+                            <div class="dash-hero-stat"><div class="num" id="trainee-batch-display-hero">—</div><div class="lbl">Batch</div></div>
+                            <div class="dash-hero-stat"><div class="num">Active</div><div class="lbl">Standing</div></div>
                         </div>
                     </div>
 
-                    <!-- PROGRESS BARS -->
-                    <div class="pdf-card border-l-4 border-blue-600 mb-6">
-                        <div class="section-head" style="background:#eff6ff; color:#1d4ed8;">Your Training Progress</div>
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-xs font-bold text-slate-600 uppercase">Your Progress</span>
-                            <span class="font-mono font-black text-blue-600" id="trainee-progress-pct">—</span>
+                    <div class="stat-cards-row mb-6">
+                        <div class="stat-card-v2">
+                            <div class="stat-icon-badge navy">📘</div>
+                            <div><div class="val" id="trainee-batch-display">Batch —</div><div class="lbl">Current Batch</div></div>
                         </div>
-                        <div class="w-full bg-slate-200 h-4 rounded-full overflow-hidden mb-1">
-                            <div class="bg-blue-600 h-full transition-all duration-500" style="width: 0%;" id="trainee-progress-bar"></div>
+                        <div class="stat-card-v2">
+                            <div class="stat-icon-badge orange">📈</div>
+                            <div><div class="val" id="trainee-progress-pct-card">—</div><div class="lbl">Your Progress</div></div>
                         </div>
-                        <div class="text-[10px] text-slate-400 font-mono mb-5" id="trainee-progress-detail">Loading your progress...</div>
-
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-xs font-bold text-slate-600 uppercase">Batch Progress</span>
-                            <span class="font-mono font-black text-emerald-600" id="batch-progress-pct">—</span>
+                        <div class="stat-card-v2">
+                            <div class="stat-icon-badge green">🏁</div>
+                            <div><div class="val" id="batch-progress-pct-card">—</div><div class="lbl">Batch Progress</div></div>
                         </div>
-                        <div class="w-full bg-slate-200 h-4 rounded-full overflow-hidden">
-                            <div class="bg-emerald-600 h-full transition-all duration-500" style="width: 0%;" id="batch-progress-bar"></div>
+                        <div class="stat-card-v2">
+                            <div class="stat-icon-badge red">🎓</div>
+                            <div><div class="val">Active</div><div class="lbl">Curriculum Phase</div></div>
                         </div>
-                        <div class="text-[10px] text-slate-400 font-mono mt-1" id="batch-progress-detail">Loading batch progress...</div>
                     </div>
 
-                    <!-- LEADERBOARDS -->
-                    <div class="pdf-card border-l-4 border-emerald-600">
-                        <div class="section-head flex items-center justify-between" style="background:#f0fdf4; color:#166534;">
-                            <span>Batch Leaderboard</span>
-                            <span class="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wide" style="color:#166534;">
-                                <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;animation:pulse 1.6s infinite;"></span>
-                                Live<span id="leaderboard-updated" class="text-slate-400 font-normal normal-case" style="margin-left:4px;"></span>
-                            </span>
+                    <div class="dash-card mb-6">
+                        <div class="dash-card-head"><h3>Your Training Progress</h3></div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Your Progress</span>
+                            <span class="font-bold" style="color:var(--orange);" id="trainee-progress-pct">—</span>
+                        </div>
+                        <div class="dash-progress-track mb-1"><div class="dash-progress-fill" style="width:0%; background:linear-gradient(90deg, var(--orange), #fb923c);" id="trainee-progress-bar"></div></div>
+                        <div class="text-[10px] text-slate-400 mb-5" id="trainee-progress-detail">Loading your progress...</div>
+
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Batch Progress</span>
+                            <span class="font-bold text-emerald-600" id="batch-progress-pct">—</span>
+                        </div>
+                        <div class="dash-progress-track"><div class="dash-progress-fill" style="width:0%; background:linear-gradient(90deg, #15803d, #22c55e);" id="batch-progress-bar"></div></div>
+                        <div class="text-[10px] text-slate-400 mt-1" id="batch-progress-detail">Loading batch progress...</div>
+                    </div>
+
+                    <div class="dash-card">
+                        <div class="dash-card-head">
+                            <h3>Batch Leaderboard</h3>
+                            <span class="dash-live-pill"><span class="dot"></span>Live<span id="leaderboard-updated" class="text-slate-400 font-normal normal-case" style="margin-left:4px;"></span></span>
                         </div>
                         <table class="treat-table w-full">
                             <thead>
@@ -211,30 +228,45 @@
 
                 <!-- 5. ADMIN LANDING PAGE -->
                 <div id="view-admin-landing" class="portal-view-section hidden">
-                    <div class="pdf-card border-l-4 border-red-600 mb-6">
-                        <div class="section-head" style="background:#fef2f2; color:#b91c1c;">Trainee Progress &amp; Batch Statistics</div>
-                        <div class="grid grid-cols-4 gap-4 mt-2">
-                            <div class="p-4 bg-slate-50 rounded border">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Active Trainees</span>
-                                <span class="text-2xl font-black font-mono text-navy" id="admin-landing-active-trainees">—</span>
-                            </div>
-                            <div class="p-4 bg-slate-50 rounded border">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Submissions</span>
-                                <span class="text-2xl font-black font-mono text-orange-600" id="admin-landing-total-submissions">—</span>
-                            </div>
-                            <div class="p-4 bg-slate-50 rounded border">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Avg Batch Score</span>
-                                <span class="text-2xl font-black font-mono text-emerald-600" id="admin-landing-avg-score">—</span>
-                            </div>
-                            <div class="p-4 bg-slate-50 rounded border">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Pending Grades</span>
-                                <span class="text-2xl font-black font-mono text-red-600" id="admin-landing-pending-grades">—</span>
-                            </div>
+                    <div class="dash-hero mb-6">
+                        <svg class="dash-hero-rings" viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="130" cy="130" r="120" stroke="#f97316" stroke-width="1.5"/>
+                            <circle cx="130" cy="130" r="95" stroke="#c06128" stroke-width="1.5"/>
+                            <circle cx="130" cy="130" r="70" stroke="#864e39" stroke-width="1.5"/>
+                            <circle cx="130" cy="130" r="45" stroke="#4c3c4a" stroke-width="1.5"/>
+                        </svg>
+                        <div class="dash-hero-copy">
+                            <div class="eyebrow">Master Control</div>
+                            <h2>Here's how every batch is doing.</h2>
+                            <p>Track completion, grading, and standings across all trainees — live, from one screen.</p>
+                        </div>
+                        <div class="dash-hero-stats">
+                            <div class="dash-hero-stat"><div class="num" id="admin-landing-active-trainees-hero">—</div><div class="lbl">Active</div></div>
+                            <div class="dash-hero-stat"><div class="num" id="admin-landing-pending-grades-hero">—</div><div class="lbl">Pending</div></div>
                         </div>
                     </div>
 
-                    <div class="pdf-card mb-6">
-                        <div class="section-head">Trainee Progress Tracker</div>
+                    <div class="stat-cards-row mb-6">
+                        <div class="stat-card-v2">
+                            <div class="stat-icon-badge navy">🧑‍🎓</div>
+                            <div><div class="val" id="admin-landing-active-trainees">—</div><div class="lbl">Active Trainees</div></div>
+                        </div>
+                        <div class="stat-card-v2">
+                            <div class="stat-icon-badge orange">📥</div>
+                            <div><div class="val" id="admin-landing-total-submissions">—</div><div class="lbl">Total Submissions</div></div>
+                        </div>
+                        <div class="stat-card-v2">
+                            <div class="stat-icon-badge green">📈</div>
+                            <div><div class="val" id="admin-landing-avg-score">—</div><div class="lbl">Avg Batch Score</div></div>
+                        </div>
+                        <div class="stat-card-v2">
+                            <div class="stat-icon-badge red">⏳</div>
+                            <div><div class="val" id="admin-landing-pending-grades">—</div><div class="lbl">Pending Grades</div></div>
+                        </div>
+                    </div>
+
+                    <div class="dash-card mb-6">
+                        <div class="dash-card-head"><h3>Trainee Progress Tracker</h3></div>
                         <table class="treat-table w-full">
                             <thead>
                                 <tr>
@@ -251,13 +283,10 @@
                         </table>
                     </div>
 
-                    <div class="pdf-card border-l-4 border-emerald-600">
-                        <div class="section-head flex items-center justify-between" style="background:#f0fdf4; color:#166534;">
-                            <span>Live Leaderboard — All Trainees</span>
-                            <span class="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wide" style="color:#166534;">
-                                <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;animation:pulse 1.6s infinite;"></span>
-                                Live<span id="admin-leaderboard-updated" class="text-slate-400 font-normal normal-case" style="margin-left:4px;"></span>
-                            </span>
+                    <div class="dash-card">
+                        <div class="dash-card-head">
+                            <h3>Live Leaderboard — All Trainees</h3>
+                            <span class="dash-live-pill"><span class="dot"></span>Live<span id="admin-leaderboard-updated" class="text-slate-400 font-normal normal-case" style="margin-left:4px;"></span></span>
                         </div>
                         <table class="treat-table w-full">
                             <thead>
