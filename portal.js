@@ -608,7 +608,7 @@ async function togglePause() {
 }
 
 function openLockConfirm() {
-    document.getElementById('lock-confirm-batchid').value = '';
+    document.getElementById('lock-confirm-username').value = '';
     document.getElementById('lock-confirm-password').value = '';
     document.getElementById('lock-confirm-error').style.display = 'none';
     document.getElementById('lock-confirm-modal').classList.add('open');
@@ -618,13 +618,13 @@ function closeLockConfirm() {
 }
 
 async function confirmLock() {
-    const batchId = document.getElementById('lock-confirm-batchid').value.trim();
+    const username = document.getElementById('lock-confirm-username').value.trim();
     const password = document.getElementById('lock-confirm-password').value;
     const errEl = document.getElementById('lock-confirm-error');
     if (errEl) errEl.style.display = 'none';
 
-    if (!batchId || !password) {
-        if (errEl) { errEl.textContent = 'Batch ID and password are required.'; errEl.style.display = 'block'; }
+    if (!username || !password) {
+        if (errEl) { errEl.textContent = 'Username and password are required.'; errEl.style.display = 'block'; }
         return;
     }
     try {
@@ -632,7 +632,7 @@ async function confirmLock() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ action: 'LOCK', batchId, password })
+            body: JSON.stringify({ action: 'LOCK', username, password })
         });
         const data = await res.json().catch(() => null);
         if (!res.ok || !data || !data.success) throw new Error((data && data.error) || 'Failed to lock the page.');
