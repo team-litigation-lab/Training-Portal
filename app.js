@@ -49,10 +49,7 @@ function switchView(viewId) {
 
     function completeSwitch() {
         document.querySelectorAll('.portal-view-section').forEach(el => el.classList.add('hidden'));
-        document.querySelectorAll('.view-nav-btn').forEach(btn => {
-            btn.classList.remove('bg-slate-800', 'text-orange-400');
-            btn.classList.add('text-slate-300');
-        });
+        document.querySelectorAll('.view-nav-btn').forEach(btn => btn.classList.remove('active'));
 
         const navBtn = document.getElementById('nav-' + viewId);
         if (target) {
@@ -63,10 +60,7 @@ function switchView(viewId) {
             target.classList.add('view-fade-in');
             target.addEventListener('animationend', () => target.classList.remove('view-fade-in'), { once: true });
         }
-        if (navBtn) {
-            navBtn.classList.remove('text-slate-300');
-            navBtn.classList.add('bg-slate-800', 'text-orange-400');
-        }
+        if (navBtn) navBtn.classList.add('active');
 
         if (viewId === 'admin-activities' || viewId === 'trainee-activities') {
             loadActivitiesData();
@@ -124,6 +118,17 @@ function applySessionUI() {
     if (gate) gate.classList.remove('open');
     startLiveDataPolling();
     if (title) title.innerText = `LEGAL SUPPORT HELP TRAINING AND RESOURCE CENTER - ${session.userType.toUpperCase()} PORTAL`;
+
+    // New top bar (replaces the old classification-bar text) shows who's
+    // signed in instead — initials avatar + name + role, matching the
+    // reference dashboard's top-right identity area.
+    const topAvatar = document.getElementById('top-user-avatar');
+    const topName = document.getElementById('top-user-name');
+    const topRole = document.getElementById('top-user-role');
+    const displayName = session.fullName || session.username;
+    if (topAvatar) topAvatar.textContent = displayName.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    if (topName) topName.textContent = displayName;
+    if (topRole) topRole.textContent = session.userType;
 
     if (session.userType === 'Admin') {
         if (adminSidebar) adminSidebar.classList.remove('hidden');
@@ -1669,13 +1674,16 @@ function renderTraineeProgress(trainee, batch) {
     setText('trainee-progress-pct', trainee.pct + '%');
     setWidth('trainee-progress-bar', trainee.pct);
     setText('trainee-progress-detail', `${trainee.completed} of ${trainee.total} activities completed`);
+    setText('trainee-progress-pct-card', trainee.pct + '%'); // stat card mirror, same value
 
     setText('batch-progress-pct', batch.pct + '%');
     setWidth('batch-progress-bar', batch.pct);
     setText('batch-progress-detail', `Batch ${batch.batchId || '\u2014'} \u00b7 ${batch.traineeCount} trainee${batch.traineeCount === 1 ? '' : 's'}`);
+    setText('batch-progress-pct-card', batch.pct + '%'); // stat card mirror, same value
 
     const batchDisplay = document.getElementById('trainee-batch-display');
     if (batchDisplay) batchDisplay.textContent = 'Batch ' + (batch.batchId || '\u2014');
+    setText('trainee-batch-display-hero', batch.batchId || '\u2014'); // hero banner mirror, same value
 }
 
 function renderAdminProgress(data) {
@@ -1686,6 +1694,8 @@ function renderAdminProgress(data) {
     setText('admin-landing-total-submissions', s.totalSubmissions);
     setText('admin-landing-avg-score', s.avgBatchScore !== null ? s.avgBatchScore + '%' : '\u2014');
     setText('admin-landing-pending-grades', s.pendingGrades);
+    setText('admin-landing-active-trainees-hero', s.activeTrainees); // hero banner mirror, same value
+    setText('admin-landing-pending-grades-hero', s.pendingGrades); // hero banner mirror, same value
 
     const body = document.getElementById('admin-progress-tracker-body');
     if (!body) return;
