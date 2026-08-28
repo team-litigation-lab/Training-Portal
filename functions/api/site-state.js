@@ -1,4 +1,4 @@
-import { json, requireSession, getSiteState, verifyAdminCredentials, verifyUsernamePassword, logActivity, MASTER_USERNAME, isMaster } from '../_utils.js';
+import { json, requireSession, getSiteState, logActivity, MASTER_USERNAME, verifyMasterCredentials } from '../_utils.js';
 
 // GET is intentionally public (no requireSession) — its job is to tell any
 // client, logged in or not, whether to show the lock/pause overlay. That
@@ -39,15 +39,12 @@ export async function onRequestPost({ request, env }) {
             const { username, password } = body;
             if (!username || !password) return json({ success: false, error: 'Username and password are required.' }, 400);
 
-            // Only the Master Account may unlock — checked before verifying
-            // the password at all, so a non-master admin's correct password
-            // never even gets a chance to succeed here.
-            if (username !== MASTER_USERNAME) {
-                return json({ success: false, error: 'Only the system administrator may unlock this page.' }, 403);
+            // Verifies against env.MASTER_ADMIN_PASSWORD directly (see
+            // verifyMasterCredentials in _utils.js) — the Master Account has
+            // no row in the users table, so there's nothing there to check.
+            if (!verifyMasterCredentials(env, username, password)) {
+                return json({ success: false, error: 'Invalid credentials.' }, 401);
             }
-
-            const user = await verifyUsernamePassword(db, username, password, 'Admin');
-            if (!user) return json({ success: false, error: 'Invalid credentials.' }, 401);
 
             // Upsert rather than a plain UPDATE — the site_state row (id=1)
             // may not exist yet even though the table does.
@@ -55,7 +52,7 @@ export async function onRequestPost({ request, env }) {
                 `INSERT INTO site_state (id, locked, locked_by_batch, updated_at) VALUES (1, 0, NULL, datetime('now'))
                  ON CONFLICT(id) DO UPDATE SET locked = 0, locked_by_batch = NULL, updated_at = excluded.updated_at`
             ).run();
-            await logActivity(db, user.username, user.batch_id, 'site-unlock', null);
+            await logActivity(db, MASTER_USERNAME, 'MASTER-ADMIN', 'site-unlock', null);
             return json({ success: true });
         }
 
@@ -65,33 +62,28 @@ export async function onRequestPost({ request, env }) {
         const { session } = auth;
 
         if (action === 'LOCK') {
-            // Checked against the currently logged-in session first — a
-            // non-master admin shouldn't even get to the credential-entry
-            // step for an action they can't perform.
-            if (!isMaster(session)) {
-                return json({ success: false, error: 'Only the system administrator may lock this page.' }, 403);
-            }
+            // Any logged-in admin can reach this — the Master Account can
+            // never hold a session (see login.js), so gating this on
+            // isMaster(session) would make Lock unreachable by anyone at
+            // all. The actual restriction is the credential check below:
+            // only Master's own username+password succeeds, regardless of
+            // which admin is the one currently logged in and clicking the
+            // button.
+            const { username, password } = body;
+            if (!username || !password) return json({ success: false, error: 'Username and password are required.' }, 400);
 
-            const { batchId, password } = body;
-            if (!batchId || !password) return json({ success: false, error: 'Batch ID and password are required.' }, 400);
-
-            const user = await verifyAdminCredentials(db, batchId, password);
-            if (!user) return json({ success: false, error: 'Batch ID / password did not match an administrator record.' }, 401);
-            // Belt-and-braces: also confirm the credentials just verified
-            // actually belong to the master account, not just any admin
-            // whose batchId+password happened to be entered into the form.
-            if (user.username !== MASTER_USERNAME) {
-                return json({ success: false, error: 'Only the system administrator may lock this page.' }, 403);
+            if (!verifyMasterCredentials(env, username, password)) {
+                return json({ success: false, error: 'Only the Master Account may lock this page.' }, 403);
             }
 
             await db.prepare(
                 `INSERT INTO site_state (id, locked, locked_by_batch, updated_at) VALUES (1, 1, ?, datetime('now'))
                  ON CONFLICT(id) DO UPDATE SET locked = 1, locked_by_batch = excluded.locked_by_batch, updated_at = excluded.updated_at`
-            ).bind(user.batch_id).run();
+            ).bind('MASTER-ADMIN').run();
             // Force everyone off immediately rather than waiting for each
             // session's next heartbeat to hit requireSession's SITE_LOCKED check.
             await db.prepare(`DELETE FROM heartbeats`).run();
-            await logActivity(db, session.username, session.batchId, 'site-lock', null);
+            await logActivity(db, session.username, session.batchId, 'site-lock', { lockedVia: MASTER_USERNAME });
             return json({ success: true });
         }
 
