@@ -46,7 +46,7 @@
     .visual-copy p { color: rgba(255,255,255,0.55); font-size: 14px; line-height: 1.6; max-width: 340px; margin: 0; }
     .visual-foot { position: relative; z-index: 1; font-size: 12px; color: rgba(255,255,255,0.35); }
 
-    .auth-form-side { display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .auth-form-side { display: flex; align-items: flex-start; justify-content: center; padding: 40px 24px; }
     .auth-card { width: 100%; max-width: 380px; }
     .auth-card-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
     .auth-card-mark {
@@ -151,20 +151,22 @@
     </div>
 </div>
 
+<script src="app.js"></script>
+<script src="portal.js"></script>
 <script>
-    // No tab switcher on this dedicated page — this page IS the admin
-    // portal, so lock the mode attemptLogin() sends to the backend.
-    // Plain assignment (no var/let/const) — portal.js already declares
-    // this with `let` at its top level; redeclaring it here would throw
-    // "Identifier has already been declared" and break script execution
-    // on this page entirely.
+    // This MUST run after portal.js loads — portal.js declares
+    // `let currentPortalMode = "Trainee";` at its own top level, and that
+    // declaration's initialization runs the moment the script executes,
+    // which would silently overwrite an assignment made before it loaded.
+    // That was the actual cause of this page sending the wrong portalMode
+    // to the backend regardless of what was set here — a real admin got
+    // rejected as "wrong portal" while trainee credentials worked fine on
+    // this page, exactly backwards from intended.
     currentPortalMode = 'Admin';
     // Tells applyAuthPageLockState() (portal.js) how this page should react
     // when the site is locked — see its definition for the full behavior
     // per page type.
     const AUTH_PAGE_TYPE = 'admin-login';
 </script>
-<script src="app.js"></script>
-<script src="portal.js"></script>
 </body>
 </html>
