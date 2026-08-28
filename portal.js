@@ -545,6 +545,46 @@ function applySiteStateUI(state) {
 
     const pauseBtn = document.getElementById('pause-toggle-btn');
     if (pauseBtn) pauseBtn.textContent = state.paused ? '▶ Resume All Activity' : '⏸ Pause All Activity';
+
+    applyAuthPageLockState(state);
+}
+
+// Login (trainee/admin) and Registration react to a site-wide Lock
+// differently from the rest of the app — the landing page and bridge.html
+// are deliberately excluded (they're pure navigation, nothing to restrict)
+// and aren't expected to define AUTH_PAGE_TYPE at all, so this silently
+// does nothing there.
+//
+//   - trainee-login / registration: the actual form fields are replaced
+//     with a "site is locked" message, not just covered by an overlay —
+//     removing the fields themselves is the point (a locked site
+//     shouldn't invite someone to fill out a form that can't succeed).
+//   - admin-login: the ONE unrestricted portal, but only for the specific
+//     purpose of unlocking — the normal login form is replaced with an
+//     unlock form that only accepts the Master Account, reusing the same
+//     attemptUnlock() the full-screen lock-overlay uses everywhere else.
+function applyAuthPageLockState(state) {
+    if (typeof AUTH_PAGE_TYPE === 'undefined') return; // not one of the 3 lock-aware auth pages
+
+    const formContent = document.getElementById('auth-form-content');
+    const lockedNotice = document.getElementById('auth-locked-notice');
+    const unlockContent = document.getElementById('admin-unlock-content');
+    const heading = document.getElementById('admin-login-heading');
+    const sub = document.getElementById('admin-login-sub');
+
+    if (AUTH_PAGE_TYPE === 'admin-login') {
+        if (formContent) formContent.style.display = state.locked ? 'none' : '';
+        if (unlockContent) unlockContent.style.display = state.locked ? '' : 'none';
+        if (heading) heading.textContent = state.locked ? 'Site Locked' : 'Admin Login';
+        if (sub) sub.textContent = state.locked
+            ? 'Enter the Master Account credentials to unlock the site.'
+            : 'Sign in with your administrator credentials.';
+        return;
+    }
+
+    // trainee-login and registration
+    if (formContent) formContent.style.display = state.locked ? 'none' : '';
+    if (lockedNotice) lockedNotice.style.display = state.locked ? '' : 'none';
 }
 
 async function togglePause() {
