@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trainee Login — LSH Training Portal</title>
+<title>Trainee Login — LSH TRC</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -124,17 +124,32 @@
             <h2>Trainee Login</h2>
             <p class="sub">Sign in with your trainee credentials.</p>
 
-            <div id="auth-login-msg" class="auth-msg"></div>
-            <div class="field"><label>Username</label><input type="text" id="login-username" autocomplete="off" placeholder="Enter your username"></div>
-            <div class="field"><label>Password</label><input type="password" id="login-password" autocomplete="off" placeholder="Enter your password"></div>
-            <button class="auth-submit" onclick="attemptLogin()">Log In</button>
+            <div id="auth-form-content">
+                <div id="auth-login-msg" class="auth-msg"></div>
+                <div class="field"><label>Username</label><input type="text" id="login-username" autocomplete="off" placeholder="Enter your username"></div>
+                <div class="field"><label>Password</label><input type="password" id="login-password" autocomplete="off" placeholder="Enter your password"></div>
+                <button class="auth-submit" onclick="attemptLogin()">Log In</button>
 
-            <div class="auth-switch">No account yet? <a href="/registration.html">Register here</a></div>
-            <div class="role-switch"><a href="/admin-login.html">Are you an admin? Log in here &rarr;</a></div>
+                <div class="auth-switch">No account yet? <a href="/registration.html">Register here</a></div>
+                <div class="role-switch"><a href="/admin-login.html">Are you an admin? Log in here &rarr;</a></div>
+            </div>
+
+            <div id="auth-locked-notice" style="display:none; text-align:center; padding:24px 4px;">
+                <div style="font-size:34px;margin-bottom:10px;">🔒</div>
+                <h2>Login Unavailable</h2>
+                <p style="font-size:13.5px; color:var(--slate); line-height:1.6;">The site is currently locked. Please wait for the administrator to unlock it.</p>
+                <div class="auth-switch"><a href="/index.html">&larr; Go to Landing Page</a></div>
+            </div>
         </div>
     </div>
 </div>
 
+<script>
+    // Tells applyAuthPageLockState() (portal.js) how this page should react
+    // when the site is locked — see its definition for the full behavior
+    // per page type.
+    const AUTH_PAGE_TYPE = 'trainee-login';
+</script>
 <script src="app.js"></script>
 <script src="portal.js"></script>
 </body>
