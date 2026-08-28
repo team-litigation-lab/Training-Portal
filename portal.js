@@ -427,7 +427,12 @@ async function pollAlert() {
         const alertSession = getSession();
         if (alertSession && alertSession.userType === 'Admin') return;
 
-        if (__alertDismissedId === data.id) return; // this exact alert was already dismissed locally
+        // Persisted in localStorage (survives page refresh/close), not just
+        // the in-memory __alertDismissedId — dismissing an alert should
+        // stay dismissed until an admin sets a genuinely new one (a
+        // different data.id), not just until the next reload.
+        const dismissedId = localStorage.getItem('LSH_ALERT_DISMISSED_ID');
+        if (dismissedId === String(data.id)) { __alertDismissedId = data.id; return; }
 
         const textEl = document.getElementById('alert-overlay-text');
         const imgEl = document.getElementById('alert-overlay-image');
@@ -441,18 +446,36 @@ async function pollAlert() {
         // with no background of its own, so setting it there left the
         // page's normal content fully visible behind a small floating
         // text block instead of the intended full-screen color takeover.
+        // Converted to rgba at 35% opacity (65% transparency) rather than
+        // a solid fill, so the page underneath stays faintly visible.
         if (overlay) {
-            overlay.style.background = data.bgColor || '#b91c1c';
+            overlay.style.background = hexToRgba(data.bgColor || '#b91c1c', 0.35);
             overlay.classList.add('open');
         }
         if (isNewAlert) playSound('alert');
     } catch (e) { /* retry next tick */ }
 }
 
+// #rrggbb (or #rgb) -> rgba(r, g, b, alpha). Falls back to the original
+// string unchanged if it isn't a recognizable hex color (e.g. already
+// rgba(), or a named CSS color) — better to show it solid than not at all.
+function hexToRgba(hex, alpha) {
+    const clean = String(hex).trim().replace('#', '');
+    const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean;
+    if (!/^[0-9a-fA-F]{6}$/.test(full)) return hex;
+    const r = parseInt(full.slice(0, 2), 16);
+    const g = parseInt(full.slice(2, 4), 16);
+    const b = parseInt(full.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function dismissAlertLocally() {
     const overlay = document.getElementById('alert-overlay');
     if (overlay) overlay.classList.remove('open');
     __alertDismissedId = __lastShownAlertId;
+    if (__lastShownAlertId !== null && __lastShownAlertId !== undefined) {
+        try { localStorage.setItem('LSH_ALERT_DISMISSED_ID', String(__lastShownAlertId)); } catch (e) { /* storage unavailable — dismissal still holds for this page load via __alertDismissedId */ }
+    }
 }
 
 // ==========================================
@@ -490,6 +513,13 @@ function applySiteStateUI(state) {
     const isAdminUser = !!(pauseSession && pauseSession.userType === 'Admin');
     if (pauseOverlay) pauseOverlay.classList.toggle('open', !isAdminUser && !state.locked && !!state.paused);
 
+    const pauseMessageEl = document.getElementById('pause-overlay-message');
+    if (pauseMessageEl) {
+        pauseMessageEl.textContent = state.pausedMessage
+            ? state.pausedMessage
+            : 'Your session and progress are safe. This screen will disappear automatically the moment an administrator resumes activity.';
+    }
+
     const lockedByEl = document.getElementById('lock-locked-by');
     if (lockedByEl) lockedByEl.textContent = 'Locked By: Batch ID ' + (state.lockedBy || '—');
 
@@ -519,12 +549,14 @@ function applySiteStateUI(state) {
 
 async function togglePause() {
     const willResume = !!__siteState.paused;
+    const messageInput = document.getElementById('pause-message-input');
+    const message = (!willResume && messageInput) ? messageInput.value.trim() : undefined;
     try {
         const res = await fetch('/api/site-state', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ action: willResume ? 'RESUME' : 'PAUSE' })
+            body: JSON.stringify({ action: willResume ? 'RESUME' : 'PAUSE', message })
         });
         const data = await res.json().catch(() => null);
         if (!res.ok || !data || !data.success) throw new Error((data && data.error) || 'Failed to update pause state.');
