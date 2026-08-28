@@ -16,6 +16,7 @@
         --orange: #f97316; --orange-soft: #fb923c; --slate: #64748b; --paper: #faf8f4;
     }
     * { box-sizing: border-box; }
+    html, body { overflow-x: hidden; overflow-y: auto; height: auto; }
     body {
         margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif;
         background: var(--paper); color: var(--navy); -webkit-font-smoothing: antialiased;
@@ -46,7 +47,15 @@
     .visual-copy p { color: rgba(255,255,255,0.55); font-size: 14px; line-height: 1.6; max-width: 340px; margin: 0; }
     .visual-foot { position: relative; z-index: 1; font-size: 12px; color: rgba(255,255,255,0.35); }
 
-    .auth-form-side { display: flex; align-items: center; justify-content: center; padding: 48px 24px; }
+    .auth-form-side {
+        display: flex; align-items: flex-start; justify-content: center; padding: 48px 24px;
+        /* flex-start, not center: centering a flex item taller than its
+           container can strand the overflow above the visible area in some
+           browsers, reachable only by zooming out (shrinking content to
+           fit) rather than by scrolling — exactly the bug this fixes. The
+           registration form is long enough to hit this; the shorter login
+           cards never did, which is why this only showed up here. */
+    }
     .auth-card { width: 100%; max-width: 480px; }
     .auth-card-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
     .auth-card-mark {
