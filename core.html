@@ -707,50 +707,25 @@
 
             <!-- ACCESS CONTROL (Pause vs Lock) -->
             <div class="mc-pane" id="admin-dash-access">
-                <div class="mc-section-title">⏸ Pause Activity (this page only, no logout, resumable)</div>
+                <div class="mc-section-title">🔒 Site-Wide Access Control</div>
                 <div class="admin-tile">
-                    <p style="font-size:11px; color:#64748b; margin-bottom:10px;">Pausing freezes activity for every user currently connected to this page. Nobody is logged out and no progress is lost — when you Resume, everyone continues exactly where they left off.</p>
-                    <div style="font-size:12px;font-weight:800;margin-bottom:10px;">Current state: <span id="pause-state-label" style="color:var(--classified-red);">Active (not paused)</span></div>
-                    <button class="btn-primary" id="pause-toggle-btn" style="border-radius:6px;padding:10px 16px;font-size:11px;" onclick="togglePause()">⏸ Pause All Activity</button>
-                </div>
-
-                <div class="mc-section-title">🔒 Lock Access (this page only, forces logout, requires unlock)</div>
-                <div class="admin-tile">
-                    <p style="font-size:11px; color:#64748b; margin-bottom:10px;">Locking immediately signs out every user of this page and blocks the page entirely until the system administrator unlocks it again. This requires the system administrator's own Batch ID + password confirmation before it takes effect.</p>
-                    <div style="font-size:12px;font-weight:800;margin-bottom:10px;">Current state: <span id="lock-state-label" style="color:#166534;">Unlocked</span></div>
-                    <button class="btn-primary" id="lock-page-btn" style="background:var(--classified-red);color:white;border-radius:6px;padding:10px 16px;font-size:11px;" onclick="openLockConfirm()">🔒 Lock This Page</button>
-                    <p id="lock-master-only-note" class="hidden" style="font-size:11px;color:#94a3b8;font-style:italic;margin-top:8px;">Only the system administrator (master account) can lock or unlock this page.</p>
+                    <p style="font-size:11px; color:#64748b; margin-bottom:14px; line-height:1.6;">Pause and Lock now live on a dedicated, server-gated page rather than here in the main dashboard — the session check happens before that page is ever sent to your browser, so this content can't be revealed by anyone without a valid admin session, even via browser dev tools.</p>
+                    <a href="/access-control" class="btn-primary" style="display:inline-block;text-decoration:none;border-radius:6px;padding:10px 16px;font-size:11px;">🔒 Open Access Control &rarr;</a>
                 </div>
             </div>
 
         </div>
     </div>
 
-    <!-- ===== LOCK CONFIRMATION MODAL (required to engage Lock) ===== -->
-    <div class="modal-overlay no-print" id="lock-confirm-modal" style="z-index:2900;">
-        <div class="modal-box">
-            <h2 class="serif">🔒 Confirm Page Lock</h2>
-            <div class="sub mono">Administrator Verification Required</div>
-            <p style="font-size:12px; color:#475569; margin-bottom:14px; line-height:1.5;">
-                Locking will immediately log out every user of this page and block access until unlocked. Enter your admin Batch ID and password to confirm.
-            </p>
-            <div id="lock-confirm-error" style="display:none;color:var(--classified-red);font-size:11px;font-weight:700;margin-bottom:8px;">Batch ID / password did not match an administrator record.</div>
-            <label>Batch ID</label>
-            <input type="text" id="lock-confirm-batchid" autocomplete="off" placeholder="Your admin Batch ID" class="mono">
-            <label>Password</label>
-            <input type="password" id="lock-confirm-password" autocomplete="off" placeholder="Your password">
-            <div class="modal-btn-row">
-                <button class="btn-ghost" onclick="closeLockConfirm()">Cancel</button>
-                <button class="btn-primary" style="background:var(--classified-red);color:white;" onclick="confirmLock()">Confirm &amp; Lock</button>
-            </div>
-        </div>
-    </div>
+    <!-- Lock Confirm modal moved to functions/access-control.js — that
+         page is the only place LOCK can actually be triggered from now,
+         so this modal has no reason to exist in a file trainees also load. -->
 
     <!-- ===== PAUSE OVERLAY (page frozen, nobody logged out) ===== -->
     <div id="pause-overlay">
         <div style="font-size:40px;">⏸</div>
         <h2 class="serif" style="margin:14px 0 4px;">Activity Paused by Administrator</h2>
-        <p class="mono" style="font-size:11px; color:#cbd5e1; max-width:360px;">Your session and progress are safe. This screen will disappear automatically the moment an administrator resumes activity.</p>
+        <p class="mono" id="pause-overlay-message" style="font-size:11px; color:#cbd5e1; max-width:360px;">Your session and progress are safe. This screen will disappear automatically the moment an administrator resumes activity.</p>
     </div>
 
     <!-- ===== ALERT OVERLAY (full-screen, separate from ticker announcement) ===== -->
