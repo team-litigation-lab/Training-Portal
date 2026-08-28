@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Register — LSH Training Portal</title>
+<title>Register — LSH TRC</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,29 +19,44 @@
     body {
         margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif;
         background: var(--paper); color: var(--navy); -webkit-font-smoothing: antialiased;
-        min-height: 100vh;
     }
-    .top-bar { display: flex; align-items: center; justify-content: space-between; padding: 20px 28px; }
+    .auth-shell {
+        min-height: 100vh; display: grid; grid-template-columns: 1fr 1.3fr;
+    }
+    @media (max-width: 900px) { .auth-shell { grid-template-columns: 1fr; } .auth-visual { display: none; } }
+
+    .auth-visual {
+        position: relative; background: var(--navy-deep); overflow: hidden;
+        display: flex; flex-direction: column; justify-content: space-between; padding: 40px;
+    }
+    .auth-rings { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 520px; height: 520px; opacity: 0.85; pointer-events: none; }
     .back-link {
-        color: var(--slate); font-size: 13px; font-weight: 600; text-decoration: none;
-        display: inline-flex; align-items: center; gap: 6px; transition: color 0.15s ease;
+        position: relative; z-index: 1; color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 600;
+        text-decoration: none; display: inline-flex; align-items: center; gap: 6px; width: fit-content;
+        transition: color 0.15s ease;
     }
-    .back-link:hover { color: var(--navy); }
-    .top-brand { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 13.5px; color: var(--navy); }
-    .top-brand-mark {
-        width: 30px; height: 30px; border-radius: 9px; background: #0f172a; border: 2px solid var(--orange);
+    .back-link:hover { color: #fff; }
+    .visual-copy { position: relative; z-index: 1; }
+    .visual-copy .badge {
+        display: inline-flex; align-items: center; gap: 8px; background: rgba(249,115,22,0.15);
+        color: var(--orange-soft); font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+        text-transform: uppercase; padding: 6px 14px; border-radius: 999px; margin-bottom: 20px;
+    }
+    .visual-copy h1 { color: #fff; font-size: 32px; font-weight: 800; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.01em; }
+    .visual-copy p { color: rgba(255,255,255,0.55); font-size: 14px; line-height: 1.6; max-width: 340px; margin: 0; }
+    .visual-foot { position: relative; z-index: 1; font-size: 12px; color: rgba(255,255,255,0.35); }
+
+    .auth-form-side { display: flex; align-items: center; justify-content: center; padding: 48px 24px; }
+    .auth-card { width: 100%; max-width: 480px; }
+    .auth-card-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+    .auth-card-mark {
+        width: 40px; height: 40px; border-radius: 12px; background: #0f172a; border: 2px solid var(--orange);
         display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
     }
-    .top-brand-mark img { width: 100%; height: 100%; object-fit: cover; }
-
-    .reg-wrap { display: flex; justify-content: center; padding: 20px 20px 60px; }
-    .reg-card {
-        width: 100%; max-width: 620px; background: #fff; border-radius: 24px;
-        border-top: 6px solid var(--orange); box-shadow: 0 20px 60px rgba(15,33,72,0.08);
-        padding: 40px 44px;
-    }
-    .reg-card h2 { font-size: 24px; font-weight: 800; margin: 0 0 6px; color: var(--navy); }
-    .reg-card .sub { font-size: 13.5px; color: var(--slate); margin: 0 0 28px; }
+    .auth-card-mark img { width: 100%; height: 100%; object-fit: cover; }
+    .auth-card-brand span { font-weight: 800; font-size: 14px; color: var(--navy); }
+    .auth-card h2 { font-size: 22px; font-weight: 800; margin: 0 0 6px; color: var(--navy); }
+    .auth-card .sub { font-size: 13.5px; color: var(--slate); margin: 0 0 24px; }
 
     .auth-msg {
         font-size: 12px; font-weight: 700; padding: 10px 14px; border-radius: 10px;
@@ -51,7 +66,7 @@
     .auth-msg.success { display: block; background: #f0fdf4; color: #166534; }
     .auth-msg.info { display: block; background: #eff6ff; color: #1d4ed8; }
 
-    .field { margin-bottom: 16px; }
+    .field { margin-bottom: 14px; }
     .field label { display: block; font-size: 11.5px; font-weight: 700; color: var(--navy); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.03em; }
     .field label span { text-transform: none; font-weight: 500; color: var(--slate); }
     .field input, .field select {
@@ -68,64 +83,101 @@
     .auth-submit {
         width: 100%; padding: 13px; border-radius: 999px; border: none; background: var(--navy);
         color: var(--orange); font-weight: 800; font-size: 13px; text-transform: uppercase;
-        letter-spacing: 0.04em; cursor: pointer; margin-top: 6px;
+        letter-spacing: 0.04em; cursor: pointer; margin-top: 8px;
         transition: background 0.2s ease, transform 0.12s ease;
     }
     .auth-submit:hover { background: var(--navy-mid); transform: translateY(-1px); }
     .auth-submit:active { transform: translateY(0) scale(0.98); }
 
-    .auth-switch { text-align: center; font-size: 12.5px; color: var(--slate); margin-top: 22px; }
+    .auth-switch { text-align: center; font-size: 12.5px; color: var(--slate); margin-top: 20px; }
     .auth-switch a { color: var(--orange); font-weight: 700; text-decoration: none; cursor: pointer; }
     .auth-switch a:hover { text-decoration: underline; }
+
+    /* ===== Lock-restricted state (site-wide Lock is active) ===== */
+    #auth-locked-notice { display: none; text-align: center; padding: 24px 4px; }
+    #auth-locked-notice .icon { font-size: 34px; margin-bottom: 10px; }
+    #auth-locked-notice p { font-size: 13.5px; color: var(--slate); line-height: 1.6; }
 </style>
 </head>
 <body>
 
-<div class="top-bar">
-    <a href="/index.html" class="back-link">&larr; Go to Landing Page</a>
-    <div class="top-brand">
-        <span class="top-brand-mark"><img src="/favicon.png" onerror="this.src='data:image/png;base64,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'" alt="LSH Logo"></span>
-        Legal Support Help
+<div class="auth-shell">
+    <div class="auth-visual">
+        <svg class="auth-rings" viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="260" cy="260" r="240" stroke="#f97316" stroke-width="1.5"/>
+            <circle cx="260" cy="260" r="205" stroke="#c06128" stroke-width="1.5"/>
+            <circle cx="260" cy="260" r="170" stroke="#864e39" stroke-width="1.5"/>
+            <circle cx="260" cy="260" r="135" stroke="#4c3c4a" stroke-width="1.5"/>
+            <circle cx="260" cy="260" r="100" stroke="#303353" stroke-width="1.5"/>
+            <circle cx="260" cy="260" r="20" fill="#132a5c"/>
+        </svg>
+        <a href="/index.html" class="back-link">&larr; Go to Landing Page</a>
+        <div class="visual-copy">
+            <div class="badge">New Account</div>
+            <h1>Join the next generation of case managers.</h1>
+            <p>Register as a trainee or admin — an administrator will review and approve your account before you can log in.</p>
+        </div>
+        <div class="visual-foot">&copy; 2026 Legal Support Help. All Rights Reserved.</div>
+    </div>
+
+    <div class="auth-form-side">
+        <div class="auth-card">
+            <div class="auth-card-brand">
+                <span class="auth-card-mark"><img src="/favicon.png" onerror="this.src='data:image/png;base64,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'" alt="LSH Logo"></span>
+                <span>Legal Support Help</span>
+            </div>
+
+            <div id="auth-form-content">
+                <h2>Create Your Account</h2>
+                <p class="sub">Your Batch ID will be assigned once an administrator approves your registration.</p>
+
+                <div id="auth-register-msg" class="auth-msg"></div>
+
+                <div class="field-row" style="grid-template-columns: 2fr 0.7fr;">
+                    <div class="field"><label>First Name</label><input type="text" id="reg-firstname" autocomplete="off" data-allow="name" placeholder="e.g., Juan"></div>
+                    <div class="field"><label>M.I.</label><input type="text" id="reg-middlename" autocomplete="off" maxlength="2" data-allow="alnum-upper" placeholder="M.I."></div>
+                </div>
+                <div class="field-row" style="grid-template-columns: 2fr 1fr;">
+                    <div class="field"><label>Last Name</label><input type="text" id="reg-lastname" autocomplete="off" data-allow="name" placeholder="e.g., Dela Cruz"></div>
+                    <div class="field"><label>Suffix <span>(optional)</span></label><input type="text" id="reg-suffix" autocomplete="off" placeholder="Jr., III..."></div>
+                </div>
+                <div class="field"><label>Email</label><input type="email" id="reg-email" placeholder="name@example.com" autocomplete="off" data-allow="email"></div>
+                <div class="field"><label>Type of User</label>
+                    <select id="reg-usertype" onchange="onRegUserTypeChange()">
+                        <option value="Trainee">Trainee</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+                <div class="field" id="reg-training-date-wrap"><label>Start of Training Date</label><input type="date" id="reg-training-date" autocomplete="off"></div>
+                <div class="field"><label>Batch ID</label><input type="text" id="reg-batchid" autocomplete="off" readonly placeholder="Batch ID will be assigned upon the approval of your registration." disabled></div>
+                <div class="field"><label>Username</label><input type="text" id="reg-username" autocomplete="off" data-allow="alnum-underscore" placeholder="Choose a username"></div>
+                <div class="field">
+                    <label>Password</label>
+                    <input type="password" id="reg-password" autocomplete="new-password" placeholder="Create a password" minlength="8">
+                    <p class="field-hint">At least 8 characters, letters and numbers only (must include at least one of each).</p>
+                </div>
+                <div class="field"><label>Retype Password</label><input type="password" id="reg-password2" autocomplete="new-password" placeholder="Retype your password" minlength="8"></div>
+
+                <button class="auth-submit" onclick="submitRegistration()">Submit Registration</button>
+                <div class="auth-switch">Already have an account? <a href="/trainee-login.html">Back to log in</a></div>
+            </div>
+
+            <div id="auth-locked-notice">
+                <div class="icon">🔒</div>
+                <h2>Registration Unavailable</h2>
+                <p>The site is currently locked. Please wait for the administrator to unlock it.</p>
+                <div class="auth-switch"><a href="/index.html">&larr; Go to Landing Page</a></div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="reg-wrap">
-    <div class="reg-card">
-        <h2>Create Your Account</h2>
-        <p class="sub">Register as a trainee or admin. Your Batch ID will be assigned once an administrator approves your registration.</p>
-
-        <div id="auth-register-msg" class="auth-msg"></div>
-
-        <div class="field-row" style="grid-template-columns: 2fr 0.7fr;">
-            <div class="field"><label>First Name</label><input type="text" id="reg-firstname" autocomplete="off" data-allow="name" placeholder="e.g., Juan"></div>
-            <div class="field"><label>M.I.</label><input type="text" id="reg-middlename" autocomplete="off" maxlength="2" data-allow="alnum-upper" placeholder="M.I."></div>
-        </div>
-        <div class="field-row" style="grid-template-columns: 2fr 1fr;">
-            <div class="field"><label>Last Name</label><input type="text" id="reg-lastname" autocomplete="off" data-allow="name" placeholder="e.g., Dela Cruz"></div>
-            <div class="field"><label>Suffix <span>(optional)</span></label><input type="text" id="reg-suffix" autocomplete="off" placeholder="Jr., III..."></div>
-        </div>
-        <div class="field"><label>Email</label><input type="email" id="reg-email" placeholder="name@example.com" autocomplete="off" data-allow="email"></div>
-        <div class="field"><label>Type of User</label>
-            <select id="reg-usertype" onchange="onRegUserTypeChange()">
-                <option value="Trainee">Trainee</option>
-                <option value="Admin">Admin</option>
-            </select>
-        </div>
-        <div class="field" id="reg-training-date-wrap"><label>Start of Training Date</label><input type="date" id="reg-training-date" autocomplete="off"></div>
-        <div class="field"><label>Batch ID</label><input type="text" id="reg-batchid" autocomplete="off" readonly placeholder="Batch ID will be assigned upon the approval of your registration." disabled></div>
-        <div class="field"><label>Username</label><input type="text" id="reg-username" autocomplete="off" data-allow="alnum-underscore" placeholder="Choose a username"></div>
-        <div class="field">
-            <label>Password</label>
-            <input type="password" id="reg-password" autocomplete="new-password" placeholder="Create a password" minlength="8">
-            <p class="field-hint">At least 8 characters, letters and numbers only (must include at least one of each).</p>
-        </div>
-        <div class="field"><label>Retype Password</label><input type="password" id="reg-password2" autocomplete="new-password" placeholder="Retype your password" minlength="8"></div>
-
-        <button class="auth-submit" onclick="submitRegistration()">Submit Registration</button>
-        <div class="auth-switch">Already have an account? <a href="/trainee-login.html">Back to log in</a></div>
-    </div>
-</div>
-
+<script>
+    // Tells applyAuthPageLockState() (portal.js) how this page should react
+    // when the site is locked — see its definition for the full behavior
+    // per page type.
+    const AUTH_PAGE_TYPE = 'registration';
+</script>
 <script src="app.js"></script>
 <script src="portal.js"></script>
 </body>
