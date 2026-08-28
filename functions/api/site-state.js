@@ -7,7 +7,17 @@ import { json, requireSession, getSiteState, verifyAdminCredentials, verifyUsern
 export async function onRequestGet({ env }) {
     try {
         const state = await getSiteState(env.DB);
-        return json({ success: true, ...state });
+        // Pause Message lives in TRAINING_DB's site_settings (the same
+        // generic key-value table announcement.js already uses) — site_state
+        // itself is on the accounts DB (env.DB), a separate database that
+        // can't be joined with this in one query, so this is a second,
+        // independent read combined here in JS.
+        let pausedMessage = null;
+        try {
+            const row = await env.TRAINING_DB.prepare("SELECT value FROM site_settings WHERE key = 'pause_message'").first();
+            pausedMessage = (row && row.value) || null;
+        } catch (e) { /* site_settings may not exist yet — pause still works, just without a custom message */ }
+        return json({ success: true, ...state, pausedMessage });
     } catch (err) {
         return json({ success: false, error: err.message }, 500);
     }
@@ -90,7 +100,21 @@ export async function onRequestPost({ request, env }) {
                 `INSERT INTO site_state (id, paused, updated_at) VALUES (1, 1, datetime('now'))
                  ON CONFLICT(id) DO UPDATE SET paused = 1, updated_at = excluded.updated_at`
             ).run();
-            await logActivity(db, session.username, session.batchId, 'site-pause', null);
+
+            // Optional custom message shown on the trainee-facing pause
+            // overlay — stored in TRAINING_DB's site_settings, same table
+            // announcement.js already uses. Empty/omitted just means the
+            // overlay falls back to its default text (handled client-side).
+            const pauseMessage = String(body.message || '').trim().slice(0, 300);
+            try {
+                await env.TRAINING_DB.prepare(
+                    `INSERT INTO site_settings (key, value, updated_by, updated_at)
+                     VALUES ('pause_message', ?, ?, datetime('now'))
+                     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_by = excluded.updated_by, updated_at = excluded.updated_at`
+                ).bind(pauseMessage, session.username).run();
+            } catch (e) { /* pause itself still succeeds even if the message couldn't be saved */ }
+
+            await logActivity(db, session.username, session.batchId, 'site-pause', { message: pauseMessage || null });
             return json({ success: true });
         }
 
