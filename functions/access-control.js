@@ -30,7 +30,7 @@ const DENIED_HTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Access Denied — LSH Training Portal</title>
+<title>Access Denied — LSH TRC</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <style>
     body {
@@ -59,7 +59,7 @@ const PAGE_HTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Access Control — LSH Training Portal</title>
+<title>Access Control — LSH TRC</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -107,10 +107,9 @@ const PAGE_HTML = `<!DOCTYPE html>
 
     <div class="mc-section-title">🔒 Lock Access (this page only, forces logout, requires unlock)</div>
     <div class="admin-tile">
-        <p style="font-size:11px; color:#64748b; margin-bottom:10px;">Locking immediately signs out every user of this page and blocks the page entirely until the system administrator unlocks it again. This requires the system administrator's own Batch ID + password confirmation before it takes effect.</p>
+        <p style="font-size:11px; color:#64748b; margin-bottom:10px;">Locking immediately signs out every user of this page and blocks the page entirely until it's unlocked again. Any admin can start this, but only the Master Account's own username and password will actually confirm it — the Master Account itself can no longer log in normally, so this and Unlock are the only two things it's used for.</p>
         <div style="font-size:12px;font-weight:800;margin-bottom:10px;">Current state: <span id="lock-state-label" style="color:#166534;">Unlocked</span></div>
         <button class="btn-primary" id="lock-page-btn" style="background:var(--classified-red);color:white;border-radius:6px;padding:10px 16px;font-size:11px;" onclick="openLockConfirm()">🔒 Lock This Page</button>
-        <p id="lock-master-only-note" class="hidden" style="font-size:11px;color:#94a3b8;font-style:italic;margin-top:8px;">Only the system administrator (master account) can lock or unlock this page.</p>
     </div>
 </div>
 
@@ -118,15 +117,15 @@ const PAGE_HTML = `<!DOCTYPE html>
 <div class="modal-overlay no-print" id="lock-confirm-modal" style="z-index:2900;">
     <div class="modal-box">
         <h2 class="serif">🔒 Confirm Page Lock</h2>
-        <div class="sub mono">Administrator Verification Required</div>
+        <div class="sub mono">Master Account Verification Required</div>
         <p style="font-size:12px; color:#475569; margin-bottom:14px; line-height:1.5;">
-            Locking will immediately log out every user of this page and block access until unlocked. Enter your admin Batch ID and password to confirm.
+            Locking will immediately log out every user of this page and block access until unlocked. Enter the Master Account's username and password to confirm — your own admin credentials will not work here.
         </p>
-        <div id="lock-confirm-error" style="display:none;color:var(--classified-red);font-size:11px;font-weight:700;margin-bottom:8px;">Batch ID / password did not match an administrator record.</div>
-        <label>Batch ID</label>
-        <input type="text" id="lock-confirm-batchid" autocomplete="off" placeholder="Your admin Batch ID" class="mono">
+        <div id="lock-confirm-error" style="display:none;color:var(--classified-red);font-size:11px;font-weight:700;margin-bottom:8px;">Invalid credentials.</div>
+        <label>Username</label>
+        <input type="text" id="lock-confirm-username" autocomplete="off" placeholder="Master account username" class="mono">
         <label>Password</label>
-        <input type="password" id="lock-confirm-password" autocomplete="off" placeholder="Your password">
+        <input type="password" id="lock-confirm-password" autocomplete="off" placeholder="Master account password">
         <div class="modal-btn-row">
             <button class="btn-ghost" onclick="closeLockConfirm()">Cancel</button>
             <button class="btn-primary" style="background:var(--classified-red);color:white;" onclick="confirmLock()">Confirm &amp; Lock</button>
@@ -157,12 +156,5 @@ const PAGE_HTML = `<!DOCTYPE html>
 
 <script src="/app.js"></script>
 <script src="/portal.js"></script>
-<script>
-    // Hide the Lock button for non-master admins — matches the same check
-    // applyLockPermissionUI() already does when opening Master Control.
-    document.addEventListener('DOMContentLoaded', () => {
-        if (typeof applyLockPermissionUI === 'function') applyLockPermissionUI();
-    });
-</script>
 </body>
 </html>`;
