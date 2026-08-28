@@ -273,12 +273,14 @@ function openAdminDashboard() {
     __currentViewLabel = MC_TAB_LABELS.overview;
     loadUsersData();
     loadOverviewStats();
-    applyLockPermissionUI();
 }
 
 // Locking/unlocking is restricted to the Master Account (see
-// functions/api/site-state.js) — this just keeps the button from being
-// shown to admins who'd only get a rejection if they tried it.
+// functions/api/site-state.js) — this keeps the Lock button from being
+// shown to admins who'd only get a rejection if they tried it. Called from
+// functions/access-control.js's own inline script — those elements no
+// longer exist in core.html now that Pause/Lock live on that dedicated,
+// server-gated page instead.
 function applyLockPermissionUI() {
     const session = getSession();
     // 'LSHADMIN123' mirrors MASTER_USERNAME in functions/_utils.js — the
