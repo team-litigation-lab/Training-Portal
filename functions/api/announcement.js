@@ -6,7 +6,7 @@ import { json, requireSession, logActivity } from '../_utils.js';
 // correct env.TRAINING_DB, so an admin's announcement was actually being
 // saved — it just never displayed, since GET could never see it.
 
-const DEFAULT_TEXT = 'Welcome to the LSH Training Activities Portal.';
+const DEFAULT_TEXT = 'Welcome to the Legal Support Help Training and Resource Center (LSH TRC).';
 
 // GET is deliberately public (no requireSession) — the ticker shows in the
 // top bar on the login screen too, before anyone has a session.
