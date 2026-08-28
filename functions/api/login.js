@@ -1,4 +1,4 @@
-import { json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName } from '../_utils.js';
+import { json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME } from '../_utils.js';
 
 export async function onRequestPost({ request, env }) {
     const db = env.DB;
@@ -22,41 +22,28 @@ export async function onRequestPost({ request, env }) {
         return json({ success: false, error: 'Invalid portal selection.' }, 400);
     }
 
-    // Master Account Override (Un-revokable System Admin).
-    // Still bound by the portal check below — the master account is an
-    // Admin account, so it only ever belongs on the Admin Portal, same as
-    // every other Admin. Handled here as a stand-in for a DB row, then it
-    // continues to the shared portalMode check like everyone else.
-    let user;
-    let dbUserType;
-    if (username === "LSHADMIN123") {
-        // Master password now lives in env.MASTER_ADMIN_PASSWORD (a Cloudflare
-        // Pages secret), never in source. If it isn't configured, fail closed
-        // instead of falling back to any default — an unset secret must never
-        // silently become "no password required" or a guessable literal.
-        if (!env.MASTER_ADMIN_PASSWORD) {
-            console.error('MASTER_ADMIN_PASSWORD is not configured — refusing master login.');
-            return json({ success: false, error: 'Incorrect username or password.' }, 401);
-        }
-        if (password !== env.MASTER_ADMIN_PASSWORD) {
-            return json({ success: false, error: 'Incorrect username or password.' }, 401);
-        }
-        user = { id: 'MASTER', username: 'LSHADMIN123', batch_id: 'MASTER-ADMIN', status: 'Approved' };
-        dbUserType = 'Admin';
-    } else {
-        // Fetch by username only — password checked via Web Crypto in JS
-        user = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(username).first();
-        if (!user || !(await verifyPassword(password, user.password))) {
-            return json({ success: false, error: 'Incorrect username or password.' }, 401);
-        }
-
-        // Auto-upgrade legacy plaintext passwords to PBKDF2 SHA-256
-        if (isLegacyPlaintext(user.password)) {
-            await upgradePasswordHash(db, user.id, password);
-        }
-
-        dbUserType = user.user_type || user.userType || 'Trainee';
+    // The Master Account can no longer complete a normal login at all — it
+    // has no row in the users table and no session is ever created for it.
+    // It exists solely to unlock the site (see site-state.js), which
+    // verifies its credentials against env.MASTER_ADMIN_PASSWORD directly,
+    // never through this endpoint. Checked before the DB lookup so this
+    // fails fast regardless of whether the password would otherwise match.
+    if (username === MASTER_USERNAME) {
+        return json({ success: false, error: 'The Master Account cannot log in through the standard portal. It is reserved exclusively for unlocking the site.' }, 403);
     }
+
+    // Fetch by username only — password checked via Web Crypto in JS
+    const user = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(username).first();
+    if (!user || !(await verifyPassword(password, user.password))) {
+        return json({ success: false, error: 'Incorrect username or password.' }, 401);
+    }
+
+    // Auto-upgrade legacy plaintext passwords to PBKDF2 SHA-256
+    if (isLegacyPlaintext(user.password)) {
+        await upgradePasswordHash(db, user.id, password);
+    }
+
+    const dbUserType = user.user_type || user.userType || 'Trainee';
 
     // Strict, symmetric portal check: an account's real user_type must match
     // the tab it's logging in from, in both directions. A Trainee cannot
@@ -83,7 +70,7 @@ export async function onRequestPost({ request, env }) {
     }
 
     await logActivity(db, user.username, user.batch_id, 'login', null);
-    const fullName = user.id === 'MASTER' ? 'System Administrator' : buildFullName(user);
+    const fullName = buildFullName(user);
 
     // Seed heartbeat so immediate subsequent requests pass the grace window
     await upsertSessionHeartbeat(db, {
