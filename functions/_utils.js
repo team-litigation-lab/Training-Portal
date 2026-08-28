@@ -180,6 +180,27 @@ export function isMaster(session) {
 }
 
 /**
+ * Verifies Master Account credentials for Lock/Unlock — the ONLY two
+ * actions the Master Account is used for now that it can no longer
+ * complete a normal login (see login.js). Checked against
+ * env.MASTER_ADMIN_PASSWORD (a Cloudflare Pages secret), never against the
+ * users table — the Master Account has no row there and no session is ever
+ * created for it, so there's nothing in the DB to check against. This is
+ * also why Lock's own gate can no longer be isMaster(session): a session
+ * can never belong to Master, so that check would make Lock unreachable
+ * by anyone. Instead, any admin can open the Lock confirmation step, but
+ * only Master's own credentials succeed here.
+ */
+export function verifyMasterCredentials(env, username, password) {
+    if (username !== MASTER_USERNAME) return false;
+    if (!env.MASTER_ADMIN_PASSWORD) {
+        console.error('MASTER_ADMIN_PASSWORD is not configured — refusing master credential check.');
+        return false;
+    }
+    return password === env.MASTER_ADMIN_PASSWORD;
+}
+
+/**
  * Builds a person's display name from their users-table row fields.
  */
 export function buildFullName(user) {
