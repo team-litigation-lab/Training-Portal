@@ -1,86 +1,131 @@
-import { json, requireSession } from '../_utils.js';
+import { json, requireSession, getSiteState, logActivity, MASTER_USERNAME, verifyMasterCredentials, isMaster } from '../_utils.js';
 
-// Server Logs (Admin > Monitoring > Server Logs). Reads env.DB's
-// activity_log — NOT env.TRAINING_DB's — since login/logout/update-access/
-// revoke-user all log through env.DB (see login.js, logout.js,
-// update-access.js, revoke-user.js). This is a separate table/namespace
-// from /api/activity-logs, which covers training-portal actions
-// (submissions, grades, decks, lectures) logged to env.TRAINING_DB.
-//
-// Scope for now: login, logout, revoke-user, update-access. Site-lock
-// actions (pause/lock/unlock mentioned in the modal subtitle) aren't
-// logged anywhere yet, so they're intentionally left out until that
-// endpoint exists.
-const LOGGED_ACTIONS = ['login', 'logout', 'revoke-user', 'update-access'];
-
-export async function onRequestGet({ request, env }) {
-    const auth = await requireSession(request, env, { adminOnly: true });
-    if (!auth.ok) return auth.response;
-
+// GET is intentionally public (no requireSession) — its job is to tell any
+// client, logged in or not, whether to show the lock/pause overlay. That
+// has to work even for someone whose session was just forcibly killed by
+// a lock.
+export async function onRequestGet({ env }) {
     try {
-        const url = new URL(request.url);
-        const search = url.searchParams.get('q') || '';
-
-        const placeholders = LOGGED_ACTIONS.map(() => '?').join(', ');
-        let query = `
-            SELECT * FROM activity_log
-            WHERE action IN (${placeholders})
-            ORDER BY timestamp DESC LIMIT 200
-        `;
-        const binds = [...LOGGED_ACTIONS];
-
-        if (search.trim()) {
-            query = `
-                SELECT * FROM activity_log
-                WHERE action IN (${placeholders})
-                  AND (actor_username LIKE ? OR details LIKE ?)
-                ORDER BY timestamp DESC LIMIT 200
-            `;
-            binds.push(`%${search.trim()}%`, `%${search.trim()}%`);
-        }
-
-        const { results } = await env.DB.prepare(query).bind(...binds).all();
-        const logs = pairSessions(results || []);
-
-        return json({ success: true, logs });
+        const state = await getSiteState(env.DB);
+        // Pause Message lives in TRAINING_DB's site_settings (the same
+        // generic key-value table announcement.js already uses) — site_state
+        // itself is on the accounts DB (env.DB), a separate database that
+        // can't be joined with this in one query, so this is a second,
+        // independent read combined here in JS.
+        let pausedMessage = null;
+        try {
+            const row = await env.TRAINING_DB.prepare("SELECT value FROM site_settings WHERE key = 'pause_message'").first();
+            pausedMessage = (row && row.value) || null;
+        } catch (e) { /* site_settings may not exist yet — pause still works, just without a custom message */ }
+        return json({ success: true, ...state, pausedMessage });
     } catch (err) {
         return json({ success: false, error: err.message }, 500);
     }
 }
 
-// Pairs each 'logout' row with the nearest earlier still-open 'login' row
-// for the same actor_username, so the frontend gets session duration
-// pre-computed rather than re-deriving pairing logic client-side. Also
-// parses each row's `details` JSON blob into an object for convenience.
-function pairSessions(rows) {
-    const chronological = [...rows].reverse(); // rows arrive newest-first; walk oldest->newest to pair correctly
-    const openLoginByUser = new Map();
-    const enriched = [];
+export async function onRequestPost({ request, env }) {
+    const db = env.DB;
+    let body;
+    try { body = await request.json(); } catch (e) { return json({ success: false, error: 'Invalid request body.' }, 400); }
+    const { action } = body;
 
-    for (const row of chronological) {
-        const parsed = { ...row, details: parseDetails(row.details), sessionDurationSeconds: null };
+    try {
+        // UNLOCK deliberately does NOT call requireSession — the whole point
+        // of a lock is that nobody, admins included, has a valid session
+        // anymore (see requireSession's SITE_LOCKED check in _utils.js). It
+        // re-verifies credentials directly instead, matching the Unlock
+        // screen's own username+password fields.
+        if (action === 'UNLOCK') {
+            const { username, password } = body;
+            if (!username || !password) return json({ success: false, error: 'Username and password are required.' }, 400);
 
-        if (row.action === 'login') {
-            openLoginByUser.set(row.actor_username, row);
-        } else if (row.action === 'logout') {
-            const loginRow = openLoginByUser.get(row.actor_username);
-            if (loginRow) {
-                const loginTime = new Date(loginRow.timestamp + 'Z').getTime();
-                const logoutTime = new Date(row.timestamp + 'Z').getTime();
-                if (!Number.isNaN(loginTime) && !Number.isNaN(logoutTime)) {
-                    parsed.sessionDurationSeconds = Math.max(0, Math.round((logoutTime - loginTime) / 1000));
-                }
-                openLoginByUser.delete(row.actor_username);
+            // Verifies against env.MASTER_ADMIN_PASSWORD directly (see
+            // verifyMasterCredentials in _utils.js) — the Master Account has
+            // no row in the users table, so there's nothing there to check.
+            if (!verifyMasterCredentials(env, username, password)) {
+                return json({ success: false, error: 'Invalid credentials.' }, 401);
             }
+
+            // Upsert rather than a plain UPDATE — the site_state row (id=1)
+            // may not exist yet even though the table does.
+            await db.prepare(
+                `INSERT INTO site_state (id, locked, locked_by_batch, updated_at) VALUES (1, 0, NULL, datetime('now'))
+                 ON CONFLICT(id) DO UPDATE SET locked = 0, locked_by_batch = NULL, updated_at = excluded.updated_at`
+            ).run();
+            await logActivity(db, MASTER_USERNAME, 'MASTER-ADMIN', 'site-unlock', null);
+            return json({ success: true });
         }
 
-        enriched.push(parsed);
+        // LOCK, PAUSE, and RESUME all require an already-valid admin session.
+        const auth = await requireSession(request, env, { adminOnly: true });
+        if (!auth.ok) return auth.response;
+        const { session } = auth;
+
+        if (action === 'LOCK') {
+            // Now that the Master Account logs in normally (see login.js),
+            // only a session actually belonging to it can reach this at
+            // all — the button itself is hidden from every other admin
+            // client-side, and this is the server-side backstop for that.
+            if (!isMaster(session)) {
+                return json({ success: false, error: 'Only the Master Account may lock this page.' }, 403);
+            }
+
+            // Re-confirms the credentials even though the session already
+            // proves this is Master — a deliberate extra step before a
+            // destructive, portal-wide action, same idea as re-entering a
+            // password before "sudo".
+            const { username, password } = body;
+            if (!username || !password) return json({ success: false, error: 'Username and password are required.' }, 400);
+
+            if (!verifyMasterCredentials(env, username, password)) {
+                return json({ success: false, error: 'Incorrect username or password.' }, 401);
+            }
+
+            await db.prepare(
+                `INSERT INTO site_state (id, locked, locked_by_batch, updated_at) VALUES (1, 1, ?, datetime('now'))
+                 ON CONFLICT(id) DO UPDATE SET locked = 1, locked_by_batch = excluded.locked_by_batch, updated_at = excluded.updated_at`
+            ).bind('MASTER-ADMIN').run();
+            // Force everyone off immediately rather than waiting for each
+            // session's next heartbeat to hit requireSession's SITE_LOCKED check.
+            await db.prepare(`DELETE FROM heartbeats`).run();
+            await logActivity(db, session.username, session.batchId, 'site-lock', null);
+            return json({ success: true });
+        }
+
+        if (action === 'PAUSE') {
+            await db.prepare(
+                `INSERT INTO site_state (id, paused, updated_at) VALUES (1, 1, datetime('now'))
+                 ON CONFLICT(id) DO UPDATE SET paused = 1, updated_at = excluded.updated_at`
+            ).run();
+
+            // Optional custom message shown on the trainee-facing pause
+            // overlay — stored in TRAINING_DB's site_settings, same table
+            // announcement.js already uses. Empty/omitted just means the
+            // overlay falls back to its default text (handled client-side).
+            const pauseMessage = String(body.message || '').trim().slice(0, 300);
+            try {
+                await env.TRAINING_DB.prepare(
+                    `INSERT INTO site_settings (key, value, updated_by, updated_at)
+                     VALUES ('pause_message', ?, ?, datetime('now'))
+                     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_by = excluded.updated_by, updated_at = excluded.updated_at`
+                ).bind(pauseMessage, session.username).run();
+            } catch (e) { /* pause itself still succeeds even if the message couldn't be saved */ }
+
+            await logActivity(db, session.username, session.batchId, 'site-pause', { message: pauseMessage || null });
+            return json({ success: true });
+        }
+
+        if (action === 'RESUME') {
+            await db.prepare(
+                `INSERT INTO site_state (id, paused, updated_at) VALUES (1, 0, datetime('now'))
+                 ON CONFLICT(id) DO UPDATE SET paused = 0, updated_at = excluded.updated_at`
+            ).run();
+            await logActivity(db, session.username, session.batchId, 'site-resume', null);
+            return json({ success: true });
+        }
+
+        return json({ success: false, error: 'Unknown action.' }, 400);
+    } catch (err) {
+        return json({ success: false, error: err.message }, 500);
     }
-
-    return enriched.reverse(); // newest-first, matching the original query order
-}
-
-function parseDetails(raw) {
-    if (!raw) return null;
-    try { return JSON.parse(raw); } catch (e) { return raw; }
 }
