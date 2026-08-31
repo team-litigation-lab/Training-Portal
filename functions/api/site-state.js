@@ -1,4 +1,4 @@
-import { json, requireSession, getSiteState, logActivity, MASTER_USERNAME, verifyMasterCredentials } from '../_utils.js';
+import { json, requireSession, getSiteState, logActivity, MASTER_USERNAME, verifyMasterCredentials, isMaster } from '../_utils.js';
 
 // GET is intentionally public (no requireSession) — its job is to tell any
 // client, logged in or not, whether to show the lock/pause overlay. That
@@ -62,18 +62,23 @@ export async function onRequestPost({ request, env }) {
         const { session } = auth;
 
         if (action === 'LOCK') {
-            // Any logged-in admin can reach this — the Master Account can
-            // never hold a session (see login.js), so gating this on
-            // isMaster(session) would make Lock unreachable by anyone at
-            // all. The actual restriction is the credential check below:
-            // only Master's own username+password succeeds, regardless of
-            // which admin is the one currently logged in and clicking the
-            // button.
+            // Now that the Master Account logs in normally (see login.js),
+            // only a session actually belonging to it can reach this at
+            // all — the button itself is hidden from every other admin
+            // client-side, and this is the server-side backstop for that.
+            if (!isMaster(session)) {
+                return json({ success: false, error: 'Only the Master Account may lock this page.' }, 403);
+            }
+
+            // Re-confirms the credentials even though the session already
+            // proves this is Master — a deliberate extra step before a
+            // destructive, portal-wide action, same idea as re-entering a
+            // password before "sudo".
             const { username, password } = body;
             if (!username || !password) return json({ success: false, error: 'Username and password are required.' }, 400);
 
             if (!verifyMasterCredentials(env, username, password)) {
-                return json({ success: false, error: 'Only the Master Account may lock this page.' }, 403);
+                return json({ success: false, error: 'Incorrect username or password.' }, 401);
             }
 
             await db.prepare(
@@ -83,7 +88,7 @@ export async function onRequestPost({ request, env }) {
             // Force everyone off immediately rather than waiting for each
             // session's next heartbeat to hit requireSession's SITE_LOCKED check.
             await db.prepare(`DELETE FROM heartbeats`).run();
-            await logActivity(db, session.username, session.batchId, 'site-lock', { lockedVia: MASTER_USERNAME });
+            await logActivity(db, session.username, session.batchId, 'site-lock', null);
             return json({ success: true });
         }
 
