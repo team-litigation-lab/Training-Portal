@@ -16,7 +16,15 @@
         --orange: #f97316; --orange-soft: #fb923c; --slate: #64748b; --paper: #faf8f4;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif; background: var(--paper); color: var(--navy); }
+    body {
+        margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif; background: var(--paper); color: var(--navy);
+        /* styles.css (shared with core.html) sets body to height:100vh +
+           overflow:hidden — correct for core.html's fixed "app shell" with
+           its own internally-scrolling panels, but this page has no such
+           inner scroll container, so inheriting that rule blocked the
+           whole page from scrolling at all. Restored to normal flow. */
+        height: auto; overflow: visible;
+    }
 
     .idx-top { display: flex; align-items: center; justify-content: space-between; padding: 16px 28px; background: var(--navy-deep); }
     .idx-brand { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 800; font-size: 14px; }
