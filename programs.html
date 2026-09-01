@@ -30,7 +30,8 @@
     .idx-wrap { max-width: 1080px; margin: 0 auto; padding: 40px 24px 80px; }
     .idx-head { margin-bottom: 32px; }
     .idx-head .eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--orange); margin-bottom: 8px; }
-    .idx-head h1 { font-size: 28px; font-weight: 800; margin: 0 0 8px; }
+    .idx-head h1 { font-size: 28px; font-weight: 800; margin: 0 0 10px; }
+    .idx-tagline { font-size: 15.5px; font-weight: 600; color: var(--navy); margin: 0 0 10px; max-width: 60ch; }
     .idx-head p { font-size: 14px; color: var(--slate); margin: 0; max-width: 60ch; }
 
     .queue-card { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; padding: 18px 20px; margin-bottom: 28px; }
@@ -85,8 +86,9 @@
 <div class="idx-wrap">
     <div class="idx-head">
         <div class="eyebrow">All Programs</div>
-        <h1 id="idx-heading">Your Training Index</h1>
-        <p id="idx-subhead">Every program LSH runs, in one place. Programs you're approved for open directly; others need admin approval first.</p>
+        <h1 id="idx-heading">Welcome to Your Training Portal</h1>
+        <p class="idx-tagline" id="idx-tagline">Empowering your journey from new hire to confident specialist.</p>
+        <p id="idx-subhead">You are on your way to becoming an important part of the team by upgrading your skills across different law practice areas. Explore structured modules and recorded lectures with real-time tracking, whether you are focusing on Family Law, Mass Tort, Case Management, or beyond.</p>
     </div>
 
     <div id="idx-queue-wrap"></div>
@@ -115,9 +117,11 @@
         if (nameEl) nameEl.textContent = session.fullName || session.username;
 
         const headingEl = document.getElementById('idx-heading');
+        const taglineEl = document.getElementById('idx-tagline');
         const subheadEl = document.getElementById('idx-subhead');
         if (session.userType === 'Admin') {
             if (headingEl) headingEl.textContent = 'Training Index — Admin View';
+            if (taglineEl) taglineEl.style.display = 'none';
             if (subheadEl) subheadEl.textContent = 'Every program LSH runs. As an admin, all built programs are directly open to you — use the queue below to approve trainee requests.';
         }
 
