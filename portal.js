@@ -786,6 +786,8 @@ async function sendPing() {
 
 // Distinct two-tone beep so a ping doesn't sound like the login chime —
 // generated via Web Audio API since no sound asset exists in the project.
+let __pingsInitialized = false;
+
 async function pollPings() {
     // Unlike /api/alert and /api/site-state, GET /api/pings requires a
     // session (requireSession, not adminOnly) — skip silently while logged out
@@ -796,6 +798,18 @@ async function pollPings() {
         const res = await fetch(url, { credentials: 'include' });
         const data = await res.json().catch(() => null);
         if (!data || data.success === false || !Array.isArray(data.pings)) return;
+
+        if (!__pingsInitialized) {
+            // First poll after a fresh page load/navigation — __lastPingAt
+            // always starts null here, which previously meant "fetch every
+            // ping ever sent" and re-displayed old ones as if they'd just
+            // arrived, on every single page load. Instead, just establish
+            // the cursor silently from whatever's already on record, and
+            // only surface pings that arrive genuinely after this point.
+            __pingsInitialized = true;
+            if (data.pings.length) __lastPingAt = data.pings[data.pings.length - 1].fired_at;
+            return;
+        }
 
         data.pings.forEach(p => {
             showToast(`\u{1F4E3} ${p.by}: ${p.text}`, 'info', 6000, { skipSound: true });
