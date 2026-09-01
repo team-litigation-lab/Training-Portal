@@ -35,7 +35,7 @@
     .idx-logout { color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 600; text-decoration: none; cursor: pointer; }
     .idx-logout:hover { color: #fff; }
 
-    .idx-wrap { max-width: 1080px; margin: 0 auto; padding: 40px 24px 80px; }
+    .idx-wrap { max-width: 1280px; margin: 0 auto; padding: 40px 24px 80px; }
     .idx-head { margin-bottom: 32px; }
     .idx-head .eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--orange); margin-bottom: 8px; }
     .idx-head h1 { font-size: 28px; font-weight: 800; margin: 0 0 8px; }
@@ -50,11 +50,14 @@
     .queue-btn.approve { background: #166534; color: #fff; }
     .queue-btn.deny { background: #fff; color: #b91c1c; border: 1px solid #fca5a5; }
 
-    .topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .topic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    @media (max-width: 1000px) { .topic-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .topic-grid { grid-template-columns: 1fr; } }
     .topic-card { background: #fff; border-radius: 18px; padding: 20px; border: 1px solid rgba(15,33,72,0.06); box-shadow: 0 6px 18px rgba(15,33,72,0.05); display: flex; flex-direction: column; gap: 12px; }
     .topic-card h3 { font-size: 14.5px; font-weight: 800; margin: 0; color: var(--navy); }
     .topic-status { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 10px; border-radius: 999px; display: inline-block; width: fit-content; }
     .topic-status.approved { background: #f0fdf4; color: #166534; }
+    .topic-status.passed { background: #fff7ed; color: #9a3412; }
     .topic-status.pending { background: #fffbeb; color: #b45309; }
     .topic-status.locked { background: #f1f5f9; color: #64748b; }
     .topic-status.denied { background: #fef2f2; color: #b91c1c; }
@@ -103,14 +106,32 @@
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
 <script src="portal.js"></script>
 <script>
-    // CM Training is the only program with a real, built portal so far —
-    // everything else in the topics table is reference-only until its own
-    // site exists (see the "(Each will be built soon)" plan). Keyed by the
-    // exact `key` value seeded into the topics table.
-    const BUILT_PROGRAMS = { 'CM TRAINING': 'https://lshcasemanagementtraining-trainingcrm.pages.dev/' };
+    // CM Training and (pending the real URL) LSH EA PA Training are the
+    // only programs with a real, built portal so far — everything else in
+    // the topics table is reference-only until its own site exists. Keyed
+    // by the exact `key` value seeded into the topics table.
+    const BUILT_PROGRAMS = {
+        'CM TRAINING': 'https://lshcasemanagementtraining-trainingcrm.pages.dev/',
+        'EA  PA TRAINING-OUTSOURCED MANP': null // TODO: paste the real EA/PA Training Portal URL here once provided
+    };
+
+    // Fixed VA progression order — must match TOPIC_SEQUENCE in
+    // functions/api/topics.js exactly. Duplicated here because a static
+    // page and a Pages Function can't share a module directly. Anything
+    // NOT in this list (Handouts, Training Tools and Resources, Other
+    // Resources) is reference material, not a gated training — always
+    // freely requestable regardless of progression.
+    const TOPIC_SEQUENCE = [
+        'STANDARD TRAINING', 'LITIGATION', 'MEDSUM AND DEMAND', 'CM TRAINING',
+        'EA  PA TRAINING-OUTSOURCED MANP', 'REVISED EA PA TRAINING', 'REVISED CM TRAINING',
+        'CALENDAR MANAGEMENT TRAINING', 'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW',
+        'HEALTH SUBRO', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'LIEN VERIFICATION',
+        'MASS TORT', 'PROPERTY DAMAGE', 'REAL ESTATE LAW'
+    ];
 
     let __topicsCache = [];
     let __accessCache = [];
@@ -148,24 +169,48 @@
         if (!wrap) return;
         if (session.userType !== 'Admin') { wrap.innerHTML = ''; return; }
 
-        const pending = __accessCache.filter(a => a.status === 'Pending');
-        if (!pending.length) { wrap.innerHTML = ''; return; }
-
         const topicName = key => (__topicsCache.find(t => t.key === key) || {}).name || key;
-        wrap.innerHTML = `
-            <div class="queue-card">
-                <h3>Pending Topic Requests (${pending.length})</h3>
-                ${pending.map(a => `
-                    <div class="queue-row">
-                        <span><b>${escapeHtml(a.trainee_username)}</b> &mdash; ${escapeHtml(topicName(a.topic_key))}</span>
-                        <span class="queue-actions">
-                            <button class="queue-btn approve" onclick="decideTopicAccess('${escapeHtml(a.topic_key)}','${escapeHtml(a.trainee_username)}','APPROVE')">Approve</button>
-                            <button class="queue-btn deny" onclick="decideTopicAccess('${escapeHtml(a.topic_key)}','${escapeHtml(a.trainee_username)}','DENY')">Deny</button>
-                        </span>
-                    </div>
-                `).join('')}
-            </div>
-        `;
+        const pending = __accessCache.filter(a => a.status === 'Pending');
+        // "In Progress" = Approved but not yet Passed — these are the ones
+        // an admin can move forward once the trainee has actually completed
+        // the training, which is what triggers the next topic's auto-unlock.
+        const inProgress = __accessCache.filter(a => a.status === 'Approved');
+
+        if (!pending.length && !inProgress.length) { wrap.innerHTML = ''; return; }
+
+        let html = '';
+        if (pending.length) {
+            html += `
+                <div class="queue-card">
+                    <h3>Pending Topic Requests (${pending.length})</h3>
+                    ${pending.map(a => `
+                        <div class="queue-row">
+                            <span><b>${escapeHtml(a.trainee_username)}</b> &mdash; ${escapeHtml(topicName(a.topic_key))}</span>
+                            <span class="queue-actions">
+                                <button class="queue-btn approve" onclick="decideTopicAccess('${escapeHtml(a.topic_key)}','${escapeHtml(a.trainee_username)}','APPROVE')">Approve</button>
+                                <button class="queue-btn deny" onclick="decideTopicAccess('${escapeHtml(a.topic_key)}','${escapeHtml(a.trainee_username)}','DENY')">Deny</button>
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        if (inProgress.length) {
+            html += `
+                <div class="queue-card" style="background:#eff6ff; border-color:#bfdbfe; margin-top:${pending.length ? '12px' : '0'};">
+                    <h3 style="color:#1e40af;">In Progress — Mark Passed to Unlock the Next Training (${inProgress.length})</h3>
+                    ${inProgress.map(a => `
+                        <div class="queue-row" style="border-top-color:#bfdbfe;">
+                            <span><b>${escapeHtml(a.trainee_username)}</b> &mdash; ${escapeHtml(topicName(a.topic_key))}</span>
+                            <span class="queue-actions">
+                                <button class="queue-btn approve" onclick="markTopicPassed('${escapeHtml(a.topic_key)}','${escapeHtml(a.trainee_username)}')">Mark Passed</button>
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        wrap.innerHTML = html;
     }
 
     function renderTopics(session) {
@@ -178,17 +223,35 @@
             const myAccess = isAdmin ? null : __accessCache.find(a => a.topic_key === t.key);
             const status = isAdmin ? 'approved' : (myAccess ? myAccess.status.toLowerCase() : 'locked');
 
-            let statusLabel = { approved: 'Approved', pending: 'Pending Approval', denied: 'Access Denied', locked: 'Not Yet Requested' }[status];
+            let statusLabel = { approved: 'Approved', passed: 'Completed', pending: 'Pending Approval', denied: 'Access Denied', locked: 'Not Yet Requested' }[status];
             let actionHtml;
 
-            if (!built) {
+            // Sequential gating only applies to trainees, on topics that are
+            // actually part of the fixed progression, and only when there's
+            // no access record yet at all — an existing Pending/Denied/
+            // Approved/Passed row means this trainee already has some
+            // history with this specific topic, so the normal per-status
+            // handling below takes over instead.
+            const seqIdx = TOPIC_SEQUENCE.indexOf(t.key);
+            const prevKey = seqIdx > 0 ? TOPIC_SEQUENCE[seqIdx - 1] : null;
+            const prevPassed = prevKey ? __accessCache.some(a => a.topic_key === prevKey && a.status === 'Passed') : true;
+
+            if (status === 'passed') {
+                actionHtml = `<button class="topic-action-btn primary" onclick="downloadCertificate('${escapeHtml(t.key)}')">🏆 Download Certificate</button>`;
+            } else if (!built) {
                 actionHtml = `<span class="topic-action-btn disabled">Coming Soon</span>`;
             } else if (isAdmin || status === 'approved') {
                 actionHtml = `<a class="topic-action-btn primary" href="${built}">Enter Program &rarr;</a>`;
             } else if (status === 'pending') {
                 actionHtml = `<span class="topic-action-btn disabled">Awaiting Admin Approval</span>`;
+            } else if (!isAdmin && status === 'locked' && prevKey && !prevPassed) {
+                // No record yet, part of the sequence, and the prerequisite
+                // hasn't been passed — this is the actual progression gate.
+                const prevName = (__topicsCache.find(x => x.key === prevKey) || {}).name || prevKey;
+                statusLabel = 'Locked';
+                actionHtml = `<span class="topic-action-btn disabled">🔒 Complete ${escapeHtml(prevName)} First</span>`;
             } else {
-                // locked or denied — same action, ask again
+                // locked (sequence-eligible or not) or denied — same action, (re)request
                 actionHtml = `<button class="topic-action-btn request" onclick="requestTopicAccess('${escapeHtml(t.key)}')">Request Access</button>`;
             }
 
@@ -222,8 +285,82 @@
         }
     }
 
+    async function markTopicPassed(topicKey, traineeUsername) {
+        try {
+            const data = await postJson('/api/topics', { action: 'MARK_PASSED', topicKey, traineeUsername });
+            const topicName = (__topicsCache.find(t => t.key === topicKey) || {}).name || topicKey;
+            const nextName = data.unlockedNext ? (__topicsCache.find(t => t.key === data.unlockedNext) || {}).name : null;
+            showToast(nextName ? `Marked passed — ${nextName} is now unlocked.` : `${topicName} marked passed.`, 'success');
+            loadTrainingIndex();
+        } catch (e) {
+            showToast(e.message, 'error');
+        }
+    }
+
+    // Client-side certificate PDF — generated on demand from data already
+    // in hand (session + cached topic list), no extra request needed. Kept
+    // deliberately simple: name, program, and the date it was passed.
+    function downloadCertificate(topicKey) {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            showToast('PDF library failed to load — check your connection and try again.', 'error');
+            return;
+        }
+        const session = getSession();
+        const topic = __topicsCache.find(t => t.key === topicKey);
+        const access = __accessCache.find(a => a.topic_key === topicKey);
+        const programName = topic ? topic.name : topicKey;
+        const dateStr = access && access.decided_at ? formatDate(access.decided_at) : new Date().toLocaleDateString();
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'landscape' });
+        const w = doc.internal.pageSize.getWidth();
+        const h = doc.internal.pageSize.getHeight();
+
+        doc.setDrawColor(15, 33, 72);
+        doc.setLineWidth(3);
+        doc.rect(24, 24, w - 48, h - 48);
+        doc.setLineWidth(1);
+        doc.rect(34, 34, w - 68, h - 68);
+
+        doc.setTextColor(15, 33, 72);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.text('LEGAL SUPPORT HELP TRAINING AND RESOURCE CENTER', w / 2, 90, { align: 'center' });
+
+        doc.setFontSize(30);
+        doc.text('Certificate of Completion', w / 2, 140, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(13);
+        doc.setTextColor(80, 80, 80);
+        doc.text('This certifies that', w / 2, 185, { align: 'center' });
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(24);
+        doc.setTextColor(15, 33, 72);
+        doc.text(session.fullName || session.username, w / 2, 220, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(13);
+        doc.setTextColor(80, 80, 80);
+        doc.text('has successfully completed', w / 2, 250, { align: 'center' });
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(18);
+        doc.setTextColor(249, 115, 22);
+        doc.text(programName, w / 2, 280, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.setTextColor(120, 120, 120);
+        doc.text(`Completed on ${dateStr}`, w / 2, 320, { align: 'center' });
+
+        const safeName = (session.fullName || session.username).replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+        const safeTopic = programName.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+        doc.save(`${safeName}_${safeTopic}_certificate.pdf`);
+    }
+
     document.addEventListener('DOMContentLoaded', loadTrainingIndex);
 </script>
 </body>
 </html>
-
