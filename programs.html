@@ -213,12 +213,34 @@
         wrap.innerHTML = html;
     }
 
+    // Archived — old/superseded modules kept in the database (and in any
+    // trainee's history) but hidden from the active Training Index. Purely
+    // a display-level exclusion; nothing is deleted.
+    const ARCHIVED_TOPICS = ['REVISED CM TRAINING'];
+
+    // TOPIC_SEQUENCE was only being used for gating logic below, never for
+    // the actual card order — so the grid was still showing the database's
+    // original sort_order regardless of the stated progression. This sorts
+    // by sequence position first (topics not in the sequence — Handouts,
+    // Training Tools, Other Resources — fall to the end, in their original
+    // relative order).
+    function orderedTopics() {
+        const seqIndex = key => { const i = TOPIC_SEQUENCE.indexOf(key); return i === -1 ? Infinity : i; };
+        return __topicsCache
+            .filter(t => !ARCHIVED_TOPICS.includes(t.key))
+            .slice()
+            .sort((a, b) => {
+                const diff = seqIndex(a.key) - seqIndex(b.key);
+                return diff !== 0 ? diff : (a.sort_order || 0) - (b.sort_order || 0);
+            });
+    }
+
     function renderTopics(session) {
         const grid = document.getElementById('idx-topics');
         if (!grid) return;
         const isAdmin = session.userType === 'Admin';
 
-        grid.innerHTML = __topicsCache.map(t => {
+        grid.innerHTML = orderedTopics().map(t => {
             const built = BUILT_PROGRAMS[t.key];
             const myAccess = isAdmin ? null : __accessCache.find(a => a.topic_key === t.key);
             const status = isAdmin ? 'approved' : (myAccess ? myAccess.status.toLowerCase() : 'locked');
@@ -364,4 +386,3 @@
 </script>
 </body>
 </html>
-
