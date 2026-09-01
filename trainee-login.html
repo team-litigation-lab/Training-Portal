@@ -19,6 +19,12 @@
     body {
         margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif;
         background: var(--paper); color: var(--navy); -webkit-font-smoothing: antialiased;
+        /* styles.css (shared with core.html) sets body to height:100vh +
+           overflow:hidden for its own fixed "app shell" layout — this page
+           has no matching inner scroll container, so left as-is, this
+           silently blocks the page from scrolling if content ever exceeds
+           the viewport height. */
+        height: auto; overflow: visible;
     }
     .auth-shell {
         min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr;
