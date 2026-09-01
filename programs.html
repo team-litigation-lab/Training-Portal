@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Training Index — LSH TRC</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="styles.css">
+<style>
+    :root {
+        --navy: #0f2148; --navy-deep: #081226; --navy-mid: #132a5c;
+        --orange: #f97316; --orange-soft: #fb923c; --slate: #64748b; --paper: #faf8f4;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif; background: var(--paper); color: var(--navy); }
+
+    .idx-top { display: flex; align-items: center; justify-content: space-between; padding: 16px 28px; background: var(--navy-deep); }
+    .idx-brand { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 800; font-size: 14px; }
+    .idx-brand-mark { width: 34px; height: 34px; border-radius: 10px; background: #0f172a; border: 2px solid var(--orange); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+    .idx-brand-mark img { width: 100%; height: 100%; object-fit: cover; }
+    .idx-user { display: flex; align-items: center; gap: 14px; }
+    .idx-user-name { color: rgba(255,255,255,0.85); font-size: 12.5px; font-weight: 700; }
+    .idx-logout { color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 600; text-decoration: none; cursor: pointer; }
+    .idx-logout:hover { color: #fff; }
+
+    .idx-wrap { max-width: 1080px; margin: 0 auto; padding: 40px 24px 80px; }
+    .idx-head { margin-bottom: 32px; }
+    .idx-head .eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--orange); margin-bottom: 8px; }
+    .idx-head h1 { font-size: 28px; font-weight: 800; margin: 0 0 8px; }
+    .idx-head p { font-size: 14px; color: var(--slate); margin: 0; max-width: 60ch; }
+
+    .queue-card { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; padding: 18px 20px; margin-bottom: 28px; }
+    .queue-card h3 { font-size: 13px; font-weight: 800; color: #9a3412; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.03em; }
+    .queue-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid #fed7aa; font-size: 12.5px; }
+    .queue-row:first-of-type { border-top: none; }
+    .queue-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .queue-btn { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; }
+    .queue-btn.approve { background: #166534; color: #fff; }
+    .queue-btn.deny { background: #fff; color: #b91c1c; border: 1px solid #fca5a5; }
+
+    .topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .topic-card { background: #fff; border-radius: 18px; padding: 20px; border: 1px solid rgba(15,33,72,0.06); box-shadow: 0 6px 18px rgba(15,33,72,0.05); display: flex; flex-direction: column; gap: 12px; }
+    .topic-card h3 { font-size: 14.5px; font-weight: 800; margin: 0; color: var(--navy); }
+    .topic-status { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 10px; border-radius: 999px; display: inline-block; width: fit-content; }
+    .topic-status.approved { background: #f0fdf4; color: #166534; }
+    .topic-status.pending { background: #fffbeb; color: #b45309; }
+    .topic-status.locked { background: #f1f5f9; color: #64748b; }
+    .topic-status.denied { background: #fef2f2; color: #b91c1c; }
+    .topic-action-btn {
+        margin-top: auto; padding: 9px; border-radius: 999px; border: none; font-weight: 800; font-size: 11px;
+        text-transform: uppercase; letter-spacing: 0.03em; text-align: center; text-decoration: none; cursor: pointer;
+    }
+    .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
+    .topic-action-btn.request { background: var(--orange); color: #0f172a; }
+    .topic-action-btn.disabled { background: #f1f5f9; color: #94a3b8; cursor: default; }
+</style>
+</head>
+<body>
+<script>
+    // Same guard pattern as core.html — no session, no index. Runs before
+    // any content paints rather than waiting for app.js to load.
+    (function () {
+        try {
+            const raw = sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1');
+            if (!raw || raw === 'null') window.location.replace('/bridge.html');
+        } catch (e) { window.location.replace('/bridge.html'); }
+    })();
+</script>
+
+<div class="idx-top">
+    <div class="idx-brand">
+        <span class="idx-brand-mark"><img src="/favicon.png" onerror="this.src='data:image/png;base64,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'" alt="LSH Logo"></span>
+        Training Index
+    </div>
+    <div class="idx-user">
+        <span class="idx-user-name" id="idx-user-name">&nbsp;</span>
+        <a class="idx-logout" onclick="logoutSession()">Log Out</a>
+    </div>
+</div>
+
+<div class="idx-wrap">
+    <div class="idx-head">
+        <div class="eyebrow">All Programs</div>
+        <h1 id="idx-heading">Your Training Index</h1>
+        <p id="idx-subhead">Every program LSH runs, in one place. Programs you're approved for open directly; others need admin approval first.</p>
+    </div>
+
+    <div id="idx-queue-wrap"></div>
+    <div id="idx-topics" class="topic-grid">
+        <div style="grid-column:1/-1; font-size:13px; color:#94a3b8; padding:20px;">Loading programs...</div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script src="portal.js"></script>
+<script>
+    // CM Training is the only program with a real, built portal so far —
+    // everything else in the topics table is reference-only until its own
+    // site exists (see the "(Each will be built soon)" plan). Keyed by the
+    // exact `key` value seeded into the topics table.
+    const BUILT_PROGRAMS = { 'CM TRAINING': '/core.html' };
+
+    let __topicsCache = [];
+    let __accessCache = [];
+
+    async function loadTrainingIndex() {
+        const session = getSession();
+        if (!session) return;
+
+        const nameEl = document.getElementById('idx-user-name');
+        if (nameEl) nameEl.textContent = session.fullName || session.username;
+
+        const headingEl = document.getElementById('idx-heading');
+        const subheadEl = document.getElementById('idx-subhead');
+        if (session.userType === 'Admin') {
+            if (headingEl) headingEl.textContent = 'Training Index — Admin View';
+            if (subheadEl) subheadEl.textContent = 'Every program LSH runs. As an admin, all built programs are directly open to you — use the queue below to approve trainee requests.';
+        }
+
+        try {
+            const res = await fetch('/api/topics', { credentials: 'include' });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Failed to load the training index.');
+            __topicsCache = data.topics || [];
+            __accessCache = data.access || [];
+            renderQueue(session);
+            renderTopics(session);
+        } catch (e) {
+            const grid = document.getElementById('idx-topics');
+            if (grid) grid.innerHTML = `<div style="grid-column:1/-1; font-size:13px; color:#b91c1c; padding:20px;">${escapeHtml(e.message)}</div>`;
+        }
+    }
+
+    function renderQueue(session) {
+        const wrap = document.getElementById('idx-queue-wrap');
+        if (!wrap) return;
+        if (session.userType !== 'Admin') { wrap.innerHTML = ''; return; }
+
+        const pending = __accessCache.filter(a => a.status === 'Pending');
+        if (!pending.length) { wrap.innerHTML = ''; return; }
+
+        const topicName = key => (__topicsCache.find(t => t.key === key) || {}).name || key;
+        wrap.innerHTML = `
+            <div class="queue-card">
+                <h3>Pending Topic Requests (${pending.length})</h3>
+                ${pending.map(a => `
+                    <div class="queue-row">
+                        <span><b>${escapeHtml(a.trainee_username)}</b> &mdash; ${escapeHtml(topicName(a.topic_key))}</span>
+                        <span class="queue-actions">
+                            <button class="queue-btn approve" onclick="decideTopicAccess('${escapeHtml(a.topic_key)}','${escapeHtml(a.trainee_username)}','APPROVE')">Approve</button>
+                            <button class="queue-btn deny" onclick="decideTopicAccess('${escapeHtml(a.topic_key)}','${escapeHtml(a.trainee_username)}','DENY')">Deny</button>
+                        </span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    function renderTopics(session) {
+        const grid = document.getElementById('idx-topics');
+        if (!grid) return;
+        const isAdmin = session.userType === 'Admin';
+
+        grid.innerHTML = __topicsCache.map(t => {
+            const built = BUILT_PROGRAMS[t.key];
+            const myAccess = isAdmin ? null : __accessCache.find(a => a.topic_key === t.key);
+            const status = isAdmin ? 'approved' : (myAccess ? myAccess.status.toLowerCase() : 'locked');
+
+            let statusLabel = { approved: 'Approved', pending: 'Pending Approval', denied: 'Access Denied', locked: 'Not Yet Requested' }[status];
+            let actionHtml;
+
+            if (!built) {
+                actionHtml = `<span class="topic-action-btn disabled">Coming Soon</span>`;
+            } else if (isAdmin || status === 'approved') {
+                actionHtml = `<a class="topic-action-btn primary" href="${built}">Enter Program &rarr;</a>`;
+            } else if (status === 'pending') {
+                actionHtml = `<span class="topic-action-btn disabled">Awaiting Admin Approval</span>`;
+            } else {
+                // locked or denied — same action, ask again
+                actionHtml = `<button class="topic-action-btn request" onclick="requestTopicAccess('${escapeHtml(t.key)}')">Request Access</button>`;
+            }
+
+            return `
+                <div class="topic-card">
+                    <h3>${escapeHtml(t.name)}</h3>
+                    <span class="topic-status ${status}">${isAdmin ? (built ? 'Available' : 'Coming Soon') : statusLabel}</span>
+                    ${actionHtml}
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function requestTopicAccess(topicKey) {
+        try {
+            await postJson('/api/topics', { action: 'REQUEST_ACCESS', topicKey });
+            showToast('Access requested — an admin will review it.', 'success');
+            loadTrainingIndex();
+        } catch (e) {
+            showToast(e.message, 'error');
+        }
+    }
+
+    async function decideTopicAccess(topicKey, traineeUsername, action) {
+        try {
+            await postJson('/api/topics', { action, topicKey, traineeUsername });
+            showToast(action === 'APPROVE' ? 'Access approved.' : 'Access denied.', 'success');
+            loadTrainingIndex();
+        } catch (e) {
+            showToast(e.message, 'error');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadTrainingIndex);
+</script>
+</body>
+</html>
