@@ -159,13 +159,12 @@ function attemptLogin() {
 
             setSession(normalizedUser);
 
-            // Login now lives on its own page, separate from the dashboard —
-            // redirect there instead of toggling dashboard DOM that doesn't
-            // exist on this page. core.html's own bootstrap (applySessionUI,
-            // via DOMContentLoaded) picks the session up from there and
-            // shows the right sidebar/view.
+            // Login now lands on the training index (all programs, gated
+            // by topic access) rather than straight into core.html — the
+            // CM Training dashboard is just one entry a trainee clicks
+            // into from there, not the only destination this login serves.
             setTimeout(() => {
-                window.location.href = '/core.html';
+                window.location.href = '/programs.html';
             }, 900);
         } else {
             if (loginMsgDiv) { loginMsgDiv.className = "auth-msg error"; loginMsgDiv.innerText = data.error || "Login unauthorized."; }
