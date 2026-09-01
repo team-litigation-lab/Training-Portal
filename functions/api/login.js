@@ -1,76 +1,90 @@
 import { json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME, verifyMasterCredentials } from '../_utils.js';
 
+// Normalizes a name for comparison — lowercase, strips periods/commas,
+// collapses whitespace — so "Juan D. Dela Cruz, Jr." and "juan d dela cruz jr"
+// match regardless of how a trainee happens to type it.
+function normalizeName(str) {
+    return String(str || '').toLowerCase().replace(/[.,]/g, '').replace(/\s+/g, ' ').trim();
+}
+
 export async function onRequestPost({ request, env }) {
     const db = env.DB;
     let body;
-    try { 
-        body = await request.json(); 
-    } catch (e) { 
-        return json({ success: false, error: 'Invalid request body.' }, 400); 
+    try {
+        body = await request.json();
+    } catch (e) {
+        return json({ success: false, error: 'Invalid request body.' }, 400);
     }
 
-    const { username, password, portalMode } = body;
-    if (!username || !password) {
-        return json({ success: false, error: 'Please enter both username and password.' }, 400);
-    }
-
-    // Portal tabs only ever send 'Trainee' or 'Admin'. Anything else means
-    // the client didn't tell us which portal this is — fail closed rather
-    // than silently letting a request with a missing/garbled portalMode
-    // through the wrong-portal check below.
+    const { portalMode } = body;
     if (portalMode !== 'Trainee' && portalMode !== 'Admin') {
         return json({ success: false, error: 'Invalid portal selection.' }, 400);
     }
 
-    // The Master Account logs in through the standard Admin Portal like any
-    // other admin — same session, same dashboard access — AND is the only
-    // account that can Lock/Unlock the site (see site-state.js). It has no
-    // row in the users table, so its credentials are checked against
-    // env.MASTER_ADMIN_PASSWORD via verifyMasterCredentials() — the same
-    // helper Lock/Unlock use, so there's exactly one source of truth for
-    // this password rather than two that could drift apart.
     let user;
     let dbUserType;
-    if (username === MASTER_USERNAME) {
-        if (portalMode !== 'Admin') {
-            return json({
-                success: false,
-                error: 'Wrong Portal: this account is not authorized to log in through the Trainee Portal.',
-                code: 'WRONG_PORTAL'
-            }, 403);
+
+    if (portalMode === 'Trainee') {
+        // Trainees log in with their full name only — no password at all.
+        // This is a deliberate, explicitly-requested tradeoff: lower
+        // friction for trainee access, at the cost that anyone who knows a
+        // trainee's name can sign in as them. Scoped to Trainee accounts
+        // only — Admin access below is completely unaffected and still
+        // requires a real username + password.
+        const { fullName } = body;
+        if (!fullName || !fullName.trim()) {
+            return json({ success: false, error: 'Please enter your full name.' }, 400);
         }
-        if (!verifyMasterCredentials(env, username, password)) {
-            return json({ success: false, error: 'Incorrect username or password.' }, 401);
+
+        const { results: trainees } = await db.prepare(
+            `SELECT * FROM users WHERE user_type = 'Trainee'`
+        ).all();
+
+        const target = normalizeName(fullName);
+        const matches = (trainees || []).filter(u => normalizeName(buildFullName(u)) === target);
+
+        if (matches.length === 0) {
+            return json({ success: false, error: 'No trainee account found with that name.' }, 401);
         }
-        user = { id: 'MASTER', username: MASTER_USERNAME, batch_id: 'MASTER-ADMIN', status: 'Approved' };
-        dbUserType = 'Admin';
+        if (matches.length > 1) {
+            // No password to disambiguate two trainees who happen to share
+            // a name — fail safe rather than silently logging into either one.
+            return json({ success: false, error: 'Multiple accounts match this name — please contact an administrator for assistance.' }, 409);
+        }
+
+        user = matches[0];
+        dbUserType = 'Trainee';
     } else {
-        // Fetch by username only — password checked via Web Crypto in JS
-        user = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(username).first();
-        if (!user || !(await verifyPassword(password, user.password))) {
-            return json({ success: false, error: 'Incorrect username or password.' }, 401);
+        // Admin Portal — unchanged: real username + password required,
+        // including the Master Account's own credential path.
+        const { username, password } = body;
+        if (!username || !password) {
+            return json({ success: false, error: 'Please enter both username and password.' }, 400);
         }
 
-        // Auto-upgrade legacy plaintext passwords to PBKDF2 SHA-256
-        if (isLegacyPlaintext(user.password)) {
-            await upgradePasswordHash(db, user.id, password);
-        }
+        if (username === MASTER_USERNAME) {
+            if (!verifyMasterCredentials(env, username, password)) {
+                return json({ success: false, error: 'Incorrect username or password.' }, 401);
+            }
+            user = { id: 'MASTER', username: MASTER_USERNAME, batch_id: 'MASTER-ADMIN', status: 'Approved' };
+            dbUserType = 'Admin';
+        } else {
+            user = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(username).first();
+            if (!user || !(await verifyPassword(password, user.password))) {
+                return json({ success: false, error: 'Incorrect username or password.' }, 401);
+            }
+            if (isLegacyPlaintext(user.password)) {
+                await upgradePasswordHash(db, user.id, password);
+            }
 
-        dbUserType = user.user_type || user.userType || 'Trainee';
-
-        // Strict, symmetric portal check: an account's real user_type must
-        // match the tab it's logging in from, in both directions. A Trainee
-        // cannot sneak into the Admin Portal, and an Admin cannot log in
-        // through the Trainee Portal and still land in a session marked
-        // userType: 'Admin'. (The Master Account's own portal check is
-        // handled above, since it has no user_type field to compare here.)
-        if (portalMode !== dbUserType) {
-            const portalLabel = portalMode === 'Admin' ? 'Admin Portal' : 'Trainee Portal';
-            return json({
-                success: false,
-                error: `Wrong Portal: this account is not authorized to log in through the ${portalLabel}.`,
-                code: 'WRONG_PORTAL'
-            }, 403);
+            dbUserType = user.user_type || user.userType || 'Trainee';
+            if (dbUserType !== 'Admin') {
+                return json({
+                    success: false,
+                    error: 'Wrong Portal: this account is not authorized to log in through the Admin Portal.',
+                    code: 'WRONG_PORTAL'
+                }, 403);
+            }
         }
     }
 
@@ -86,31 +100,31 @@ export async function onRequestPost({ request, env }) {
     }
 
     await logActivity(db, user.username, user.batch_id, 'login', null);
-    const fullName = user.id === 'MASTER' ? 'System Administrator' : buildFullName(user);
+    const fullNameOut = user.id === 'MASTER' ? 'System Administrator' : buildFullName(user);
 
     // Seed heartbeat so immediate subsequent requests pass the grace window
     await upsertSessionHeartbeat(db, {
         username: user.username,
-        fullName,
+        fullName: fullNameOut,
         batchId: user.batch_id,
         userType: dbUserType
     });
 
     const token = await createSessionToken(
-        { 
-            sub: user.id, 
-            username: user.username, 
-            batchId: user.batch_id, 
-            userType: dbUserType, 
-            fullName 
+        {
+            sub: user.id,
+            username: user.username,
+            batchId: user.batch_id,
+            userType: dbUserType,
+            fullName: fullNameOut
         },
         env.SESSION_SECRET
     );
 
     const { password: _pw, ...safeUser } = user;
     return json(
-        { success: true, user: { ...safeUser, fullName, userType: dbUserType } }, 
-        200, 
+        { success: true, user: { ...safeUser, fullName: fullNameOut, userType: dbUserType } },
+        200,
         { 'Set-Cookie': sessionCookie(token, 43200) }
     );
 }
