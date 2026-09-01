@@ -11,6 +11,11 @@ export async function onRequestGet({ request, env }) {
     const auth = await requireSession(request, env);
     if (!auth.ok) return auth.response;
     const db = env.TRAINING_DB;
+    // Never cache this — topic list and access status change as admins
+    // approve requests and seed data changes, and a stale cached response
+    // here is exactly the kind of bug that's hard to tell apart from a
+    // real data problem (as just happened while debugging this).
+    const noCache = { 'Cache-Control': 'no-store' };
 
     try {
         const { results: topics } = await db.prepare(
@@ -23,16 +28,16 @@ export async function onRequestGet({ request, env }) {
             const { results: access } = await db.prepare(
                 `SELECT trainee_username, topic_key, status, requested_at, decided_at, decided_by FROM trainee_topic_access`
             ).all();
-            return json({ success: true, topics: topics || [], access: access || [] });
+            return json({ success: true, topics: topics || [], access: access || [] }, 200, noCache);
         }
 
         // Trainee: just their own access rows.
         const { results: myAccess } = await db.prepare(
             `SELECT topic_key, status FROM trainee_topic_access WHERE trainee_username = ?`
         ).bind(auth.session.username).all();
-        return json({ success: true, topics: topics || [], access: myAccess || [] });
+        return json({ success: true, topics: topics || [], access: myAccess || [] }, 200, noCache);
     } catch (err) {
-        return json({ success: false, error: err.message }, 500);
+        return json({ success: false, error: err.message }, 500, noCache);
     }
 }
 
