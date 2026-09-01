@@ -110,13 +110,13 @@
 <script src="app.js"></script>
 <script src="portal.js"></script>
 <script>
-    // CM Training and (pending the real URL) LSH EA PA Training are the
-    // only programs with a real, built portal so far — everything else in
-    // the topics table is reference-only until its own site exists. Keyed
-    // by the exact `key` value seeded into the topics table.
+    // CM Training and EA PA Training are the only programs with a real,
+    // built portal so far — everything else in the topics table is
+    // reference-only until its own site exists. Keyed by the exact `key`
+    // value seeded into the topics table.
     const BUILT_PROGRAMS = {
         'CM TRAINING': 'https://lshcasemanagementtraining-trainingcrm.pages.dev/',
-        'EA  PA TRAINING-OUTSOURCED MANP': null // TODO: paste the real EA/PA Training Portal URL here once provided
+        'EA  PA TRAINING-OUTSOURCED MANP': 'https://ea-pa-training.legalsupporthelp.workers.dev/'
     };
 
     // Fixed VA progression order — must match TOPIC_SEQUENCE in
@@ -216,7 +216,7 @@
     // Archived — old/superseded modules kept in the database (and in any
     // trainee's history) but hidden from the active Training Index. Purely
     // a display-level exclusion; nothing is deleted.
-    const ARCHIVED_TOPICS = ['REVISED CM TRAINING'];
+    const ARCHIVED_TOPICS = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING'];
 
     // TOPIC_SEQUENCE was only being used for gating logic below, never for
     // the actual card order — so the grid was still showing the database's
