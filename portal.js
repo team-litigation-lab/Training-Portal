@@ -102,16 +102,29 @@ function attemptLogin() {
     const loginMsgDiv = document.getElementById('auth-login-msg');
     if (loginMsgDiv) { loginMsgDiv.innerText = ""; loginMsgDiv.className = "auth-msg"; loginMsgDiv.style.display = "none"; }
 
-    const usernameInput = document.getElementById('login-username')?.value?.trim() || "";
-    const passwordInput = document.getElementById('login-password')?.value || "";
-
-    if (!usernameInput) {
-        if (loginMsgDiv) { loginMsgDiv.innerText = "Username is required."; loginMsgDiv.className = "auth-msg error"; loginMsgDiv.style.display = ""; }
-        return;
-    }
-    if (!passwordInput) {
-        if (loginMsgDiv) { loginMsgDiv.innerText = "Password is required."; loginMsgDiv.className = "auth-msg error"; loginMsgDiv.style.display = ""; }
-        return;
+    let payload;
+    if (currentPortalMode === 'Trainee') {
+        // Trainees log in with just their full name — no username, no
+        // password. See functions/api/login.js for the matching logic and
+        // the deliberate security tradeoff this represents.
+        const fullNameInput = document.getElementById('login-fullname')?.value?.trim() || "";
+        if (!fullNameInput) {
+            if (loginMsgDiv) { loginMsgDiv.innerText = "Full name is required."; loginMsgDiv.className = "auth-msg error"; loginMsgDiv.style.display = ""; }
+            return;
+        }
+        payload = { fullName: fullNameInput, portalMode: currentPortalMode };
+    } else {
+        const usernameInput = document.getElementById('login-username')?.value?.trim() || "";
+        const passwordInput = document.getElementById('login-password')?.value || "";
+        if (!usernameInput) {
+            if (loginMsgDiv) { loginMsgDiv.innerText = "Username is required."; loginMsgDiv.className = "auth-msg error"; loginMsgDiv.style.display = ""; }
+            return;
+        }
+        if (!passwordInput) {
+            if (loginMsgDiv) { loginMsgDiv.innerText = "Password is required."; loginMsgDiv.className = "auth-msg error"; loginMsgDiv.style.display = ""; }
+            return;
+        }
+        payload = { username: usernameInput, password: passwordInput, portalMode: currentPortalMode };
     }
 
     if (loginMsgDiv) { loginMsgDiv.innerText = "Verifying credentials..."; loginMsgDiv.className = "auth-msg info"; loginMsgDiv.style.display = ""; }
@@ -137,7 +150,7 @@ function attemptLogin() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ username: usernameInput, password: passwordInput, portalMode: currentPortalMode })
+        body: JSON.stringify(payload)
     })
     .then(response => response.json())
     .then(data => {
