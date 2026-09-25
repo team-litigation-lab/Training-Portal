@@ -16,3 +16,20 @@
 4. Redeploy. **Send to my inbox** turns on automatically once all four required settings are present.
 
 The portal only sends the fixed scenarios in `simulators/reply-packs/emails.json`. Sends are limited per connection (`SIM_RATE_LIMIT`) and per recipient address. Replies are matched to their practice email by a random token in the Reply-To address; only the first reply to each practice email is scored.
+
+
+## Trainee Progress (admin)
+
+**Admin → 📊 Trainee Progress** (`/progress.html`, also linked from Master Control) lists every trainee in every program in one place. For each trainee it shows:
+- days completed;
+- Knowledge Check, practice (Skill Builder), random-task and roleplay averages;
+- simulator practice from this portal, matched by name;
+- status (approved, pending, archived) and when they were last active.
+
+It filters by program, status and batch, sorts (including "furthest behind"), expands a day-by-day view per trainee, and exports CSV.
+
+The programs keep their own trainees and sign-in. The portal reads their records from the course Workers' KV namespace through the `COURSE_KV` binding in `wrangler.toml`, which points at the same namespace as the EA/PA and CM Workers' `LSH_KV`:
+- EA/PA trainees are stored under `trainee:*`;
+- CM course trainees are stored under `cm:trainee:*`.
+
+The API (`/api/program-progress`) is admin-only and read-only. To add a program, add it to `PROGRAMS` in `functions/api/program-progress.js` with its key prefix and number of days.
