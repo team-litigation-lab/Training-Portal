@@ -10,7 +10,7 @@ import { json, requireSession } from '../_utils.js';
 // Admins only. Read-only: nothing here writes to the courses' data.
 const PROGRAMS = [
     { id: 'eapa', label: 'EA / PA Training', prefix: 'trainee:', days: 10, url: 'https://ea-pa-training.legalsupporthelp.workers.dev/' },
-    { id: 'cm', label: 'Revised CM Training', prefix: 'cm:trainee:', days: 5, url: '' }
+    { id: 'cm', label: 'CM Training', prefix: 'cm:trainee:', days: 5, url: 'https://case-management-training.legalsupporthelp.workers.dev/' }
 ];
 
 const avg = (xs) => xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : null;
