@@ -768,7 +768,7 @@ async function loadAnnouncement() {
     try {
         const res = await fetch('/api/announcement', { credentials: 'include' });
         const data = await res.json();
-        const text = (data && data.text) || 'Welcome to the Legal Support Help Training and Resource Center (LSH TRC).';
+        const text = (data && data.text) || 'Welcome to the LSH Training Portal.';
         const tickerText = document.getElementById('ticker-text');
         if (tickerText) tickerText.textContent = text;
         const preview = document.getElementById('announce-current-preview');
@@ -2304,7 +2304,7 @@ async function downloadSubmissionReport(submissionId) {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
-    doc.text('LSH TRC', marginX, 30);
+    doc.text('LSH Training Portal', marginX, 30);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.text('Activity Report', marginX, 48);
@@ -2382,7 +2382,7 @@ async function downloadSubmissionReport(submissionId) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
         doc.setTextColor(148, 163, 184);
-        doc.text(`Generated ${new Date().toLocaleString()} \u2014 LSH TRC`, marginX, pageHeight - 30);
+        doc.text(`Generated ${new Date().toLocaleString()} \u2014 LSH Training Portal`, marginX, pageHeight - 30);
         doc.text(`Page ${p} of ${pageCount}`, pageWidth - marginX - 60, pageHeight - 30);
     }
 
