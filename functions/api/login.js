@@ -21,6 +21,13 @@ export async function onRequestPost({ request, env }) {
         return json({ success: false, error: 'Invalid portal selection.' }, 400);
     }
 
+    // Trainee sign-in on the main portal is retired: the portal is an open
+    // directory, and each training program has its own sign-in. Only the
+    // admin side (monitoring) is locked.
+    if (portalMode === 'Trainee') {
+        return json({ success: false, error: 'Trainees no longer sign in here. Open your training from the Training Directory; each program has its own sign-in.' }, 403);
+    }
+
     let user;
     let dbUserType;
 

@@ -47,7 +47,7 @@
 <script>
     const SIMULATORS = [
         { id: 'call', icon: '📞', title: 'Call Simulator', status: 'live', href: '/simulators/call.html', uses: 'CM · EA/PA · all programs',
-          desc: 'Live phone calls with realistic callers — new-client intake, a case-status call, an insurance adjuster, a medical provider, an executive on the move. The caller speaks; you answer by voice or typing. Scored debrief.' },
+          desc: 'Live phone calls with realistic callers. The caller speaks; you answer by voice or typing, then get a scored debrief. Includes the Case Management pack: 27 calls on the John Doe file across reception, intake, client calls, attorney reporting, adjusters and providers, each followed by the note the call requires.' },
         { id: 'calendar', icon: '🗓', title: 'Calendaring', status: 'live', href: '/simulators/calendar.html', uses: 'CM · EA/PA',
           desc: 'A real week full of conflicts. Move, shorten or remove events under real rules — fixed court times, prep and debrief buffers, travel time, lunch and deadlines — then check your plan.' },
         { id: 'chat', icon: '💬', title: 'Chat Simulator', status: 'next', uses: 'All programs',
@@ -81,6 +81,12 @@
             if (data.admin) {
                 document.getElementById('results-title').textContent = 'Recent results — all trainees';
                 document.getElementById('results-note').textContent = 'Admin view · latest 200';
+            }
+            else {
+                const w = Sim.who();
+                document.getElementById('results-note').textContent = w.name
+                    ? `Saved in this browser. Your trainer also sees results saved as ${w.name}${w.batch ? ' · ' + w.batch : ''}.`
+                    : 'Saved in this browser only. Add your name (top right) so your trainer can see your results.';
             }
             const rows = data.results || [];
             el.innerHTML = rows.length ? `<table class="sim-table"><thead><tr>${data.admin ? '<th>Trainee</th>' : ''}<th>Simulator</th><th>Scenario</th><th>Score</th><th>Summary</th><th>When</th></tr></thead><tbody>
