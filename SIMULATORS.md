@@ -14,7 +14,7 @@ claim a simulator below before starting it, and update it when you ship.**
 | Email Workspace | `/simulators/email.html` | Live | Gmail-style practice inbox, no real Gmail. Packs in `simulators/email-packs.js` (CM, EA) + "generate for any program" — portal chat |
 | Chat Simulator | — | Next | Unclaimed |
 | Docket System | — | Planned | Unclaimed |
-| Chart Swap | — | Needs input | Waiting on a description of how it should work |
+| Medical Records Requests | — | Planned | A medical records request platform (request records and itemized bills, signed HIPAA authorization, track fulfilment, fees and follow-ups, log results to the case file). Unclaimed. Describe it by what it does; don't use the name of the commercial platform it imitates. |
 
 To add program content to an existing simulator, add a pack file (like
 `call-pack-cm.js` or a new key in `email-packs.js`) instead of a new simulator.
