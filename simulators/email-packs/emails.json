@@ -1,0 +1,247 @@
+{
+ "version": 1,
+ "emails": [
+  {
+   "id": "cm_client_net",
+   "program": "CM",
+   "level": "Intermediate",
+   "title": "Client upset about his net",
+   "caseFile": true,
+   "from": {
+    "name": "John Doe",
+    "email": "johndoe@example.com",
+    "role": "Client"
+   },
+   "subject": "WHERE IS MY MONEY",
+   "body": "I just got the settlement statement. $150,000 and I get $60,746?? Who approved all these deductions? I was told the liens would be reduced. I want the check this week — I have bills. If I don't hear back today I'm calling the bar.\n\nJohn",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "facts": "Gross settlement $150,000. Costs $2,090. Fee 40% of (gross − costs) = $59,164 (40% because suit was filed, per the retainer John signed 02/15/2026). Liens negotiated from $77,400 asserted down to $28,000. Net to client $60,746. Checks issue only after the settlement funds clear the trust account and every lien payoff is confirmed in writing.",
+   "goals": [
+    "Acknowledges his frustration first, without being defensive",
+    "Walks gross → costs → fee (40%, retainer) → liens → net accurately and plainly",
+    "Points out the lien reductions already won ($77,400 asserted → $28,000)",
+    "Makes no promise of a check date; explains trust-account clearance and signatures",
+    "Offers a call with the attorney about the fee, and stays professional about the bar comment"
+   ],
+   "attachments": []
+  },
+  {
+   "id": "cm_adjuster_statement",
+   "program": "CM",
+   "level": "Advanced",
+   "title": "Adjuster wants a statement and records",
+   "caseFile": true,
+   "from": {
+    "name": "Tom Reeves",
+    "email": "t.reeves@aggressive-casualty.example",
+    "role": "BI adjuster, Aggressive Casualty"
+   },
+   "subject": "Claim 2026-0214-AX — John Doe — items needed by Friday",
+   "body": "Hi,\n\nTo move this along I need the following by Friday or the file goes to our SIU for review:\n1. A 15-minute recorded statement from Mr. Doe (I can call him directly at the number on the police report).\n2. The attached medical authorization signed (all providers, 10 years back).\n3. His prior chiropractic records — we understand he had a back injury before this accident.\n\nI can also put $45,000 on the table today if we can close this quickly.\n\nThanks,\nTom Reeves\nBodily Injury Adjuster, Aggressive Casualty\n(555) 700-1422 ext. 318",
+   "attachments": [
+    "General_Medical_Authorization.pdf"
+   ],
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "facts": "Claim 2026-0214-AX; insured Apex Delivery Services. The firm sent a letter of representation; all contact goes through the firm. The attorney rejected a $45,000 counter on 05/26/2026. Prior history: a 2018 lumbar strain that resolved; no MRI then.",
+   "goals": [
+    "Confirms the firm represents Mr. Doe and all contact goes through the firm — no direct contact",
+    "Declines the recorded statement and the blanket 10-year authorization pending the attorney",
+    "Doesn't discuss or characterize prior injuries",
+    "Doesn't respond to the $45,000 on the merits; routes it to the attorney and notes the prior rejection",
+    "Professional tone; asks for any requests in writing and gives a response timeline"
+   ]
+  },
+  {
+   "id": "cm_hospital_lien",
+   "program": "CM",
+   "level": "Advanced",
+   "title": "Hospital lien letter",
+   "caseFile": true,
+   "from": {
+    "name": "Brenda Sterling",
+    "email": "bsterling@metrogeneral.example",
+    "role": "Revenue Recovery Director, Metro General Hospital"
+   },
+   "subject": "NOTICE OF HOSPITAL LIEN — John Doe — $45,000",
+   "body": "Please be advised Metro General Hospital asserts a statutory lien of $45,000.00 against any recovery for patient John Doe (DOS 02/14/2026). This lien has first priority and must be protected in full before any disbursement. Please confirm receipt and advise the status of settlement.\n\nBrenda Sterling\nRevenue Recovery Director",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "facts": "Metro General's own ER billing statement shows $12,700. PIP (Local Farm Mutual) already paid ER $4,800 and CT $3,000. BCBS (ERISA) may also have paid. No itemized statement has been received. Settlement status is confidential.",
+   "goals": [
+    "Confirms receipt without agreeing to the $45,000 figure",
+    "Requests a full itemization (CPT codes, payments, adjustments) and the statutory basis",
+    "Raises the $12,700 billed vs $45,000 asserted and the PIP payments ($7,800)",
+    "Does not disclose settlement status or amounts",
+    "Sets a clear next step and deadline"
+   ],
+   "attachments": []
+  },
+  {
+   "id": "cm_records_dob",
+   "program": "CM",
+   "level": "Beginner",
+   "title": "Records blocked by a DOB mismatch",
+   "caseFile": true,
+   "from": {
+    "name": "Grace Liu",
+    "email": "records@metroradiology.example",
+    "role": "Records department, Metro Radiology"
+   },
+   "subject": "RE: Records request — John Doe — UNABLE TO PROCESS",
+   "body": "We are unable to process your request for records for John Doe (DOS 03/15/2026). The date of birth on your authorization (08/14/1980) does not match our patient record (02/14/1980). Please submit a corrected authorization.\n\nMetro Radiology — Health Information Management",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "facts": "John's correct DOB is 08/14/1980 (intake, retainer, HIPAA, driver's license). Metro Radiology registered him with 02/14/1980 — their error, which also appears on the MRI report and bill. Records fee $25, rush 3 days for $15; the mediation binder is due in 3 weeks.",
+   "goals": [
+    "Explains politely that the authorization is correct and their registration has the wrong DOB",
+    "Offers proof (e.g., a copy of ID) or asks what their demographics-correction process needs",
+    "Asks for both the MRI report and the itemized bill for DOS 03/15/2026, and a corrected report/bill",
+    "Asks about fees and the rush option with the deadline in mind",
+    "Clear, courteous, HIPAA-appropriate (no unnecessary case details)"
+   ],
+   "attachments": []
+  },
+  {
+   "id": "cm_extension",
+   "program": "CM",
+   "level": "Intermediate",
+   "title": "Defense asks you to confirm an extension",
+   "caseFile": true,
+   "from": {
+    "name": "Kyle Brandt",
+    "email": "kbrandt@vanceholt.example",
+    "role": "Paralegal to Jane Vance, Vance & Holt LLP (defense)"
+   },
+   "subject": "Doe v. Apex — discovery extension",
+   "body": "Hi there — Jane asked me to reach out. We need one more week on our discovery responses (currently due Monday). Can you just reply 'agreed' so we have it in writing? No need to bother your attorney, it's routine.\n\nThanks!\nKyle",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "facts": "Only the attorney can agree to extensions. All extensions must be documented in writing between counsel. Dana Carter is in trial until Thursday but checks email at lunch.",
+   "goals": [
+    "Does not agree to the extension",
+    "Explains the request is going to the attorney, and when to expect an answer",
+    "Copies or forwards to the attorney (says so)",
+    "Friendly and professional, no lecturing",
+    "Confirms that any agreement will come in writing from the attorney"
+   ],
+   "attachments": []
+  },
+  {
+   "id": "cm_spouse",
+   "program": "CM",
+   "level": "Beginner",
+   "title": "Spouse asks for an update",
+   "caseFile": true,
+   "from": {
+    "name": "Jane Doe",
+    "email": "jane.doe@example.com",
+    "role": "Client's spouse (not a client)"
+   },
+   "subject": "John's case",
+   "body": "Hi, it's Jane, John's wife. He's at PT and asked me to check — did the insurance make a new offer? Also, my neck still hurts from the accident. Should I be part of the case too?",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "facts": "Jane is not on the retainer and there's no authorization on file to share case information with her. She was the front-seat passenger. Her own injury claim would need an intake and a conflict check before anyone advises her.",
+   "goals": [
+    "Warm tone; thanks her",
+    "Does not share offer or case details without John's authorization; offers to update John directly or get his written permission",
+    "Flags her neck pain as a possible separate claim for intake/attorney review without advising her",
+    "Gives a clear next step (e.g., intake call, or John calls back)",
+    "No legal advice"
+   ],
+   "attachments": []
+  },
+  {
+   "id": "cm_attorney_status",
+   "program": "CM",
+   "level": "Intermediate",
+   "title": "Attorney wants a 3-bullet status",
+   "caseFile": true,
+   "from": {
+    "name": "Dana Carter",
+    "email": "dcarter@lshlawgroup.example",
+    "role": "Handling attorney"
+   },
+   "subject": "Doe — where are we?",
+   "body": "In trial all week. Give me Doe in 3 bullets by 5. What do you need from me?\n\nD",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "facts": "Demand $250,000 sent 05/15; counter $45,000 rejected 05/26. Dr. Neil Ron's permanency report (5% WPI) arrived this week — not yet sent to the carrier. Metro General lien disputed ($45,000 asserted vs $12,700 billed). RFA responses due 07/15/2026. Need: approval to send a supplemental demand with the permanency report.",
+   "goals": [
+    "BLUF — bottom line in the first line",
+    "Exactly 3 tight bullets with correct numbers and dates",
+    "States the decision needed clearly (approve supplemental demand)",
+    "Names the nearest hard deadline (RFAs 07/15)",
+    "Short; no background padding"
+   ],
+   "attachments": []
+  },
+  {
+   "id": "cm_lop_provider",
+   "program": "CM",
+   "level": "Intermediate",
+   "title": "LOP provider threatens to stop care",
+   "caseFile": true,
+   "from": {
+    "name": "Pam Whitfield",
+    "email": "billing@alignchiro.example",
+    "role": "Office manager, Dr. Al Lign's chiropractic office"
+   },
+   "subject": "John Doe balance",
+   "body": "John Doe has an $8,400 balance with us under the Letter of Protection. We can't keep treating without some payment or a settlement date. When is the case settling and for how much?\n\nPam",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "facts": "The chiropractic billing statement in the file shows $320. The $8,400 figure came from a draft demand and may be a projection. The LOP is on file. Settlement value and timing are confidential; continuity of care matters for the claim.",
+   "goals": [
+    "Doesn't disclose settlement value or timing",
+    "Asks for the itemized ledger to reconcile $8,400 vs the $320 statement",
+    "Reconfirms the LOP and the firm's commitment in writing",
+    "Protects continuity of care (flags it to the attorney)",
+    "Professional and appreciative"
+   ],
+   "attachments": []
+  },
+  {
+   "id": "all_wire_phish",
+   "program": "All",
+   "level": "Intermediate",
+   "title": "Urgent: new wire instructions",
+   "from": {
+    "name": "Accounts Payable",
+    "email": "payments@bluecross-recovery-services.example",
+    "role": "Claims to be a lienholder's payments team"
+   },
+   "subject": "URGENT — updated wire instructions for lien payoff",
+   "body": "Hello,\n\nDue to an audit, our bank details have changed effective immediately. Please use the new account below for ALL lien payoffs, including any pending today, and reply to confirm the payoff amount and payment date.\n\nBank: First Coastal Bank\nRouting: 0XX-XXX-XXX\nAccount: XXXXXXX8841\n\nThis must be updated before end of day to avoid penalties.\n\nAccounts Payable",
+   "you": "You work at LSH Law Group and handle correspondence on client files, including lien payoffs from the firm's trust account.",
+   "facts": "Firm policy: bank-detail changes are verified by phone using a number already on file (never one in the email), and approved by the attorney/bookkeeper before any trust-account payment. The sender's domain doesn't match the lienholder's known domain.",
+   "goals": [
+    "Recognizes the wire-change red flags (urgency, new account, mismatched domain)",
+    "Does not confirm payoff amounts, dates or any client information",
+    "Does not use the bank details; states verification by phone to a known number",
+    "Escalates to the attorney/bookkeeper and reports the phishing attempt",
+    "Short, non-committal reply (or explains why not replying to the sender)"
+   ],
+   "attachments": [],
+   "caseFile": false
+  },
+  {
+   "id": "all_web_inquiry",
+   "program": "All",
+   "level": "Beginner",
+   "title": "Website inquiry from a new caller",
+   "from": {
+    "name": "Rosa Delgado",
+    "email": "rosa.delgado@example.com",
+    "role": "Prospective client (website form)"
+   },
+   "subject": "Car accident — do I have a case?",
+   "body": "I was rear-ended two days ago on Harbor Blvd and my neck and back hurt. The other driver's insurance keeps calling me for a recorded statement. Do I have a case? How much could I get? Please call me, 555-448-2090.\n\nRosa",
+   "you": "You handle new inquiries for LSH Law Group's intake team. You can gather information and schedule a call with an attorney; you can't give legal advice or value a case.",
+   "facts": "Intake needs: name, contact details, date/location, what happened, injuries and treatment, police report, insurance for all parties, prior attorney. Firm policy on recorded statements: tell callers the attorney will talk to them before they give any statement.",
+   "goals": [
+    "Empathetic opening; acknowledges the injury",
+    "Doesn't say whether she has a case or what it's worth",
+    "Addresses the recorded-statement pressure per firm policy (talk to the attorney first) without giving legal advice",
+    "Asks for the key intake details or proposes a specific call time",
+    "Clear next step and contact details"
+   ],
+   "attachments": [],
+   "caseFile": false
+  }
+ ]
+}
