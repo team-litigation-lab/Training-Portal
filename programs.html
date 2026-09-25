@@ -115,6 +115,7 @@
     <div class="idx-user" id="idx-user">
         <a class="idx-logout" href="/index.html">Home</a>
         <a class="idx-logout" href="/simulators.html" style="color:#fdba74;font-weight:800;">🛠 Simulators</a>
+        <a class="idx-logout" href="/kb.html" style="color:#fdba74;font-weight:800;">📚 Knowledge Base</a>
         <a class="idx-logout" href="/admin-login.html" title="Admin monitoring (sign-in required)">🔒 Admin</a>
     </div>
 </div>
@@ -129,6 +130,11 @@
     <a class="sim-banner" href="/simulators.html">
         <span class="sim-banner-ic">🛠</span>
         <span class="sim-banner-tx"><b>Simulators</b><span>Call Simulator, Calendaring, Email Workspace and Email Replies are live — shared by every program. Chat, Docket and more are on the way.</span></span>
+        <span class="sim-banner-go">Open →</span>
+    </a>
+    <a class="sim-banner" href="/kb.html" style="margin-top:-14px;">
+        <span class="sim-banner-ic">📚</span>
+        <span class="sim-banner-tx"><b>Knowledge Base</b><span>Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know. Team access code required.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <div id="idx-queue-wrap"></div>
@@ -180,6 +186,7 @@
             if (userEl) userEl.innerHTML = `
                 <a class="idx-logout" href="/simulators.html" style="color:#fdba74;font-weight:800;">🛠 Simulators</a>
                 <span class="idx-user-name">${escapeHtml(session.fullName || session.username)}</span>
+                <a class="idx-logout" href="/kb.html">📚 Knowledge Base</a>
                 <a class="idx-logout" href="/progress.html">📊 Progress &amp; Feedback</a>
                 <a class="idx-logout" href="/core.html">Master Control &rarr;</a>
                 <a class="idx-logout" onclick="logoutSession()">Log Out</a>`;

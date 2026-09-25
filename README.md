@@ -18,6 +18,35 @@
 The portal only sends the fixed scenarios in `simulators/reply-packs/emails.json`. Sends are limited per connection (`SIM_RATE_LIMIT`) and per recipient address. Replies are matched to their practice email by a random token in the Reply-To address; only the first reply to each practice email is scored.
 
 
+## Knowledge Base
+
+**📚 Knowledge Base** (`/kb.html`; linked from the home page, the Training Directory and Master Control) is where LSH VAs find the firm's official SOPs and resources and share their own know-how, separate from the course lessons.
+
+**Who can open it.** It's for the team only:
+- VAs enter the **team access code** with their name (and batch). The browser then stays signed in for 30 days.
+- Signed-in admins get in without the code.
+- An admin sets the code, and changes it, under **🛡 Review & settings → Team access code**. Changing the code signs everyone out. Until a code is set, VAs see "not open yet".
+- 10 wrong tries per connection per 10 minutes, then a wait.
+
+**What's in it.**
+- **Official SOPs and resources** (marked *Official*): Markdown pages in `kb-files/sops/`, each with its original PDF or Word file for download. `kb-files/` is only served to readers with access (`functions/kb-files/[[path]].js`), so a direct link doesn't work without the code.
+- **From the team**: tips, how-to guides, checklists, templates, lessons learned and questions written by VAs, with simple formatting (headings, lists, checklists, tables, links; `kb-md.js` escapes everything else, so a post can't run code on the page). Posts can link to a file, e.g. on Google Drive.
+- Readers can search everything, filter by source, category and type, and sort by most helpful or most viewed. They can mark things 👍 Helpful and add their own experience as a reply. The sidebar shows the top contributors.
+
+**Review.** Every VA post and reply waits for an admin. In **🛡 Review & settings** an admin can:
+- approve a post, or send it back with a note (the author sees it under **📂 My posts**, edits and resends it);
+- feature, hide, edit or delete posts;
+- approve or remove replies.
+
+Admins' own posts and replies are published straight away.
+
+**Adding official SOPs.**
+1. Put `your-sop.md` (and its original file) in `kb-files/sops/`. The page starts with a short header (title, category, type, summary, tags, owner, version, updated, file); see `kb-files/build_library.py` or the example `using-the-knowledge-base.md`.
+2. Run `python3 kb-files/build_library.py`. It checks every header and rebuilds `kb-files/library.json`, which holds the search text.
+3. Commit and push.
+
+**Data** (D1 `TRAINING_DB`, created on first use): `kb_articles`, `kb_comments`, `kb_stats` (views, helpful), `kb_votes`, `kb_settings` (the code's hash and version), `kb_rate`. Code: `functions/_kb.js`, `functions/api/kb/`, `kb.html`, `kb.js`, `kb-md.js`.
+
 ## Trainee Progress & Feedback (admin)
 
 **Admin → 📊 Progress & Feedback** (`/progress.html`, also linked from Master Control) is the central record of every trainee's training. It has two tabs.

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Knowledge Base — LSH Training Portal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/simulators/sim.css">
+<style>
+    .sim-card { margin-bottom: 16px; }
+    .kb-small { font-size: 12.5px; }
+    .kb-gate { max-width: 460px; margin: 30px auto; text-align: center; padding: 30px; }
+    .kb-gate-ic { font-size: 40px; }
+    .kb-gate h2 { margin: 6px 0; }
+    .kb-gate form { display: grid; gap: 12px; text-align: left; margin: 18px 0 10px; }
+    .kb-gate label, .kb-editor label { display: grid; gap: 5px; font-size: 13px; font-weight: 700; color: var(--navy); }
+    .kb-gate input, .kb-editor input, .kb-editor select, .kb-editor textarea, .kb-comments textarea, .kb-row input {
+        font: inherit; font-size: 14px; font-weight: 400; border: 1px solid #cbd5e1; border-radius: 10px; padding: 9px 11px; background: #fff; width: 100%; box-sizing: border-box; }
+    .kb-editor textarea, .kb-comments textarea { resize: vertical; line-height: 1.5; }
+    .kb-note { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 10px 12px; font-size: 13px; margin: 8px 0; }
+    .kb-hero h1 { margin: 6px 0; }
+    .kb-search input { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; border: 0; border-radius: 14px; padding: 14px 16px; margin-top: 14px; box-shadow: 0 8px 20px -12px rgba(0,0,0,.5); }
+    .kb-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+    .kb-hero .sim-btn.ghost { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.3); }
+    .kb-badge { background: var(--orange); color: #0f172a; border-radius: 999px; padding: 1px 7px; font-size: 11px; margin-left: 4px; }
+    .kb-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 18px; align-items: start; }
+    @media (max-width: 900px) { .kb-layout { grid-template-columns: 1fr; } }
+    .kb-filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .kb-filters button { border: 1px solid #cbd5e1; background: #fff; border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--navy); cursor: pointer; }
+    .kb-filters button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .kb-filters select { font: inherit; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 7px 10px; background: #fff; max-width: 100%; }
+    .kb-card { display: block; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; text-decoration: none; color: var(--navy); transition: border-color .15s, transform .15s; }
+    .kb-card:hover { border-color: var(--orange); transform: translateY(-1px); }
+    .kb-card h3 { margin: 6px 0 4px; font-size: 16px; }
+    .kb-card p { margin: 0 0 8px; font-size: 13.5px; color: #334155; line-height: 1.5; }
+    .kb-card-top { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .kb-src, .kb-type, .kb-cat, .kb-feat, .kb-pill { font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+    .kb-src.off { background: #eff6ff; color: #1d4ed8; } .kb-src.team { background: #fff7ed; color: #9a3412; }
+    .kb-type { background: #f1f5f9; color: #334155; } .kb-cat { background: #f8fafc; color: var(--slate); border: 1px solid var(--line); }
+    .kb-feat { background: #fef9c3; color: #854d0e; }
+    .kb-pill.pending { background: #fffbeb; color: #b45309; } .kb-pill.published, .kb-pill.approved { background: #f0fdf4; color: var(--ok); }
+    .kb-pill.rejected { background: #fef2f2; color: var(--bad); } .kb-pill.hidden, .kb-pill.deleted { background: #f1f5f9; color: var(--slate); }
+    .kb-meta { font-size: 12px; color: var(--slate); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .kb-side h4 { margin: 0 0 8px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--slate); }
+    .kb-catlink { display: flex; justify-content: space-between; width: 100%; border: 0; background: none; font: inherit; font-size: 13px; color: var(--navy); padding: 5px 6px; border-radius: 8px; cursor: pointer; text-align: left; }
+    .kb-catlink:hover, .kb-catlink.on { background: #f1f5f9; } .kb-catlink span { color: var(--slate); }
+    .kb-contrib { display: grid; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--line); } .kb-contrib span, .kb-contrib small { color: var(--slate); font-size: 12px; }
+    .kb-empty { color: var(--slate); }
+    .kb-back { display: inline-block; margin-bottom: 10px; color: var(--navy); font-weight: 700; font-size: 13px; text-decoration: none; }
+    .kb-article h1 { margin: 10px 0 6px; font-size: 26px; line-height: 1.2; }
+    .kb-summary { font-size: 15px; color: #334155; margin: 10px 0; }
+    .kb-tools { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+    .kb-tools button.sim-btn { cursor: pointer; }
+    .kb-status { border-radius: 12px; padding: 10px 12px; font-size: 13px; margin-bottom: 10px; background: #fffbeb; border: 1px solid #fde68a; }
+    .kb-status.rejected { background: #fef2f2; border-color: #fecaca; } .kb-status.hidden { background: #f1f5f9; border-color: var(--line); }
+    .md { font-size: 14.5px; line-height: 1.65; color: #1e293b; overflow-wrap: anywhere; }
+    .md h2, .md h3, .md h4 { color: var(--navy); margin: 18px 0 6px; } .md h2 { font-size: 20px; } .md h3 { font-size: 17px; } .md h4 { font-size: 15px; }
+    .md ul, .md ol { padding-left: 22px; } .md li { margin: 3px 0; }
+    .md li.md-check { list-style: none; margin-left: -20px; display: flex; gap: 8px; align-items: flex-start; }
+    .md-box { flex: 0 0 16px; height: 16px; border: 2px solid #94a3b8; border-radius: 4px; margin-top: 3px; font-size: 11px; line-height: 13px; text-align: center; color: #fff; }
+    .md-box.on { background: var(--ok); border-color: var(--ok); }
+    .md blockquote { margin: 10px 0; padding: 4px 14px; border-left: 4px solid var(--orange); background: #fff7ed; border-radius: 0 10px 10px 0; }
+    .md code { background: #f1f5f9; border-radius: 5px; padding: 1px 5px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+    .md a { color: #1d4ed8; }
+    .md hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
+    .md-table { overflow-x: auto; margin: 10px 0; }
+    .md table { border-collapse: collapse; font-size: 13.5px; min-width: 60%; } .md th, .md td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; } .md th { background: #f8fafc; }
+    .kb-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+    .kb-tags button { border: 1px solid var(--line); background: #f8fafc; border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12px; color: var(--navy); cursor: pointer; }
+    .kb-helpful { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .kb-helpful button { border: 1px solid #cbd5e1; background: #fff; border-radius: 999px; padding: 8px 16px; font: inherit; font-weight: 800; color: var(--navy); cursor: pointer; }
+    .kb-helpful button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .kb-comments h3 { margin: 0 0 4px; }
+    .kb-comment { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 10px 0; background: #fff; }
+    .kb-comment.pending { background: #fffbeb; border-color: #fde68a; }
+    .kb-comment-h { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+    .kb-cbtns { margin-left: auto; display: flex; gap: 6px; }
+    .kb-cbtns button { border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+    .kb-comments form { display: grid; gap: 8px; margin-top: 12px; } .kb-comments form .sim-btn { justify-self: start; }
+    .kb-editor { display: grid; gap: 12px; } .kb-editor h2 { margin: 0; }
+    .kb-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .kb-tabs { display: flex; gap: 4px; margin-bottom: -8px; }
+    .kb-tabs button { border: 1px solid #cbd5e1; border-bottom: 0; background: #f8fafc; border-radius: 10px 10px 0 0; padding: 6px 14px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; color: var(--slate); }
+    .kb-tabs button.on { background: #fff; color: var(--navy); }
+    .kb-preview { border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px; min-height: 200px; }
+    .kb-mine { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .kb-mine a { color: var(--navy); } .kb-mine-r { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .kb-q { border: 1px solid var(--line); border-radius: 12px; margin: 10px 0; background: #fff; }
+    .kb-q summary { cursor: pointer; padding: 10px 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 13.5px; }
+    .kb-q > *:not(summary) { margin-left: 14px; margin-right: 14px; }
+    .kb-qbody { max-height: 360px; overflow: auto; border-left: 3px solid var(--line); padding-left: 12px; }
+    .kb-qbtns { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 14px 14px; } .kb-qbtns button { cursor: pointer; }
+    .kb-who { color: #c7d2fe; font-size: 12.5px; }
+    .kb-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--navy); color: #fff; padding: 12px 18px; border-radius: 12px; font-size: 13.5px; z-index: 50; box-shadow: 0 10px 30px -10px rgba(0,0,0,.5); max-width: calc(100vw - 32px); }
+    .sim-nav a { cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="sim-top">
+    <a class="sim-brand" href="/kb.html"><img src="/favicon.png" alt=""><span>LSH Training Portal<small>Knowledge Base</small></span></a>
+    <div class="sim-nav" id="kb-nav"></div>
+</div>
+<div class="sim-wrap">
+    <div id="app"><div class="sim-card"><div class="sim-loading">Loading…</div></div></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/app.js"></script>
+<script src="/portal.js"></script>
+<script src="/kb-md.js"></script>
+<script src="/kb.js"></script>
+</body>
+</html>
