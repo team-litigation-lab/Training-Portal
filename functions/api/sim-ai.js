@@ -1,15 +1,20 @@
 import { json, requireSession } from '../_utils.js';
+import { guardPublicSim } from '../_sim-guard.js';
 
 // Shared AI endpoint for the portal's simulators (Call Simulator, Calendaring,
-// and the ones that follow). Signed-in users only, so outsiders can't spend the
-// Gemini quota. Body: { system, messages: [{ role: 'user'|'model', text }], json, maxTokens }.
+// and the ones that follow). Trainees don't sign in on the portal, so visitors
+// without a session go through guardPublicSim (site lock, same-origin only,
+// per-IP rate limit) to keep outsiders from spending the Gemini quota. Body: { system, messages: [{ role: 'user'|'model', text }], json, maxTokens }.
 // Returns { success, text }.
 const MAX_MESSAGES = 60;
 const MAX_CHARS = 40000;
 
 export async function onRequestPost({ request, env }) {
     const auth = await requireSession(request, env);
-    if (!auth.ok) return auth.response;
+    if (!auth.ok) {
+        const blocked = await guardPublicSim(request, env);
+        if (blocked) return blocked;
+    }
     if (!env.GEMINI_API_KEY) return json({ success: false, error: 'GEMINI_API_KEY is not configured on this site.' }, 500);
 
     let body;
