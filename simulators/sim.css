@@ -32,3 +32,14 @@ a{color:inherit;}
 .sim-score{display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:28px;border-radius:999px;font-weight:800;font-size:12.5px;background:#f1f5f9;}
 .sim-score.good{background:#f0fdf4;color:var(--ok);} .sim-score.mid{background:#fffbeb;color:#b45309;} .sim-score.low{background:#fef2f2;color:var(--bad);}
 @media(max-width:760px){.sim-top{padding:12px 14px;} .sim-wrap{padding:22px 14px 60px;} .sim-hero{padding:22px 18px;} .sim-hero h1{font-size:24px;}}
+
+/* who's practicing (no account on the portal) */
+.sim-nav a.who{cursor:pointer;text-decoration:none;}
+#sim-who{position:fixed;inset:0;background:rgba(8,18,38,.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
+.sim-who-card{background:#fff;border-radius:18px;padding:24px;max-width:420px;width:100%;box-shadow:0 24px 60px -20px rgba(8,18,38,.5);}
+.sim-who-card h3{margin:0 0 6px;font-size:19px;font-weight:800;color:var(--navy);}
+.sim-who-card p{margin:0 0 14px;font-size:13.5px;color:var(--slate);line-height:1.5;}
+.sim-who-card label{display:block;font-size:12.5px;font-weight:700;color:var(--navy);margin-bottom:10px;}
+.sim-who-card label span{font-weight:500;color:var(--slate);}
+.sim-who-card input{display:block;width:100%;margin-top:4px;font:inherit;font-size:14px;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;box-sizing:border-box;}
+.sim-who-act{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}

@@ -59,6 +59,11 @@
     .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; } @media (max-width: 760px) { .cols2 { grid-template-columns: 1fr; } }
     .cols2 h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--slate); }
     .cols2 ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
+    .filters.lines button { font-size: 12px; padding: 5px 11px; }
+    .tags span.dir { background: #fff7ed; color: #9a3412; }
+    .notebox textarea { width: 100%; min-height: 260px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.55; border: 1px solid #cbd5e1; border-radius: 12px; padding: 12px; box-sizing: border-box; resize: vertical; }
+    .casefile { margin-top: 12px; font-size: 13px; } .casefile summary { cursor: pointer; font-weight: 800; }
+    .casefile pre { white-space: pre-wrap; font-family: inherit; font-size: 12.5px; line-height: 1.55; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; max-height: 360px; overflow: auto; }
     .better { margin-top: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 14px; font-size: 14px; }
 </style>
 </head>
@@ -77,8 +82,10 @@
 <script src="/app.js"></script>
 <script src="/portal.js"></script>
 <script src="/simulators/sim.js"></script>
+<script src="/simulators/call-pack-cm.js"></script>
 <script>
-/* ---------- caller library (add callers here; `program` drives the filter) ---------- */
+/* ---------- caller library (add callers here, or in a pack file that adds to
+   window.EXTRA_CALLERS; `program` drives the filter, `line` the sub-filter) ---------- */
 const CALLERS = [
   { id: 'alex', program: 'All', name: 'Alex Kim', role: 'Prospective client', title: 'New-client intake — contract dispute', level: 'Intermediate', gender: 'm',
     you: 'You answer the main line at a law firm and handle new-client intake. You can take information and book a consultation; you cannot give legal advice.',
@@ -122,9 +129,10 @@ const CALLERS = [
     goals: ['Stay polite but firm — never share his mobile number or calendar', 'Redirect to a written proposal by email', 'Take the caller’s details accurately', 'Don’t promise a meeting', 'Close the call cleanly'],
     hidden: 'You are Rob Castillo from BrightLedger legal-billing software. You are charming and persistent: you claim you "spoke with Elias at a conference" (not true), ask for his cell "to follow up", and ask what his calendar looks like next week. You try three times with different angles, then accept sending an email proposal if the assistant holds the line.',
     opening: 'Hey! Rob Castillo, BrightLedger. I actually met Elias at the ABA TechShow — he told me to follow up. Can you give me his cell real quick?' }
-];
+].concat(window.EXTRA_CALLERS || []);
 
-let S = { filter: 'All', persona: null, phase: 'pick', transcript: [], startedAt: 0, voice: true, busy: false, recog: null, recording: false, timer: null, debrief: null };
+const START_PROGRAM = (() => { const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'CM' : p.startsWith('EA') ? 'EA' : 'All'; })();
+let S = { filter: START_PROGRAM, line: 'all', note: '', persona: null, phase: 'pick', transcript: [], startedAt: 0, voice: true, busy: false, recog: null, recording: false, timer: null, debrief: null };
 const $app = () => document.getElementById('app');
 
 function initials(n) { return n.split(' ').map(x => x[0]).join('').slice(0, 2); }
@@ -133,17 +141,23 @@ function render() {
     if (S.phase === 'pick') return renderPick();
     if (S.phase === 'brief') return renderBrief();
     if (S.phase === 'call') return renderCall();
+    if (S.phase === 'note') return renderNote();
     if (S.phase === 'debrief') return renderDebrief();
 }
 function renderPick() {
-    const list = CALLERS.filter(c => S.filter === 'All' || c.program === S.filter || c.program === 'All');
+    const inProgram = CALLERS.filter(c => S.filter === 'All' || c.program === S.filter || c.program === 'All');
+    const lines = [...new Set(inProgram.filter(c => c.line).map(c => c.line))];
+    if (S.line !== 'all' && S.line !== 'core' && !lines.includes(S.line)) S.line = 'all';
+    const list = inProgram.filter(c => S.line === 'all' || (S.line === 'core' ? !c.line : c.line === S.line));
+    const lineBar = lines.length ? `<div class="filters lines">${[['all', 'All calls'], ['core', 'Core callers']].concat(lines.map(l => [l, (CALLERS.find(c => c.line === l) || {}).lineIcon ? CALLERS.find(c => c.line === l).lineIcon + ' ' + l : l])).map(([k, l]) => `<button class="${S.line === k ? 'on' : ''}" onclick="S.line=${Sim.esc(JSON.stringify(k))};render()">${Sim.esc(l)}</button>`).join('')}</div>` : '';
     $app().innerHTML = `
-        <div class="filters">${[['All', 'All callers'], ['CM', 'Case Management'], ['EA', 'Executive support (EA/PA)']].map(([k, l]) => `<button class="${S.filter === k ? 'on' : ''}" onclick="S.filter='${k}';render()">${l}</button>`).join('')}</div>
+        <div class="filters">${[['All', 'All callers'], ['CM', 'Case Management'], ['EA', 'Executive support (EA/PA)']].map(([k, l]) => `<button class="${S.filter === k ? 'on' : ''}" onclick="S.filter='${k}';S.line='all';render()">${l}</button>`).join('')}</div>
+        ${lineBar}
         <div class="pick-grid">${list.map(c => `
             <div class="sim-card pcard" onclick="pick('${c.id}')">
                 <div class="top"><span class="av">${initials(c.name)}</span><div><h3>${Sim.esc(c.title)}</h3><div class="role">${Sim.esc(c.name)} · ${Sim.esc(c.role)}</div></div></div>
-                <p>${Sim.esc(c.you)}</p>
-                <div class="tags"><span class="p-${c.program}">${c.program === 'All' ? 'All programs' : c.program === 'CM' ? 'Case Management' : 'EA / PA'}</span><span>${c.level}</span><span>${c.goals.length} goals</span></div>
+                <p>${Sim.esc(c.blurb || c.you)}</p>
+                <div class="tags"><span class="p-${c.program}">${c.program === 'All' ? 'All programs' : c.program === 'CM' ? 'Case Management' : 'EA / PA'}</span>${c.line ? `<span>${Sim.esc(c.line)}</span>` : ''}${c.dir === 'out' ? '<span class="dir">You call</span>' : ''}<span>${c.level}</span><span>${c.goals.length} goals</span></div>
             </div>`).join('')}</div>`;
 }
 function pick(id) { S.persona = CALLERS.find(c => c.id === id); S.phase = 'brief'; S.transcript = []; S.debrief = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
@@ -155,15 +169,18 @@ function renderBrief() {
             <h2>${Sim.esc(c.title)}</h2>
             <p style="font-size:14.5px;line-height:1.6;margin:0;">${Sim.esc(c.you)}</p>
             <div class="facts"><b>What you know:</b> ${Sim.esc(c.facts)}</div>
+            ${c.caseFile && window.CM_CASE_SUMMARY ? `<details class="casefile"><summary>📂 Case summary: John Doe v. Apex Delivery Services</summary><pre>${Sim.esc(window.CM_CASE_SUMMARY)}</pre></details>` : ''}
+            ${c.note ? `<p style="font-size:13px;margin:12px 0 0;"><b>📝 After the call:</b> you'll write the ${Sim.esc(c.note.title.toLowerCase())}. It's graded with the call.</p>` : ''}
             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
-                <button class="sim-btn orange" onclick="startCall()">📞 Answer the call</button>
+                <button class="sim-btn orange" onclick="startCall()">${c.dir === 'out' ? '📞 Place the call' : '📞 Answer the call'}</button>
                 <button class="sim-btn ghost" onclick="S.phase='pick';render()">← Choose another caller</button>
                 <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;"><input type="checkbox" ${S.voice ? 'checked' : ''} onchange="S.voice=this.checked"> Caller speaks out loud</label>
             </div>
         </div>
         <div>
             <div class="sim-kicker">You’ll be scored on</div>
-            <ol>${c.goals.map(g => `<li>${Sim.esc(g)}</li>`).join('')}</ol>
+            <ol>${c.goals.map(g => `<li>${Sim.esc(g)}</li>`).join('')}${c.note ? `<li>Documentation: ${Sim.esc(c.note.title)}</li>` : ''}</ol>
+            ${c.tips ? `<div class="sim-kicker" style="margin-top:14px;">Tips for this line</div><ul>${c.tips.map(t => `<li>${Sim.esc(t)}</li>`).join('')}</ul>` : ''}
             <p class="sim-muted" style="font-size:12.5px;margin-top:12px;">Tip: use a headset. On Chrome or Edge you can press 🎤 and speak; otherwise type your replies.</p>
         </div>
     </div></div>`;
@@ -266,6 +283,26 @@ async function endCall() {
     if (S.phase !== 'call') return;
     clearInterval(S.timer); try { speechSynthesis.cancel(); } catch (e) {} if (S.recog) try { S.recog.stop(); } catch (e) {}
     const secs = Math.round((Date.now() - S.startedAt) / 1000);
+    const c = S.persona;
+    if (c.note && S.transcript.some(m => m.who === 'you')) { S.secs = secs; S.note = c.note.template; S.phase = 'note'; return render(); }
+    return grade(secs, '');
+}
+function renderNote() {
+    const c = S.persona;
+    $app().innerHTML = `<div class="sim-card">
+        <div class="sim-kicker">Call ended · ${Math.floor(S.secs / 60)}m ${S.secs % 60}s · now document it</div>
+        <h2 style="margin:0 0 6px;font-size:21px;">📝 ${Sim.esc(c.note.title)}</h2>
+        <p class="sim-muted" style="font-size:13.5px;margin:0 0 12px;">Write it the way it would go into the file. It's graded against what was actually said, so don't add anything the caller didn't tell you.</p>
+        <div class="brief"><div class="notebox"><textarea id="noteBox" oninput="S.note=this.value">${Sim.esc(S.note)}</textarea>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;"><button class="sim-btn orange" onclick="submitNote()">Submit call + note for grading</button><button class="sim-btn ghost" onclick="grade(S.secs,'')">Skip the note</button></div></div>
+        <div><div class="sim-kicker">Transcript</div><div class="transcript" style="max-height:420px;">${S.transcript.map(m => `<div class="bubble ${m.who}"><b>${m.who === 'you' ? 'You' : Sim.esc(c.name)}</b>${Sim.esc(m.text)}</div>`).join('')}</div></div></div></div>`;
+}
+function submitNote() {
+    const c = S.persona, note = (document.getElementById('noteBox') || {}).value || '';
+    if (note.replace(c.note.template, '').trim().length < 30) { alert('Fill in the ' + c.note.title.toLowerCase() + ' first (or choose Skip the note).'); return; }
+    grade(S.secs, note);
+}
+async function grade(secs, note) {
     S.phase = 'debrief'; S.debrief = { loading: true, secs };
     render();
     const c = S.persona;
@@ -280,13 +317,19 @@ ${c.goals.map((g, i) => `${i + 1}. ${g}`).join('\n')}
 
 CALL TRANSCRIPT (${Math.floor(secs / 60)}m ${secs % 60}s):
 ${transcript}
+${note ? `
+THE TRAINEE'S ${c.note.title.toUpperCase()} (written after the call):
+${note}
+
+Also grade the documentation: accurate to what was actually said on the call (penalize invented or wrong details) and complete for this kind of call. Add it as a final goal "Documentation: ${c.note.title}" in the goals list.` : ''}${c.rubric ? `
+Weigh the overall score across these areas for this kind of call: ${c.rubric.join(' | ')}. Any legal advice, case valuation, guarantee or confidentiality breach should pull the score well below 70.` : ''}
 
 Return ONLY JSON:
 {"score": 0-100, "verdict": "one sentence overall", "goals": [{"goal": "…", "met": true|false, "note": "what they did or missed, quoting briefly"}], "strengths": ["…"], "improve": ["concrete next step", "…"], "betterLine": "one line the trainee could have said at the hardest moment"}`;
     try {
         const r = await Sim.ai({ system, messages: [{ role: 'user', text: prompt }], json: true, maxTokens: 900 });
         S.debrief = Object.assign({ secs }, r);
-        Sim.saveResult({ simulator: 'Call Simulator', scenario: c.title, score: r.score, summary: r.verdict, details: { caller: c.id, secs, goals: r.goals, transcript: S.transcript } });
+        Sim.saveResult({ simulator: 'Call Simulator', scenario: c.title, score: r.score, summary: r.verdict, details: { caller: c.id, program: c.program, line: c.line || null, secs, goals: r.goals, transcript: S.transcript, note: note || null } });
     } catch (e) { S.debrief = { error: 'Couldn’t grade the call: ' + e.message, secs }; }
     render();
 }
