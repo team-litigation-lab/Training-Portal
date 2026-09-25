@@ -23,11 +23,17 @@
     (function () {
         try {
             const raw = sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1');
-            if (!raw || raw === 'null') {
-                window.location.replace('/index.html');
+            const s = raw && raw !== 'null' ? JSON.parse(raw) : null;
+            // Trainees don't sign in on the main portal any more — only
+            // admins use this page (Master Control / monitoring).
+            if (!s) {
+                window.location.replace('/admin-login.html');
+            } else if (s.userType !== 'Admin') {
+                sessionStorage.removeItem('LSH_SESSION_V1'); localStorage.removeItem('LSH_SESSION_V1');
+                window.location.replace('/programs.html');
             }
         } catch (e) {
-            window.location.replace('/index.html');
+            window.location.replace('/admin-login.html');
         }
     })();
 </script>

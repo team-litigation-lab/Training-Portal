@@ -1,4 +1,4 @@
-import { json, requireSession, logActivity } from '../_utils.js';
+import { json, requireSession, logActivity, getSiteState } from '../_utils.js';
 
 // Topic-gated progression: a trainee only sees "Approved" for topics an
 // admin has explicitly granted them, and "Pending" for ones they've asked
@@ -8,14 +8,29 @@ import { json, requireSession, logActivity } from '../_utils.js';
 // uses elsewhere in this app.
 
 export async function onRequestGet({ request, env }) {
-    const auth = await requireSession(request, env);
-    if (!auth.ok) return auth.response;
     const db = env.TRAINING_DB;
     // Never cache this — topic list and access status change as admins
     // approve requests and seed data changes, and a stale cached response
     // here is exactly the kind of bug that's hard to tell apart from a
     // real data problem (as just happened while debugging this).
     const noCache = { 'Cache-Control': 'no-store' };
+
+    const auth = await requireSession(request, env);
+    if (!auth.ok) {
+        // The main portal is an open directory: trainees don't sign in here,
+        // each training program has its own sign-in. Anyone gets the topic
+        // list (no access rows). A site-wide Lock still closes it.
+        const state = await getSiteState(env.DB);
+        if (state.locked) return json({ success: false, error: 'This page has been locked by an administrator.', code: 'SITE_LOCKED' }, 423, noCache);
+        try {
+            const { results: topics } = await db.prepare(
+                `SELECT key, name, sort_order FROM topics ORDER BY sort_order ASC, name ASC`
+            ).all();
+            return json({ success: true, public: true, topics: topics || [], access: [] }, 200, noCache);
+        } catch (err) {
+            return json({ success: false, error: err.message }, 500, noCache);
+        }
+    }
 
     try {
         const { results: topics } = await db.prepare(
