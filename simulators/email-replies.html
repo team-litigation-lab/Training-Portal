@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Replies — LSH Training Portal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/simulators/sim.css">
+<style>
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+    .filters button { border: 1px solid #cbd5e1; background: #fff; border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--navy); cursor: pointer; }
+    .filters button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .inbox { padding: 0; overflow: hidden; }
+    .row { display: grid; grid-template-columns: 40px minmax(0, 190px) minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border-top: 1px solid #eef2f7; cursor: pointer; }
+    .row:first-child { border-top: none; } .row:hover { background: #f8fafc; }
+    .av { width: 36px; height: 36px; border-radius: 50%; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; }
+    .row .fr { font-weight: 800; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row .sj { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .row .sj span { color: var(--slate); }
+    .row .tg { display: flex; gap: 6px; }
+    .chip { font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; background: #f1f5f9; color: var(--slate); white-space: nowrap; }
+    .chip.done { background: #f0fdf4; color: var(--ok); } .chip.wait { background: #fff7ed; color: #9a3412; }
+    @media (max-width: 760px) { .row { grid-template-columns: 36px minmax(0, 1fr); } .row .sj, .row .tg { grid-column: 2; } }
+    .mail { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+    @media (max-width: 960px) { .mail { grid-template-columns: 1fr; } }
+    .mail h2 { margin: 0 0 10px; font-size: 21px; font-weight: 800; }
+    .hdr { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+    .hdr .meta { font-size: 13px; color: var(--slate); } .hdr .meta b { color: var(--navy); font-size: 14px; }
+    .body { white-space: pre-wrap; font-size: 14.5px; line-height: 1.65; border-top: 1px solid #eef2f7; padding-top: 12px; }
+    .att { display: inline-flex; gap: 6px; align-items: center; border: 1px solid #e2e8f0; border-radius: 10px; padding: 6px 10px; font-size: 12.5px; margin: 12px 8px 0 0; }
+    .facts { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 14px; padding: 14px 16px; font-size: 13.5px; line-height: 1.6; margin-top: 12px; }
+    .compose label { display: block; font-size: 12px; font-weight: 800; color: var(--slate); text-transform: uppercase; letter-spacing: .05em; margin: 10px 0 4px; }
+    .compose input, .compose textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 12px; padding: 10px 12px; }
+    .compose textarea { min-height: 240px; resize: vertical; line-height: 1.55; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .tabs { display: flex; gap: 6px; margin-bottom: 4px; } .tabs button { flex: 1; border: 1px solid #cbd5e1; background: #fff; border-radius: 10px; padding: 9px; font: inherit; font-weight: 800; font-size: 13px; color: var(--navy); cursor: pointer; }
+    .tabs button.on { background: var(--navy); color: #fff; border-color: var(--navy); } .tabs button:disabled { opacity: .45; cursor: not-allowed; }
+    .note { font-size: 12.5px; color: var(--slate); line-height: 1.5; margin-top: 8px; }
+    .waiting { text-align: center; padding: 18px 8px; } .waiting .big { font-size: 38px; } .waiting b { display: block; font-size: 16px; margin: 6px 0; }
+    .reply { white-space: pre-wrap; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.6; }
+    .deb-top { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; }
+    .ring { width: 86px; height: 86px; border-radius: 50%; border: 6px solid var(--orange); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; }
+    .goals { list-style: none; padding: 0; margin: 8px 0 0; } .goals li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-top: 1px dashed #e2e8f0; font-size: 14px; }
+    .goals .ok { color: var(--ok); font-weight: 900; } .goals .no { color: var(--bad); font-weight: 900; } .goals small { display: block; color: var(--slate); font-size: 12.5px; }
+    .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; } @media (max-width: 760px) { .cols2 { grid-template-columns: 1fr; } }
+    .cols2 h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--slate); } .cols2 ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
+    .better { margin-top: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 14px; font-size: 14px; white-space: pre-wrap; line-height: 1.55; }
+    .casefile { margin-top: 12px; font-size: 13px; } .casefile summary { cursor: pointer; font-weight: 800; }
+    .casefile pre { white-space: pre-wrap; font-family: inherit; font-size: 12.5px; line-height: 1.55; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; max-height: 360px; overflow: auto; }
+</style>
+</head>
+<body>
+<div id="topbar"></div>
+<div class="sim-wrap">
+    <section class="sim-hero">
+        <div class="eyebrow">Simulator · Email replies</div>
+        <h1>Email Replies</h1>
+        <p>One email at a time, answered like at work: a client, an adjuster, a lienholder, opposing counsel, your attorney. Reply here, or have it sent to your own inbox and reply from there. Every reply gets a scored debrief. (To triage and file a whole inbox, use <a href="/simulators/email.html" style="color:#fdba74;font-weight:700;">Email Workspace</a>.)</p>
+    </section>
+    <div id="app"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/app.js"></script>
+<script src="/portal.js"></script>
+<script src="/simulators/sim.js"></script>
+<script src="/simulators/call-pack-cm.js"></script>
+<script>
+/* Scenarios live in /simulators/reply-packs/emails.json — the server sends only these. */
+const START_PROGRAM = (() => { const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'CM' : p.startsWith('EA') ? 'EA' : 'All'; })();
+let E = { emails: [], delivery: false, filter: START_PROGRAM, phase: 'list', cur: null, mode: 'here', to: '', draft: '', token: null, poll: null, reply: null, debrief: null, busy: false };
+const $app = () => document.getElementById('app');
+const SENT_KEY = 'LSH_EMAIL_REPLIES_SENT';
+function sent() { try { return JSON.parse(localStorage.getItem(SENT_KEY) || '[]'); } catch (e) { return []; } }
+function saveSent(list) { try { localStorage.setItem(SENT_KEY, JSON.stringify(list.slice(0, 30))); } catch (e) {} }
+function initials(n) { return String(n).replace(/[^A-Za-z ]/g, '').split(' ').filter(Boolean).map(x => x[0]).join('').slice(0, 2).toUpperCase() || '✉'; }
+function byId(id) { return E.emails.find(m => m.id === id); }
+function progLabel(p) { return p === 'All' ? 'All programs' : p === 'CM' ? 'Case Management' : 'EA / PA'; }
+
+function render() {
+    Sim.label('Email Replies');
+    if (E.phase === 'read') return renderRead();
+    if (E.phase === 'debrief') return renderDebrief();
+    return renderList();
+}
+function renderList() {
+    const list = E.emails.filter(m => E.filter === 'All' || m.program === E.filter || m.program === 'All');
+    const mine = sent();
+    $app().innerHTML = `
+        <div class="filters">${[['All', 'All emails'], ['CM', 'Case Management'], ['EA', 'Executive support (EA/PA)']].map(([k, l]) => `<button class="${E.filter === k ? 'on' : ''}" onclick="E.filter='${k}';render()">${l}</button>`).join('')}</div>
+        ${mine.length ? `<div class="sim-card" style="margin-bottom:16px;"><div class="sim-kicker">Sent to your inbox</div>
+            ${mine.map(s => { const m = byId(s.emailId) || { title: s.emailId }; return `<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px dashed #e2e8f0;flex-wrap:wrap;">
+                <div style="font-size:13.5px;"><b>${Sim.esc(m.title)}</b> <span class="sim-muted">→ ${Sim.esc(s.to)} · ${Sim.esc(Sim.fmtDate(s.at))}</span></div>
+                <div style="display:flex;gap:8px;align-items:center;">${s.scored != null ? `<span class="chip done">Scored ${s.scored}%</span>` : '<span class="chip wait">Waiting for your reply</span>'}
+                <button class="sim-btn ghost" onclick="openSent('${s.token}')">Open</button></div></div>`; }).join('')}</div>` : ''}
+        <div class="sim-card inbox">${list.length ? list.map(m => `
+            <div class="row" onclick="openEmail('${m.id}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openEmail('${m.id}')">
+                <span class="av">${initials(m.from.name)}</span>
+                <span class="fr">${Sim.esc(m.from.name)}</span>
+                <span class="sj"><b>${Sim.esc(m.subject)}</b> <span>— ${Sim.esc(m.body.replace(/\s+/g, ' ').slice(0, 90))}…</span></span>
+                <span class="tg"><span class="chip">${Sim.esc(progLabel(m.program))}</span><span class="chip">${Sim.esc(m.level)}</span></span>
+            </div>`).join('') : '<div style="padding:18px;" class="sim-muted">No practice emails for this program yet.</div>'}</div>`;
+}
+function openEmail(id) {
+    stopPoll();
+    E.cur = byId(id); E.phase = 'read'; E.mode = 'here'; E.token = null; E.reply = null; E.debrief = null;
+    E.draft = `Hi ${E.cur.from.name.split(' ')[0]},\n\n\n\nBest regards,\n${Sim.who().name || ''}`;
+    E.to = (sent()[0] || {}).to || '';
+    render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function openSent(token) {
+    const s = sent().find(x => x.token === token); if (!s) return;
+    E.cur = byId(s.emailId); if (!E.cur) return;
+    E.phase = 'read'; E.mode = 'inbox'; E.token = token; E.to = s.to; E.reply = null; E.debrief = null;
+    render(); startPoll();
+}
+function renderRead() {
+    const m = E.cur;
+    const left = `<div class="sim-card">
+        <button class="sim-btn ghost" onclick="stopPoll();E.phase='list';render()" style="margin-bottom:12px;">← Inbox</button>
+        <h2>${Sim.esc(m.subject)}</h2>
+        <div class="hdr"><span class="av">${initials(m.from.name)}</span><div class="meta"><b>${Sim.esc(m.from.name)}</b> &lt;${Sim.esc(m.from.email)}&gt;<br>${Sim.esc(m.from.role)}</div></div>
+        <div class="body">${Sim.esc(m.body)}</div>
+        ${(m.attachments || []).map(a => `<span class="att">📎 ${Sim.esc(a)}</span>`).join('')}
+        <div class="facts"><b>Your role:</b> ${Sim.esc(m.you)}<br><br><b>What you know:</b> ${Sim.esc(m.facts)}</div>
+        ${m.caseFile && window.CM_CASE_SUMMARY ? `<details class="casefile"><summary>📂 Case summary: John Doe v. Apex Delivery Services</summary><pre>${Sim.esc(window.CM_CASE_SUMMARY)}</pre></details>` : ''}
+    </div>`;
+    let right;
+    if (E.token) {
+        right = E.reply ? `<div class="sim-card"><div class="sim-kicker">Your reply (from your inbox)</div><div class="reply">${Sim.esc(E.reply)}</div>
+                <div class="actions"><button class="sim-btn orange" onclick="gradeReply(E.reply,'inbox')" ${E.busy ? 'disabled' : ''}>Score my reply</button></div></div>`
+            : `<div class="sim-card waiting"><div class="big">📬</div><b>Sent to ${Sim.esc(E.to)}</b>
+                <p class="sim-muted" style="font-size:13.5px;">Open it in your inbox (check spam the first time) and reply as you would at work. This page checks for your reply every few seconds; you can also leave and come back from the inbox list.</p>
+                <div class="actions" style="justify-content:center;"><button class="sim-btn ghost" onclick="checkReply(true)">Check now</button></div></div>`;
+    } else {
+        right = `<div class="sim-card compose">
+            <div class="tabs"><button class="${E.mode === 'here' ? 'on' : ''}" onclick="E.mode='here';render()">Answer here</button><button class="${E.mode === 'inbox' ? 'on' : ''}" onclick="E.mode='inbox';render()" ${E.delivery ? '' : 'disabled title="Inbox delivery isn’t set up on this portal yet"'}>Send to my inbox</button></div>
+            ${E.mode === 'here' ? `
+                <label>To</label><input value="${Sim.esc(m.from.name)} <${Sim.esc(m.from.email)}>" disabled>
+                <label>Subject</label><input value="Re: ${Sim.esc(m.subject)}" disabled>
+                <label>Your reply</label><textarea id="draft" oninput="E.draft=this.value">${Sim.esc(E.draft)}</textarea>
+                <div class="actions"><button class="sim-btn orange" onclick="gradeReply(document.getElementById('draft').value,'here')" ${E.busy ? 'disabled' : ''}>Send &amp; score</button></div>`
+            : `<label>Your email address</label><input id="toAddr" type="email" autocomplete="email" value="${Sim.esc(E.to)}" placeholder="you@yourcompany.com" oninput="E.to=this.value">
+                <p class="note">We'll email this message to you from the LSH Training Portal. Reply from your inbox; your reply comes back here and is scored. Limit: a few practice emails per address per day.</p>
+                <div class="actions"><button class="sim-btn orange" onclick="sendToInbox()" ${E.busy ? 'disabled' : ''}>📨 Send it to me</button></div>`}
+            ${E.delivery ? '' : '<p class="note">Inbox delivery isn’t set up on this portal yet, so replies are written here for now.</p>'}
+        </div>`;
+    }
+    $app().innerHTML = `<div class="mail">${left}${right}</div>`;
+}
+async function sendToInbox() {
+    const to = (document.getElementById('toAddr') || {}).value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to)) { alert('Enter a valid email address.'); return; }
+    E.busy = true; render();
+    try {
+        const w = Sim.who();
+        const res = await fetch('/api/email-practice', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'send', emailId: E.cur.id, to, who: { name: w.name, batch: w.batch, program: w.program } }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) throw new Error(data.error || `Couldn't send (${res.status}).`);
+        E.token = data.token; E.to = to;
+        saveSent([{ token: data.token, emailId: E.cur.id, to, at: new Date().toISOString(), scored: null }].concat(sent()));
+        E.busy = false; render(); startPoll();
+    } catch (e) { E.busy = false; render(); alert(e.message); }
+}
+function startPoll() { stopPoll(); checkReply(); E.poll = setInterval(checkReply, 8000); }
+function stopPoll() { if (E.poll) clearInterval(E.poll); E.poll = null; }
+async function checkReply(manual) {
+    if (!E.token) return;
+    try {
+        const res = await fetch('/api/email-practice?token=' + encodeURIComponent(E.token), { credentials: 'include' });
+        const data = await res.json().catch(() => ({}));
+        if (data.success && data.status === 'replied') { stopPoll(); E.reply = data.reply; if (E.phase === 'read') render(); }
+        else if (manual) alert('No reply yet — reply to the practice email from your inbox, then check again.');
+    } catch (e) { if (manual) alert('Couldn’t check for your reply: ' + e.message); }
+}
+async function gradeReply(text, mode) {
+    const m = E.cur; text = String(text || '').trim();
+    const bare = text.replace(/^Hi [^\n]*,?/, '').replace(/Best regards,[\s\S]*$/, '').trim();
+    if (bare.length < 20) { alert('Write your reply first.'); return; }
+    stopPoll();
+    E.phase = 'debrief'; E.debrief = { loading: true, text, mode }; render();
+    const system = 'You are an experienced legal-support trainer grading a practice email reply. Be fair, specific and encouraging; frame gaps as "not yet — here is the better way".';
+    const prompt = `SCENARIO: ${m.title}
+TRAINEE ROLE: ${m.you}
+WHAT THE TRAINEE KNEW: ${m.facts}
+INCOMING EMAIL from ${m.from.name} (${m.from.role}), subject "${m.subject}"${(m.attachments || []).length ? `, attachments: ${m.attachments.join(', ')}` : ''}:
+${m.body}
+
+GOALS TO GRADE:
+${m.goals.map((g, i) => `${i + 1}. ${g}`).join('\n')}
+
+THE TRAINEE'S REPLY:
+${text}
+
+Also judge professional email craft: clear subject handling, greeting and sign-off, concise paragraphs, a clear next step, no typos that change meaning. Any legal advice, case valuation, guarantee, or disclosure of confidential information should pull the score well below 70.
+Return ONLY JSON:
+{"score": 0-100, "verdict": "one sentence overall", "goals": [{"goal": "…", "met": true|false, "note": "what they did or missed, quoting briefly"}], "strengths": ["…"], "improve": ["concrete next step", "…"], "betterVersion": "a short model reply (under 140 words) that meets every goal"}`;
+    try {
+        const r = await Sim.ai({ system, messages: [{ role: 'user', text: prompt }], json: true, maxTokens: 1100 });
+        E.debrief = Object.assign({ text, mode }, r);
+        Sim.saveResult({ simulator: 'Email Replies', scenario: m.title, score: r.score, summary: r.verdict, details: { emailId: m.id, program: m.program, mode, reply: text, goals: r.goals } });
+        if (E.token) saveSent(sent().map(s => s.token === E.token ? Object.assign({}, s, { scored: Math.round(r.score || 0) }) : s));
+    } catch (e) { E.debrief = { error: 'Couldn’t score the reply: ' + e.message, text, mode }; }
+    render();
+}
+function renderDebrief() {
+    const d = E.debrief || {}, m = E.cur;
+    if (d.loading) { $app().innerHTML = `<div class="sim-card"><div class="sim-loading">Scoring your reply…</div></div>`; return; }
+    const again = `<div class="actions" style="margin-top:18px;"><button class="sim-btn orange" onclick="openEmail('${m.id}')">↻ Try this email again</button><button class="sim-btn ghost" onclick="E.phase='list';render()">Back to the inbox</button><a class="sim-btn ghost" href="/simulators.html">All simulators</a></div>`;
+    if (d.error) { $app().innerHTML = `<div class="sim-card"><div class="sim-error">${Sim.esc(d.error)}</div>${again}</div>`; return; }
+    $app().innerHTML = `<div class="sim-card">
+        <div class="deb-top"><div class="ring">${Math.round(d.score || 0)}</div><div><div class="sim-kicker">Email debrief · ${d.mode === 'inbox' ? 'replied from your inbox' : 'answered here'}</div><h2 style="margin:0 0 4px;font-size:21px;">${Sim.esc(m.title)}</h2><div class="sim-muted" style="font-size:14px;">${Sim.esc(d.verdict || '')}</div></div></div>
+        <div class="sim-kicker">Goals</div>
+        <ul class="goals">${(d.goals || []).map(g => `<li><span class="${g.met ? 'ok' : 'no'}">${g.met ? '✓' : '○'}</span><div>${Sim.esc(g.goal)}<small>${Sim.esc(g.note || '')}</small></div></li>`).join('')}</ul>
+        <div class="cols2"><div><h4>What worked</h4><ul>${(d.strengths || []).map(x => `<li>${Sim.esc(x)}</li>`).join('')}</ul></div><div><h4>Not yet — next time</h4><ul>${(d.improve || []).map(x => `<li>${Sim.esc(x)}</li>`).join('')}</ul></div></div>
+        ${d.betterVersion ? `<div class="better"><b>A stronger reply:</b>\n${Sim.esc(d.betterVersion)}</div>` : ''}
+        <details style="margin-top:14px;"><summary style="cursor:pointer;font-weight:700;font-size:13px;">Your reply</summary><div class="reply" style="margin-top:10px;">${Sim.esc(d.text || '')}</div></details>
+        ${again}</div>`;
+}
+async function boot() {
+    document.getElementById('topbar').innerHTML = Sim.topbar('replies');
+    $app().innerHTML = `<div class="sim-card"><div class="sim-loading">Loading the inbox…</div></div>`;
+    try {
+        const [pack, status] = await Promise.all([
+            fetch('/simulators/reply-packs/emails.json').then(r => r.json()),
+            fetch('/api/email-practice?status=1').then(r => r.json()).catch(() => ({}))
+        ]);
+        E.emails = pack.emails || []; E.delivery = !!(status && status.delivery);
+        render();
+    } catch (e) { $app().innerHTML = `<div class="sim-card"><div class="sim-error">Couldn’t load the practice emails: ${Sim.esc(e.message)}</div></div>`; }
+}
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>

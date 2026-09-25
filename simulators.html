@@ -56,6 +56,8 @@
           desc: 'Enter court dates, compute deadlines from triggering events, and keep a docket that matches the case file. Planned.' },
         { id: 'records', icon: '🗂', title: 'Medical Records Requests', status: 'plan', uses: 'CM · Medsum and Demand',
           desc: 'A medical records request platform: request records and itemized bills from providers, attach the signed HIPAA authorization, track each request through fulfilment, fees and follow-ups, and log what comes back to the case file. Planned.' },
+        { id: 'replies', icon: '📨', title: 'Email Replies', status: 'live', href: '/simulators/email-replies.html', uses: 'CM · all programs',
+          desc: 'One email at a time, answered like at work: an upset client, an adjuster fishing for a statement, a lien letter, defense asking you to "just confirm", your attorney, a phishing attempt. Reply here, or have it sent to your own inbox and reply from there. Scored with a model reply.' },
         { id: 'email', icon: '✉️', title: 'Email Workspace', status: 'live', href: '/simulators/email.html', uses: 'All programs',
           desc: 'A Gmail-style practice inbox. Pick a ready-made inbox (CM, EA/PA) or generate one for any program, then triage, label, reply, forward and report phishing. Graded on filing, security, triage and writing.' }
     ];
@@ -89,9 +91,9 @@
                     : 'Saved in this browser only. Add your name (top right) so your trainer can see your results.';
             }
             const rows = data.results || [];
-            el.innerHTML = rows.length ? `<table class="sim-table"><thead><tr>${data.admin ? '<th>Trainee</th>' : ''}<th>Simulator</th><th>Scenario</th><th>Score</th><th>Summary</th><th>When</th></tr></thead><tbody>
+            el.innerHTML = rows.length ? `<div class="sim-table-wrap"><table class="sim-table"><thead><tr>${data.admin ? '<th>Trainee</th>' : ''}<th>Simulator</th><th>Scenario</th><th>Score</th><th>Summary</th><th>When</th></tr></thead><tbody>
                 ${rows.map(r => `<tr>${data.admin ? `<td><b>${Sim.esc(r.full_name || r.username)}</b></td>` : ''}<td>${Sim.esc(r.simulator)}</td><td>${Sim.esc(r.scenario || '')}</td><td>${Sim.scoreChip(r.score)}</td><td class="sim-muted">${Sim.esc(r.summary || '')}</td><td class="sim-muted" style="white-space:nowrap;">${Sim.esc(Sim.fmtDate(r.created_at))}</td></tr>`).join('')}
-                </tbody></table>` : `<div class="sim-muted" style="font-size:13.5px;">No simulator results yet — open one above to get started.</div>`;
+                </tbody></table></div>` : `<div class="sim-muted" style="font-size:13.5px;">No simulator results yet — open one above to get started.</div>`;
         } catch (e) {
             el.innerHTML = `<div class="sim-error">${Sim.esc(e.message)}</div>`;
         }

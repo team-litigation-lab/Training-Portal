@@ -12,6 +12,7 @@ claim a simulator below before starting it, and update it when you ship.**
 | Call Simulator | `/simulators/call.html` | Live | Generic callers + CM pack `simulators/call-pack-cm.js` (27 John Doe calls) — CM chat |
 | Calendaring | `/simulators/calendar.html` | Live | CM week + EA week — portal chat |
 | Email Workspace | `/simulators/email.html` | Live | Gmail-style practice inbox, no real Gmail. Packs in `simulators/email-packs.js` (CM, EA) + "generate for any program" — portal chat |
+| Email Replies | `/simulators/email-replies.html` | Live | One email at a time, answered on the portal or from the trainee's own inbox (Postmark delivery, off until configured; see README). Scenarios in `simulators/reply-packs/emails.json` (8 CM + 2 all programs); server: `functions/api/email-practice.js`, `email-inbound.js`, `_email.js` — CM chat |
 | Chat Simulator | — | Next | Unclaimed |
 | Docket System | — | Planned | Unclaimed |
 | Medical Records Requests | — | Planned | A medical records request platform (request records and itemized bills, signed HIPAA authorization, track fulfilment, fees and follow-ups, log results to the case file). Unclaimed. Describe it by what it does; don't use the name of the commercial platform it imitates. |
