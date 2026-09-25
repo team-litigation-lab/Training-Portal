@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trainee Progress — LSH Training Portal</title>
+<title>Trainee Progress & Feedback — LSH Training Portal</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,29 +17,52 @@
     .pg-card .v { font-size: 26px; font-weight: 900; color: var(--navy); margin: 4px 0 2px; }
     .pg-card .s { font-size: 12.5px; color: var(--slate); }
     .pg-card .s a { color: var(--navy); font-weight: 700; }
+    .pg-tabs { display: flex; gap: 6px; margin-bottom: 14px; border-bottom: 2px solid var(--line); flex-wrap: wrap; }
+    .pg-tabs button { border: 0; background: none; font: inherit; font-size: 14px; font-weight: 800; color: var(--slate); padding: 10px 14px; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    .pg-tabs button.on { color: var(--navy); border-bottom-color: var(--orange); }
+    .pg-tabs .n { font-size: 11px; background: #f1f5f9; border-radius: 999px; padding: 2px 7px; margin-left: 4px; }
     .pg-filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
     .pg-filters button { border: 1px solid #cbd5e1; background: #fff; border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--navy); cursor: pointer; }
     .pg-filters button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
-    .pg-filters select, .pg-filters input { font: inherit; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 7px 10px; background: #fff; }
-    .pg-filters input { min-width: 200px; flex: 1; }
+    .pg-filters select, .pg-filters input { font: inherit; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 7px 10px; background: #fff; max-width: 100%; }
+    .pg-filters input { min-width: 180px; flex: 1; }
     .pg-table td, .pg-table th { white-space: nowrap; padding-left: 8px; padding-right: 8px; }
-    .pg-table { font-size: 12.5px; } .pg-table .pg-bar { width: 80px; }
-    .pg-table td.nm { white-space: normal; min-width: 170px; }
+    .pg-table { font-size: 12.5px; } .pg-table .pg-bar { width: 70px; }
+    .pg-table td.nm { white-space: normal; min-width: 160px; }
     .pg-table tr.row { cursor: pointer; } .pg-table tr.row:hover td { background: #f8fafc; }
     .pg-bar { width: 110px; height: 8px; border-radius: 999px; background: #eef2f7; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 8px; }
     .pg-bar i { display: block; height: 100%; background: var(--orange); }
     .pg-st { font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; }
     .pg-st.Approved { background: #f0fdf4; color: var(--ok); } .pg-st.Pending { background: #fffbeb; color: #b45309; }
     .pg-st.Archived, .pg-st.Rejected { background: #f1f5f9; color: var(--slate); }
-    .pg-prog { font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; background: #eff6ff; color: #1d4ed8; }
+    .pg-prog { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; background: #eff6ff; color: #1d4ed8; margin: 1px 2px 1px 0; white-space: nowrap; }
     .pg-prog.eapa { background: #fdf2f8; color: #9d174d; }
-    .pg-detail td { background: #fafaf7; white-space: normal; }
+    .pg-prog.Pending { outline: 1px dashed #d97706; } .pg-prog.Archived, .pg-prog.Rejected { opacity: .55; }
+    .pg-rt { font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 3px 9px; background: #eff6ff; color: #1d4ed8; white-space: nowrap; }
+    .pg-rt.Strong { background: #f0fdf4; color: var(--ok); } .pg-rt.Needs { background: #fef2f2; color: var(--bad); }
+    .pg-detail > td { background: #fafaf7; white-space: normal; padding: 14px; }
+    .pg-detail-in { position: sticky; left: 14px; }
+    .pg-enr { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+    .pg-enr h4 { margin: 0 0 8px; font-size: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .pg-enr h5 { margin: 12px 0 6px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--slate); }
     .pg-days { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; }
     .pg-day { border: 1px solid #e2e8f0; border-radius: 10px; padding: 6px 10px; font-size: 12px; background: #fff; min-width: 86px; }
     .pg-day b { display: block; font-size: 11px; color: var(--slate); text-transform: uppercase; letter-spacing: .05em; }
     .pg-day.done { border-color: #bbf7d0; background: #f0fdf4; }
+    .pg-fb { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; background: #fff; }
+    .pg-fb summary { cursor: pointer; padding: 9px 12px; font-size: 13px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .pg-fb .body { padding: 0 12px 12px; font-size: 13px; line-height: 1.5; }
+    .pg-fb ul { margin: 4px 0 8px 18px; padding: 0; }
+    .pg-fb .private { background: #fff7ed; border-radius: 10px; padding: 8px 10px; font-size: 12.5px; }
+    .pg-tfb { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; font-size: 13px; }
+    .pg-tfb .hd { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+    .pg-tfb .stars { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--slate); margin-bottom: 6px; }
+    .pg-tfb .stars b { color: #d97706; letter-spacing: 1px; }
+    .pg-tfb p { margin: 4px 0; } .pg-tfb p b { color: var(--slate); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+    .pg-areas { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; } .pg-areas td { padding: 3px 0; } .pg-areas td:last-child { text-align: right; font-weight: 800; }
     .pg-muted { color: var(--slate); font-size: 12.5px; }
     .pg-note { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 14px; padding: 12px 16px; font-size: 13.5px; margin-bottom: 16px; }
+    .pg-work { font-size: 12.5px; margin: 4px 0 0 18px; padding: 0; } .pg-work li { margin-bottom: 4px; }
 </style>
 </head>
 <body>
@@ -54,7 +77,7 @@
     })();
 </script>
 <div class="sim-top">
-    <a class="sim-brand" href="/programs.html"><img src="/favicon.png" alt=""><span>LSH Training Portal<small>Trainee Progress</small></span></a>
+    <a class="sim-brand" href="/programs.html"><img src="/favicon.png" alt=""><span>LSH Training Portal<small>Progress &amp; Feedback</small></span></a>
     <div class="sim-nav">
         <a href="/programs.html">Training Index</a>
         <a href="/core.html">Master Control</a>
@@ -65,8 +88,8 @@
 <div class="sim-wrap">
     <section class="sim-hero">
         <div class="eyebrow">Admin · All programs</div>
-        <h1>Trainee Progress</h1>
-        <p>Every trainee in every program, in one place: days completed, Knowledge Check and practice scores, random tasks, roleplays, simulator practice and when they were last active. Each program keeps its own sign-in; this page reads their progress.</p>
+        <h1>Trainee Progress &amp; Feedback</h1>
+        <p>One record per trainee across all their training: progress and scores in every program, the trainer’s day-by-day feedback, the feedback they sent about the training, simulator practice and portal activities. Each program keeps its own sign-in; this page reads their records.</p>
     </section>
     <div id="app"><div class="sim-card"><div class="sim-loading">Loading trainee progress…</div></div></div>
 </div>
@@ -74,115 +97,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="/app.js"></script>
 <script src="/portal.js"></script>
-<script>
-const P = { data: null, program: 'all', batch: '', status: 'active', q: '', sort: 'recent', open: {} };
-const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const pct = (v) => v == null ? '—' : v + '%';
-function ago(iso) {
-    if (!iso) return '—';
-    const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-    if (m < 2) return 'just now'; if (m < 60) return m + ' min ago';
-    const h = Math.round(m / 60); if (h < 24) return h + ' h ago';
-    const d = Math.round(h / 24); return d < 60 ? d + ' d ago' : new Date(iso).toLocaleDateString();
-}
-function progLabel(id) { const p = (P.data.programs || []).find(x => x.id === id); return p ? p.label : id; }
-function simFor(t) { return (P.data.simulators && P.data.simulators.byName || {})[t.name.trim().toLowerCase()] || null; }
-function rows() {
-    const q = P.q.trim().toLowerCase();
-    let list = (P.data.trainees || []).filter(t =>
-        (P.program === 'all' || t.program === P.program) &&
-        (!P.batch || t.batch === P.batch) &&
-        (P.status === 'all' || (P.status === 'active' ? t.status === 'Approved' : t.status === P.status)) &&
-        (!q || (t.name + ' ' + t.batch).toLowerCase().includes(q)));
-    const by = {
-        recent: (a, b) => String(b.lastActive || '').localeCompare(String(a.lastActive || '')),
-        name: (a, b) => a.name.localeCompare(b.name),
-        progress: (a, b) => (b.daysDone / b.daysTotal) - (a.daysDone / a.daysTotal) || (b.kcAvg || 0) - (a.kcAvg || 0),
-        kc: (a, b) => (b.kcAvg ?? -1) - (a.kcAvg ?? -1),
-        behind: (a, b) => (a.daysDone / a.daysTotal) - (b.daysDone / b.daysTotal) || String(a.lastActive || '').localeCompare(String(b.lastActive || ''))
-    };
-    return list.sort(by[P.sort] || by.recent);
-}
-function cards() {
-    const all = P.data.trainees || [], week = Date.now() - 7 * 864e5;
-    return (P.data.programs || []).map(p => {
-        const ts = all.filter(t => t.program === p.id), act = ts.filter(t => t.status === 'Approved');
-        const done = act.length ? Math.round(act.reduce((a, t) => a + t.daysDone / t.daysTotal, 0) / act.length * 100) : null;
-        const recent = act.filter(t => t.lastActive && new Date(t.lastActive).getTime() > week).length;
-        const pending = ts.filter(t => t.status === 'Pending').length;
-        const kc = act.filter(t => t.kcAvg != null);
-        return `<div class="sim-card pg-card"><div class="k">${esc(p.label)} · ${p.days} days</div><div class="v">${act.length}</div>
-            <div class="s">approved trainees · ${recent} active this week${pending ? ` · <b>${pending} pending approval</b>` : ''}</div>
-            <div class="s" style="margin-top:6px;">Avg completion ${done == null ? '—' : done + '%'} · Knowledge Checks ${kc.length ? Math.round(kc.reduce((a, t) => a + t.kcAvg, 0) / kc.length) + '%' : '—'}${p.url ? ` · <a href="${esc(p.url)}" target="_blank" rel="noopener">Open course admin ↗</a>` : ''}</div></div>`;
-    }).join('');
-}
-function dayGrid(t) {
-    return `<div class="pg-days">${Object.entries(t.days).map(([d, x]) => `<div class="pg-day ${x.done ? 'done' : ''}"><b>Day ${d}</b>${x.done ? '✓ done' : 'not yet'}${x.score != null ? ` · KC ${x.score}%` : ''}${x.task != null ? `<br><span class="pg-muted">Task ${x.task}%</span>` : ''}</div>`).join('')}</div>`;
-}
-function render() {
-    const app = document.getElementById('app');
-    const d = P.data;
-    const batches = [...new Set((d.trainees || []).map(t => t.batch).filter(Boolean))].sort();
-    const list = rows();
-    app.innerHTML = `
-        ${d.connected ? '' : `<div class="pg-note">${esc(d.note || 'Course data isn’t connected yet.')}</div>`}
-        <div class="pg-cards">${cards()}</div>
-        <div class="pg-filters">
-            ${[['all', 'All programs']].concat((d.programs || []).map(p => [p.id, p.label])).map(([k, l]) => `<button class="${P.program === k ? 'on' : ''}" onclick="P.program='${k}';render()">${esc(l)}</button>`).join('')}
-            <select onchange="P.status=this.value;render()" aria-label="Status">${[['active', 'Approved'], ['Pending', 'Pending approval'], ['Archived', 'Archived'], ['all', 'All statuses']].map(([k, l]) => `<option value="${k}" ${P.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
-            <select onchange="P.batch=this.value;render()" aria-label="Batch"><option value="">All batches</option>${batches.map(b => `<option ${P.batch === b ? 'selected' : ''}>${esc(b)}</option>`).join('')}</select>
-            <select onchange="P.sort=this.value;render()" aria-label="Sort">${[['recent', 'Last active'], ['behind', 'Furthest behind'], ['progress', 'Most progress'], ['kc', 'Knowledge Check avg'], ['name', 'Name']].map(([k, l]) => `<option value="${k}" ${P.sort === k ? 'selected' : ''}>Sort: ${l}</option>`).join('')}</select>
-            <input type="search" placeholder="Search name or batch…" value="${esc(P.q)}" oninput="P.q=this.value;renderTable()">
-            <button onclick="exportCsv()">⬇ CSV</button>
-            <button onclick="load(true)">↻ Refresh</button>
-        </div>
-        <div class="sim-card" style="padding:0;"><div class="sim-table-wrap" id="tbl"></div></div>
-        <p class="pg-muted" style="margin-top:10px;">Click a trainee for their day-by-day detail. Simulator practice is matched by name. Updated ${esc(d.generatedAt ? ago(d.generatedAt) : '—')}.</p>`;
-    renderTable(list);
-}
-function renderTable(list) {
-    list = list || rows();
-    const el = document.getElementById('tbl'); if (!el) return;
-    if (!list.length) { el.innerHTML = `<div style="padding:18px;" class="pg-muted">No trainees match these filters.</div>`; return; }
-    el.innerHTML = `<table class="sim-table pg-table"><thead><tr><th>Trainee</th><th>Program</th><th>Status</th><th>Days done</th><th>Knowledge Checks</th><th>Practice</th><th>Random tasks</th><th>Roleplay</th><th>Simulators</th><th>Last active</th></tr></thead><tbody>
-        ${list.map(t => { const k = t.program + ':' + t.id, s = simFor(t), open = !!P.open[k];
-            return `<tr class="row" onclick="toggle('${esc(k)}')"><td class="nm"><b>${esc(t.name)}</b>${t.batch ? `<br><span class="pg-muted">${esc(t.batch)}</span>` : ''}</td>
-                <td><span class="pg-prog ${esc(t.program)}">${esc(progLabel(t.program))}</span></td>
-                <td><span class="pg-st ${esc(t.status)}">${esc(t.status)}</span></td>
-                <td><span class="pg-bar"><i style="width:${Math.round(t.daysDone / t.daysTotal * 100)}%"></i></span>${t.daysDone} / ${t.daysTotal}</td>
-                <td>${Sim_score(t.kcAvg)}</td>
-                <td>${Sim_score(t.practiceAvg)} <span class="pg-muted">${t.practiceDone ? `${t.practiceDone} done` : ''}</span></td>
-                <td>${Sim_score(t.taskAvg)}</td>
-                <td>${Sim_score(t.roleplayAvg)} <span class="pg-muted">${t.roleplayRuns ? `${t.roleplayRuns}×` : ''}</span></td>
-                <td>${s ? `${Sim_score(s.avg)} <span class="pg-muted">${s.runs}×</span>` : '<span class="pg-muted">—</span>'}</td>
-                <td>${esc(ago(t.lastActive))}</td></tr>
-                ${open ? `<tr class="pg-detail"><td colspan="10">${dayGrid(t)}
-                    <span class="pg-muted">Registered ${esc(t.registeredAt ? new Date(t.registeredAt).toLocaleDateString() : '—')} · ${t.practiceRuns} practice run${t.practiceRuns === 1 ? '' : 's'}${s ? ` · Simulators: ${Object.entries(s.sims).map(([n, c]) => `${esc(n)} ${c}×`).join(', ')}` : ''}</span></td></tr>` : ''}`; }).join('')}
-        </tbody></table>`;
-}
-function Sim_score(n) { if (n == null) return '<span class="pg-muted">—</span>'; const c = n >= 85 ? 'good' : n >= 70 ? 'mid' : 'low'; return `<span class="sim-score ${c}">${n}%</span>`; }
-function toggle(k) { P.open[k] = !P.open[k]; renderTable(); }
-function exportCsv() {
-    const head = ['Program', 'Name', 'Batch', 'Status', 'Days done', 'Days total', 'Knowledge Check avg', 'Practice avg', 'Practice done', 'Random task avg', 'Roleplay avg', 'Simulator runs', 'Simulator avg', 'Last active', 'Registered'];
-    const q = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
-    const lines = [head.map(q).join(',')].concat(rows().map(t => { const s = simFor(t) || {};
-        return [progLabel(t.program), t.name, t.batch, t.status, t.daysDone, t.daysTotal, t.kcAvg, t.practiceAvg, t.practiceDone, t.taskAvg, t.roleplayAvg, s.runs, s.avg, t.lastActive, t.registeredAt].map(q).join(','); }));
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
-    a.download = `trainee-progress-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
-}
-async function load(manual) {
-    try {
-        const res = await fetch('/api/program-progress', { credentials: 'include' });
-        const data = await res.json().catch(() => ({}));
-        if (res.status === 401 || res.status === 403) { window.location.replace('/admin-login.html'); return; }
-        if (!res.ok || !data.success) throw new Error(data.error || `Couldn’t load progress (${res.status}).`);
-        P.data = data; render();
-    } catch (e) {
-        document.getElementById('app').innerHTML = `<div class="sim-card"><div class="sim-error">${esc(e.message)}</div></div>`;
-    }
-}
-document.addEventListener('DOMContentLoaded', () => load());
-</script>
+<script src="/progress-records.js"></script>
 </body>
 </html>

@@ -18,18 +18,25 @@
 The portal only sends the fixed scenarios in `simulators/reply-packs/emails.json`. Sends are limited per connection (`SIM_RATE_LIMIT`) and per recipient address. Replies are matched to their practice email by a random token in the Reply-To address; only the first reply to each practice email is scored.
 
 
-## Trainee Progress (admin)
+## Trainee Progress & Feedback (admin)
 
-**Admin → 📊 Trainee Progress** (`/progress.html`, also linked from Master Control) lists every trainee in every program in one place. For each trainee it shows:
-- days completed;
-- Knowledge Check, practice (Skill Builder), random-task and roleplay averages;
-- simulator practice from this portal, matched by name;
-- status (approved, pending, archived) and when they were last active.
+**Admin → 📊 Progress & Feedback** (`/progress.html`, also linked from Master Control) is the central record of every trainee's training. It has two tabs.
 
-It filters by program, status and batch, sorts (including "furthest behind"), expands a day-by-day view per trainee, and exports CSV.
+**👤 Trainees**: one row per person, merging all their programs. For each trainee it shows:
+- each program they're in, with status and days completed, and their overall completion;
+- Knowledge Check, practice (Skill Builder / Practice Lab) and random-task averages;
+- the trainer's feedback: how many days were sent, drafts still to review, and the latest rating;
+- the feedback they sent about the training (count and average stars);
+- simulator practice and graded activities from this portal;
+- when they were last active.
 
-The programs keep their own trainees and sign-in. The portal reads their records from the course Workers' KV namespace through the `COURSE_KV` binding in `wrangler.toml`, which points at the same namespace as the EA/PA and CM Workers' `LSH_KV`:
-- EA/PA trainees are stored under `trainee:*`;
-- CM course trainees are stored under `cm:trainee:*`.
+Click a trainee for everything on record. Each program shows the day-by-day grid, then every day's trainer feedback: rating, summary, strengths, areas to build, next focus, sent/read status and the private trainer note. Then come their own feedback, simulator runs and portal activities with the grader's comments. Filters: program, status and batch. Sorts include "furthest behind" and "feedback drafts to review". **⬇ CSV** exports one line per trainee per program.
 
-The API (`/api/program-progress`) is admin-only and read-only. To add a program, add it to `PROGRAMS` in `functions/api/program-progress.js` with its key prefix and number of days.
+**💬 Feedback from trainees**: everything trainees sent about the programs (star ratings by area and comments; anonymous ones stay anonymous), with average ratings by area, filters by program, day and status, search and CSV.
+
+Where the records come from:
+- The programs keep their own trainees and sign-in. The portal reads their records from the course Workers' KV namespace through the `COURSE_KV` binding in `wrangler.toml`, which points at the same namespace as the EA/PA and CM Workers' `LSH_KV`. EA/PA keys have no prefix (`trainee:*`, `feedback:*`, `tfeedback:*`); CM course keys start with `cm:`.
+- Simulator results (`simulator_results`) and portal activities (`submissions`) come from this portal's D1 database.
+- A person's records are matched across programs, simulators and activities by name, because the programs have separate sign-ins.
+
+The API (`/api/program-progress`) is admin-only and read-only; feedback is written and marked reviewed in each course. It stays under Workers KV's 1,000-operations-per-request limit and says so on the page if a very large roster doesn't fit. To add a program, add it to `PROGRAMS` in `functions/api/program-progress.js` with its key prefix, number of days and course address.
