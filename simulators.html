@@ -56,8 +56,10 @@
           desc: 'Enter court dates, compute deadlines from triggering events, and keep a docket that matches the case file. Planned.' },
         { id: 'records', icon: '🗂', title: 'Medical Records Requests', status: 'plan', uses: 'CM · Medsum and Demand',
           desc: 'A medical records request platform: request records and itemized bills from providers, attach the signed HIPAA authorization, track each request through fulfilment, fees and follow-ups, and log what comes back to the case file. Planned.' },
-        { id: 'email', icon: '✉️', title: 'Email Practice', status: 'live', href: '/simulators/email.html', uses: 'CM · all programs',
-          desc: 'Real correspondence from a case file: a client, an adjuster, a lienholder, opposing counsel, your attorney, even a phishing attempt. Reply here, or have it sent to your own inbox and reply from there. Scored debrief with a model reply.' }
+        { id: 'replies', icon: '📨', title: 'Email Replies', status: 'live', href: '/simulators/email-replies.html', uses: 'CM · all programs',
+          desc: 'One email at a time, answered like at work: an upset client, an adjuster fishing for a statement, a lien letter, defense asking you to "just confirm", your attorney, a phishing attempt. Reply here, or have it sent to your own inbox and reply from there. Scored with a model reply.' },
+        { id: 'email', icon: '✉️', title: 'Email Workspace', status: 'live', href: '/simulators/email.html', uses: 'All programs',
+          desc: 'A Gmail-style practice inbox. Pick a ready-made inbox (CM, EA/PA) or generate one for any program, then triage, label, reply, forward and report phishing. Graded on filing, security, triage and writing.' }
     ];
     const CHIP = { live: ['live', 'Live'], next: ['next', 'Coming next'], plan: ['plan', 'Planned'], input: ['input', 'Needs input'] };
 

@@ -2,16 +2,16 @@ import { json, getSiteState } from '../_utils.js';
 import { guardPublicSim, publicIdentity } from '../_sim-guard.js';
 import { deliveryConfigured, ensureEmailTable } from '../_email.js';
 
-// Email Practice: the portal emails a practice scenario to the trainee's own
+// Email Replies (/simulators/email-replies.html): the portal emails a practice scenario to the trainee's own
 // inbox; they reply from their inbox; the reply comes back through
-// /api/email-inbound and the Email Practice page scores it.
+// /api/email-inbound and the Email Replies page scores it.
 //
 //   GET  ?status=1          → { delivery } — whether inbox delivery is set up
 //   POST { action: 'send', emailId, to, who }
 //                           → { token } — sends scenario emailId to `to`
 //   GET  ?token=…           → { status: 'waiting' | 'replied', reply, … }
 //
-// Only the fixed scenarios in /simulators/email-packs/emails.json can be sent
+// Only the fixed scenarios in /simulators/reply-packs/emails.json can be sent
 // (never text supplied by the visitor), with per-connection and per-address
 // limits, so the endpoint can't be used to send arbitrary mail.
 //
@@ -21,7 +21,7 @@ import { deliveryConfigured, ensureEmailTable } from '../_email.js';
 //   EMAIL_INBOUND_ADDRESS   the Postmark inbound address, e.g. 1a2b3c…@inbound.postmarkapp.com
 //   EMAIL_INBOUND_SECRET    a long random string; also used in the inbound webhook URL
 //   EMAIL_DAILY_PER_ADDRESS optional, default 5 practice emails per address per day
-const PACK_PATH = '/simulators/email-packs/emails.json';
+const PACK_PATH = '/simulators/reply-packs/emails.json';
 
 async function loadScenario(request, env, emailId) {
     const res = await env.ASSETS.fetch(new URL(PACK_PATH, request.url));

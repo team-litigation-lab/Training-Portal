@@ -1,4 +1,4 @@
-// Shared by /api/email-practice and /api/email-inbound (Email Practice simulator).
+// Shared by /api/email-practice and /api/email-inbound (Email Replies simulator).
 export function deliveryConfigured(env) {
     return !!(env.POSTMARK_SERVER_TOKEN && env.EMAIL_FROM && env.EMAIL_INBOUND_ADDRESS && env.EMAIL_INBOUND_SECRET);
 }

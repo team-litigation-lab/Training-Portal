@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Email Practice — LSH Training Portal</title>
+<title>Email Workspace — LSH Training Portal</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,45 +11,110 @@
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/simulators/sim.css">
 <style>
-    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
-    .filters button { border: 1px solid #cbd5e1; background: #fff; border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--navy); cursor: pointer; }
-    .filters button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
-    .inbox { padding: 0; overflow: hidden; }
-    .row { display: grid; grid-template-columns: 40px minmax(0, 190px) minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border-top: 1px solid #eef2f7; cursor: pointer; }
-    .row:first-child { border-top: none; } .row:hover { background: #f8fafc; }
-    .av { width: 36px; height: 36px; border-radius: 50%; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; }
-    .row .fr { font-weight: 800; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .row .sj { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .row .sj span { color: var(--slate); }
-    .row .tg { display: flex; gap: 6px; }
-    .chip { font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; background: #f1f5f9; color: var(--slate); white-space: nowrap; }
-    .chip.done { background: #f0fdf4; color: var(--ok); } .chip.wait { background: #fff7ed; color: #9a3412; }
-    @media (max-width: 760px) { .row { grid-template-columns: 36px minmax(0, 1fr); } .row .sj, .row .tg { grid-column: 2; } }
-    .mail { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
-    @media (max-width: 960px) { .mail { grid-template-columns: 1fr; } }
-    .mail h2 { margin: 0 0 10px; font-size: 21px; font-weight: 800; }
-    .hdr { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
-    .hdr .meta { font-size: 13px; color: var(--slate); } .hdr .meta b { color: var(--navy); font-size: 14px; }
-    .body { white-space: pre-wrap; font-size: 14.5px; line-height: 1.65; border-top: 1px solid #eef2f7; padding-top: 12px; }
-    .att { display: inline-flex; gap: 6px; align-items: center; border: 1px solid #e2e8f0; border-radius: 10px; padding: 6px 10px; font-size: 12.5px; margin: 12px 8px 0 0; }
-    .facts { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 14px; padding: 14px 16px; font-size: 13.5px; line-height: 1.6; margin-top: 12px; }
-    .compose label { display: block; font-size: 12px; font-weight: 800; color: var(--slate); text-transform: uppercase; letter-spacing: .05em; margin: 10px 0 4px; }
-    .compose input, .compose textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 12px; padding: 10px 12px; }
-    .compose textarea { min-height: 240px; resize: vertical; line-height: 1.55; }
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
-    .tabs { display: flex; gap: 6px; margin-bottom: 4px; } .tabs button { flex: 1; border: 1px solid #cbd5e1; background: #fff; border-radius: 10px; padding: 9px; font: inherit; font-weight: 800; font-size: 13px; color: var(--navy); cursor: pointer; }
-    .tabs button.on { background: var(--navy); color: #fff; border-color: var(--navy); } .tabs button:disabled { opacity: .45; cursor: not-allowed; }
-    .note { font-size: 12.5px; color: var(--slate); line-height: 1.5; margin-top: 8px; }
-    .waiting { text-align: center; padding: 18px 8px; } .waiting .big { font-size: 38px; } .waiting b { display: block; font-size: 16px; margin: 6px 0; }
-    .reply { white-space: pre-wrap; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.6; }
-    .deb-top { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; }
-    .ring { width: 86px; height: 86px; border-radius: 50%; border: 6px solid var(--orange); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; }
-    .goals { list-style: none; padding: 0; margin: 8px 0 0; } .goals li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-top: 1px dashed #e2e8f0; font-size: 14px; }
-    .goals .ok { color: var(--ok); font-weight: 900; } .goals .no { color: var(--bad); font-weight: 900; } .goals small { display: block; color: var(--slate); font-size: 12.5px; }
-    .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; } @media (max-width: 760px) { .cols2 { grid-template-columns: 1fr; } }
-    .cols2 h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--slate); } .cols2 ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
-    .better { margin-top: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 14px; font-size: 14px; white-space: pre-wrap; line-height: 1.55; }
-    .casefile { margin-top: 12px; font-size: 13px; } .casefile summary { cursor: pointer; font-weight: 800; }
-    .casefile pre { white-space: pre-wrap; font-family: inherit; font-size: 12.5px; line-height: 1.55; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; max-height: 360px; overflow: auto; }
+:root{--ink-soft:#64748b;--orange-deep:#c2410c;--ink:#0f172a;}
+.pk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;} @media(max-width:1000px){.pk-grid{grid-template-columns:1fr;}}
+.pk{display:flex;flex-direction:column;gap:8px;} .pk h3{margin:0;font-size:17px;font-weight:800;} .pk p{margin:0;font-size:13.5px;color:#334155;line-height:1.55;flex:1;}
+.pk select{font:inherit;font-size:13.5px;border:1px solid #cbd5e1;border-radius:10px;padding:8px 10px;width:100%;}
+.ws-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;} .ws-bar .grow{flex:1;min-width:200px;}
+.ws-role{font-size:13.5px;color:#334155;margin:0;}
+
+.gm{border:1px solid #dadce0;border-radius:14px;background:#f6f8fc;overflow:hidden;font-family:Roboto,'Segoe UI',Arial,sans-serif;color:#202124;position:relative;outline:none;}
+.gm:focus-visible{box-shadow:0 0 0 2px #0b57d0;}
+.gm svg{width:20px;height:20px;fill:currentColor;flex-shrink:0;}
+.gm-top{display:flex;align-items:center;gap:14px;padding:8px 14px;}
+.gm-logo{display:flex;align-items:center;gap:6px;font-size:20px;color:#444746;min-width:170px;} .gm-logo b{display:inline-flex;width:28px;height:22px;border-radius:4px;background:linear-gradient(135deg,#ea4335 0 25%,#fbbc04 25% 50%,#34a853 50% 75%,#4285f4 75%);color:#fff;font-size:13px;align-items:center;justify-content:center;}
+.gm-search{flex:1;max-width:720px;display:flex;align-items:center;gap:10px;background:#e9eef6;border-radius:24px;padding:10px 16px;color:#444746;}
+.gm-search input{border:none;background:transparent;outline:none;font:inherit;font-size:15px;flex:1;color:#202124;}
+.gm-avatar{margin-left:auto;width:32px;height:32px;border-radius:50%;background:#1F2440;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+.gm-body{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:560px;}
+.gm-nav{padding:4px 10px 12px 8px;}
+.gm-compose{display:inline-flex;align-items:center;gap:10px;background:#c2e7ff;border:none;border-radius:16px;padding:16px 22px;font:inherit;font-weight:600;font-size:14px;color:#001d35;margin:4px 0 14px;cursor:not-allowed;opacity:.85;}
+.gm-folder{display:flex;align-items:center;gap:14px;width:100%;border:none;background:none;font:inherit;font-size:14px;color:#202124;padding:0 12px 0 16px;height:32px;border-radius:0 16px 16px 0;cursor:pointer;text-align:left;}
+.gm-folder:hover{background:#e9eaed;} .gm-folder.on{background:#d3e3fd;font-weight:700;color:#001d35;}
+.gm-folder span{flex:1;} .gm-folder em{font-style:normal;font-size:12px;font-weight:700;}
+.gm-folder small{display:block;font-size:10.5px;color:#5f6368;font-weight:400;margin-top:-3px;}
+.gm-folder.two{height:40px;}
+.gm-main{background:#fff;border-radius:16px;margin:0 12px 12px 0;display:flex;flex-direction:column;min-width:0;}
+.gm-bar{display:flex;align-items:center;gap:4px;padding:6px 10px;border-bottom:1px solid #f1f3f4;min-height:44px;}
+.gm-ib{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;border:none;background:none;color:#444746;cursor:pointer;position:relative;}
+.gm-ib:hover{background:#f1f3f4;} .gm-ib[disabled]{opacity:.35;cursor:default;background:none;}
+.gm-ib[data-tip]:hover::after{content:attr(data-tip);position:absolute;top:38px;left:50%;transform:translateX(-50%);background:#3c4043;color:#fff;font-size:11.5px;padding:4px 8px;border-radius:4px;white-space:nowrap;z-index:5;}
+.gm-count{margin-left:auto;font-size:12px;color:#5f6368;}
+.gm-chk{width:16px;height:16px;accent-color:#0b57d0;cursor:pointer;margin:0 8px;}
+.gm-list{flex:1;overflow:auto;}
+.gm-row{display:flex;align-items:center;gap:4px;padding:0 12px 0 6px;height:40px;border-bottom:1px solid #f1f3f4;cursor:pointer;background:#f2f6fc;position:relative;font-size:14px;}
+.gm-row.unread{background:#fff;} .gm-row.unread .gm-from, .gm-row.unread .gm-subj, .gm-row.unread .gm-time{font-weight:700;color:#202124;}
+.gm-row:hover{box-shadow:inset 1px 0 0 #dadce0,inset -1px 0 0 #dadce0,0 1px 2px 0 rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15);z-index:1;}
+.gm-row.focus{box-shadow:inset 3px 0 0 #0b57d0;} .gm-row.sel{background:#c2dbff;}
+.gm-star{color:#5f6368;} .gm-star.on{color:#f4b400;}
+.gm-from{width:190px;flex-shrink:0;color:#202124;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:4px;}
+.gm-snip{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#5f6368;}
+.gm-subj{color:#202124;}
+.gm-time{width:84px;text-align:right;font-size:12px;color:#5f6368;flex-shrink:0;}
+.gm-tag{font-size:11px;border-radius:4px;padding:1px 6px;margin-right:6px;background:#e8eaed;color:#3c4043;font-weight:600;}
+.gm-hover{display:none;position:absolute;right:8px;top:2px;background:inherit;gap:2px;}
+.gm-row:hover .gm-hover{display:flex;} .gm-row:hover .gm-time{visibility:hidden;}
+.gm-read{flex:1;overflow:auto;padding:4px 0 20px;}
+.gm-read h2{font-family:'Google Sans',Roboto,Arial,sans-serif;font-size:22px;font-weight:400;margin:14px 20px 16px 72px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.gm-read h2 .gm-tag{font-size:12px;font-weight:500;}
+.gm-sender{display:flex;align-items:flex-start;gap:14px;padding:0 20px;}
+.gm-av{width:40px;height:40px;border-radius:50%;background:#e8710a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0;}
+.gm-sender b{font-size:14px;} .gm-sender span{font-size:12px;color:#5f6368;}
+.gm-sender .gm-when{margin-left:auto;font-size:12px;color:#5f6368;white-space:nowrap;}
+.gm-msg{margin:14px 20px 0 74px;font-size:14px;line-height:1.6;color:#222;}
+.gm-msg p{margin:0 0 10px;}
+.gm-replybar{display:flex;gap:10px;margin:22px 20px 0 74px;flex-wrap:wrap;}
+.gm-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid #747775;border-radius:18px;background:#fff;padding:8px 18px;font:inherit;font-size:14px;color:#444746;cursor:pointer;}
+.gm-pill:hover{background:#f1f3f4;}
+.gm-done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;color:#5f6368;gap:8px;}
+.gm-done .sun{font-size:64px;} .gm-done b{font-size:20px;color:#202124;font-weight:400;}
+.gm-empty{padding:40px 20px;text-align:center;color:#5f6368;font-size:14px;}
+.gm-menu{position:absolute;z-index:20;background:#fff;border-radius:8px;box-shadow:0 4px 8px 3px rgba(60,64,67,.15),0 1px 3px rgba(60,64,67,.3);padding:8px 0;min-width:260px;top:96px;right:40px;}
+.gm-menu h6{margin:4px 16px 8px;font-size:14px;font-weight:500;color:#202124;}
+.gm-menu button{display:flex;justify-content:space-between;width:100%;border:none;background:none;font:inherit;font-size:14px;padding:8px 16px;cursor:pointer;color:#202124;} .gm-menu button:hover{background:#f1f3f4;} .gm-menu button span{color:#5f6368;}
+.gm-compose-win{position:absolute;right:24px;bottom:0;width:min(460px,90%);background:#fff;border-radius:8px 8px 0 0;box-shadow:0 8px 10px 1px rgba(0,0,0,.14),0 3px 14px 2px rgba(0,0,0,.12);z-index:25;display:flex;flex-direction:column;}
+.gm-cw-h{background:#f2f6fc;border-radius:8px 8px 0 0;padding:10px 14px;font-size:14px;font-weight:500;display:flex;justify-content:space-between;align-items:center;}
+.gm-cw-h button{border:none;background:none;font-size:18px;cursor:pointer;color:#444746;}
+.gm-cw-row{display:flex;align-items:center;gap:8px;border-bottom:1px solid #f1f3f4;padding:6px 14px;font-size:14px;color:#5f6368;}
+.gm-cw-row input, .gm-cw-row select{flex:1;border:none;outline:none;font:inherit;font-size:14px;color:#202124;background:transparent;}
+.gm-compose-win textarea{border:none;outline:none;font:inherit;font-size:14px;padding:10px 14px;min-height:130px;resize:vertical;}
+.gm-cw-foot{padding:10px 14px;display:flex;align-items:center;gap:10px;}
+.gm-send{background:#0b57d0;color:#fff;border:none;border-radius:18px;padding:9px 22px;font:inherit;font-weight:600;font-size:14px;cursor:pointer;}
+.gm-snack{position:absolute;left:16px;bottom:16px;background:#3c4043;color:#fff;border-radius:4px;padding:12px 16px;font-size:14px;display:flex;gap:22px;align-items:center;z-index:30;box-shadow:0 3px 5px -1px rgba(0,0,0,.2),0 6px 10px 0 rgba(0,0,0,.14);}
+.gm-snack button{border:none;background:none;color:#a8c7fa;font:inherit;font-weight:600;cursor:pointer;}
+.gm-legend{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:10px 14px;border-top:1px solid #e3e3e3;background:#fff;font-size:12.5px;color:#444746;}
+.gm-legend b{color:#202124;} .gm-legend .gm-kbd{font-family:monospace;background:#f1f3f4;border-radius:3px;padding:0 4px;}
+.gm-legend .gm-submit{margin-left:auto;}
+.gm-progress{height:4px;background:#e8eaed;} .gm-progress i{display:block;height:100%;background:#0b57d0;transition:width .3s;}
+.gm-res-row{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:8px 0;font-size:13px;flex-wrap:wrap;} .gm-res-row b{color:var(--navy);}
+@media(max-width:860px){.gm-body{grid-template-columns:1fr;} .gm-nav{display:flex;gap:4px;overflow-x:auto;padding:4px 8px;} .gm-nav .gm-compose{display:none;} .gm-folder{width:auto;white-space:nowrap;border-radius:16px;} .gm-folder small{display:none;} .gm-main{margin:0 8px 8px;} .gm-from{width:110px;} .gm-logo{min-width:0;} .gm-logo span{display:none;} .gm-read h2, .gm-msg, .gm-replybar{margin-left:20px;}}
+
+.gm-lblhead{display:flex;align-items:center;justify-content:space-between;padding:14px 12px 4px 16px;font-size:14px;font-weight:600;color:#202124;}
+.gm-lblhead button{border:none;background:none;font-size:20px;line-height:1;cursor:pointer;color:#444746;width:28px;height:28px;border-radius:50%;} .gm-lblhead button:hover{background:#e9eaed;}
+.gm-lbl{display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;font:inherit;font-size:13.5px;color:#202124;height:30px;border-radius:0 16px 16px 0;cursor:pointer;text-align:left;padding-right:12px;}
+.gm-lbl:hover{background:#e9eaed;} .gm-lbl.on{background:#d3e3fd;font-weight:700;}
+.gm-lbl i{width:10px;height:10px;border-radius:2px;flex-shrink:0;} .gm-lbl span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} .gm-lbl em{font-style:normal;font-size:12px;color:#5f6368;}
+.gm-chip{display:inline-block;font-size:11.5px;font-weight:600;border-radius:4px;padding:1px 6px;margin-right:6px;color:#fff;vertical-align:1px;}
+.gm-dialog{position:absolute;inset:0;background:rgba(32,33,36,.45);display:flex;align-items:center;justify-content:center;z-index:40;}
+.gm-dialog > div{background:#fff;border-radius:24px;padding:22px 24px;width:min(400px,92%);box-shadow:0 8px 24px rgba(0,0,0,.25);}
+.gm-dialog h6{margin:0 0 14px;font-size:20px;font-weight:400;color:#202124;}
+.gm-dialog label{display:block;font-size:12.5px;color:#444746;margin:10px 0 4px;}
+.gm-dialog input[type=text], .gm-dialog select{width:100%;box-sizing:border-box;font:inherit;font-size:14px;border:1px solid #747775;border-radius:4px;padding:10px;}
+.gm-dialog .row{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+.gm-dialog .row button{border:none;background:none;font:inherit;font-weight:600;color:#0b57d0;padding:9px 16px;border-radius:18px;cursor:pointer;} .gm-dialog .row button.pri{background:#0b57d0;color:#fff;}
+.gm-lblmenu button .ind{display:inline-block;} .gm-lblmenu button.on{background:#e8f0fe;font-weight:700;}
+.gm-loading{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;color:#5f6368;background:#fff8e1;border-bottom:1px solid #f1f3f4;}
+.gm-loading.err{background:#fce8e6;color:#a50e0e;} .gm-loading button{border:none;background:none;color:#0b57d0;font:inherit;font-weight:600;cursor:pointer;}
+.gm-link{color:#0b57d0;text-decoration:underline;cursor:pointer;}
+.gm-howto{background:#fff;border:1px solid var(--line);border-left:4px solid var(--orange);border-radius:12px;padding:12px 16px;margin:0 0 12px;font-size:13.5px;line-height:1.6;color:#37394A;}
+.gm-howto b{color:var(--navy);}
+.gm-fail{background:#fce8e6;border:1px solid #f5c2bd;border-radius:14px;padding:18px 20px;color:#7a352c;}
+.gm-fail h3{margin:0 0 6px !important;color:#a50e0e !important;font-size:19px !important;}
+.gm-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 14px;}
+.gm-tiles div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;} .gm-tiles b{display:block;font-size:24px;color:var(--navy);font-family:'Fraunces',Georgia,serif;} .gm-tiles span{font-size:12px;color:var(--ink-soft);font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+.gm-tiles div.all{background:var(--navy);border-color:var(--navy);} .gm-tiles div.all b, .gm-tiles div.all span{color:#fff;}
+@media(max-width:860px){.gm-lblhead, .gm-lbl{display:none;}}
+
 </style>
 </head>
 <body>
@@ -57,183 +122,16 @@
 <div class="sim-wrap">
     <section class="sim-hero">
         <div class="eyebrow">Simulator · Email</div>
-        <h1>Email Practice</h1>
-        <p>Real correspondence from a case file: a client, an adjuster, a lienholder, opposing counsel, your attorney. Read it, then reply here, or have it sent to your own inbox and reply from there like you would at work. Every reply gets a scored debrief.</p>
+        <h1>Email Workspace</h1>
+        <p>A Gmail-style inbox for any program. File every email under a label (create your own folders and nest sub-labels), clear the inbox with one decision per email, reply in each sender’s style — and don’t get phished. One submission grades filing, security, triage and your replies.</p>
     </section>
     <div id="app"></div>
 </div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="/app.js"></script>
 <script src="/portal.js"></script>
 <script src="/simulators/sim.js"></script>
-<script src="/simulators/call-pack-cm.js"></script>
-<script>
-/* Scenarios live in /simulators/email-packs/emails.json — the server sends only these. */
-const START_PROGRAM = (() => { const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'CM' : p.startsWith('EA') ? 'EA' : 'All'; })();
-let E = { emails: [], delivery: false, filter: START_PROGRAM, phase: 'list', cur: null, mode: 'here', to: '', draft: '', token: null, poll: null, reply: null, debrief: null, busy: false };
-const $app = () => document.getElementById('app');
-const SENT_KEY = 'LSH_EMAIL_PRACTICE_SENT';
-function sent() { try { return JSON.parse(localStorage.getItem(SENT_KEY) || '[]'); } catch (e) { return []; } }
-function saveSent(list) { try { localStorage.setItem(SENT_KEY, JSON.stringify(list.slice(0, 30))); } catch (e) {} }
-function initials(n) { return String(n).replace(/[^A-Za-z ]/g, '').split(' ').filter(Boolean).map(x => x[0]).join('').slice(0, 2).toUpperCase() || '✉'; }
-function byId(id) { return E.emails.find(m => m.id === id); }
-function progLabel(p) { return p === 'All' ? 'All programs' : p === 'CM' ? 'Case Management' : 'EA / PA'; }
-
-function render() {
-    Sim.label('Email Practice');
-    if (E.phase === 'read') return renderRead();
-    if (E.phase === 'debrief') return renderDebrief();
-    return renderList();
-}
-function renderList() {
-    const list = E.emails.filter(m => E.filter === 'All' || m.program === E.filter || m.program === 'All');
-    const mine = sent();
-    $app().innerHTML = `
-        <div class="filters">${[['All', 'All emails'], ['CM', 'Case Management'], ['EA', 'Executive support (EA/PA)']].map(([k, l]) => `<button class="${E.filter === k ? 'on' : ''}" onclick="E.filter='${k}';render()">${l}</button>`).join('')}</div>
-        ${mine.length ? `<div class="sim-card" style="margin-bottom:16px;"><div class="sim-kicker">Sent to your inbox</div>
-            ${mine.map(s => { const m = byId(s.emailId) || { title: s.emailId }; return `<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px dashed #e2e8f0;flex-wrap:wrap;">
-                <div style="font-size:13.5px;"><b>${Sim.esc(m.title)}</b> <span class="sim-muted">→ ${Sim.esc(s.to)} · ${Sim.esc(Sim.fmtDate(s.at))}</span></div>
-                <div style="display:flex;gap:8px;align-items:center;">${s.scored != null ? `<span class="chip done">Scored ${s.scored}%</span>` : '<span class="chip wait">Waiting for your reply</span>'}
-                <button class="sim-btn ghost" onclick="openSent('${s.token}')">Open</button></div></div>`; }).join('')}</div>` : ''}
-        <div class="sim-card inbox">${list.length ? list.map(m => `
-            <div class="row" onclick="openEmail('${m.id}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openEmail('${m.id}')">
-                <span class="av">${initials(m.from.name)}</span>
-                <span class="fr">${Sim.esc(m.from.name)}</span>
-                <span class="sj"><b>${Sim.esc(m.subject)}</b> <span>— ${Sim.esc(m.body.replace(/\s+/g, ' ').slice(0, 90))}…</span></span>
-                <span class="tg"><span class="chip">${Sim.esc(progLabel(m.program))}</span><span class="chip">${Sim.esc(m.level)}</span></span>
-            </div>`).join('') : '<div style="padding:18px;" class="sim-muted">No practice emails for this program yet.</div>'}</div>`;
-}
-function openEmail(id) {
-    stopPoll();
-    E.cur = byId(id); E.phase = 'read'; E.mode = 'here'; E.token = null; E.reply = null; E.debrief = null;
-    E.draft = `Hi ${E.cur.from.name.split(' ')[0]},\n\n\n\nBest regards,\n${Sim.who().name || ''}`;
-    E.to = (sent()[0] || {}).to || '';
-    render(); window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-function openSent(token) {
-    const s = sent().find(x => x.token === token); if (!s) return;
-    E.cur = byId(s.emailId); if (!E.cur) return;
-    E.phase = 'read'; E.mode = 'inbox'; E.token = token; E.to = s.to; E.reply = null; E.debrief = null;
-    render(); startPoll();
-}
-function renderRead() {
-    const m = E.cur;
-    const left = `<div class="sim-card">
-        <button class="sim-btn ghost" onclick="stopPoll();E.phase='list';render()" style="margin-bottom:12px;">← Inbox</button>
-        <h2>${Sim.esc(m.subject)}</h2>
-        <div class="hdr"><span class="av">${initials(m.from.name)}</span><div class="meta"><b>${Sim.esc(m.from.name)}</b> &lt;${Sim.esc(m.from.email)}&gt;<br>${Sim.esc(m.from.role)}</div></div>
-        <div class="body">${Sim.esc(m.body)}</div>
-        ${(m.attachments || []).map(a => `<span class="att">📎 ${Sim.esc(a)}</span>`).join('')}
-        <div class="facts"><b>Your role:</b> ${Sim.esc(m.you)}<br><br><b>What you know:</b> ${Sim.esc(m.facts)}</div>
-        ${m.caseFile && window.CM_CASE_SUMMARY ? `<details class="casefile"><summary>📂 Case summary: John Doe v. Apex Delivery Services</summary><pre>${Sim.esc(window.CM_CASE_SUMMARY)}</pre></details>` : ''}
-    </div>`;
-    let right;
-    if (E.token) {
-        right = E.reply ? `<div class="sim-card"><div class="sim-kicker">Your reply (from your inbox)</div><div class="reply">${Sim.esc(E.reply)}</div>
-                <div class="actions"><button class="sim-btn orange" onclick="gradeReply(E.reply,'inbox')" ${E.busy ? 'disabled' : ''}>Score my reply</button></div></div>`
-            : `<div class="sim-card waiting"><div class="big">📬</div><b>Sent to ${Sim.esc(E.to)}</b>
-                <p class="sim-muted" style="font-size:13.5px;">Open it in your inbox (check spam the first time) and reply as you would at work. This page checks for your reply every few seconds; you can also leave and come back from the inbox list.</p>
-                <div class="actions" style="justify-content:center;"><button class="sim-btn ghost" onclick="checkReply(true)">Check now</button></div></div>`;
-    } else {
-        right = `<div class="sim-card compose">
-            <div class="tabs"><button class="${E.mode === 'here' ? 'on' : ''}" onclick="E.mode='here';render()">Answer here</button><button class="${E.mode === 'inbox' ? 'on' : ''}" onclick="E.mode='inbox';render()" ${E.delivery ? '' : 'disabled title="Inbox delivery isn’t set up on this portal yet"'}>Send to my inbox</button></div>
-            ${E.mode === 'here' ? `
-                <label>To</label><input value="${Sim.esc(m.from.name)} <${Sim.esc(m.from.email)}>" disabled>
-                <label>Subject</label><input value="Re: ${Sim.esc(m.subject)}" disabled>
-                <label>Your reply</label><textarea id="draft" oninput="E.draft=this.value">${Sim.esc(E.draft)}</textarea>
-                <div class="actions"><button class="sim-btn orange" onclick="gradeReply(document.getElementById('draft').value,'here')" ${E.busy ? 'disabled' : ''}>Send &amp; score</button></div>`
-            : `<label>Your email address</label><input id="toAddr" type="email" autocomplete="email" value="${Sim.esc(E.to)}" placeholder="you@yourcompany.com" oninput="E.to=this.value">
-                <p class="note">We'll email this message to you from the LSH Training Portal. Reply from your inbox; your reply comes back here and is scored. Limit: a few practice emails per address per day.</p>
-                <div class="actions"><button class="sim-btn orange" onclick="sendToInbox()" ${E.busy ? 'disabled' : ''}>📨 Send it to me</button></div>`}
-            ${E.delivery ? '' : '<p class="note">Inbox delivery isn’t set up on this portal yet, so replies are written here for now.</p>'}
-        </div>`;
-    }
-    $app().innerHTML = `<div class="mail">${left}${right}</div>`;
-}
-async function sendToInbox() {
-    const to = (document.getElementById('toAddr') || {}).value.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to)) { alert('Enter a valid email address.'); return; }
-    E.busy = true; render();
-    try {
-        const w = Sim.who();
-        const res = await fetch('/api/email-practice', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'send', emailId: E.cur.id, to, who: { name: w.name, batch: w.batch, program: w.program } }) });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.success) throw new Error(data.error || `Couldn't send (${res.status}).`);
-        E.token = data.token; E.to = to;
-        saveSent([{ token: data.token, emailId: E.cur.id, to, at: new Date().toISOString(), scored: null }].concat(sent()));
-        E.busy = false; render(); startPoll();
-    } catch (e) { E.busy = false; render(); alert(e.message); }
-}
-function startPoll() { stopPoll(); checkReply(); E.poll = setInterval(checkReply, 8000); }
-function stopPoll() { if (E.poll) clearInterval(E.poll); E.poll = null; }
-async function checkReply(manual) {
-    if (!E.token) return;
-    try {
-        const res = await fetch('/api/email-practice?token=' + encodeURIComponent(E.token), { credentials: 'include' });
-        const data = await res.json().catch(() => ({}));
-        if (data.success && data.status === 'replied') { stopPoll(); E.reply = data.reply; if (E.phase === 'read') render(); }
-        else if (manual) alert('No reply yet — reply to the practice email from your inbox, then check again.');
-    } catch (e) { if (manual) alert('Couldn’t check for your reply: ' + e.message); }
-}
-async function gradeReply(text, mode) {
-    const m = E.cur; text = String(text || '').trim();
-    const bare = text.replace(/^Hi [^\n]*,?/, '').replace(/Best regards,[\s\S]*$/, '').trim();
-    if (bare.length < 20) { alert('Write your reply first.'); return; }
-    stopPoll();
-    E.phase = 'debrief'; E.debrief = { loading: true, text, mode }; render();
-    const system = 'You are an experienced legal-support trainer grading a practice email reply. Be fair, specific and encouraging; frame gaps as "not yet — here is the better way".';
-    const prompt = `SCENARIO: ${m.title}
-TRAINEE ROLE: ${m.you}
-WHAT THE TRAINEE KNEW: ${m.facts}
-INCOMING EMAIL from ${m.from.name} (${m.from.role}), subject "${m.subject}"${(m.attachments || []).length ? `, attachments: ${m.attachments.join(', ')}` : ''}:
-${m.body}
-
-GOALS TO GRADE:
-${m.goals.map((g, i) => `${i + 1}. ${g}`).join('\n')}
-
-THE TRAINEE'S REPLY:
-${text}
-
-Also judge professional email craft: clear subject handling, greeting and sign-off, concise paragraphs, a clear next step, no typos that change meaning. Any legal advice, case valuation, guarantee, or disclosure of confidential information should pull the score well below 70.
-Return ONLY JSON:
-{"score": 0-100, "verdict": "one sentence overall", "goals": [{"goal": "…", "met": true|false, "note": "what they did or missed, quoting briefly"}], "strengths": ["…"], "improve": ["concrete next step", "…"], "betterVersion": "a short model reply (under 140 words) that meets every goal"}`;
-    try {
-        const r = await Sim.ai({ system, messages: [{ role: 'user', text: prompt }], json: true, maxTokens: 1100 });
-        E.debrief = Object.assign({ text, mode }, r);
-        Sim.saveResult({ simulator: 'Email Practice', scenario: m.title, score: r.score, summary: r.verdict, details: { emailId: m.id, program: m.program, mode, reply: text, goals: r.goals } });
-        if (E.token) saveSent(sent().map(s => s.token === E.token ? Object.assign({}, s, { scored: Math.round(r.score || 0) }) : s));
-    } catch (e) { E.debrief = { error: 'Couldn’t score the reply: ' + e.message, text, mode }; }
-    render();
-}
-function renderDebrief() {
-    const d = E.debrief || {}, m = E.cur;
-    if (d.loading) { $app().innerHTML = `<div class="sim-card"><div class="sim-loading">Scoring your reply…</div></div>`; return; }
-    const again = `<div class="actions" style="margin-top:18px;"><button class="sim-btn orange" onclick="openEmail('${m.id}')">↻ Try this email again</button><button class="sim-btn ghost" onclick="E.phase='list';render()">Back to the inbox</button><a class="sim-btn ghost" href="/simulators.html">All simulators</a></div>`;
-    if (d.error) { $app().innerHTML = `<div class="sim-card"><div class="sim-error">${Sim.esc(d.error)}</div>${again}</div>`; return; }
-    $app().innerHTML = `<div class="sim-card">
-        <div class="deb-top"><div class="ring">${Math.round(d.score || 0)}</div><div><div class="sim-kicker">Email debrief · ${d.mode === 'inbox' ? 'replied from your inbox' : 'answered here'}</div><h2 style="margin:0 0 4px;font-size:21px;">${Sim.esc(m.title)}</h2><div class="sim-muted" style="font-size:14px;">${Sim.esc(d.verdict || '')}</div></div></div>
-        <div class="sim-kicker">Goals</div>
-        <ul class="goals">${(d.goals || []).map(g => `<li><span class="${g.met ? 'ok' : 'no'}">${g.met ? '✓' : '○'}</span><div>${Sim.esc(g.goal)}<small>${Sim.esc(g.note || '')}</small></div></li>`).join('')}</ul>
-        <div class="cols2"><div><h4>What worked</h4><ul>${(d.strengths || []).map(x => `<li>${Sim.esc(x)}</li>`).join('')}</ul></div><div><h4>Not yet — next time</h4><ul>${(d.improve || []).map(x => `<li>${Sim.esc(x)}</li>`).join('')}</ul></div></div>
-        ${d.betterVersion ? `<div class="better"><b>A stronger reply:</b>\n${Sim.esc(d.betterVersion)}</div>` : ''}
-        <details style="margin-top:14px;"><summary style="cursor:pointer;font-weight:700;font-size:13px;">Your reply</summary><div class="reply" style="margin-top:10px;">${Sim.esc(d.text || '')}</div></details>
-        ${again}</div>`;
-}
-async function boot() {
-    document.getElementById('topbar').innerHTML = Sim.topbar('email');
-    $app().innerHTML = `<div class="sim-card"><div class="sim-loading">Loading the inbox…</div></div>`;
-    try {
-        const [pack, status] = await Promise.all([
-            fetch('/simulators/email-packs/emails.json').then(r => r.json()),
-            fetch('/api/email-practice?status=1').then(r => r.json()).catch(() => ({}))
-        ]);
-        E.emails = pack.emails || []; E.delivery = !!(status && status.delivery);
-        render();
-    } catch (e) { $app().innerHTML = `<div class="sim-card"><div class="sim-error">Couldn’t load the practice emails: ${Sim.esc(e.message)}</div></div>`; }
-}
-document.addEventListener('DOMContentLoaded', boot);
-</script>
+<script src="/simulators/email-packs.js"></script>
+<script src="/simulators/email.js"></script>
 </body>
 </html>

@@ -1,11 +1,11 @@
 import { json } from '../_utils.js';
 import { ensureEmailTable } from '../_email.js';
 
-// Postmark inbound webhook for Email Practice replies.
+// Postmark inbound webhook for Email Replies (/simulators/email-replies.html).
 // Set the server's Inbound webhook URL to:
 //   https://<portal address>/api/email-inbound?key=<EMAIL_INBOUND_SECRET>
 // Practice emails go out with Reply-To <inbound>+<token>@inbound.postmarkapp.com,
-// so Postmark hands us the token as MailboxHash. The Email Practice page polls
+// so Postmark hands us the token as MailboxHash. The Email Replies page polls
 // /api/email-practice?token=… and scores the reply.
 function sameSecret(a, b) {
     a = String(a || ''); b = String(b || '');
