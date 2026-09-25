@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendaring — LSH Training Portal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/simulators/sim.css">
+<style>
+    .sc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } @media (max-width: 800px) { .sc-grid { grid-template-columns: 1fr; } }
+    .sc-card { cursor: pointer; transition: transform .15s ease; } .sc-card:hover { transform: translateY(-3px); }
+    .sc-card h3 { margin: 6px 0; font-size: 18px; font-weight: 800; } .sc-card p { margin: 0; font-size: 13.5px; color: #334155; line-height: 1.55; }
+    .bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .bar .grow { flex: 1; }
+    .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; font-weight: 700; color: var(--slate); }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+    .rules { font-size: 13.5px; line-height: 1.6; } .rules summary { cursor: pointer; font-weight: 800; }
+    .rules ul { margin: 8px 0 0; padding-left: 20px; }
+    .week { display: grid; grid-template-columns: 56px repeat(5, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+    .week .hd { background: #f8fafc; border-bottom: 1px solid var(--line); padding: 8px; font-size: 12.5px; font-weight: 800; text-align: center; }
+    .week .col { position: relative; border-left: 1px solid var(--line); }
+    .week .hours { position: relative; }
+    .hr { position: absolute; left: 0; right: 0; border-top: 1px solid #f1f5f9; }
+    .hr span { position: absolute; top: -8px; left: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--slate); background: #fff; padding: 0 2px; }
+    .biz { position: absolute; left: 0; right: 0; background: rgba(249,115,22,.035); pointer-events: none; }
+    .ev { position: absolute; border-radius: 8px; padding: 4px 6px; font-size: 11.5px; line-height: 1.3; overflow: hidden; cursor: pointer; color: #fff; border: 2px solid transparent; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+    .ev b { display: block; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ev small { opacity: .9; }
+    .ev.conflict { border-color: #dc2626; box-shadow: 0 0 0 2px #fecaca; }
+    .ev.sel { outline: 3px solid var(--orange); outline-offset: 1px; }
+    .t-court, .t-depo { background: #7c2d12; } .t-client { background: #1d4ed8; } .t-internal { background: #475569; } .t-prep { background: #0f766e; }
+    .t-filing { background: #b91c1c; } .t-personal { background: #7e22ce; } .t-travel { background: #334155; } .t-meal { background: #a16207; } .t-meeting { background: #0f2148; } .t-task { background: #57534e; }
+    .editor { position: fixed; right: 20px; top: 90px; width: 340px; max-width: calc(100vw - 40px); z-index: 40; }
+    .editor h3 { margin: 0 0 4px; font-size: 16px; font-weight: 800; }
+    .editor label { display: block; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--slate); margin: 10px 0 4px; }
+    .editor input, .editor select, .editor textarea { width: 100%; font: inherit; font-size: 13.5px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 10px; }
+    .editor .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .editor .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .lock { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 8px 10px; font-size: 12.5px; margin-top: 8px; }
+    .res-top { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+    .ring { width: 86px; height: 86px; border-radius: 50%; border: 6px solid var(--orange); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; }
+    .viol { list-style: none; margin: 12px 0 0; padding: 0; } .viol li { padding: 8px 0; border-top: 1px dashed #e2e8f0; font-size: 13.5px; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; }
+    .viol .x { color: var(--bad); font-weight: 900; } .viol .pts { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--bad); }
+    .okline { color: var(--ok); font-weight: 700; font-size: 14px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div id="topbar"></div>
+<div class="sim-wrap">
+    <section class="sim-hero">
+        <div class="eyebrow">Simulator · Calendaring</div>
+        <h1>Calendaring</h1>
+        <p>A real week, full of conflicts. Click any event to move it, shorten it or remove it, and add what's missing — prep time, buffers, travel. Court times are fixed. When you think the week works, press <b>Check my plan</b>.</p>
+    </section>
+    <div id="app"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/app.js"></script>
+<script src="/portal.js"></script>
+<script src="/simulators/sim.js"></script>
+<script>
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+const T = (h, m) => h * 60 + (m || 0);
+/* type: court | depo | client | internal | prep | filing | personal | travel | meal | meeting | task
+   locked: fixed by a court/airline — can't be moved.  required: can't be removed.  offsite: needs 30 min travel time before.
+   buffer: needs 15 min free after (debrief).  prepFor: tag; events with needsPrep need a prep event with the same tag earlier.
+   due: {day, time} — a filing must finish by then. */
+const SCENARIOS = {
+  cm: { title: 'Litigation week — Case Management', program: 'Case Management',
+    intro: 'You manage the calendar for a litigation team handling personal-injury cases. Everything below is already booked for next week — and it doesn’t work.',
+    events: [
+      { title: 'Team case review', day: 0, s: T(9), d: 60, type: 'internal', p: 'med', required: true },
+      { title: 'Client meeting — Nguyen (records)', day: 0, s: T(10, 30), d: 90, type: 'client', p: 'high' },
+      { title: 'Deposition prep — Rapid Freight driver', day: 0, s: T(11, 30), d: 60, type: 'prep', p: 'high', tag: 'depo' },
+      { title: 'Mediation — Alvarez v. Coastline', day: 0, s: T(14), d: 120, type: 'court', p: 'high', locked: true, offsite: true, buffer: true, loc: 'Downtown Mediation Center' },
+      { title: 'Call — Summit Mutual adjuster', day: 0, s: T(15, 30), d: 30, type: 'client', p: 'med' },
+      { title: 'Deposition — Rapid Freight driver', day: 1, s: T(9, 30), d: 180, type: 'depo', p: 'high', locked: true, offsite: true, buffer: true, needsPrep: 'depo', loc: 'Opposing counsel’s office' },
+      { title: 'Records review — Harbor PT', day: 1, s: T(12, 30), d: 90, type: 'task', p: 'med' },
+      { title: 'Internal billing review', day: 1, s: T(13, 30), d: 60, type: 'internal', p: 'low' },
+      { title: 'Hearing — Motion to compel (Dept 14)', day: 2, s: T(9), d: 90, type: 'court', p: 'high', locked: true, offsite: true, buffer: true, needsPrep: 'motion', loc: 'County Courthouse' },
+      { title: 'New client consult — Reyes', day: 2, s: T(10), d: 60, type: 'client', p: 'high' },
+      { title: 'CLE lunch & learn', day: 2, s: T(12), d: 60, type: 'meal', p: 'low' },
+      { title: 'File: Opposition brief (due 5 PM Wed)', day: 2, s: T(16), d: 90, type: 'filing', p: 'high', required: true, due: { day: 2, time: T(17) } },
+      { title: 'Medical-records follow-up calls', day: 3, s: T(8), d: 60, type: 'task', p: 'med' },
+      { title: 'Client meeting — Osei (invoice issue)', day: 3, s: T(10), d: 90, type: 'client', p: 'high', required: true },
+      { title: 'Case team sync', day: 3, s: T(11), d: 60, type: 'internal', p: 'med' },
+      { title: 'Treatment update — Harbor PT', day: 3, s: T(14), d: 60, type: 'client', p: 'med' },
+      { title: 'Weekly status reports', day: 4, s: T(9), d: 60, type: 'internal', p: 'high', required: true },
+      { title: 'Settlement conference — Nguyen', day: 4, s: T(10), d: 120, type: 'court', p: 'high', locked: true, buffer: true, needsPrep: 'settle', loc: 'Virtual' },
+      { title: 'Vendor demo — e-discovery tool', day: 4, s: T(11, 30), d: 60, type: 'meeting', p: 'low' },
+      { title: 'Weekly wrap-up', day: 4, s: T(13), d: 60, type: 'internal', p: 'med' }
+    ] },
+  ea: { title: 'Executive week — EA / PA', program: 'EA / PA',
+    intro: 'You run Elias Thorne’s calendar (Managing Owner & CEO, Thorne & Partners Law Group). His standing rules: no back-to-back court and meetings, protect his lunch, never let the Friday “closing the loop” call slip, and keep personal commitments.',
+    events: [
+      { title: 'Partner meeting', day: 0, s: T(8, 30), d: 60, type: 'internal', p: 'high', required: true },
+      { title: 'Call — Board Chair D. Whitfield', day: 0, s: T(9), d: 60, type: 'client', p: 'high', required: true },
+      { title: 'Deposition prep — Farrow', day: 0, s: T(13), d: 60, type: 'prep', p: 'high', tag: 'farrow' },
+      { title: 'Lunch — Marcus Lee (Marlowe’s)', day: 0, s: T(12), d: 90, type: 'meal', p: 'high', offsite: true },
+      { title: 'Hearing — Farrow matter', day: 1, s: T(9), d: 120, type: 'court', p: 'high', locked: true, offsite: true, buffer: true, needsPrep: 'farrow', loc: 'Superior Court' },
+      { title: 'Media inquiry call — with Priya Nair', day: 1, s: T(11), d: 30, type: 'client', p: 'med' },
+      { title: 'Vendor pitch — BrightLedger', day: 1, s: T(14), d: 60, type: 'meeting', p: 'low' },
+      { title: 'Board prep — Whitfield', day: 1, s: T(14, 30), d: 60, type: 'client', p: 'high' },
+      { title: 'Gym', day: 2, s: T(7), d: 60, type: 'personal', p: 'med' },
+      { title: 'Board meeting (12 attendees)', day: 2, s: T(10), d: 120, type: 'internal', p: 'high', required: true, needsPrep: 'board' },
+      { title: 'Firm leadership lunch', day: 2, s: T(11, 30), d: 60, type: 'meal', p: 'med' },
+      { title: 'Sign-off: Q3 filings (due 5 PM)', day: 2, s: T(16, 30), d: 60, type: 'filing', p: 'high', required: true, due: { day: 2, time: T(17) } },
+      { title: 'Call — opposing counsel', day: 2, s: T(16), d: 60, type: 'client', p: 'med' },
+      { title: 'Flight to Chicago', day: 3, s: T(6), d: 180, type: 'travel', p: 'high', locked: true },
+      { title: 'Client meeting — Chicago office', day: 3, s: T(11), d: 90, type: 'client', p: 'high', offsite: true, required: true },
+      { title: 'Team stand-up (virtual)', day: 3, s: T(11), d: 30, type: 'internal', p: 'low' },
+      { title: 'Client dinner (Paleo / dairy-free)', day: 3, s: T(19, 30), d: 120, type: 'meal', p: 'high', offsite: true },
+      { title: 'Weekly briefing prep', day: 4, s: T(9), d: 60, type: 'prep', p: 'med', tag: 'brief' },
+      { title: '“Closing the loop” call', day: 4, s: T(10), d: 60, type: 'internal', p: 'high', required: true },
+      { title: 'Dentist', day: 4, s: T(10, 30), d: 60, type: 'personal', p: 'med' },
+      { title: 'Investor call', day: 4, s: T(15), d: 60, type: 'client', p: 'high' }
+    ] }
+};
+const TYPE_LABEL = { court: 'Court / mediation', depo: 'Deposition', client: 'Client / external', internal: 'Internal', prep: 'Prep', filing: 'Filing / deadline', personal: 'Personal', travel: 'Travel', meal: 'Meal', meeting: 'Meeting', task: 'Task' };
+const HOURS_EXEMPT = ['personal', 'travel', 'meal'];
+const G0 = T(6), G1 = T(22), PX = 0.8;
+let S = { key: null, events: [], sel: null, result: null, changes: 0, startedAt: 0 };
+const $app = () => document.getElementById('app');
+const fmt = (m) => { const h = Math.floor(m / 60), mm = m % 60; return `${h % 12 || 12}:${String(mm).padStart(2, '0')}${h < 12 ? ' AM' : ' PM'}`; };
+
+function start(key) {
+    S.key = key; S.events = SCENARIOS[key].events.map((e, i) => Object.assign({ id: 'e' + i, orig: { day: e.day, s: e.s, d: e.d } }, e));
+    S.sel = null; S.result = null; S.changes = 0; S.startedAt = Date.now();
+    Sim.label('Calendaring — ' + SCENARIOS[key].program);
+    render();
+}
+function overlaps(a, b) { return a.day === b.day && a.s < b.s + b.d && b.s < a.s + a.d; }
+function conflictIds() { const ids = new Set(), ev = S.events.filter(e => !e.deleted); for (let i = 0; i < ev.length; i++) for (let j = i + 1; j < ev.length; j++) if (overlaps(ev[i], ev[j])) { ids.add(ev[i].id); ids.add(ev[j].id); } return ids; }
+function lanes(dayEvents) {
+    const sorted = dayEvents.slice().sort((a, b) => a.s - b.s || b.d - a.d), out = new Map();
+    let group = [], groupEnd = -1;
+    const flush = () => { const cols = []; group.forEach(e => { let c = cols.findIndex(end => end <= e.s); if (c < 0) { c = cols.length; cols.push(0); } cols[c] = e.s + e.d; out.set(e.id, { col: c }); }); group.forEach(e => out.get(e.id).n = cols.length); group = []; };
+    sorted.forEach(e => { if (e.s >= groupEnd && group.length) { flush(); groupEnd = -1; } group.push(e); groupEnd = Math.max(groupEnd, e.s + e.d); });
+    if (group.length) flush();
+    return out;
+}
+function render() {
+    if (!S.key) return renderPick();
+    const sc = SCENARIOS[S.key], cf = conflictIds();
+    const hours = []; for (let m = G0; m <= G1; m += 60) hours.push(m);
+    const H = (G1 - G0) * PX;
+    const col = (d) => { const evs = S.events.filter(e => !e.deleted && e.day === d); const L = lanes(evs);
+        return `<div class="col" style="height:${H}px;"><div class="biz" style="top:${(T(8) - G0) * PX}px;height:${(T(18) - T(8)) * PX}px;"></div>${hours.map(m => `<div class="hr" style="top:${(m - G0) * PX}px"></div>`).join('')}
+        ${evs.map(e => { const l = L.get(e.id) || { col: 0, n: 1 }, w = 100 / l.n; return `<div class="ev t-${e.type} ${cf.has(e.id) ? 'conflict' : ''} ${S.sel === e.id ? 'sel' : ''}" style="top:${(e.s - G0) * PX}px;height:${Math.max(e.d * PX, 18)}px;left:calc(${l.col * w}% + 2px);width:calc(${w}% - 4px);" onclick="openEditor('${e.id}')" title="${Sim.esc(e.title)}"><b>${e.locked ? '🔒 ' : ''}${Sim.esc(e.title)}</b><small>${fmt(e.s)}–${fmt(e.s + e.d)}</small></div>`; }).join('')}</div>`; };
+    $app().innerHTML = `
+        <div class="sim-card" style="margin-bottom:14px;">
+            <div class="bar"><div class="grow"><div class="sim-kicker">${Sim.esc(sc.program)}</div><div style="font-size:18px;font-weight:800;">${Sim.esc(sc.title)}</div></div>
+                <span class="sim-muted" style="font-size:13px;font-weight:700;">${cf.size ? `⚠ ${cf.size} events in conflict` : '✓ No double-bookings'} · ${S.changes} change${S.changes === 1 ? '' : 's'}</span>
+                <button class="sim-btn ghost" onclick="openEditor(null)">＋ Add event</button>
+                <button class="sim-btn ghost" onclick="if(confirm('Reset the week to how it started?'))start(S.key)">↺ Reset</button>
+                <button class="sim-btn orange" onclick="checkPlan()">Check my plan</button></div>
+            <p style="font-size:14px;margin:0 0 10px;">${Sim.esc(sc.intro)}</p>
+            <details class="rules"><summary>The rules this week is checked against</summary><ul>
+                <li><b>No double-bookings.</b> Red outlines show events that overlap.</li>
+                <li><b>🔒 Court, mediation, deposition and flight times are fixed</b> — plan around them.</li>
+                <li><b>Prep before hearings, depositions, conferences and board meetings</b> — a Prep event (≥30 min) for that matter, earlier in the week.</li>
+                <li><b>15-minute debrief buffer</b> after court, mediation and depositions.</li>
+                <li><b>30 minutes of travel time</b> before any in-person, off-site event.</li>
+                <li><b>Lunch:</b> at least 30 free minutes between 11:30 AM and 2:00 PM each day (a meal event counts).</li>
+                <li><b>Business hours:</b> work between 8:00 AM and 6:00 PM (personal, travel and meals are exempt).</li>
+                <li><b>Deadlines:</b> filings finish before their deadline. <b>Required</b> events can move but can’t be removed.</li>
+            </ul></details>
+            <div class="legend" style="margin-top:10px;">${['court', 'client', 'internal', 'prep', 'filing', 'meal', 'personal', 'travel', 'meeting', 'task'].map(t => `<span><i class="t-${t}"></i>${TYPE_LABEL[t]}</span>`).join('')}</div>
+        </div>
+        <div style="overflow-x:auto;"><div class="week" style="min-width:760px;">
+            <div class="hd"></div>${DAYS.map(d => `<div class="hd">${d}</div>`).join('')}
+            <div class="hours" style="height:${H}px;">${hours.map(m => `<div class="hr" style="top:${(m - G0) * PX}px;border:none"><span>${fmt(m).replace(':00', '')}</span></div>`).join('')}</div>
+            ${DAYS.map((_, d) => col(d)).join('')}
+        </div></div>
+        <div id="editor"></div>
+        <div id="result" style="margin-top:16px;">${S.result ? resultHtml() : ''}</div>`;
+    if (S.sel !== null) paintEditor();
+}
+function renderPick() {
+    $app().innerHTML = `<div class="sc-grid">${Object.entries(SCENARIOS).map(([k, s]) => `
+        <div class="sim-card sc-card" onclick="start('${k}')"><span class="sim-chip ${k === 'cm' ? 'next' : 'input'}">${Sim.esc(s.program)}</span><h3>${Sim.esc(s.title)}</h3><p>${Sim.esc(s.intro)}</p>
+        <p class="sim-muted" style="margin-top:8px;font-size:12.5px;">${s.events.length} events · 5 days</p></div>`).join('')}</div>`;
+}
+/* ---------- editor ---------- */
+function timeOpts(sel) { let o = ''; for (let m = G0; m < G1; m += 15) o += `<option value="${m}" ${m === sel ? 'selected' : ''}>${fmt(m)}</option>`; return o; }
+function durOpts(sel) { return [15, 30, 45, 60, 75, 90, 120, 150, 180, 240].map(d => `<option value="${d}" ${d === sel ? 'selected' : ''}>${d < 60 ? d + ' min' : (d / 60) + ' h'}</option>`).join(''); }
+function openEditor(id) { S.sel = id === null ? 'new' : id; paintEditor(); document.querySelectorAll('.ev').forEach(x => x.classList.remove('sel')); }
+function closeEditor() { S.sel = null; const el = document.getElementById('editor'); if (el) el.innerHTML = ''; render(); }
+function paintEditor() {
+    const el = document.getElementById('editor'); if (!el) return;
+    const isNew = S.sel === 'new', e = isNew ? { title: '', day: 0, s: T(9), d: 30, type: 'prep', p: 'med' } : S.events.find(x => x.id === S.sel);
+    if (!e) return;
+    const needPrep = S.events.filter(x => !x.deleted && x.needsPrep);
+    el.innerHTML = `<div class="sim-card editor">
+        <h3>${isNew ? 'Add an event' : Sim.esc(e.title)}</h3>
+        ${!isNew ? `<div class="sim-muted" style="font-size:12.5px;">${TYPE_LABEL[e.type]}${e.loc ? ' · ' + Sim.esc(e.loc) : ''}${e.required ? ' · Required' : ''}</div>` : ''}
+        ${e.locked ? `<div class="lock">🔒 Fixed time — set by the court, mediator or airline. Plan the rest of the day around it.</div>` : `
+        ${isNew ? `<label>Title</label><input id="edTitle" placeholder="e.g. Prep — motion to compel">
+            <label>Type</label><select id="edType" onchange="document.getElementById('edPrepRow').style.display=this.value==='prep'?'block':'none'">${['prep', 'travel', 'meal', 'meeting', 'task', 'internal', 'client'].map(t => `<option value="${t}">${TYPE_LABEL[t]}</option>`).join('')}</select>
+            <div id="edPrepRow"><label>Prep for</label><select id="edTag"><option value="">— General —</option>${needPrep.map(x => `<option value="${x.needsPrep}">${Sim.esc(x.title)}</option>`).join('')}</select></div>` : ''}
+        <div class="row2"><div><label>Day</label><select id="edDay">${DAYS.map((d, i) => `<option value="${i}" ${i === e.day ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
+        <div><label>Start</label><select id="edStart">${timeOpts(e.s)}</select></div></div>
+        <label>Length</label><select id="edDur">${durOpts(e.d)}</select>`}
+        <div class="acts">
+            ${e.locked ? '' : `<button class="sim-btn primary" onclick="saveEvent()">${isNew ? 'Add' : 'Save'}</button>`}
+            ${!isNew && !e.locked ? `<button class="sim-btn ghost" onclick="removeEvent()" title="${e.required ? 'Required — removing it will cost points' : ''}">🗑 Remove</button>` : ''}
+            <button class="sim-btn ghost" onclick="closeEditor()">Close</button>
+        </div></div>`;
+}
+function saveEvent() {
+    const day = +document.getElementById('edDay').value, s = +document.getElementById('edStart').value, d = +document.getElementById('edDur').value;
+    if (S.sel === 'new') {
+        const title = (document.getElementById('edTitle').value || '').trim(), type = document.getElementById('edType').value;
+        if (!title) { alert('Give the event a title.'); return; }
+        const ev = { id: 'n' + Date.now(), title, day, s, d, type, p: 'med', added: true };
+        if (type === 'prep') { const tag = document.getElementById('edTag').value; if (tag) ev.tag = tag; }
+        S.events.push(ev);
+    } else {
+        const e = S.events.find(x => x.id === S.sel); if (!e || e.locked) return;
+        e.day = day; e.s = s; e.d = d;
+    }
+    S.changes++; S.result = null; S.sel = null; render();
+}
+function removeEvent() {
+    const e = S.events.find(x => x.id === S.sel); if (!e) return;
+    if (e.required && !confirm('This event is required. Remove it anyway? (It will count against your plan.)')) return;
+    if (e.added) S.events = S.events.filter(x => x !== e); else e.deleted = true;
+    S.changes++; S.result = null; S.sel = null; render();
+}
+/* ---------- checking ---------- */
+function checkPlan() {
+    const ev = S.events.filter(e => !e.deleted), V = [];
+    const add = (pts, text) => V.push({ pts, text });
+    for (let i = 0; i < ev.length; i++) for (let j = i + 1; j < ev.length; j++) if (overlaps(ev[i], ev[j])) add(12, `Double-booked on ${DAYS[ev[i].day]}: “${ev[i].title}” and “${ev[j].title}”.`);
+    S.events.filter(e => e.deleted && e.required).forEach(e => add(15, `Required event removed: “${e.title}”.`));
+    ev.filter(e => e.due).forEach(e => { const end = e.s + e.d; if (e.day > e.due.day || (e.day === e.due.day && end > e.due.time)) add(15, `“${e.title}” finishes after its deadline (${DAYS[e.due.day]} ${fmt(e.due.time)}).`); });
+    ev.filter(e => e.needsPrep).forEach(e => { const ok = ev.some(p => p.type === 'prep' && p.tag === e.needsPrep && p.d >= 30 && (p.day < e.day || (p.day === e.day && p.s + p.d <= e.s))); if (!ok) add(8, `No prep (≥30 min, earlier in the week) for “${e.title}”.`); });
+    ev.filter(e => e.buffer).forEach(e => { const end = e.s + e.d; const next = ev.filter(x => x !== e && x.day === e.day && x.s >= end - 1 && x.s < end + 15 && !['personal'].includes(x.type)); if (next.length) add(5, `No 15-minute debrief buffer after “${e.title}” (${fmt(end)}).`); });
+    ev.filter(e => e.offsite).forEach(e => { const prev = ev.filter(x => x !== e && x.day === e.day && x.s + x.d <= e.s + 0 && x.s + x.d > e.s - 30 && x.type !== 'travel'); const overlapPrev = ev.some(x => x !== e && overlaps(x, e)); if (prev.length && !overlapPrev) add(6, `Not enough travel time (30 min) before in-person “${e.title}”.`); });
+    DAYS.forEach((dn, d) => {
+        const busy = ev.filter(e => e.day === d && !['personal'].includes(e.type));
+        if (busy.some(e => e.type === 'meal' && e.s < T(14) && e.s + e.d > T(11, 30))) return;
+        let free = 0, best = 0; for (let m = T(11, 30); m < T(14); m += 5) { const b = busy.some(e => e.s <= m && m < e.s + e.d); free = b ? 0 : free + 5; best = Math.max(best, free); }
+        if (busy.length && best < 30) add(4, `No lunch window on ${dn} (30 free minutes between 11:30 and 2:00).`);
+    });
+    ev.filter(e => !HOURS_EXEMPT.includes(e.type) && !e.locked && (e.s < T(8) || e.s + e.d > T(18))).forEach(e => add(5, `“${e.title}” falls outside business hours (8:00–6:00).`));
+    const score = Math.max(0, 100 - V.reduce((a, v) => a + v.pts, 0));
+    S.result = { score, V, at: Date.now() };
+    const sc = SCENARIOS[S.key];
+    Sim.saveResult({ simulator: 'Calendaring', scenario: sc.title, score, summary: V.length ? `${V.length} issue${V.length > 1 ? 's' : ''} left · ${S.changes} changes` : `Clean week · ${S.changes} changes`, details: { issues: V.map(v => v.text), changes: S.changes, week: ev.map(e => ({ t: e.title, day: DAYS[e.day], start: fmt(e.s), mins: e.d })) } });
+    render();
+    const r = document.getElementById('result'); if (r) r.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function resultHtml() {
+    const r = S.result;
+    return `<div class="sim-card">
+        <div class="res-top"><div class="ring">${r.score}</div><div><div class="sim-kicker">Plan check</div><div style="font-size:18px;font-weight:800;">${r.V.length ? `${r.V.length} issue${r.V.length > 1 ? 's' : ''} to fix` : 'Every rule met — nice work.'}</div>
+        <div class="sim-muted" style="font-size:13px;">${S.changes} change${S.changes === 1 ? '' : 's'} made. Fix what’s listed and check again — every check is saved.</div></div></div>
+        ${r.V.length ? `<ul class="viol">${r.V.map(v => `<li><span class="x">✕</span><span>${Sim.esc(v.text)}</span><span class="pts">−${v.pts}</span></li>`).join('')}</ul>` : `<div class="okline">✓ No double-bookings, deadlines met, prep and buffers in place, lunch protected.</div>`}
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
+            <button class="sim-btn primary" id="coachBtn" onclick="coach()">Get coach feedback</button>
+            <button class="sim-btn ghost" onclick="S.key=null;S.result=null;render()">Choose another week</button>
+            <a class="sim-btn ghost" href="/simulators.html">All simulators</a>
+        </div>
+        <div id="coach" style="margin-top:12px;"></div></div>`;
+}
+async function coach() {
+    const el = document.getElementById('coach'), btn = document.getElementById('coachBtn'); if (btn) btn.disabled = true;
+    el.innerHTML = `<div class="sim-loading">Reviewing your week…</div>`;
+    const sc = SCENARIOS[S.key], ev = S.events.filter(e => !e.deleted);
+    const week = DAYS.map((d, i) => `${d}: ` + ev.filter(e => e.day === i).sort((a, b) => a.s - b.s).map(e => `${fmt(e.s)}–${fmt(e.s + e.d)} ${e.title}${e.locked ? ' [fixed]' : ''}`).join('; ')).join('\n');
+    const removed = S.events.filter(e => e.deleted).map(e => e.title);
+    const prompt = `Scenario: ${sc.title}. ${sc.intro}
+Final week:
+${week}
+Removed: ${removed.join('; ') || 'nothing'}
+Rule issues still open: ${S.result.V.map(v => v.text).join(' | ') || 'none'}
+
+As an experienced legal calendaring coach, return ONLY JSON: {"summary":"2 sentences on how workable this week is now","tips":["3 specific, practical improvements that go beyond the rule list — e.g. sequencing, energy, client priority, who to notify about moves"],"notify":["who should be told about the changes made, and why"]}`;
+    try {
+        const r = await Sim.ai({ system: 'You coach legal support staff on calendar management. Be concrete and brief.', messages: [{ role: 'user', text: prompt }], json: true, maxTokens: 600 });
+        el.innerHTML = `<div style="background:#f8fafc;border-radius:14px;padding:14px 16px;font-size:14px;line-height:1.6;"><b>Coach:</b> ${Sim.esc(r.summary || '')}
+            ${(r.tips || []).length ? `<ul style="margin:8px 0 0;padding-left:20px;">${r.tips.map(t => `<li>${Sim.esc(t)}</li>`).join('')}</ul>` : ''}
+            ${(r.notify || []).length ? `<div style="margin-top:8px;"><b>Who to tell:</b><ul style="margin:4px 0 0;padding-left:20px;">${r.notify.map(t => `<li>${Sim.esc(t)}</li>`).join('')}</ul></div>` : ''}</div>`;
+    } catch (e) { el.innerHTML = `<div class="sim-error">${Sim.esc(e.message)}</div>`; if (btn) btn.disabled = false; }
+}
+document.addEventListener('DOMContentLoaded', () => { document.getElementById('topbar').innerHTML = Sim.topbar('calendar'); Sim.label('Calendaring'); render(); });
+</script>
+</body>
+</html>

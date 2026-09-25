@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Call Simulator — LSH Training Portal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/simulators/sim.css">
+<style>
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+    .filters button { border: 1px solid #cbd5e1; background: #fff; border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--navy); cursor: pointer; }
+    .filters button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .pick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    @media (max-width: 1000px) { .pick-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 620px) { .pick-grid { grid-template-columns: 1fr; } }
+    .pcard { display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+    .pcard:hover { transform: translateY(-3px); box-shadow: 0 14px 28px -12px rgba(15,33,72,.25); }
+    .pcard .top { display: flex; align-items: center; gap: 10px; }
+    .av { width: 44px; height: 44px; border-radius: 50%; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; }
+    .pcard h3 { margin: 0; font-size: 15.5px; font-weight: 800; } .pcard .role { font-size: 12px; color: var(--slate); font-weight: 600; }
+    .pcard p { margin: 0; font-size: 13px; color: #334155; line-height: 1.5; flex: 1; }
+    .tags { display: flex; gap: 6px; flex-wrap: wrap; } .tags span { font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; background: #f1f5f9; color: var(--slate); }
+    .tags span.p-CM { background: #eff6ff; color: #1d4ed8; } .tags span.p-EA { background: #fdf2f8; color: #9d174d; } .tags span.p-All { background: #f0fdf4; color: var(--ok); }
+    .brief { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 18px; }
+    @media (max-width: 900px) { .brief { grid-template-columns: 1fr; } }
+    .brief h2 { margin: 0 0 6px; font-size: 22px; font-weight: 800; }
+    .brief ul, .brief ol { margin: 6px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.6; }
+    .facts { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 14px; padding: 14px 16px; font-size: 13.5px; line-height: 1.6; margin-top: 12px; }
+    .callbox { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 18px; align-items: start; }
+    @media (max-width: 900px) { .callbox { grid-template-columns: 1fr; } }
+    .phone { background: linear-gradient(160deg, #0b1633 0%, #13295a 100%); color: #fff; border-radius: 28px; padding: 26px 22px; text-align: center; position: sticky; top: 84px; }
+    .phone .big { width: 92px; height: 92px; border-radius: 50%; margin: 6px auto 12px; background: var(--orange); color: #0f172a; font-size: 32px; font-weight: 900; display: flex; align-items: center; justify-content: center; position: relative; }
+    .phone .big.talking::after { content: ""; position: absolute; inset: -8px; border-radius: 50%; border: 3px solid rgba(251,146,60,.6); animation: pulse 1.1s ease-out infinite; }
+    @keyframes pulse { from { transform: scale(.95); opacity: 1; } to { transform: scale(1.25); opacity: 0; } }
+    .phone .nm { font-size: 18px; font-weight: 800; } .phone .rl { font-size: 12.5px; color: #c7d2fe; }
+    .phone .timer { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 700; margin: 14px 0 4px; }
+    .phone .state { font-size: 12.5px; color: #fdba74; min-height: 18px; }
+    .phone .ctrls { display: flex; justify-content: center; gap: 12px; margin-top: 18px; }
+    .round { width: 58px; height: 58px; border-radius: 50%; border: none; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .round.mic { background: #fff; } .round.mic.rec { background: #22c55e; color: #fff; } .round.end { background: #dc2626; color: #fff; } .round.spk { background: rgba(255,255,255,.14); color: #fff; }
+    .round small { display: none; }
+    .phone .lbls { display: flex; justify-content: center; gap: 12px; font-size: 11px; color: #c7d2fe; margin-top: 6px; } .phone .lbls span { width: 58px; }
+    .transcript { display: flex; flex-direction: column; gap: 10px; max-height: 56vh; overflow-y: auto; padding-right: 4px; }
+    .bubble { max-width: 82%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
+    .bubble.caller { background: #f1f5f9; align-self: flex-start; border-bottom-left-radius: 4px; }
+    .bubble.you { background: var(--navy); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .bubble b { display: block; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; opacity: .7; margin-bottom: 2px; }
+    .composer { display: flex; gap: 8px; margin-top: 14px; }
+    .composer textarea { flex: 1; font: inherit; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 14px; padding: 10px 12px; resize: none; min-height: 48px; }
+    .typing { align-self: flex-start; font-size: 12.5px; color: var(--slate); font-style: italic; }
+    .deb-top { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; }
+    .ring { width: 86px; height: 86px; border-radius: 50%; border: 6px solid var(--orange); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; }
+    .goals { list-style: none; padding: 0; margin: 8px 0 0; } .goals li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-top: 1px dashed #e2e8f0; font-size: 14px; }
+    .goals .ic { font-weight: 900; } .goals .ok { color: var(--ok); } .goals .no { color: var(--bad); } .goals small { display: block; color: var(--slate); font-size: 12.5px; }
+    .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; } @media (max-width: 760px) { .cols2 { grid-template-columns: 1fr; } }
+    .cols2 h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--slate); }
+    .cols2 ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
+    .better { margin-top: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+</style>
+</head>
+<body>
+<div id="topbar"></div>
+<div class="sim-wrap">
+    <section class="sim-hero">
+        <div class="eyebrow">Simulator · Phone calls</div>
+        <h1>Call Simulator</h1>
+        <p>Pick a caller, read your brief, then answer the call. The caller speaks out loud and reacts to what you say — answer by voice (Chrome or Edge, microphone allowed) or by typing. End the call when you're done for a scored debrief.</p>
+    </section>
+    <div id="app"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/app.js"></script>
+<script src="/portal.js"></script>
+<script src="/simulators/sim.js"></script>
+<script>
+/* ---------- caller library (add callers here; `program` drives the filter) ---------- */
+const CALLERS = [
+  { id: 'alex', program: 'All', name: 'Alex Kim', role: 'Prospective client', title: 'New-client intake — contract dispute', level: 'Intermediate', gender: 'm',
+    you: 'You answer the main line at a law firm and handle new-client intake. You can take information and book a consultation; you cannot give legal advice.',
+    facts: 'Unknown caller. Firm policy: collect full name, phone and email, a short summary of the matter, key dates, and the names of the other parties (for a conflict check) before booking a consultation with an attorney.',
+    goals: ['Collect name and contact details', 'Get a short, factual summary of the matter and key dates', 'Get the other party’s name for a conflict check', 'Decline to give legal advice or predict the outcome — politely', 'Set a clear next step (consultation) and what to bring'],
+    hidden: 'You are Alex Kim, calling on your lunch break. A former business partner (Jordan Reyes, Reyes Supply LLC) is refusing to honour a buyout agreement you both signed six months ago (you’re owed $85,000). You are frustrated and keep asking directly: "Do I have a case?" and "What do you think will happen?" If the assistant stays polite, explains they can’t advise but books a consult, you calm down and cooperate. If they give legal opinions, seem unsure, or ramble, you get more impatient. Only give details when asked.',
+    opening: 'Hi — yeah, I need a lawyer. My old business partner is basically stealing from me and I want to know if I have a case. Do I?' },
+  { id: 'maria', program: 'All', name: 'Maria Lopez', role: 'Prospective client', title: 'Emotional intake — workplace retaliation', level: 'Advanced', gender: 'f',
+    you: 'You handle new-client intake at a law firm. Same intake rules: collect details, no legal advice, book a consultation.',
+    facts: 'Unknown caller. Intake needs: name, contact details, employer name, dates, what happened, and whether there’s any immediate safety concern.',
+    goals: ['Acknowledge her distress and keep her steady (de-escalate)', 'Collect name, contact details and employer', 'Capture what happened and the key dates in order', 'Check for any urgent safety or deadline issue', 'No promises about the outcome; clear next step'],
+    hidden: 'You are Maria Lopez. You were fired yesterday from Coastal Logistics after reporting a forklift safety issue to your manager (Dan Pruitt) last Tuesday. You are upset, talk fast, repeat yourself and sometimes go quiet or get teary. You calm down when the assistant is patient, acknowledges how you feel and guides you one question at a time. If they rush you or sound robotic, you get more upset. You are not in physical danger.',
+    opening: '(shaky) Hi, um — I don’t even know if I’m calling the right place. They fired me. Yesterday. Right after I reported something and — sorry — I just don’t know what to do.' },
+  { id: 'carla', program: 'CM', name: 'Carla Nguyen', role: 'Existing client', title: 'Case-status call — personal injury client', level: 'Intermediate', gender: 'f',
+    you: 'You are the case manager on Carla Nguyen’s personal-injury case. You may give factual status updates to the verified client; settlement values and legal strategy are for the attorney.',
+    facts: 'Case: Nguyen v. Rapid Freight LLC (rear-end collision, 03/14). Client DOB 06/02/1988. Status: still treating at Harbor Physical Therapy; medical records and bills requested from Harbor PT two weeks ago (not yet received); the demand package goes out after treatment ends and records are in. Attorney: Ms. Patel.',
+    goals: ['Verify identity before discussing the case (e.g. date of birth)', 'Give an accurate, plain-language status update', 'Explain what happens next and roughly when — without promising amounts or dates', 'Acknowledge her money stress with empathy', 'Log the call and set a follow-up (e.g. attorney callback or next update date)'],
+    hidden: 'You are Carla Nguyen, the client. You are stressed: medical bills are arriving and you want to know when you’ll "get the money" and how much it will be. You push twice for a number. You give your date of birth (June 2, 1988) when asked. If the case manager explains the process clearly and kindly and sets a follow-up, you feel reassured and thank them. If they guess numbers or dates, or can’t explain the status, you get annoyed and ask to speak to the attorney.',
+    opening: 'Hi, it’s Carla Nguyen. I’m calling — again — about my case. I keep getting bills in the mail. When am I getting paid? How much is this going to be?' },
+  { id: 'jim', program: 'CM', name: 'Jim Patel', role: 'Insurance adjuster', title: 'Adjuster call — recorded statement request', level: 'Advanced', gender: 'm',
+    you: 'You are the case manager at the law firm representing Carla Nguyen (injured party). You never let the other side contact a represented client directly, you don’t agree to recorded statements without the attorney, and you don’t release records without authorization.',
+    facts: 'Caller is from Summit Mutual, the at-fault driver’s insurer. Claim #SM-44821. Letter of representation was sent last month. Attorney: Ms. Patel.',
+    goals: ['Confirm who is calling and the claim number', 'Refuse direct contact with the represented client — route everything through the firm', 'Decline a recorded statement without the attorney’s approval', 'Don’t release medical records or details without proper authorization', 'Take a precise message and set the next step (written request / attorney callback)'],
+    hidden: 'You are Jim Patel, a friendly but pushy adjuster from Summit Mutual (claim SM-44821). You try, in turn: to "just give Ms. Nguyen a quick call" to get her recorded statement; to get the assistant to email her medical records "to speed things up"; and to float a quick $4,000 settlement "if she signs this week". You back off professionally if the assistant firmly routes you through the attorney and asks for requests in writing.',
+    opening: 'Hey there, Jim Patel with Summit Mutual — claim ending 4821, Carla Nguyen. Easy one: I just need a quick recorded statement from Carla. Can you give me her cell? Five minutes, tops.' },
+  { id: 'denise', program: 'CM', name: 'Denise Ford', role: 'Medical provider billing', title: 'Provider billing — lien and payment questions', level: 'Intermediate', gender: 'f',
+    you: 'You are the case manager on the Nguyen case. You coordinate medical liens and records. You can confirm the firm represents the client once the caller is verified; you never disclose settlement amounts or case details beyond what’s needed.',
+    facts: 'Harbor Physical Therapy is treating Carla Nguyen. The firm requested records and an itemized bill two weeks ago (not received). No settlement yet. The firm needs an itemized ledger and a lien letter to log the provider’s lien.',
+    goals: ['Verify the caller and their organisation before sharing anything', 'Protect confidential case information — no settlement figures or strategy', 'Ask for the itemized ledger / lien letter and the outstanding records', 'Explain how and when providers are paid from a settlement', 'Agree clear next steps and a contact for follow-up'],
+    hidden: 'You are Denise Ford, billing manager at Harbor Physical Therapy. The balance is $6,450 and growing. You want to know whether the case has settled and "how much she’s getting" so you can plan. You haven’t sent the itemized ledger yet because nobody asked you directly. You cooperate once the case manager is clear and professional and tells you exactly what to send and where.',
+    opening: 'Hi, this is Denise from Harbor Physical Therapy billing. I’m calling about Carla Nguyen — her balance is over six thousand now. Has her case settled? What’s she getting?' },
+  { id: 'elias', program: 'EA', name: 'Elias Thorne', role: 'Your executive', title: 'Executive on the move — flight delay, plans change', level: 'Advanced', gender: 'm',
+    you: 'You are Elias Thorne’s Executive Assistant. He is the Managing Owner & CEO of Thorne & Partners Law Group. He wants BLUF (bottom line up front), short answers and zero surprises.',
+    facts: 'Tomorrow: 9:00 AM board meeting (in person, 12 attendees); 7:30 PM client dinner at Marlowe’s for 4 (Elias is Paleo and dairy-free). He is currently at the airport.',
+    goals: ['Capture every change he asks for, accurately', 'Confirm back in BLUF form — short, clear, no rambling', 'Prioritise: the board meeting first, then the dinner', 'Remember his dietary needs when handling the dinner', 'Say exactly what you will do and when you will confirm'],
+    hidden: 'You are Elias Thorne: blunt, fast, unemotional, calling from the airport. Your flight is delayed 3 hours. You need: the 9 AM board meeting moved to 11 AM (or made virtual if the room isn’t free); tomorrow’s dinner moved from 7:30 to 8:30 PM and kept Paleo/dairy-free; and your driver rebooked for the new landing time (11:40 PM). You speak in short bursts and get irritated by long answers or questions you already answered. If the assistant confirms clearly in a few words, you say "Good." and hang up.',
+    opening: 'It’s Elias. Flight’s delayed three hours. I need the board meeting moved, dinner pushed, and my car fixed. Go.' },
+  { id: 'vendor', program: 'EA', name: 'Rob Castillo', role: 'Vendor (cold caller)', title: 'Gatekeeping — pushy vendor wants direct access', level: 'Beginner', gender: 'm',
+    you: 'You are the Executive Assistant to Elias Thorne. Standing instruction: vendors never get his mobile number or a direct meeting without a written proposal he has approved.',
+    facts: 'Unknown vendor. Company policy: take the vendor’s details and ask for a written proposal by email; don’t share the executive’s schedule or contact details.',
+    goals: ['Stay polite but firm — never share his mobile number or calendar', 'Redirect to a written proposal by email', 'Take the caller’s details accurately', 'Don’t promise a meeting', 'Close the call cleanly'],
+    hidden: 'You are Rob Castillo from BrightLedger legal-billing software. You are charming and persistent: you claim you "spoke with Elias at a conference" (not true), ask for his cell "to follow up", and ask what his calendar looks like next week. You try three times with different angles, then accept sending an email proposal if the assistant holds the line.',
+    opening: 'Hey! Rob Castillo, BrightLedger. I actually met Elias at the ABA TechShow — he told me to follow up. Can you give me his cell real quick?' }
+];
+
+let S = { filter: 'All', persona: null, phase: 'pick', transcript: [], startedAt: 0, voice: true, busy: false, recog: null, recording: false, timer: null, debrief: null };
+const $app = () => document.getElementById('app');
+
+function initials(n) { return n.split(' ').map(x => x[0]).join('').slice(0, 2); }
+function render() {
+    Sim.label(S.phase === 'call' ? 'Call Simulator — on a call' : 'Call Simulator');
+    if (S.phase === 'pick') return renderPick();
+    if (S.phase === 'brief') return renderBrief();
+    if (S.phase === 'call') return renderCall();
+    if (S.phase === 'debrief') return renderDebrief();
+}
+function renderPick() {
+    const list = CALLERS.filter(c => S.filter === 'All' || c.program === S.filter || c.program === 'All');
+    $app().innerHTML = `
+        <div class="filters">${[['All', 'All callers'], ['CM', 'Case Management'], ['EA', 'Executive support (EA/PA)']].map(([k, l]) => `<button class="${S.filter === k ? 'on' : ''}" onclick="S.filter='${k}';render()">${l}</button>`).join('')}</div>
+        <div class="pick-grid">${list.map(c => `
+            <div class="sim-card pcard" onclick="pick('${c.id}')">
+                <div class="top"><span class="av">${initials(c.name)}</span><div><h3>${Sim.esc(c.title)}</h3><div class="role">${Sim.esc(c.name)} · ${Sim.esc(c.role)}</div></div></div>
+                <p>${Sim.esc(c.you)}</p>
+                <div class="tags"><span class="p-${c.program}">${c.program === 'All' ? 'All programs' : c.program === 'CM' ? 'Case Management' : 'EA / PA'}</span><span>${c.level}</span><span>${c.goals.length} goals</span></div>
+            </div>`).join('')}</div>`;
+}
+function pick(id) { S.persona = CALLERS.find(c => c.id === id); S.phase = 'brief'; S.transcript = []; S.debrief = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function renderBrief() {
+    const c = S.persona;
+    $app().innerHTML = `<div class="sim-card"><div class="brief">
+        <div>
+            <div class="sim-kicker">Your brief</div>
+            <h2>${Sim.esc(c.title)}</h2>
+            <p style="font-size:14.5px;line-height:1.6;margin:0;">${Sim.esc(c.you)}</p>
+            <div class="facts"><b>What you know:</b> ${Sim.esc(c.facts)}</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
+                <button class="sim-btn orange" onclick="startCall()">📞 Answer the call</button>
+                <button class="sim-btn ghost" onclick="S.phase='pick';render()">← Choose another caller</button>
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;"><input type="checkbox" ${S.voice ? 'checked' : ''} onchange="S.voice=this.checked"> Caller speaks out loud</label>
+            </div>
+        </div>
+        <div>
+            <div class="sim-kicker">You’ll be scored on</div>
+            <ol>${c.goals.map(g => `<li>${Sim.esc(g)}</li>`).join('')}</ol>
+            <p class="sim-muted" style="font-size:12.5px;margin-top:12px;">Tip: use a headset. On Chrome or Edge you can press 🎤 and speak; otherwise type your replies.</p>
+        </div>
+    </div></div>`;
+}
+/* ---------- the call ---------- */
+function startCall() {
+    S.phase = 'call'; S.transcript = []; S.startedAt = Date.now();
+    clearInterval(S.timer); S.timer = setInterval(tick, 1000);
+    render();
+    callerSays(S.persona.opening);
+}
+function tick() { const t = document.getElementById('timer'); if (t) { const s = Math.floor((Date.now() - S.startedAt) / 1000); t.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; } }
+function renderCall() {
+    const c = S.persona, canMic = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    $app().innerHTML = `<div class="callbox">
+        <div class="phone">
+            <div class="big" id="bigAv">${initials(c.name)}</div>
+            <div class="nm">${Sim.esc(c.name)}</div><div class="rl">${Sim.esc(c.role)}</div>
+            <div class="timer" id="timer">00:00</div>
+            <div class="state" id="cstate">Connected</div>
+            <div class="ctrls">
+                ${canMic ? `<button class="round mic" id="micBtn" onclick="toggleMic()" title="Speak">🎤</button>` : ''}
+                <button class="round spk" onclick="S.voice=!S.voice;if(!S.voice)speechSynthesis.cancel();this.textContent=S.voice?'🔊':'🔇'" title="Caller voice on/off">${S.voice ? '🔊' : '🔇'}</button>
+                <button class="round end" onclick="endCall()" title="End call">✆</button>
+            </div>
+            <div class="lbls">${canMic ? '<span>Speak</span>' : ''}<span>Voice</span><span>End</span></div>
+        </div>
+        <div class="sim-card">
+            <div class="sim-kicker">Live transcript</div>
+            <div class="transcript" id="tx"></div>
+            <div class="composer">
+                <textarea id="say" placeholder="${canMic ? 'Press 🎤 and speak, or type your reply…' : 'Type your reply…'}" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"></textarea>
+                <button class="sim-btn primary" id="sendBtn" onclick="send()">Send</button>
+            </div>
+        </div></div>`;
+    paintTranscript();
+}
+function paintTranscript(typing) {
+    const tx = document.getElementById('tx'); if (!tx) return;
+    tx.innerHTML = S.transcript.map(m => `<div class="bubble ${m.who}"><b>${m.who === 'you' ? 'You' : Sim.esc(S.persona.name)}</b>${Sim.esc(m.text)}</div>`).join('') + (typing ? `<div class="typing">${Sim.esc(S.persona.name)} is talking…</div>` : '');
+    tx.scrollTop = tx.scrollHeight;
+}
+function setState(t, talking) { const s = document.getElementById('cstate'); if (s) s.textContent = t; const a = document.getElementById('bigAv'); if (a) a.classList.toggle('talking', !!talking); }
+function pickVoice() {
+    const vs = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang)); if (!vs.length) return null;
+    const f = /female|samantha|victoria|zira|aria|jenny|google us english/i, m = /male|daniel|david|guy|alex|fred|google uk english male/i;
+    return (S.persona.gender === 'f' ? vs.find(v => f.test(v.name)) : vs.find(v => m.test(v.name))) || vs.find(v => /en-US/i.test(v.lang)) || vs[0];
+}
+function callerSays(text) {
+    const ended = /\[END_CALL\]/.test(text);
+    const clean = text.replace(/\[END_CALL\]/g, '').trim();
+    S.transcript.push({ who: 'caller', text: clean }); paintTranscript();
+    if (S.voice && 'speechSynthesis' in window) {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(clean.replace(/\([^)]*\)/g, '')); const v = pickVoice(); if (v) u.voice = v; u.rate = 1.02;
+        setState('Speaking…', true);
+        u.onend = () => { setState(ended ? 'Call ended' : 'Your turn', false); if (ended) setTimeout(endCall, 700); };
+        speechSynthesis.speak(u);
+    } else { setState(ended ? 'Call ended' : 'Your turn', false); if (ended) setTimeout(endCall, 1200); }
+}
+async function send() {
+    const box = document.getElementById('say'); const text = (box && box.value || '').trim();
+    if (!text || S.busy) return;
+    box.value = ''; S.transcript.push({ who: 'you', text }); S.busy = true; paintTranscript(true); setState('Listening…', false);
+    const btn = document.getElementById('sendBtn'); if (btn) btn.disabled = true;
+    const c = S.persona;
+    const system = `You are role-playing a phone CALLER in a training simulation for legal support staff. Stay completely in character — you are ${c.name}, ${c.role}.
+${c.hidden}
+The trainee on the other end: ${c.you}
+Rules: reply ONLY with what you say out loud next — 1 to 3 short, natural spoken sentences, no stage directions except an occasional short one in parentheses, no lists, no narration. React realistically to how well the trainee is handling you. Never mention that this is training or that you are an AI. When the call has reached a natural end (you have a clear next step, or you are hanging up), say your goodbye and put the token [END_CALL] at the very end.`;
+    const messages = [{ role: 'user', text: '(The phone rings and the trainee answers.)' }].concat(S.transcript.map(m => ({ role: m.who === 'you' ? 'user' : 'model', text: m.text })));
+    try {
+        const reply = await Sim.ai({ system, messages, maxTokens: 220 });
+        S.busy = false; if (btn) btn.disabled = false;
+        if (S.phase !== 'call') return;
+        callerSays(reply || '…');
+    } catch (e) {
+        S.busy = false; if (btn) btn.disabled = false;
+        S.transcript.pop(); paintTranscript();
+        if (box) box.value = text;
+        setState('Connection problem — try again', false);
+        alert('The caller couldn’t respond: ' + e.message);
+    }
+}
+function toggleMic() {
+    const R = window.SpeechRecognition || window.webkitSpeechRecognition; if (!R) return;
+    const btn = document.getElementById('micBtn');
+    if (S.recording && S.recog) { S.recog.stop(); return; }
+    speechSynthesis.cancel();
+    const r = new R(); r.lang = 'en-US'; r.interimResults = true; r.continuous = false;
+    const box = document.getElementById('say'); let finalText = '';
+    r.onresult = (e) => { let interim = ''; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) finalText += t; else interim += t; } if (box) box.value = (finalText + ' ' + interim).trim(); };
+    r.onend = () => { S.recording = false; if (btn) btn.classList.remove('rec'); setState('Your turn', false); if ((box && box.value.trim())) send(); };
+    r.onerror = () => { S.recording = false; if (btn) btn.classList.remove('rec'); };
+    S.recog = r; S.recording = true; if (btn) btn.classList.add('rec'); setState('Listening to you…', false);
+    r.start();
+}
+/* ---------- debrief ---------- */
+async function endCall() {
+    if (S.phase !== 'call') return;
+    clearInterval(S.timer); try { speechSynthesis.cancel(); } catch (e) {} if (S.recog) try { S.recog.stop(); } catch (e) {}
+    const secs = Math.round((Date.now() - S.startedAt) / 1000);
+    S.phase = 'debrief'; S.debrief = { loading: true, secs };
+    render();
+    const c = S.persona;
+    if (!S.transcript.some(m => m.who === 'you')) { S.debrief = { error: 'You ended the call before saying anything — try again.', secs }; return render(); }
+    const transcript = S.transcript.map(m => `${m.who === 'you' ? 'TRAINEE' : c.name.toUpperCase()}: ${m.text}`).join('\n');
+    const system = 'You are an experienced legal-support trainer grading a practice phone call. Be fair, specific and encouraging; frame gaps as "not yet — here is the better way".';
+    const prompt = `SCENARIO: ${c.title}
+TRAINEE ROLE: ${c.you}
+WHAT THE TRAINEE KNEW: ${c.facts}
+GOALS TO GRADE:
+${c.goals.map((g, i) => `${i + 1}. ${g}`).join('\n')}
+
+CALL TRANSCRIPT (${Math.floor(secs / 60)}m ${secs % 60}s):
+${transcript}
+
+Return ONLY JSON:
+{"score": 0-100, "verdict": "one sentence overall", "goals": [{"goal": "…", "met": true|false, "note": "what they did or missed, quoting briefly"}], "strengths": ["…"], "improve": ["concrete next step", "…"], "betterLine": "one line the trainee could have said at the hardest moment"}`;
+    try {
+        const r = await Sim.ai({ system, messages: [{ role: 'user', text: prompt }], json: true, maxTokens: 900 });
+        S.debrief = Object.assign({ secs }, r);
+        Sim.saveResult({ simulator: 'Call Simulator', scenario: c.title, score: r.score, summary: r.verdict, details: { caller: c.id, secs, goals: r.goals, transcript: S.transcript } });
+    } catch (e) { S.debrief = { error: 'Couldn’t grade the call: ' + e.message, secs }; }
+    render();
+}
+function renderDebrief() {
+    const d = S.debrief || {}, c = S.persona;
+    if (d.loading) { $app().innerHTML = `<div class="sim-card"><div class="sim-loading">Grading your call…</div></div>`; return; }
+    const again = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;"><button class="sim-btn orange" onclick="pick('${c.id}')">↻ Try this call again</button><button class="sim-btn ghost" onclick="S.phase='pick';render()">Choose another caller</button><a class="sim-btn ghost" href="/simulators.html">All simulators</a></div>`;
+    if (d.error) { $app().innerHTML = `<div class="sim-card"><div class="sim-error">${Sim.esc(d.error)}</div>${again}</div>`; return; }
+    $app().innerHTML = `<div class="sim-card">
+        <div class="deb-top"><div class="ring">${Math.round(d.score || 0)}</div><div><div class="sim-kicker">Call debrief · ${Math.floor(d.secs / 60)}m ${d.secs % 60}s</div><h2 style="margin:0 0 4px;font-size:21px;">${Sim.esc(c.title)}</h2><div class="sim-muted" style="font-size:14px;">${Sim.esc(d.verdict || '')}</div></div></div>
+        <div class="sim-kicker">Goals</div>
+        <ul class="goals">${(d.goals || []).map(g => `<li><span class="ic ${g.met ? 'ok' : 'no'}">${g.met ? '✓' : '○'}</span><div>${Sim.esc(g.goal)}<small>${Sim.esc(g.note || '')}</small></div></li>`).join('')}</ul>
+        <div class="cols2"><div><h4>What worked</h4><ul>${(d.strengths || []).map(x => `<li>${Sim.esc(x)}</li>`).join('')}</ul></div><div><h4>Not yet — next time</h4><ul>${(d.improve || []).map(x => `<li>${Sim.esc(x)}</li>`).join('')}</ul></div></div>
+        ${d.betterLine ? `<div class="better"><b>Try saying:</b> “${Sim.esc(d.betterLine)}”</div>` : ''}
+        <details style="margin-top:14px;"><summary style="cursor:pointer;font-weight:700;font-size:13px;">Full transcript</summary><div class="transcript" style="max-height:none;margin-top:10px;">${S.transcript.map(m => `<div class="bubble ${m.who}"><b>${m.who === 'you' ? 'You' : Sim.esc(c.name)}</b>${Sim.esc(m.text)}</div>`).join('')}</div></details>
+        ${again}</div>`;
+}
+document.addEventListener('DOMContentLoaded', () => { document.getElementById('topbar').innerHTML = Sim.topbar('call'); if ('speechSynthesis' in window) speechSynthesis.getVoices(); render(); });
+</script>
+</body>
+</html>

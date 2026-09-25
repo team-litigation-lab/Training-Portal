@@ -1,0 +1,34 @@
+/* LSH Training Portal — shared simulator styles */
+:root{--navy:#0f2148;--navy-deep:#081226;--navy-mid:#132a5c;--orange:#f97316;--orange-soft:#fb923c;--slate:#64748b;--paper:#faf8f4;--line:#e5e7eb;--ok:#166534;--bad:#b91c1c;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;background:var(--paper);color:var(--navy);height:auto;overflow:visible;}
+a{color:inherit;}
+.sim-top{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 28px;background:var(--navy-deep);position:sticky;top:0;z-index:30;}
+.sim-brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:800;font-size:14px;text-decoration:none;}
+.sim-brand img{width:34px;height:34px;border-radius:10px;border:2px solid var(--orange);object-fit:cover;background:#0f172a;}
+.sim-brand small{display:block;font-weight:600;font-size:11px;color:rgba(255,255,255,.55);letter-spacing:.06em;text-transform:uppercase;}
+.sim-nav{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.sim-nav a{color:rgba(255,255,255,.7);font-size:12.5px;font-weight:700;text-decoration:none;cursor:pointer;} .sim-nav a:hover, .sim-nav a.on{color:#fff;}
+.sim-nav .who{color:rgba(255,255,255,.85);font-size:12.5px;font-weight:700;}
+.sim-wrap{width:100%;max-width:1280px;margin:0 auto;padding:34px 24px 80px;}
+.sim-hero{background:linear-gradient(135deg,var(--navy-deep) 0%,var(--navy-mid) 70%,#1c3a7a 100%);border-radius:22px;padding:28px 32px;color:#fff;margin-bottom:26px;position:relative;overflow:hidden;}
+.sim-hero .eyebrow{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#fdba74;border:1px solid rgba(253,186,116,.45);background:rgba(249,115,22,.14);border-radius:999px;padding:5px 12px;margin-bottom:12px;}
+.sim-hero h1{margin:0 0 8px;font-size:30px;font-weight:800;line-height:1.15;}
+.sim-hero p{margin:0;color:#c7d2fe;font-size:14.5px;line-height:1.6;max-width:78ch;}
+.sim-card{background:#fff;border-radius:18px;border:1px solid rgba(15,33,72,.07);box-shadow:0 6px 18px rgba(15,33,72,.05);padding:20px;}
+.sim-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:999px;padding:10px 20px;font:inherit;font-weight:800;font-size:12.5px;letter-spacing:.02em;cursor:pointer;text-decoration:none;}
+.sim-btn.primary{background:var(--navy);color:var(--orange);} .sim-btn.primary:hover{background:var(--navy-mid);}
+.sim-btn.orange{background:var(--orange);color:#0f172a;} .sim-btn.orange:hover{background:var(--orange-soft);}
+.sim-btn.ghost{background:#fff;color:var(--navy);border:1px solid #cbd5e1;} .sim-btn.ghost:hover{border-color:var(--navy);}
+.sim-btn.danger{background:#dc2626;color:#fff;}
+.sim-btn[disabled]{opacity:.5;cursor:default;}
+.sim-chip{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:4px 10px;}
+.sim-chip.live{background:#f0fdf4;color:var(--ok);} .sim-chip.next{background:#eff6ff;color:#1d4ed8;} .sim-chip.input{background:#fff7ed;color:#9a3412;} .sim-chip.plan{background:#f1f5f9;color:var(--slate);}
+.sim-kicker{font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);margin:0 0 6px;}
+.sim-muted{color:var(--slate);}
+.sim-loading{padding:14px;border-radius:12px;background:#f8fafc;color:var(--slate);font-size:13.5px;}
+.sim-error{padding:12px 14px;border-radius:12px;background:#fef2f2;color:var(--bad);font-size:13.5px;border:1px solid #fecaca;}
+.sim-table{width:100%;border-collapse:collapse;font-size:13px;} .sim-table th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);padding:8px 10px;border-bottom:2px solid var(--line);} .sim-table td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+.sim-score{display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:28px;border-radius:999px;font-weight:800;font-size:12.5px;background:#f1f5f9;}
+.sim-score.good{background:#f0fdf4;color:var(--ok);} .sim-score.mid{background:#fffbeb;color:#b45309;} .sim-score.low{background:#fef2f2;color:var(--bad);}
+@media(max-width:760px){.sim-top{padding:12px 14px;} .sim-wrap{padding:22px 14px 60px;} .sim-hero{padding:22px 18px;} .sim-hero h1{font-size:24px;}}

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Training Index — LSH TRC</title>
+<title>Training Index — LSH Training Portal</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,6 +83,11 @@
     .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
     .topic-action-btn.request { background: var(--orange); color: #0f172a; }
     .topic-action-btn.disabled { background: #f1f5f9; color: #94a3b8; cursor: default; }
+    .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
+    .sim-banner:hover { transform: translateY(-2px); }
+    .sim-banner-ic { width: 48px; height: 48px; border-radius: 14px; background: rgba(249,115,22,.18); border: 1px solid rgba(253,186,116,.45); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+    .sim-banner-tx { flex: 1; min-width: 0; } .sim-banner-tx b { display: block; font-size: 16px; } .sim-banner-tx span { font-size: 13px; color: #c7d2fe; }
+    .sim-banner-go { background: var(--orange); color: #0f172a; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 8px 16px; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -103,6 +108,7 @@
         Training Index
     </div>
     <div class="idx-user">
+        <a class="idx-logout" href="/simulators.html" style="color:#fdba74;font-weight:800;">🛠 Simulators</a>
         <span class="idx-user-name" id="idx-user-name">&nbsp;</span>
         <a class="idx-logout" onclick="logoutSession()">Log Out</a>
     </div>
@@ -115,6 +121,11 @@
         <p id="idx-subhead">Every program LSH runs, in one place. Programs you're approved for open directly; others need admin approval first.</p>
     </div>
 
+    <a class="sim-banner" href="/simulators.html">
+        <span class="sim-banner-ic">🛠</span>
+        <span class="sim-banner-tx"><b>Simulators</b><span>Call Simulator and Calendaring are live — shared by every program. Chat, Docket and more are on the way.</span></span>
+        <span class="sim-banner-go">Open →</span>
+    </a>
     <div id="idx-queue-wrap"></div>
     <div id="idx-grant-wrap"></div>
     <div id="idx-topics" class="topic-grid">
