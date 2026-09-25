@@ -41,7 +41,11 @@ const WS_SENSITIVE = /(password|routing number|account number|ssn|social securit
 
 let W = { phase:'pick' };
 const esc = Sim.esc;
-function wsKey(){ return `lsh_email_ws:${Sim.session().username||'me'}`; }
+// Trainees don't sign in on the portal: key saved progress by the admin account or the "Who's practicing?" name.
+function wsMe(){ const s = Sim.session(), w = Sim.who(); return s.userType==='Admin' ? (s.fullName||s.username||'') : (w.name||''); }
+function wsKey(){ const s = Sim.session(); return `lsh_email_ws:${(s.userType==='Admin' ? s.username : Sim.who().name) || 'me'}`; }
+// ?program=CM or EA (or the program saved with the trainee's name) puts that inbox first.
+const WS_START = (()=>{ const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'cm' : p.startsWith('EA') ? 'ea' : ''; })();
 function wsSave(){ try{ if(W.phase==='ws'){ const {menu,compose,dialog,snack,undo,sel,...keep} = W; localStorage.setItem(wsKey(), JSON.stringify(keep)); } else localStorage.removeItem(wsKey()); }catch(e){} }
 function wsLoad(){ try{ const v = JSON.parse(localStorage.getItem(wsKey())||'null'); if(v && v.pack) { W = Object.assign({sel:{}}, v); return true; } }catch(e){} return false; }
 
@@ -106,7 +110,7 @@ function render(){
     let saved = null; try{ saved = JSON.parse(localStorage.getItem(wsKey())||'null'); }catch(e){}
     app.innerHTML = `${saved && saved.pack ? `<div class="sim-card" style="margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><div style="flex:1;"><b>Continue where you left off</b><div class="sim-muted" style="font-size:13px;">${esc(saved.pack.title)} · ${Object.keys(saved.meta||{}).length}/${(saved.emails||[]).length} handled</div></div><button class="sim-btn primary" onclick="wsResume()">Continue →</button></div>` : ''}
     <div class="pk-grid">
-      ${['cm','ea'].map(k=>{ const p = EMAIL_PACKS[k]; return `<div class="sim-card pk"><span class="sim-chip ${k==='cm'?'next':'input'}" style="align-self:flex-start;">${esc(p.program)}</span><h3>${esc(p.title)}</h3><p>${esc(p.role)}</p><div class="sim-muted" style="font-size:12.5px;">${p.emails.length} emails · ${p.labels.length} starter labels · includes a phishing attempt</div><button class="sim-btn primary" onclick="wsStart(EMAIL_PACKS['${k}'])">Open this inbox →</button></div>`; }).join('')}
+      ${(WS_START==='ea' ? ['ea','cm'] : ['cm','ea']).map(k=>{ const p = EMAIL_PACKS[k]; return `<div class="sim-card pk"><span class="sim-chip ${k==='cm'?'next':'input'}" style="align-self:flex-start;">${esc(p.program)}</span><h3>${esc(p.title)}</h3><p>${esc(p.role)}</p><div class="sim-muted" style="font-size:12.5px;">${p.emails.length} emails · ${p.labels.length} starter labels · includes a phishing attempt</div><button class="sim-btn primary" onclick="wsStart(EMAIL_PACKS['${k}'])">Open this inbox →</button></div>`; }).join('')}
       <div class="sim-card pk"><span class="sim-chip live" style="align-self:flex-start;">Any program</span><h3>Generate an inbox for any program</h3><p>Pick a program from the Training Index. A fresh inbox is written for that program’s role — its own labels, senders, deadlines and a phishing attempt. Different every time.</p>
         <select id="pkProgram">${WS_PROGRAMS.map(p=>`<option>${esc(p)}</option>`).join('')}</select>
         <button class="sim-btn orange" id="pkGen" onclick="wsGenerate()">Generate inbox →</button><div id="pkStatus"></div></div>
@@ -136,7 +140,7 @@ function shellHtml(){
   return `<div class="gm" id="gmShell" tabindex="0" onkeydown="wsKeyDown(event)">
     <div class="gm-top"><div class="gm-logo"><b>M</b><span>Mail</span></div>
       <label class="gm-search">${WS_ICON.search}<input placeholder="Search mail" value="${esc(W.search||'')}" oninput="wsSearch(this.value)"></label>
-      <div class="gm-avatar" title="${esc(Sim.session().fullName||'')}">${esc(((Sim.session().fullName||'Me').split(' ').map(x=>x[0]).join('')).slice(0,2))}</div></div>
+      <div class="gm-avatar" title="${esc(wsMe())}">${esc(((wsMe()||'Me').split(' ').map(x=>x[0]).join('')).slice(0,2))}</div></div>
     <div class="gm-progress"><i style="width:${Math.round(handled/Math.max(total,1)*100)}%"></i></div>
     <div class="gm-body">
       <nav class="gm-nav"><button class="gm-compose" disabled title="Not needed for this exercise">${WS_ICON.pencil} Compose</button>
