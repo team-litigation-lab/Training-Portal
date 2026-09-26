@@ -90,7 +90,7 @@ const overdue = (r) => open(r) && S.today > r.nextFollowUp;
 
 // ---------- scoring ----------
 const REQUIRED = [['ems', 'records'], ['ems', 'bill'], ['him', 'records'], ['pfs', 'bill'], ['rad', 'records'], ['rad', 'bill'], ['spine', 'records'], ['spine', 'bill'], ['pt', 'records'], ['pt', 'bill'],
-    ['chiro', 'records'], ['chiro', 'billComplete'], ['psych', 'records'], ['psych', 'bill'], ['neuro', 'records'], ['neuro', 'bill'], ['anes', 'bill'], ['river', 'records'], ['river', 'bill'], ['whc', 'records']];
+    ['chiro', 'records'], ['chiro', 'billComplete'], ['psych', 'records'], ['psych', 'bill'], ['neuro', 'records'], ['neuro', 'bill'], ['anes', 'bill'], ['river', 'records'], ['river', 'bill'], ['whc', 'records'], ['mig', 'records']];
 function have(pid, t, byDate) {
     return S.requests.some(r => r.provider === pid && r.logged && (!byDate || r.loggedOn <= byDate) && (t === 'billComplete' ? r.ledgerComplete : r.delivered && r.delivered[t] && !(t === 'bill' && pid === 'chiro' && !r.ledgerComplete)));
 }

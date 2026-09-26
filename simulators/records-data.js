@@ -8,7 +8,8 @@ const MR_SCENARIO = {
     intake: ['Metro Center EMS (Medic 14): scene and transport, 02/14/2026', 'Metro General Hospital: ER, CT, 14-day bed-rest order, and the 05/12/2026 microdiscectomy',
         'Metro Radiology & Imaging: lumbar MRI, 03/15/2026', 'Dr. Sarah Spine (Spine & Ortho Associates): EMC attestation, surgery and follow-up', 'Mark Motion, DPT (Motion Physical Therapy): PT, 03/20–04/02/2026',
         'Dr. Al Lign, DC (Align Chiropractic): chiropractic, March–April 2026', 'Dr. Mindy Health, PhD: neuropsychological evaluation, 04/18/2026 (explains the treatment gap)',
-        'Dr. Neil Ron (Metro Neurology): EMG 04/20/2026 and permanency rating 06/15/2026', 'Prior injury: 2018 lumbar strain treated at Workplace Health Clinic (08/12–09/15/2018)']
+        'Dr. Neil Ron (Metro Neurology): EMG 04/20/2026 and permanency rating 06/15/2026', 'Prior injury: 2018 lumbar strain treated at Workplace Health Clinic (08/12–09/15/2018)',
+        'Prior history: chronic migraines diagnosed in 2021 at Metro Headache Clinic (the defense will ask; the firm needs the records first)']
 };
 
 // Record types a request can ask for.
@@ -70,6 +71,9 @@ const MR_PROVIDERS = [
     { id: 'whc', name: 'Workplace Health Clinic', type: 'Occupational health', dept: 'Records', method: 'Mail', days: 6, prior: true,
       dos: ['2018-08-12', '2018-09-15'], needs: ['records'], fee: { base: 25, perPage: 0.25, pages: 9 },
       delivered: { records: { pages: 9, text: '08/12/2018 L4-L5 lumbar strain lifting crates (6/10, radiating to left buttock); PT x4 weeks; 09/15/2018 resolved, discharged at MMI with no permanent restrictions; no MRI ever taken.' } } },
+    { id: 'mig', name: 'Metro Headache Clinic', type: 'Neurology (headache)', dept: 'Medical Records', method: 'Fax (555) 310-2727', days: 5, prior: true,
+      dos: ['2021-03-10', '2021-11-22'], needs: ['records'], fee: { base: 25, perPage: 0.25, pages: 14 },
+      delivered: { records: { pages: 14, text: '2021: chronic migraine diagnosed; prophylactic medication; brain MRI 2021 normal. No neck or back complaints at any visit. (Supports keeping the 2026 brain-MRI charge out of the accident specials.)' } } },
     { id: 'derm', name: 'Metro Dermatology', type: 'Dermatology', dept: 'Records', method: 'Fax (555) 310-1212', days: 5, unrelated: true,
       dos: ['2019-04-02', '2019-06-10'], needs: [], fee: { base: 25, perPage: 0.25, pages: 11 },
       delivered: { records: { pages: 11, text: '2019 acne treatment. Unrelated to the accident.' } } },

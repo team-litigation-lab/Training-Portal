@@ -39,7 +39,7 @@ Three simulators on the Simulators hub (`/simulators.html`) train the paperwork 
 - **Business-day clock:** providers respond with acknowledgments, rejections (bad authorization, no records for those dates, psychotherapy notes without a separate authorization), invoices, and silence until someone follows up.
 - **Fees:** the training fee cap is $25 + $0.25 per page. The EMS flat fee is over it, so dispute it.
 - **Delivered records** reveal new providers (independent anesthesia, post-op radiology) and planted problems: the MRI's wrong DOB, the brain-MRI charge, and a partial chiropractic ledger.
-- **Scoring (100 points):** authorization, 20 required record sets logged, on time, psychotherapy notes, no unrelated providers, fees, follow-ups, and problems flagged. Data: `simulators/records-data.js`.
+- **Scoring (100 points):** authorization, 21 required record sets logged (including the 2018 and 2021 prior-history records), on time, psychotherapy notes, no unrelated providers, fees, follow-ups, and problems flagged. Data: `simulators/records-data.js`.
 
 **🏛 Court E-Filing** (`/simulators/efiling.html`):
 - **Federal, electronic-case-filing style:** event → case → filer → the entry it responds to → main document and typed, described attachments → docket text → a Notice of Electronic Filing.

@@ -6,7 +6,7 @@
 const E = Sim.esc, KEY = 'LSH_DOCKET_V1';
 const CAT_COLOR = { PLEADING: '#262B45', NOTICE: '#2E6E7E', MOTION: '#C2621B', ORDER: '#B23B2E', STIPULATION: '#3E7A52', MINUTE: '#6B6E76' };
 const STATUS_CLS = { Active: 'ok', Stayed: 'warn', Closed: 'mute' };
-const REMINDERS = [30, 14, 7, 3, 1];
+const REMINDERS = [30, 14, 7, 3, 2, 1];   // 2 = the 48-hour warning
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const uid = () => Math.random().toString(36).slice(2, 9);
 
