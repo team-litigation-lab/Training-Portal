@@ -65,7 +65,7 @@
 
     // Plain text for search and snippets.
     function plain(md) {
-        return String(md || '').replace(/`/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/^[#>\s-]+|\*\*|__|\|/gm, ' ').replace(/\s+/g, ' ').trim();
+        return String(md || '').replace(/`/g, '').replace(/\[( |x|X)\]\s*/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/^[#>\s-]+|\*\*|__|\|/gm, ' ').replace(/\s+/g, ' ').trim();
     }
 
     window.KBmd = { render, plain, esc };

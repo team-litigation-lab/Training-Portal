@@ -5,7 +5,7 @@ import { kbGate, KB_CATEGORIES, KB_TYPES, clean, oneLine, overLimit, nowIso } fr
 //   GET                 → published posts, stats, my votes, my own posts (any status)
 //   GET ?ref=a:12|s:slug → one post (or an SOP's comments/stats) + comments; counts a view
 //   GET ?queue=1  (admin) → posts and comments waiting for review, plus every post
-//   POST { action:'submit', type, category, title, summary, body, tags, linkUrl }
+//   POST { action:'submit', type, category, title, summary, body, tags, linkUrl, credits }
 //        VAs' posts wait for an admin; an admin's post is published straight away.
 //   POST { action:'edit', id, …same fields }   admin: any post; VA: their own while pending or rejected
 //   POST { action:'review', id, decision:'approve'|'reject'|'hide'|'feature'|'unfeature', note }  admin
@@ -28,14 +28,17 @@ function fields(body) {
     if (!category) return { error: 'Choose a category.' };
     if (title.length < 5) return { error: 'Give it a title (at least 5 characters).' };
     if (text.length < 20) return { error: 'Write a bit more: at least a couple of sentences.' };
-    return { type, category, title, summary, body: text, tags: [...new Set(tags)].join(','), linkUrl };
+    // Other people who helped write it, credited by name (they link to their profiles).
+    const credits = (Array.isArray(body.credits) ? body.credits : String(body.credits || '').split(','))
+        .map(t => oneLine(t, 80)).filter(Boolean).slice(0, 8);
+    return { type, category, title, summary, body: text, tags: [...new Set(tags)].join(','), linkUrl, credits: [...new Set(credits)].join(',') };
 }
 
 function shape(r, withBody = true) {
     return {
         id: r.id, ref: 'a:' + r.id, type: r.type, category: r.category, title: r.title, summary: r.summary || '',
         ...(withBody ? { body: r.body } : {}), tags: r.tags ? r.tags.split(',') : [], linkUrl: r.link_url || '',
-        author: r.author_name, batch: r.author_batch || '', byAdmin: !!r.by_admin, status: r.status, featured: !!r.featured,
+        author: r.author_name, batch: r.author_batch || '', authorKey: r.author_key, credits: r.credits ? r.credits.split(',') : [], byAdmin: !!r.by_admin, status: r.status, featured: !!r.featured,
         reviewNote: r.review_note || '', reviewedAt: r.reviewed_at || null, createdAt: r.created_at, updatedAt: r.updated_at
     };
 }
@@ -111,9 +114,9 @@ export async function onRequestPost({ request, env }) {
             if (!reader.admin && await overLimit(request, db, 'post', 10)) return json({ success: false, error: 'You’ve posted a lot in a short time. Wait a few minutes and try again.' }, 429);
             const f = fields(body); if (f.error) return json({ success: false, error: f.error }, 400);
             const status = reader.admin ? 'published' : 'pending';
-            const r = await db.prepare(`INSERT INTO kb_articles (type, category, title, summary, body, tags, link_url, author_name, author_batch, author_key, by_admin, status, reviewed_by, reviewed_at, created_at, updated_at, ip)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-                .bind(f.type, f.category, f.title, f.summary, f.body, f.tags, f.linkUrl, reader.who.name, reader.who.batch, reader.who.key, reader.admin ? 1 : 0,
+            const r = await db.prepare(`INSERT INTO kb_articles (type, category, title, summary, body, tags, link_url, credits, author_name, author_batch, author_key, by_admin, status, reviewed_by, reviewed_at, created_at, updated_at, ip)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+                .bind(f.type, f.category, f.title, f.summary, f.body, f.tags, f.linkUrl, f.credits, reader.who.name, reader.who.batch, reader.who.key, reader.admin ? 1 : 0,
                       status, reader.admin ? reader.adminUser : null, reader.admin ? now : null, now, now, request.headers.get('CF-Connecting-IP') || null).run();
             return json({ success: true, id: r.meta && r.meta.last_row_id, status });
         }
@@ -127,8 +130,8 @@ export async function onRequestPost({ request, env }) {
             if (!reader.admin && !own) return json({ success: false, error: 'You can only edit your own posts while they’re waiting for review or were sent back.' }, 403);
             const f = fields(body); if (f.error) return json({ success: false, error: f.error }, 400);
             const status = reader.admin ? row.status : 'pending';   // a VA's fixed post goes back into the queue
-            await db.prepare(`UPDATE kb_articles SET type = ?, category = ?, title = ?, summary = ?, body = ?, tags = ?, link_url = ?, status = ?, updated_at = ? WHERE id = ?`)
-                .bind(f.type, f.category, f.title, f.summary, f.body, f.tags, f.linkUrl, status, now, id).run();
+            await db.prepare(`UPDATE kb_articles SET type = ?, category = ?, title = ?, summary = ?, body = ?, tags = ?, link_url = ?, credits = ?, status = ?, updated_at = ? WHERE id = ?`)
+                .bind(f.type, f.category, f.title, f.summary, f.body, f.tags, f.linkUrl, f.credits, status, now, id).run();
             return json({ success: true, status });
         }
 

@@ -10,6 +10,7 @@ Each SOP is a Markdown page, sops/<slug>.md, that starts with a header:
     summary: One or two sentences on what it covers.
     tags: medical records, HIPAA, follow-up
     owner: Case Management team
+    contributors: Ana Lopez, Jordan Link      (optional: people who wrote or improved it)
     version: 2.1
     updated: 2026-09-25
     file: Medical_Records_Request_SOP.pdf    (optional: the original, in sops/)
@@ -59,7 +60,8 @@ for name in sorted(os.listdir(SOPS)):
     items.append({
         "id": slug, "title": meta.get("title") or slug, "category": meta["category"], "type": meta.get("type", "SOP"),
         "summary": meta.get("summary", ""), "tags": [t.strip().lower() for t in meta.get("tags", "").split(",") if t.strip()],
-        "owner": meta.get("owner", "LSH"), "version": meta.get("version", ""), "updated": meta.get("updated", ""),
+        "owner": meta.get("owner", "LSH"),
+        "contributors": [c.strip() for c in meta.get("contributors", "").split(",") if c.strip()], "version": meta.get("version", ""), "updated": meta.get("updated", ""),
         "page": f"/kb-files/sops/{name}", "file": f"/kb-files/sops/{f}" if f else None, "fileName": f or None,
         "text": plain(body)[:20000]
     })

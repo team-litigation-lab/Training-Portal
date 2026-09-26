@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-09-25T23:14:59.973162Z",
+ "generatedAt": "2026-09-25T23:57:00.228608Z",
  "items": [
   {
    "id": "using-the-knowledge-base",
@@ -13,6 +13,7 @@
     "search"
    ],
    "owner": "LSH Training",
+   "contributors": [],
    "version": "",
    "updated": "2026-09-25",
    "page": "/kb-files/sops/using-the-knowledge-base.md",

@@ -15,6 +15,7 @@ import { json, getCookie, createSessionToken, verifySessionToken, requireSession
 //   kb_stats     views and "helpful" counts per article or SOP
 //   kb_votes     one "helpful" per person per article
 //   kb_rate      per-connection limits for the code and for posting
+//   kb_profiles  contributor profiles (a VA's changes wait for an admin, like posts)
 // Everything is addressed by a ref: "a:<id>" for posts, "s:<slug>" for SOPs.
 // Official SOPs and resources live in the repository under /kb-files/
 // (library.json + a Markdown page and the original file for each), served
@@ -34,6 +35,7 @@ export const clean = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u000
 export const oneLine = (v, n) => clean(v, n * 2).replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
 export const personKey = (name, batch) => (oneLine(name, 80) + '|' + oneLine(batch, 40)).toLowerCase();
 
+let ensured = false;   // once per worker instance
 export async function ensureKbTables(db) {
     const stmts = [
         `CREATE TABLE IF NOT EXISTS kb_settings (key TEXT PRIMARY KEY, value TEXT)`,
@@ -54,9 +56,19 @@ export async function ensureKbTables(db) {
         `CREATE INDEX IF NOT EXISTS kb_comments_ref ON kb_comments (article_ref, status)`,
         `CREATE TABLE IF NOT EXISTS kb_stats (article_ref TEXT PRIMARY KEY, views INTEGER NOT NULL DEFAULT 0, helpful INTEGER NOT NULL DEFAULT 0)`,
         `CREATE TABLE IF NOT EXISTS kb_votes (article_ref TEXT NOT NULL, voter TEXT NOT NULL, created_at TEXT, PRIMARY KEY (article_ref, voter))`,
-        `CREATE TABLE IF NOT EXISTS kb_rate (ip TEXT NOT NULL, kind TEXT NOT NULL, bucket INTEGER NOT NULL, hits INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (ip, kind, bucket))`
+        `CREATE TABLE IF NOT EXISTS kb_rate (ip TEXT NOT NULL, kind TEXT NOT NULL, bucket INTEGER NOT NULL, hits INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (ip, kind, bucket))`,
+        `CREATE TABLE IF NOT EXISTS kb_profiles (
+            person_key TEXT PRIMARY KEY, name TEXT NOT NULL, batch TEXT,
+            profile TEXT, pending TEXT, pending_at TEXT, review_note TEXT,
+            hidden INTEGER DEFAULT 0, updated_at TEXT, reviewed_by TEXT, reviewed_at TEXT)`
     ];
+    if (ensured) return;
     for (const s of stmts) await db.prepare(s).run();
+    // Columns added after the first release.
+    for (const alter of [`ALTER TABLE kb_articles ADD COLUMN credits TEXT`]) {
+        try { await db.prepare(alter).run(); } catch (e) { /* already there */ }
+    }
+    ensured = true;
 }
 
 export async function getSetting(db, key) {
