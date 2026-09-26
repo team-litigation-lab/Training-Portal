@@ -18,6 +18,36 @@
 The portal only sends the fixed scenarios in `simulators/reply-packs/emails.json`. Sends are limited per connection (`SIM_RATE_LIMIT`) and per recipient address. Replies are matched to their practice email by a random token in the Reply-To address; only the first reply to each practice email is scored.
 
 
+## Legal-work simulators: Docket, Medical Records, Court E-Filing
+
+Three simulators on the Simulators hub (`/simulators.html`) train the paperwork side of case management. All three run in the browser (progress is saved in that browser) and send scores to the trainer like the other simulators (`Sim.saveResult`). Each shows a reference number (`DKT-…`, `MRR-2026-…`, `ECF-…` / `ENV-…`) that trainees log in the CM course's tool steps.
+
+**⚖️ Docket System** (`/simulators/docket.html`), built from the LSH docket registry prototype:
+- **Docketing Inbox**: notices of electronic filing, mail and emails for one case. For each item, the trainee decides whether it belongs on the court docket (discovery and internal emails don't), then calendars every deadline it triggers with a responsible person and reminders. **Check My Docketing** grades each item and shows the computation for anything wrong.
+  - *Harlow v. Tri-County Transit* (federal): answer due after service, opposition to a motion, a hearing, RFAs served by mail, an order counted from its entry date, and a scheduling order.
+  - *John Doe v. Apex* (CM course): SOL, the arbitration scheduling order, the amended complaint's service window, RFAs by mail and a motion to compel. These use the course's state method.
+- **Court Records**: a federal-style docket report per case (court, case number, judge, nature of suit, parties and counsel, numbered entries), with filters, search, CSV export, new cases and entries. It includes the five cases from the prototype.
+- **Firm Calendar**: every deadline, with Verified and Done checks and an `.ics` export.
+- **Deadline Calculator**: `simulators/legal-rules.js` (`LR.compute`), a rules library (answer 21 days, opposition 14, discovery 30, FRCP 4(m) 90, appeal 30, expert disclosures 90 days before trial, SOL 2 years, and more) with federal court holidays for 2026–2027.
+  - **Federal (FRCP 6):** roll a weekend or holiday forward, then add 3 days for mail service only.
+  - **State method (CM course):** add the service days first, then roll once.
+  - It unlocks for an assignment after the trainee checks it, so trainees count by hand first.
+
+**🗂 Medical Records Requests** (`/simulators/records.html`): collecting John Doe's records and bills for the demand, from Monday 07/06/2026 to the attorney's date, 08/14/2026.
+- **Authorization:** the HIPAA authorization is unsigned and undated; review it against 45 CFR 164.508 and send it for e-signature.
+- **Requests:** go to the right department (hospital records vs. billing) for the right dates of service.
+- **Business-day clock:** providers respond with acknowledgments, rejections (bad authorization, no records for those dates, psychotherapy notes without a separate authorization), invoices, and silence until someone follows up.
+- **Fees:** the training fee cap is $25 + $0.25 per page. The EMS flat fee is over it, so dispute it.
+- **Delivered records** reveal new providers (independent anesthesia, post-op radiology) and planted problems: the MRI's wrong DOB, the brain-MRI charge, and a partial chiropractic ledger.
+- **Scoring (100 points):** authorization, 21 required record sets logged (including the 2018 and 2021 prior-history records), on time, psychotherapy notes, no unrelated providers, fees, follow-ups, and problems flagged. Data: `simulators/records-data.js`.
+
+**🏛 Court E-Filing** (`/simulators/efiling.html`):
+- **Federal, electronic-case-filing style:** event → case → filer → the entry it responds to → main document and typed, described attachments → docket text → a Notice of Electronic Filing.
+- **State, e-filing-provider style:** existing or new case → filing code or case type and jurisdiction → parties → lead document and attachments → service contacts → fees and payment account → envelope → clerk accepts or rejects.
+- **Filing folder:** the trainee inspects each file and fixes it (OCR, /s/ signature, certificate of service, FRCP 5.2 redaction, splitting a file over 35 MB, removing a password). The system blocks non-PDF, oversized and password-protected uploads.
+- **Traps:** a privileged memo, the attorney-only case summary, a superseded complaint and private intake notes must never be filed.
+- **Scenarios:** the Harlow opposition (federal), John Doe's First Amended Complaint (state), and opening Santos v. Brightway Grocers (civil cover sheet, summons, $435 unlimited-civil fee, personal service). Data: `simulators/efiling-data.js`.
+
 ## Knowledge Base
 
 **📚 Knowledge Base** (`/kb.html`; linked from the home page, the Training Directory and Master Control) is where LSH VAs find the firm's official SOPs and resources and share their own know-how, separate from the course lessons.

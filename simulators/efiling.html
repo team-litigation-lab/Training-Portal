@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Court E-Filing — LSH Training Portal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/simulators/sim.css">
+<link rel="stylesheet" href="/simulators/legal-sim.css">
+</head>
+<body>
+<div id="topbar"></div>
+<div class="sim-wrap">
+    <section class="sim-hero">
+        <div class="eyebrow">Simulator · Court E-Filing</div>
+        <h1>🏛 Court E-Filing</h1>
+        <p>File with the court the way it's done in US courts: a federal filing through the court's electronic case filing system, and state filings through an e-filing service provider. Pick the right event or filing code, find the case, choose the filer, and upload the documents. Inspect every file first: a scanned brief, a missing signature, an unredacted Social Security number, a file over the size limit or a privileged memo in the folder can get a filing rejected, or worse, put it on the public record. Then handle service and fees, submit, and see what the clerk does with it.</p>
+    </section>
+    <div id="app"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/app.js"></script>
+<script src="/portal.js"></script>
+<script src="/simulators/sim.js"></script>
+
+<script src="/simulators/efiling-data.js"></script>
+<script src="/simulators/efiling.js"></script>
+</body>
+</html>
