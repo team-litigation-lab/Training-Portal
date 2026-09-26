@@ -84,7 +84,7 @@ function cards() {
         const sentFb = act.reduce((a, t) => a + ((t.feedback || {}).sent || 0), 0);
         const theirs = tfb.filter(f => f.program === p.id), st = starAvg(theirs);
         return `<div class="sim-card pg-card"><div class="k">${esc(p.label)} · ${p.days} days</div><div class="v">${act.length}</div>
-            <div class="s">approved trainees · ${recent} active this week${pending ? ` · <b>${pending} pending approval</b>` : ''}</div>
+            <div class="s">${act.length === 1 ? 'approved trainee' : 'approved trainees'} · ${recent} active this week${pending ? ` · <b>${pending} pending approval</b>` : ''}</div>
             <div class="s" style="margin-top:6px;">Avg completion ${done == null ? '—' : done + '%'} · Knowledge Checks ${avg(act.map(t => t.kcAvg)) == null ? '—' : avg(act.map(t => t.kcAvg)) + '%'}</div>
             <div class="s" style="margin-top:6px;">Trainer feedback: ${sentFb} sent${drafts ? ` · <b>${drafts} draft${drafts === 1 ? '' : 's'} to review</b>` : ''} · From trainees: ${theirs.length}${st != null ? ` (avg ${(st / 20).toFixed(1)}★)` : ''}</div>
             ${p.url ? `<div class="s" style="margin-top:6px;"><a href="${esc(p.url)}" target="_blank" rel="noopener">Open course admin ↗</a></div>` : ''}</div>`;
@@ -99,7 +99,7 @@ function render() {
         <div class="pg-cards">${cards()}</div>
         <div class="pg-tabs" role="tablist">
             <button role="tab" class="${P.tab === 'people' ? 'on' : ''}" onclick="P.tab='people';render()">👤 Trainees <span class="n">${people().length}</span></button>
-            <button role="tab" class="${P.tab === 'feedback' ? 'on' : ''}" onclick="P.tab='feedback';render()">💬 Feedback from trainees <span class="n">${nFb}</span></button>
+            <button role="tab" class="${P.tab === 'feedback' ? 'on' : ''}" onclick="P.tab='feedback';render()">💬 Feedback from Trainees <span class="n">${nFb}</span></button>
         </div>
         <div id="pane"></div>
         <p class="pg-muted" style="margin-top:10px;">Records are matched across programs, simulators and portal activities by the trainee’s name. Updated ${esc(d.generatedAt ? ago(d.generatedAt) : '—')}.</p>`;
