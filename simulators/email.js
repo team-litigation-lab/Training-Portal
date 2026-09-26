@@ -36,7 +36,7 @@ const WS_FOLDERS = [
 ];
 const WS_SNOOZE = [['Later today','6:00 PM'],['Tomorrow','Tue, 8:00 AM'],['This weekend','Sat, 8:00 AM'],['Next week','Mon, 8:00 AM']];
 const WS_PALETTE = ['#B54A3F','#6B4FA0','#DB8437','#3F7D58','#3C4268','#2C7A7B','#7C82A0','#A8ADBD','#4A2545','#0b57d0','#e37400','#188038'];
-const WS_PROGRAMS = ['Standard Training','Litigation','Medsum and Demand','Case Management','EA / PA','Calendar Management','Business Law','Estate Planning','Family Law','Health Subrogation','Immigration Law','Intellectual Property Law','Lien Verification','Mass Tort','Property Damage','Real Estate Law'];
+const WS_PROGRAMS = ['Standard Foundational Training','Litigation','Medsum and Demand','Case Management','EA / PA','Calendar Management','Business Law','Estate Planning','Family Law','Health Subrogation','Immigration Law','Intellectual Property Law','Lien Verification','Mass Tort','Property Damage','Real Estate Law'];
 const WS_SENSITIVE = /(password|routing number|account number|ssn|social security|pin\s*(is|:)|\b\d{6,}\b)/i;
 
 let W = { phase:'pick' };
