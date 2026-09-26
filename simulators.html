@@ -74,7 +74,7 @@
                 <h3>${Sim.esc(s.title)}</h3>
                 <p>${Sim.esc(s.desc)}</p>
                 <div class="row"><span class="uses">${Sim.esc(s.uses)}</span>
-                    ${s.href ? `<a class="sim-btn primary" href="${s.href}">Open →</a>` : `<button class="sim-btn ghost" disabled>Not yet</button>`}</div>
+                    ${s.href ? `<a class="sim-btn primary" href="${s.href}" target="_blank" rel="noopener">Open →</a>` : `<button class="sim-btn ghost" disabled>Not yet</button>`}</div>
             </div>`).join('');
     }
 

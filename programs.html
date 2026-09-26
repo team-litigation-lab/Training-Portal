@@ -114,8 +114,8 @@
     </div>
     <div class="idx-user" id="idx-user">
         <a class="idx-logout" href="/index.html">Home</a>
-        <a class="idx-logout" href="/simulators.html" style="color:#fdba74;font-weight:800;">🛠 Simulators</a>
-        <a class="idx-logout" href="/kb.html" style="color:#fdba74;font-weight:800;">📚 Knowledge Base</a>
+        <a class="idx-logout" href="/simulators.html" style="color:#fdba74;font-weight:800;" target="_blank" rel="noopener">🛠 Simulators</a>
+        <a class="idx-logout" href="/kb.html" style="color:#fdba74;font-weight:800;" target="_blank" rel="noopener">📚 Knowledge Base</a>
         <a class="idx-logout" href="/admin-login.html" title="Admin monitoring (sign-in required)">🔒 Admin</a>
     </div>
 </div>
@@ -127,12 +127,12 @@
         <p id="idx-subhead">Every LSH training program in one place. Open a program to start. Each program has its own sign-in.</p>
     </div>
 
-    <a class="sim-banner" href="/simulators.html">
+    <a class="sim-banner" href="/simulators.html" target="_blank" rel="noopener">
         <span class="sim-banner-ic">🛠</span>
         <span class="sim-banner-tx"><b>Simulators</b><span>Calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
-    <a class="sim-banner" href="/kb.html" style="margin-top:-14px;">
+    <a class="sim-banner" href="/kb.html" style="margin-top:-14px;" target="_blank" rel="noopener">
         <span class="sim-banner-ic">📚</span>
         <span class="sim-banner-tx"><b>Knowledge Base</b><span>Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know. Team access code required.</span></span>
         <span class="sim-banner-go">Open →</span>
@@ -194,7 +194,7 @@
         if (session.userType === 'Admin') {
             const userEl = document.getElementById('idx-user');
             if (userEl) userEl.innerHTML = `
-                <a class="idx-logout" href="/simulators.html" style="color:#fdba74;font-weight:800;">🛠 Simulators</a>
+                <a class="idx-logout" href="/simulators.html" style="color:#fdba74;font-weight:800;" target="_blank" rel="noopener">🛠 Simulators</a>
                 <span class="idx-user-name">${escapeHtml(session.fullName || session.username)}</span>
                 <a class="idx-logout" href="/kb.html">📚 Knowledge Base</a>
                 <a class="idx-logout" href="/progress.html">📊 Progress &amp; Feedback</a>
@@ -357,7 +357,7 @@
                 <div class="topic-card">
                     <h3>${escapeHtml(t.name)}</h3>
                     <span class="topic-status ${built ? 'approved' : 'locked'}">${built ? 'Available' : 'Coming Soon'}</span>
-                    ${built ? `<a class="topic-action-btn primary" href="${built}">Open Program &rarr;</a>` : `<span class="topic-action-btn disabled">Coming Soon</span>`}
+                    ${built ? `<a class="topic-action-btn primary" href="${built}" target="_blank" rel="noopener">Open Program &rarr;</a>` : `<span class="topic-action-btn disabled">Coming Soon</span>`}
                 </div>`;
             }
 
@@ -379,7 +379,7 @@
             } else if (!built) {
                 actionHtml = `<span class="topic-action-btn disabled">Coming Soon</span>`;
             } else if (isAdmin || status === 'approved') {
-                actionHtml = `<a class="topic-action-btn primary" href="${built}">Enter Program &rarr;</a>`;
+                actionHtml = `<a class="topic-action-btn primary" href="${built}" target="_blank" rel="noopener">Enter Program &rarr;</a>`;
             } else if (status === 'pending') {
                 actionHtml = `<span class="topic-action-btn disabled">Awaiting Admin Approval</span>`;
             } else if (!isAdmin && status === 'locked' && prevKey && !prevPassed) {
