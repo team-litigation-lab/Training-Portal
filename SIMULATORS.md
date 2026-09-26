@@ -14,8 +14,9 @@ claim a simulator below before starting it, and update it when you ship.**
 | Email Workspace | `/simulators/email.html` | Live | Gmail-style practice inbox, no real Gmail. Packs in `simulators/email-packs.js` (CM, EA) + "generate for any program" — portal chat |
 | Email Replies | `/simulators/email-replies.html` | Live | One email at a time, answered on the portal or from the trainee's own inbox (Postmark delivery, off until configured; see README). Scenarios in `simulators/reply-packs/emails.json` (8 CM + 2 all programs); server: `functions/api/email-practice.js`, `email-inbound.js`, `_email.js` — CM chat |
 | Chat Simulator | — | Next | Unclaimed |
-| Docket System | — | Planned | Unclaimed |
-| Medical Records Requests | — | Planned | A medical records request platform (request records and itemized bills, signed HIPAA authorization, track fulfilment, fees and follow-ups, log results to the case file). Unclaimed. Describe it by what it does; don't use the name of the commercial platform it imitates. |
+| Docket System | `/simulators/docket.html` | Live | Docketing inbox (NEFs and mail to docket and calendar, graded), federal-style court docket reports (incl. the 5 cases from the LSH docket registry prototype), firm calendar (.ics export), rules-based deadline calculator. Data `docket-data.js`; rules `legal-rules.js` (FRCP 6 and the CM course's state method, 2026–27 court holidays). Assignments: federal Harlow case, CM John Doe case — CM chat |
+| Medical Records Requests | `/simulators/records.html` | Live | Records request platform on the John Doe file: HIPAA authorization review and e-signature, provider directory, simulated business-day clock, rejections, invoices vs the state fee cap, follow-ups, delivered records to review/flag/log, 100-point objectives. Data `records-data.js`. Describe it by what it does; don't use the name of the commercial platform it imitates — CM chat |
+| Court E-Filing | `/simulators/efiling.html` | Live | Federal CM/ECF-style and state e-filing-provider-style wizards with a filing folder to inspect and fix (OCR, /s/ signature, certificate of service, FRCP 5.2 redaction, 35 MB limit, passwords), clerk review and a graded receipt. Scenarios in `efiling-data.js` (federal opposition, John Doe amended complaint, new case) — CM chat |
 
 To add program content to an existing simulator, add a pack file (like
 `call-pack-cm.js` or a new key in `email-packs.js`) instead of a new simulator.
@@ -38,3 +39,4 @@ To add program content to an existing simulator, add a pack file (like
   `sim-chip`, `sim-table`; navy `#0f2148` + orange `#f97316`. `.sim-wrap` needs
   `width:100%` because the body is a flex container.
 - Trainee-facing text avoids the word "AI".
+- Legal-work simulators (Docket, Records, E-Filing) share `simulators/legal-sim.css`; court deadline math lives in `simulators/legal-rules.js` (`LR.compute`).
