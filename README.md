@@ -105,3 +105,30 @@ Where the records come from:
 - A person's records are matched across programs, simulators and activities by name, because the programs have separate sign-ins.
 
 The API (`/api/program-progress`) is admin-only and read-only; feedback is written and marked reviewed in each course. It stays under Workers KV's 1,000-operations-per-request limit and says so on the page if a very large roster doesn't fit. To add a program, add it to `PROGRAMS` in `functions/api/program-progress.js` with its key prefix, number of days and course address.
+
+## Checks and uptime alerts (GitHub Actions)
+
+**Checks** (`.github/workflows/checks.yml`) runs on every pull request and every push to `main`. A red status means something is broken, and the log says what:
+- **Syntax, files and build:**
+  - every JavaScript file and inline `<script>` must parse;
+  - every local file a page loads must exist;
+  - JSON must be valid;
+  - the Pages Functions must build (nothing is deployed).
+- **Smoke test in a browser:** opens every portal page and simulator at desktop and phone width (API calls answered with empty data). It fails on any page error or a page that scrolls sideways on a phone. New simulator pages go in `PAGES` in `.github/scripts/smoke.cjs`.
+
+**Uptime** (`.github/workflows/uptime.yml`) checks every 30 minutes (at :07 and :37):
+- the live portal, including its database (`/api/site-state`) and the Docket simulator;
+- the CM and EA/PA courses;
+- the CMS, including its database (`/api/state`).
+
+Each failing check is retried once after 20 seconds.
+- **When a site is down,** it opens an issue labelled **site-down** with a table of what failed, or adds a comment if one is already open. GitHub notifies everyone watching this repository: watch it with **Watch → All activity** or **Custom → Issues** to get the emails.
+- **When everything passes again,** it closes the issue.
+- **To run it now:** Actions → Uptime → Run workflow.
+- **To add or change a site:** edit `.github/scripts/uptime.mjs`.
+
+GitHub pauses scheduled workflows after 60 days without a commit to the repository. The Actions tab shows a button to turn it back on.
+
+To run the checks locally: `node .github/scripts/check-site.mjs`, `node .github/scripts/smoke.cjs` (needs Playwright), `node .github/scripts/uptime.mjs`.
+
+`_redirects` keeps `wrangler.toml`, the Markdown files, `topics_seed.sql`, `.github/` and the Functions source off the published site.
