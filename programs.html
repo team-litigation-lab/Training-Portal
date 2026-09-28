@@ -168,6 +168,15 @@
         'STANDARD TRAINING': 'Standard Foundational Training'
     };
 
+    // Programs shown on the index that aren't in the live topics table yet.
+    // Added to the list only when the database doesn't already have the key,
+    // so seeding it later (topics_seed.sql carries it) changes nothing here.
+    // Not in TOPIC_SEQUENCE: free programs aren't gated behind progression.
+    // Give it a BUILT_PROGRAMS link once it has its own site.
+    const EXTRA_PROGRAMS = [
+        { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Programs', sort_order: 0 }
+    ];
+
     // Fixed VA progression order — must match TOPIC_SEQUENCE in
     // functions/api/topics.js exactly. Duplicated here because a static
     // page and a Pages Function can't share a module directly. Anything
@@ -177,7 +186,7 @@
     const TOPIC_SEQUENCE = [
         'STANDARD TRAINING', 'LITIGATION', 'MEDSUM AND DEMAND', 'CM TRAINING',
         'EA  PA TRAINING-OUTSOURCED MANP', 'REVISED EA PA TRAINING', 'REVISED CM TRAINING',
-        'CALENDAR MANAGEMENT TRAINING', 'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW',
+        'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW',
         'HEALTH SUBRO', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'LIEN VERIFICATION',
         'MASS TORT', 'PROPERTY DAMAGE', 'REAL ESTATE LAW'
     ];
@@ -214,6 +223,7 @@
             const data = await res.json();
             if (!data.success) throw new Error(data.error || 'Failed to load the training index.');
             __topicsCache = (data.topics || []).map(t => PROGRAM_NAMES[t.key] ? { ...t, name: PROGRAM_NAMES[t.key] } : t);
+            EXTRA_PROGRAMS.forEach(x => { if (!__topicsCache.some(t => t.key === x.key)) __topicsCache.push({ ...x }); });
             __accessCache = data.access || [];
             renderQueue(session);
             renderManualGrant(session);
@@ -285,7 +295,7 @@
         if (session.userType !== 'Admin') { wrap.innerHTML = ''; return; }
 
         const options = __topicsCache
-            .filter(t => !ARCHIVED_TOPICS.includes(t.key))
+            .filter(t => !ARCHIVED_TOPICS.includes(t.key) && !EXTRA_PROGRAMS.some(x => x.key === t.key))
             .map(t => `<option value="${escapeHtml(t.key)}">${escapeHtml(t.name)}</option>`)
             .join('');
 
@@ -323,7 +333,7 @@
     // Archived — old/superseded modules kept in the database (and in any
     // trainee's history) but hidden from the active Training Index. Purely
     // a display-level exclusion; nothing is deleted.
-    const ARCHIVED_TOPICS = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING'];
+    const ARCHIVED_TOPICS = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];
 
     // TOPIC_SEQUENCE was only being used for gating logic below, never for
     // the actual card order — so the grid was still showing the database's
@@ -337,8 +347,11 @@
             .filter(t => !ARCHIVED_TOPICS.includes(t.key))
             .slice()
             .sort((a, b) => {
-                const diff = seqIndex(a.key) - seqIndex(b.key);
-                return diff !== 0 ? diff : (a.sort_order || 0) - (b.sort_order || 0);
+                const ia = seqIndex(a.key), ib = seqIndex(b.key);
+                // Compare directly: Infinity - Infinity is NaN, which left the
+                // unsequenced cards (Handouts, Free Upskill…) in random order.
+                if (ia !== ib) return ia < ib ? -1 : 1;
+                return (a.sort_order || 0) - (b.sort_order || 0);
             });
     }
 
