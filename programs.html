@@ -48,10 +48,6 @@
     .idx-head h1 { font-size: clamp(30px, 4.2vw, 44px); font-weight: 900; line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 12px; color: #fff; }
     .idx-head h1 span { color: var(--orange); }
     .idx-head p { font-size: 15.5px; line-height: 1.6; color: rgba(255,255,255,.68); margin: 0; max-width: 62ch; }
-    .idx-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
-    .idx-stats:empty { display: none; }
-    .idx-stat { display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 14px; border-radius: 999px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); font-size: 13px; color: rgba(255,255,255,.75); }
-    .idx-stat b { font-size: 16px; color: #fff; }
     @media (max-width: 640px) { .idx-head { padding: 28px 22px 26px; border-radius: 18px; } .idx-head::before { right: -180px; } .idx-head::after { display: none; } }
 
     .queue-card { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; padding: 18px 20px; margin-bottom: 28px; }
@@ -142,7 +138,6 @@
         <div class="eyebrow">All Programs</div>
         <h1 id="idx-heading">Training <span>Directory</span></h1>
         <p id="idx-subhead">Every LSH training program in one place. Open a program to start. Each program has its own sign-in.</p>
-        <div class="idx-stats" id="idx-stats"></div>
     </div>
 
     <div class="sim-banner-row">
@@ -250,7 +245,6 @@
             renderQueue(session);
             renderManualGrant(session);
             renderTopics(session);
-            renderIndexStats();
         } catch (e) {
             const grid = document.getElementById('idx-topics');
             if (grid) grid.innerHTML = `<div style="grid-column:1/-1; font-size:13px; color:#b91c1c; padding:20px;">${escapeHtml(e.message)}</div>`;
@@ -378,14 +372,6 @@
                 if (ia !== ib) return ia < ib ? -1 : 1;
                 return (a.sort_order || 0) - (b.sort_order || 0);
             });
-    }
-
-    function renderIndexStats() {
-        const el = document.getElementById('idx-stats');
-        if (!el) return;
-        const shown = orderedTopics();
-        const open = shown.filter(t => BUILT_PROGRAMS[t.key]).length;
-        el.innerHTML = `<span class="idx-stat"><b>${shown.length}</b> programs listed</span><span class="idx-stat"><b>${open}</b> open now</span>`;
     }
 
     function renderTopics(session) {
