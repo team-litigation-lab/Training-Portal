@@ -30,7 +30,8 @@
     .idx-brand { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 800; font-size: 14px; }
     .idx-brand-mark { width: 34px; height: 34px; border-radius: 0; background: #fff; padding: 3px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
     .idx-brand-mark img { width: 100%; height: 100%; object-fit: contain; }
-    .idx-user { display: flex; align-items: center; gap: 14px; }
+    .idx-user { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+    @media (max-width: 640px) { .idx-top { flex-wrap: wrap; gap: 10px; padding: 14px 16px; } .idx-user { justify-content: flex-start; gap: 6px 14px; } }
     .idx-user-name { color: rgba(255,255,255,0.85); font-size: 12.5px; font-weight: 700; }
     .idx-logout { color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 600; text-decoration: none; cursor: pointer; }
     .idx-logout:hover { color: #fff; }
@@ -129,6 +130,7 @@
         <a class="idx-logout" href="/index.html">Home</a>
         <a class="idx-logout" href="/simulators.html" style="color:#fdba74;font-weight:800;" target="_blank" rel="noopener">🛠 Simulators</a>
         <a class="idx-logout" href="/kb.html" style="color:#fdba74;font-weight:800;" target="_blank" rel="noopener">📚 Knowledge Base</a>
+        <a class="idx-logout" href="/orientation.html" style="color:#fdba74;font-weight:800;" target="_blank" rel="noopener">🧭 Orientation</a>
         <a class="idx-logout" href="/admin-login.html" title="Admin monitoring (sign-in required)">🔒 Admin</a>
     </div>
 </div>
@@ -224,6 +226,7 @@
                 <span class="idx-user-name">${escapeHtml(session.fullName || session.username)}</span>
                 <a class="idx-logout" href="/kb.html">📚 Knowledge Base</a>
                 <a class="idx-logout" href="/progress.html">📊 Progress &amp; Feedback</a>
+                <a class="idx-logout" href="/orientation.html?track=admin" target="_blank" rel="noopener">🧭 Orientation</a>
                 <a class="idx-logout" href="/core.html">Master Control &rarr;</a>
                 <a class="idx-logout" onclick="logoutSession()">Log Out</a>`;
         }

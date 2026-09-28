@@ -48,6 +48,22 @@ Three simulators on the Simulators hub (`/simulators.html`) train the paperwork 
 - **Traps:** a privileged memo, the attorney-only case summary, a superseded complaint and private intake notes must never be filed.
 - **Scenarios:** the Harlow opposition (federal), John Doe's First Amended Complaint (state), and opening Santos v. Brightway Grocers (civil cover sheet, summons, $435 unlimited-civil fee, personal service). Data: `simulators/efiling-data.js`.
 
+## 🧭 Orientation
+
+**`/orientation.html`** is the Platform Orientation for the portal: a slide deck made for screen sharing in Google Meet. It shows nothing private: no passwords, access codes or trainee data.
+
+It has two tracks, switched at the top of the page:
+- **Trainees** (8 slides): what the portal is, the Training Directory, signing in inside each program, what's inside a program, the Simulators, the Knowledge Base, good habits, and first steps.
+- **Trainers & Admins** (8 slides): admin sign-in, the Directory's admin view (access queue, Mark Passed, Manually Grant Access), Master Control (monitoring, Broadcast & Ping, Access Control, activities and grading), Progress & Feedback, program admin, Knowledge Base review and simulator scores, and a daily checklist.
+
+How to use it:
+- Keys: ← → (or Page Up / Page Down / Space) change slides, and **F** toggles full screen.
+- **🖨 Print** prints the current track, one slide per page (or saves it as a PDF).
+- Deep links: `?track=admin&slide=3`.
+- Links to it: **Orientation** in the home page menu, and **🧭 Orientation** in the Training Directory's top bar. Signed-in admins get the admin track.
+
+To change the content, edit `SLIDES` in `orientation.html`.
+
 ## Knowledge Base
 
 **📚 Knowledge Base** (`/kb.html`; linked from the home page, the Training Directory and Master Control) is where LSH VAs find the firm's official SOPs and resources and share their own know-how, separate from the course lessons.
