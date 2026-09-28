@@ -262,17 +262,6 @@
     .faq-item.open .faq-answer { max-height: 240px; }
     .faq-answer p { font-size: 13.5px; color: var(--slate); line-height: 1.6; padding: 0 4px 20px; }
 
-    /* ===== CONTACT ===== */
-    .contact-section { background: var(--paper-warm); }
-    .contact-section:has(.contact-grid[hidden]) { padding-bottom: 56px; }
-    .contact-section:has(.contact-grid[hidden]) .section-head { margin-bottom: 0; }
-    .contact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 44px; }
-    @media (max-width: 860px) { .contact-grid { grid-template-columns: 1fr; } }
-    .contact-card { background: #fff; border-radius: 20px; padding: 26px; text-align: center; border: 1px solid rgba(15,33,72,0.06); }
-    .contact-card .icon { font-size: 26px; margin-bottom: 12px; }
-    .contact-card h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 5px; }
-    .contact-card a, .contact-card span { font-size: 13px; color: var(--slate); text-decoration: none; }
-    .contact-card a:hover { color: var(--orange); }
 
     /* ===== CTA BANNER ===== */
     .cta-banner {
@@ -310,7 +299,6 @@
             <a href="/kb.html">Knowledge Base</a>
             <a href="#faq">FAQs</a>
             <a href="#about">About</a>
-            <a href="#contact">Contact</a>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
             <a href="/admin-login.html" class="btn-ghost-dark" title="Admin monitoring (sign-in required)">🔒 Admin</a>
@@ -338,8 +326,6 @@
             <p class="tagline reveal d2">Empowering your journey from new hire to confident specialist.</p>
             <p class="lead reveal d3">You are on your way to becoming an important part of the team by upgrading your skills across different law practice areas. Explore structured modules and recorded lectures with real-time tracking, whether you are focusing on Family Law, Mass Tort, Case Management, or beyond.</p>
             <div class="hero-ctas reveal d4">
-                <a href="/programs.html" class="btn-primary">Open the Training Directory &rarr;</a>
-                <a href="/simulators.html" class="btn-ghost-dark">🛠 Practice in the Simulators</a>
                 <a href="#features" class="btn-ghost-dark">See how it works</a>
             </div>
         </div>
@@ -583,38 +569,8 @@
             <div class="faq-answer"><p>Most activities are auto-graded instantly on submission. Anything needing a human eye is reviewed by an admin, and you'll see the released grade and feedback on your Grades &amp; Submissions page.</p></div>
         </div>
         <div class="faq-item">
-            <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">I'm interested in joining LSH — how do I apply? <span class="chev">&#9660;</span></button>
-            <div class="faq-answer"><p>Ask your LSH contact or recruiter about current openings and the application process.</p></div>
-        </div>
-        <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">Do I need to log in here? <span class="chev">&#9660;</span></button>
-            <div class="faq-answer"><p>No. This page is open to everyone: open your program from the Training Directory. Each training program has its own sign-in, so if you can't get into your program, reach out to your trainer or batch administrator.</p></div>
-        </div>
-    </div>
-</section>
-
-<section class="section contact-section" id="contact">
-    <div class="section-head">
-        <div class="eyebrow">Get in touch</div>
-        <h2>Contact Us</h2>
-        <p>Questions about your training, access to your program or the Knowledge Base code? Your <b>trainer or batch administrator</b> is your first contact — they'll get you sorted quickly.</p>
-    </div>
-    <!-- Hidden until real contact details are provided: remove the hidden attribute to show it. -->
-    <div class="contact-grid" hidden>
-        <div class="contact-card">
-            <div class="icon">&#9993;</div>
-            <h3>Email</h3>
-            <a href="mailto:training@legalsupporthelp.example">training@legalsupporthelp.example</a>
-        </div>
-        <div class="contact-card">
-            <div class="icon">&#9742;</div>
-            <h3>Phone</h3>
-            <span>+1 (555) 010-0100</span>
-        </div>
-        <div class="contact-card">
-            <div class="icon">&#128205;</div>
-            <h3>Office</h3>
-            <span>Legal Support Help HQ</span>
+            <div class="faq-answer"><p>No. This page is open to everyone: open your program from the Training Directory. Each training program has its own sign-in, so if you can't get into your program, reach out to your batch administrator.</p></div>
         </div>
     </div>
 </section>

@@ -33,3 +33,26 @@ const PortalNav = {
         .pn-back:hover{background:rgba(255,255,255,.1);}`;
     document.head.appendChild(st);
 })();
+// Safety net: every portal page gets a Back button, even one built without the shared
+// nav bar. If no "← Back" is on the page shortly after it loads (Home excepted), a
+// floating one is added. The Checks workflow also fails any page without one.
+(function () {
+    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html', '/registration.html': '/index.html' };
+    function ensureBack() {
+        const path = location.pathname.replace(/\/$/, '/index.html');
+        if (path === '/index.html' || PortalNav.embedded() || document.querySelector('.pn-back')) return;
+        const st = document.createElement('style');
+        st.textContent = `.pn-back.pn-float{position:fixed;left:16px;bottom:16px;z-index:9000;background:#0f2148;color:#fff !important;border-color:#0f2148;box-shadow:0 8px 22px -8px rgba(8,18,38,.55);font:700 13px/1 'IBM Plex Sans',Arial,sans-serif;}
+            .pn-back.pn-float:hover{background:#132a5c;}
+            @media print{.pn-back.pn-float{display:none;}}`;
+        document.head.appendChild(st);
+        const a = document.createElement('a');
+        a.className = 'pn-back pn-float'; a.title = 'Go back'; a.textContent = '← Back'; a.setAttribute('role', 'button'); a.tabIndex = 0;
+        a.onclick = () => PortalNav.back(PARENT[path] || '/programs.html');
+        a.onkeydown = (e) => { if (e.key === 'Enter') a.click(); };
+        document.body.appendChild(a);
+    }
+    // Pages draw their top bars after load; check once they have.
+    const later = () => setTimeout(ensureBack, 1500);
+    if (document.readyState === 'complete') later(); else window.addEventListener('load', later);
+})();

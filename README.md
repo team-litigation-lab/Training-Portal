@@ -85,26 +85,46 @@ Admins' own posts and replies are published straight away.
 
 ## Trainee Progress & Feedback (admin)
 
-**Admin → 📊 Progress & Feedback** (`/progress.html`, also linked from Master Control) is the central record of every trainee's training. It has two tabs.
+**Admin → 📊 Progress & Feedback** (`/progress.html`, also linked from Master Control) is the central record of every trainee's training.
 
-**👤 Trainees**: one row per person, merging all their programs. For each trainee it shows:
-- each program they're in, with status and days completed, and their overall completion;
+**A tab per program:** Standard Foundational Training, EA / PA Training and CM Training. Each tab loads only its own program, so one request's KV reads go to one program.
+
+**👤 Trainees**, grouped into 📁 batch sections (count, average completion, last activity). For each trainee:
+- status and days completed;
 - Knowledge Check, practice (Skill Builder / Practice Lab) and random-task averages;
 - the trainer's feedback: how many days were sent, drafts still to review, and the latest rating;
 - the feedback they sent about the training (count and average stars);
 - simulator practice and graded activities from this portal;
 - when they were last active.
 
-Click a trainee for everything on record. Each program shows the day-by-day grid, then every day's trainer feedback: rating, summary, strengths, areas to build, next focus, sent/read status and the private trainer note. Then come their own feedback, simulator runs and portal activities with the grader's comments. Filters: program, status and batch. Sorts include "furthest behind" and "feedback drafts to review". **⬇ CSV** exports one line per trainee per program.
+Click a trainee for everything on record: the day-by-day grid, every day's trainer feedback (rating, summary, strengths, areas to build, next focus, sent/read status and the private trainer note), their own feedback, simulator runs and portal activities with the grader's comments. Filter by status, sort (including "furthest behind" and "feedback drafts to review"), search, and **⬇ CSV** for the program.
 
-**💬 Feedback from trainees**: everything trainees sent about the programs (star ratings by area and comments; anonymous ones stay anonymous), with average ratings by area, filters by program, day and status, search and CSV.
+**📦 Archive batch** hides a finished batch and keeps its records:
+- It sets `archived: true` on the batch's trainee records in the course (the same flag the course's own "Archive batch" sets), and saves a snapshot of the batch (days, scores, trainer feedback) in D1 (`progress_archive`, created on first use).
+- Archived trainees' trainer feedback isn't re-read from KV on later loads, so old batches stop using the read budget.
+- **Archived batches** at the bottom of the tab: **Open** shows a snapshot, **↩ Restore** makes the batch active again here and in the course. Batches archived in the course show up there too.
+- Pages preview deployments share the live bindings, so archiving is turned off on them.
+
+**💬 Feedback from trainees**: what trainees sent about the program (star ratings by area and comments; anonymous ones stay anonymous), with average ratings by area, filters by day and status, search and CSV.
+
+### Saving archived batches to Google Drive
+
+With these set, archiving a batch also saves it (a CSV report and the full JSON snapshot) to `LSH Training Archives / <Program> / Batch <batch>` on a Shared Drive, and the archived batch links to its folder. **☁ Save to Drive** saves a batch archived before Drive was set up, or retries one that failed. A Drive problem never stops the archive itself.
+
+1. In Google Cloud (any project): **IAM & Admin → Service Accounts → Create**, then **Keys → Add key → JSON**. Enable the **Google Drive API** for the project.
+2. In Google Drive, use a **Shared Drive** (service accounts have no storage, so a folder in someone's My Drive won't work). Add the service account's email as a member with **Content manager**.
+3. In Cloudflare Pages → this project → **Settings → Variables and Secrets** (Production), add as secrets:
+   - `GDRIVE_SA_EMAIL`: the `client_email` from the JSON key
+   - `GDRIVE_SA_KEY`: the `private_key` from the JSON key (the whole `-----BEGIN PRIVATE KEY-----…` value)
+   - `GDRIVE_ARCHIVE_FOLDER`: the Shared Drive's id (or a folder in it), the last part of its URL
+4. Redeploy. The page shows **☁ Save to Drive** on archived batches once Drive is set up.
 
 Where the records come from:
-- The programs keep their own trainees and sign-in. The portal reads their records from the course Workers' KV namespace through the `COURSE_KV` binding in `wrangler.toml`, which points at the same namespace as the EA/PA and CM Workers' `LSH_KV`. EA/PA keys have no prefix (`trainee:*`, `feedback:*`, `tfeedback:*`); CM course keys start with `cm:`.
-- Simulator results (`simulator_results`) and portal activities (`submissions`) come from this portal's D1 database.
-- A person's records are matched across programs, simulators and activities by name, because the programs have separate sign-ins.
+- The programs keep their own trainees and sign-in. The portal reads their records from the course Workers' KV namespace through the `COURSE_KV` binding in `wrangler.toml`, which points at the same namespace as the courses' `LSH_KV`. EA/PA keys have no prefix (`trainee:*`, `feedback:*`, `tfeedback:*`); CM course keys start with `cm:`, Standard Foundational Training keys with `ft:`.
+- Simulator results (`simulator_results`), portal activities (`submissions`) and archive snapshots (`progress_archive`) are in this portal's D1 database.
+- Simulator and activity records are matched to trainees by name, because the programs have separate sign-ins.
 
-The API (`/api/program-progress`) is admin-only and read-only; feedback is written and marked reviewed in each course. It stays under Workers KV's 1,000-operations-per-request limit and says so on the page if a very large roster doesn't fit. To add a program, add it to `PROGRAMS` in `functions/api/program-progress.js` with its key prefix, number of days and course address.
+The API (`/api/program-progress`) is admin-only. It writes only to archive and restore batches; feedback is written and marked reviewed in each course. It stays under Workers KV's 1,000-operations-per-request limit and says so on the page if a very large program doesn't fit. To add a program, add it to `PROGRAMS` in `functions/api/program-progress.js` with its key prefix, number of days and course address, and to `PROGRAM_ORDER` in `progress-records.js`.
 
 ## Checks and uptime alerts (GitHub Actions)
 

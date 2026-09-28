@@ -38,12 +38,22 @@
     @media (max-width: 760px) { .idx-top { flex-wrap: wrap; gap: 10px; padding: 14px 16px; } .idx-user { flex-wrap: wrap; gap: 10px 14px; } }
 
     .idx-wrap { max-width: 1280px; margin: 0 auto; padding: 40px 24px 80px; }
-    .idx-head { margin-bottom: 32px; }
-    .idx-head .eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--orange); margin-bottom: 8px; }
-    .idx-head h1 { font-size: 28px; font-weight: 800; margin: 0 0 8px; }
-    .idx-head p { font-size: 14px; color: var(--slate); margin: 0; max-width: 60ch; }
+    /* Directory hero — the same navy and orange rings as the home page hero. */
+    .idx-head { position: relative; overflow: hidden; margin-bottom: 20px; padding: 38px 40px 34px; border-radius: 22px; color: #fff;
+        background: radial-gradient(120% 140% at 100% 0%, var(--navy-mid) 0%, var(--navy-deep) 62%); box-shadow: 0 18px 40px -22px rgba(8,18,38,.7); }
+    .idx-head::before, .idx-head::after { content: ""; position: absolute; border-radius: 50%; pointer-events: none; }
+    .idx-head::before { width: 360px; height: 360px; right: -90px; top: -150px; border: 44px solid rgba(249,115,22,.16); }
+    .idx-head::after { width: 200px; height: 200px; right: 40px; top: -40px; border: 2px solid rgba(251,146,60,.35); }
+    .idx-head > * { position: relative; z-index: 1; }
+    .idx-head .eyebrow { display: inline-block; font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--orange-soft);
+        padding: 5px 12px; border: 1px solid rgba(251,146,60,.45); border-radius: 999px; background: rgba(249,115,22,.10); margin-bottom: 14px; }
+    .idx-head h1 { font-size: clamp(30px, 4.2vw, 44px); font-weight: 900; line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 12px; color: #fff; }
+    .idx-head h1 span { color: var(--orange); }
+    .idx-head p { font-size: 15.5px; line-height: 1.6; color: rgba(255,255,255,.68); margin: 0; max-width: 62ch; }
+    @media (max-width: 640px) { .idx-head { padding: 28px 22px 26px; border-radius: 18px; } .idx-head::before { right: -180px; } .idx-head::after { display: none; } }
 
     .queue-card { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; padding: 18px 20px; margin-bottom: 28px; }
+    .topic-free { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; vertical-align: middle; }
     .grant-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; padding: 18px 20px; margin-bottom: 28px; }
     .grant-card h3 { font-size: 13px; font-weight: 800; color: #166534; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.03em; }
     .grant-card p { font-size: 12px; color: #64748b; margin: 0 0 14px; }
@@ -87,6 +97,9 @@
     .topic-action-btn.disabled { background: #f1f5f9; color: #94a3b8; cursor: default; }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
+    .sim-banner-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+    .sim-banner-row .sim-banner { margin-bottom: 0; }
+    @media (max-width: 760px) { .sim-banner-row { grid-template-columns: 1fr; } }
     .sim-banner-ic { width: 48px; height: 48px; border-radius: 14px; background: rgba(249,115,22,.18); border: 1px solid rgba(253,186,116,.45); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
     .sim-banner-tx { flex: 1; min-width: 0; } .sim-banner-tx b { display: block; font-size: 16px; } .sim-banner-tx span { font-size: 13px; color: #c7d2fe; }
     .sim-banner-go { background: var(--orange); color: #0f172a; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 8px 16px; white-space: nowrap; }
@@ -124,20 +137,22 @@
 <div class="idx-wrap">
     <div class="idx-head">
         <div class="eyebrow">All Programs</div>
-        <h1 id="idx-heading">Training Directory</h1>
+        <h1 id="idx-heading">Training <span>Directory</span></h1>
         <p id="idx-subhead">Every LSH training program in one place. Open a program to start. Each program has its own sign-in.</p>
     </div>
 
+    <div class="sim-banner-row">
     <a class="sim-banner" href="/simulators.html">
         <span class="sim-banner-ic">🛠</span>
         <span class="sim-banner-tx"><b>Simulators</b><span>Calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
-    <a class="sim-banner" href="/kb.html" style="margin-top:-14px;">
+    <a class="sim-banner" href="/kb.html">
         <span class="sim-banner-ic">📚</span>
         <span class="sim-banner-tx"><b>Knowledge Base</b><span>Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know. Team access code required.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
+    </div>
     <div id="idx-queue-wrap"></div>
     <div id="idx-grant-wrap"></div>
     <div id="idx-topics" class="topic-grid">
@@ -177,6 +192,8 @@
     const EXTRA_PROGRAMS = [
         { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Programs', sort_order: 0 }
     ];
+    // Shown first on the index, ahead of the progression, with a "Free" badge.
+    const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
 
     // Fixed VA progression order — must match TOPIC_SEQUENCE in
     // functions/api/topics.js exactly. Duplicated here because a static
@@ -347,6 +364,8 @@
             .filter(t => !ARCHIVED_TOPICS.includes(t.key))
             .slice()
             .sort((a, b) => {
+                const pa = PINNED_PROGRAMS.indexOf(a.key), pb = PINNED_PROGRAMS.indexOf(b.key);
+                if (pa !== pb) return (pa === -1 ? Infinity : pa) < (pb === -1 ? Infinity : pb) ? -1 : 1;
                 const ia = seqIndex(a.key), ib = seqIndex(b.key);
                 // Compare directly: Infinity - Infinity is NaN, which left the
                 // unsequenced cards (Handouts, Free Upskill…) in random order.
@@ -368,7 +387,7 @@
             if (session.userType === 'Public') {
                 return `
                 <div class="topic-card">
-                    <h3>${escapeHtml(t.name)}</h3>
+                    <h3>${escapeHtml(t.name)}${PINNED_PROGRAMS.includes(t.key) ? ' <span class="topic-free">Free</span>' : ''}</h3>
                     <span class="topic-status ${built ? 'approved' : 'locked'}">${built ? 'Available' : 'Coming Soon'}</span>
                     ${built ? `<a class="topic-action-btn primary" href="${built}" target="_blank" rel="noopener">Open Program &rarr;</a>` : `<span class="topic-action-btn disabled">Coming Soon</span>`}
                 </div>`;
@@ -383,8 +402,11 @@
             // Approved/Passed row means this trainee already has some
             // history with this specific topic, so the normal per-status
             // handling below takes over instead.
-            const seqIdx = TOPIC_SEQUENCE.indexOf(t.key);
-            const prevKey = seqIdx > 0 ? TOPIC_SEQUENCE[seqIdx - 1] : null;
+            // Gate on the previous *active* topic: archived ones are hidden
+            // and can't be passed, so they must not block the next training.
+            const activeSeq = TOPIC_SEQUENCE.filter(k => !ARCHIVED_TOPICS.includes(k));
+            const seqIdx = activeSeq.indexOf(t.key);
+            const prevKey = seqIdx > 0 ? activeSeq[seqIdx - 1] : null;
             const prevPassed = prevKey ? __accessCache.some(a => a.topic_key === prevKey && a.status === 'Passed') : true;
 
             if (status === 'passed') {
@@ -408,7 +430,7 @@
 
             return `
                 <div class="topic-card">
-                    <h3>${escapeHtml(t.name)}</h3>
+                    <h3>${escapeHtml(t.name)}${PINNED_PROGRAMS.includes(t.key) ? ' <span class="topic-free">Free</span>' : ''}</h3>
                     <span class="topic-status ${status}">${isAdmin ? (built ? 'Available' : 'Coming Soon') : statusLabel}</span>
                     ${actionHtml}
                 </div>
