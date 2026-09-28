@@ -33,8 +33,22 @@ To add program content to an existing simulator, add a pack file (like
   Only admins have a session (`Sim.isAdmin()`).
 - `?program=CM` / `?program=EA` should open that program's content first.
 - Gemini: `Sim.ai({ system, messages:[{role:'user'|'model', text}], json, maxTokens })`
-  → `/api/sim-ai` (GEMINI_API_KEY; grading of submitted activities uses GEMINI_API_KEY1 when it's set; public visitors go through `functions/_sim-guard.js`).
+  → `/api/sim-ai`. Public visitors go through `functions/_sim-guard.js` (same-origin only, `SIM_RATE_LIMIT`
+  requests per connection per 10 minutes, default 400 — a whole class often shares one office connection).
   No Anthropic keys.
+  - **US relay (recommended):** Gemini refuses some regions ("User location is not supported", e.g. Hong Kong),
+    and Pages Functions run in the data centre nearest the trainee. Set the secret `AI_RELAY_SECRET` on this
+    Pages project **and** the same value on the `ea-pa-training` Worker: `/api/sim-ai` then sends every AI call
+    through the Worker's `/api/ai-relay`, which runs in the US (targeted placement) with the EA/PA key pool.
+    `AI_RELAY_URL` overrides the relay address. If the relay fails (anything but a rate limit), it calls Gemini directly.
+  - **Direct:** every `GEMINI_API_KEY`, `GEMINI_API_KEY1` … `GEMINI_API_KEY9` set here is in the pool (each
+    request starts on a random key; a rate-limited or rejected key hands over), with Gemini 3.x "thinking" set
+    to low so callers answer quickly.
+- **Call Simulator voice** (`simulators/call.html`) uses the same handling as the EA/PA portal's Live Roleplay:
+  a ring, the caller's lines spoken in sentence-sized chunks (Chrome drops long ones), a safety timer when
+  the browser never reports the end of speech, a notice + ↻ Replay when the computer has no voice, and
+  🔁 Hands-free (on by default in Chrome/Edge): the mic opens by itself after the caller finishes and the
+  reply is sent when the trainee pauses.
 - Results: `Sim.saveResult({ simulator, scenario, score, summary, details })` — keeps a
   browser copy and sends it to `/api/sim-results` (D1 `simulator_results`) when a name is set.
 - Styles: `sim-wrap`, `sim-hero`, `sim-card`, `sim-btn` (primary / orange / ghost),
