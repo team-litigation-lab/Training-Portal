@@ -419,7 +419,9 @@ export async function generateAiReview(env, { submissionId, activityTitle, quest
         console.error('generateAiReview: GEMINI_API_KEY is not configured — skipping.');
         return { ok: false, error: 'AI review is not configured yet (missing GEMINI_API_KEY).' };
     }
-    const model = env.GEMINI_MODEL || 'gemini-3.6-flash';
+    // Grading starts on the Flash models for quality (GEMINI_MODEL first if set), then Flash-Lite:
+    // on the free tier each model has its own quota (Flash 20 a day, Flash-Lite about 500).
+    const models = [env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'].filter((v, i, a) => v && a.indexOf(v) === i);
 
     try {
         const answerByQ = new Map((answers || []).map(a => [a.questionId, a.response]));
@@ -450,24 +452,33 @@ Respond ONLY with a JSON object matching this exact shape, with no other text be
 }
 "suggestedScore" must be a plain number from 0 to 100.`;
 
-        let res, errText = '';
+        let res, errText = '', model = models[0];
+        keyLoop:
         for (const apiKey of keys) {
-            res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { responseMimeType: 'application/json' }
-                })
-            });
-            if (res.ok) break;
-            errText = await res.text().catch(() => '');
-            if (!(res.status === 429 || (res.status === 400 && /API key/i.test(errText)))) break;   // only a limit or a bad key is worth the next key
+            let limited = false, badKey = false;
+            for (model of models) {
+                res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { responseMimeType: 'application/json' }
+                    })
+                });
+                if (res.ok) break keyLoop;
+                errText = await res.text().catch(() => '');
+                if (res.status === 429) limited = true;
+                if (res.status === 400 && /API key/i.test(errText)) { badKey = true; break; }
+                if (![404, 429, 500, 503].includes(res.status)) break keyLoop;   // e.g. a bad request: another model or key won't help
+            }
+            if (!(limited || badKey)) break;   // only a limit or a bad key is worth the next key
         }
 
         if (!res.ok) {
             console.error('generateAiReview: Gemini API error', res.status, errText);
-            return { ok: false, error: `Gemini API error (${res.status}). The configured model may need updating — see https://ai.google.dev/gemini-api/docs/models.` };
+            return { ok: false, error: res.status === 429
+                ? 'The free Gemini limit has been reached for now (every model and key). Try again in a minute, or tomorrow if the daily limit is used up.'
+                : `Gemini API error (${res.status}). The configured model may need updating — see https://ai.google.dev/gemini-api/docs/models.` };
         }
 
         const data = await res.json();

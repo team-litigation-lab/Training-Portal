@@ -37,7 +37,9 @@ export async function onRequestPost({ request, env }) {
     if (body.json) payload.generationConfig.responseMimeType = 'application/json';
     if (body.system) payload.systemInstruction = { parts: [{ text: String(body.system) }] };
 
-    const models = [env.GEMINI_MODEL || 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.5-flash'].filter((v, i, a) => a.indexOf(v) === i);
+    // Free tier: Flash-Lite allows about 500 requests a day and 15 a minute, the Flash models only 20 a day
+    // and 5 a minute, so the simulators (high volume) start on Flash-Lite.
+    const models = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash'];
     let last = { status: 502, error: 'No response.' }, limit = null;
     for (const apiKey of keys) {
       let limited = false;
