@@ -1,0 +1,48 @@
+# Checks the live LSH training sites every 30 minutes. When one is down it
+# opens (or updates) an issue labelled "site-down", which notifies everyone
+# watching this repository; when everything is back up it closes the issue.
+# Run it by hand from the Actions tab: "Uptime" → "Run workflow".
+# (GitHub pauses scheduled workflows after 60 days with no commits to the
+# repository; the Actions tab shows a button to turn it back on.)
+name: Uptime
+
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  uptime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check the live sites
+        id: check
+        run: node .github/scripts/uptime.mjs | tee "$RUNNER_TEMP/uptime.md"
+        continue-on-error: true
+      - name: Open, update or close the "site-down" issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OUTCOME: ${{ steps.check.outcome }}
+        run: |
+          gh label create site-down --color B60205 --description "A live training site failed the uptime check" 2>/dev/null || true
+          OPEN=$(gh issue list --label site-down --state open --json number --jq '.[0].number')
+          if [ "$OUTCOME" = "failure" ]; then
+            if [ -n "$OPEN" ]; then gh issue comment "$OPEN" --body-file "$RUNNER_TEMP/uptime.md";
+            else gh issue create --title "🔴 A training site is down" --label site-down --body-file "$RUNNER_TEMP/uptime.md"; fi
+            exit 1
+          elif [ -n "$OPEN" ]; then
+            gh issue close "$OPEN" --comment "✅ All sites passed the uptime check again at $(date -u '+%Y-%m-%d %H:%M UTC')."
+          fi
