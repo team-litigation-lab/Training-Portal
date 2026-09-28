@@ -64,6 +64,7 @@
     .pg-note { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 14px; padding: 12px 16px; font-size: 13.5px; margin-bottom: 16px; }
     .pg-work { font-size: 12.5px; margin: 4px 0 0 18px; padding: 0; } .pg-work li { margin-bottom: 4px; }
 </style>
+<script src="/portal-nav.js"></script>
 </head>
 <body>
 <script>
@@ -79,10 +80,8 @@
 <div class="sim-top">
     <a class="sim-brand" href="/programs.html"><img src="/favicon.png" alt=""><span>LSH Training Portal<small>Progress &amp; Feedback</small></span></a>
     <div class="sim-nav">
-        <a href="/programs.html">Training Index</a>
+        <script>document.write(PortalNav.html('', { back: '/core.html' }));</script>
         <a href="/core.html">Master Control</a>
-        <a href="/simulators.html">🛠 Simulators</a>
-        <a href="/kb.html">📚 Knowledge Base</a>
         <a onclick="logoutSession()">Log Out</a>
     </div>
 </div>

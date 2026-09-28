@@ -61,7 +61,11 @@
     .nav-links { display: flex; gap: 28px; align-items: center; }
     .nav-links a { color: rgba(255,255,255,0.7); font-size: 13.5px; font-weight: 600; text-decoration: none; transition: color 0.15s ease; }
     .nav-links a:hover { color: #fff; }
-    @media (max-width: 760px) { .nav-links { display: none; } }
+    @media (max-width: 760px) {
+        .nav-inner { flex-wrap: wrap; gap: 12px; padding: 14px 16px; }
+        .nav-links { order: 3; width: 100%; gap: 20px; overflow-x: auto; white-space: nowrap; padding: 4px 0 2px; }
+        .nav-inner .btn-primary { display: none; }
+    }
 
     .btn-primary {
         background: var(--orange); color: #0f172a; font-weight: 800; font-size: 14px;
@@ -163,6 +167,15 @@
     .section-head h2 { font-size: clamp(26px, 3.4vw, 38px); font-weight: 800; letter-spacing: -0.015em; margin: 12px 0 12px; color: var(--navy); }
     .section-head p { font-size: 15.5px; color: var(--slate); line-height: 1.6; }
 
+    .jump { padding-bottom: 24px; }
+    .jump-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+    @media (max-width: 900px) { .jump-grid { grid-template-columns: 1fr; } }
+    .jump-card { display: flex; flex-direction: column; gap: 10px; background: #fff; border: 1px solid rgba(15,33,72,0.08); border-radius: 18px; padding: 26px; text-decoration: none; color: var(--navy); box-shadow: 0 10px 30px -18px rgba(8,18,38,0.35); transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
+    .jump-card:hover { transform: translateY(-3px); border-color: rgba(249,115,22,0.45); box-shadow: 0 16px 36px -18px rgba(8,18,38,0.45); }
+    .jump-ic { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; width: 48px; height: 48px; border-radius: 14px; background: var(--navy); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .jump-card h3 { margin: 6px 0 0; font-size: 19px; font-weight: 800; }
+    .jump-card p { margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--slate); flex: 1; }
+    .jump-go { font-size: 13.5px; font-weight: 800; color: var(--orange); }
     .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
     @media (max-width: 760px) { .feature-grid { grid-template-columns: 1fr; } }
     .feature-card {
@@ -280,15 +293,16 @@
     <div class="nav-inner">
         <div class="brand"><span class="brand-mark"><img src="/favicon.png" onerror="this.src='data:image/png;base64,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'" alt="LSH Logo"></span> LSH Training Portal</div>
         <div class="nav-links">
-            <a href="/programs.html" target="_blank" rel="noopener">Training Directory</a>
-            <a href="/kb.html" target="_blank" rel="noopener">Knowledge Base</a>
+            <a href="/programs.html">Training Directory</a>
+            <a href="/simulators.html">Simulators</a>
+            <a href="/kb.html">Knowledge Base</a>
             <a href="#faq">FAQs</a>
             <a href="#about">About</a>
             <a href="#contact">Contact</a>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
             <a href="/admin-login.html" class="btn-ghost-dark" title="Admin monitoring (sign-in required)">🔒 Admin</a>
-            <a href="/programs.html" class="btn-primary" target="_blank" rel="noopener">Browse Trainings</a>
+            <a href="/programs.html" class="btn-primary">Browse Trainings</a>
         </div>
     </div>
 </nav>
@@ -312,7 +326,8 @@
             <p class="tagline reveal d2">Empowering your journey from new hire to confident specialist.</p>
             <p class="lead reveal d3">You are on your way to becoming an important part of the team by upgrading your skills across different law practice areas. Explore structured modules and recorded lectures with real-time tracking, whether you are focusing on Family Law, Mass Tort, Case Management, or beyond.</p>
             <div class="hero-ctas reveal d4">
-                <a href="/programs.html" class="btn-primary" target="_blank" rel="noopener">Open the Training Directory &rarr;</a>
+                <a href="/programs.html" class="btn-primary">Open the Training Directory &rarr;</a>
+                <a href="/simulators.html" class="btn-ghost-dark">🛠 Practice in the Simulators</a>
                 <a href="#features" class="btn-ghost-dark">See how it works</a>
             </div>
         </div>
@@ -356,6 +371,34 @@
         </div>
     </div>
 </div>
+
+<section class="section jump" id="start">
+    <div class="section-head">
+        <div class="eyebrow">Start here</div>
+        <h2>Where do you want to go?</h2>
+        <p>Everything on the portal is one click from here, and every page has <b>Home</b> and <b>← Back</b> buttons so you can always find your way back.</p>
+    </div>
+    <div class="jump-grid">
+        <a class="jump-card" href="/programs.html">
+            <span class="jump-ic">🎓</span>
+            <h3>Training Directory</h3>
+            <p>Every LSH training program. Open yours to continue your modules, lectures and activities.</p>
+            <span class="jump-go">Open the directory &rarr;</span>
+        </a>
+        <a class="jump-card" href="/simulators.html">
+            <span class="jump-ic">🛠️</span>
+            <h3>Simulators</h3>
+            <p>Practice the real work: phone calls, email, calendaring, docketing, medical records requests and court e-filing.</p>
+            <span class="jump-go">Start practicing &rarr;</span>
+        </a>
+        <a class="jump-card" href="/kb.html">
+            <span class="jump-ic">📚</span>
+            <h3>Knowledge Base</h3>
+            <p>Official SOPs and resources, plus tips and guides shared by LSH VAs. Team access code required.</p>
+            <span class="jump-go">Search the knowledge base &rarr;</span>
+        </a>
+    </div>
+</section>
 
 <section class="section" id="features">
     <div class="section-head">
@@ -545,7 +588,10 @@
     </svg>
     <h2>Ready to pick up where you left off?</h2>
     <p>Open your program from the Training Directory to continue training. Admins can review team progress from Master Control.</p>
-    <a href="/programs.html" class="btn-primary" target="_blank" rel="noopener">Go to the Training Directory &rarr;</a>
+    <div class="hero-ctas" style="justify-content:center;">
+        <a href="/programs.html" class="btn-primary">Go to the Training Directory &rarr;</a>
+        <a href="/simulators.html" class="btn-ghost-dark">🛠 Open the Simulators</a>
+    </div>
 </div>
 
 <footer>

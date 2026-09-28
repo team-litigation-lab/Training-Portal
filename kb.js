@@ -533,8 +533,7 @@ function toast(msg) {
 function topbar() {
     const a = KB.access || {}, adminSess = (typeof getSession === 'function') && getSession() && getSession().userType === 'Admin';
     document.getElementById('kb-nav').innerHTML = `
-        <a href="/programs.html">Training Directory</a>
-        <a href="/simulators.html">🛠 Simulators</a>
+        ${PortalNav.html('kb', { back: '/programs.html' })}
         ${adminSess ? '<a href="/progress.html">📊 Progress &amp; Feedback</a><a href="/core.html">Master Control</a>' : ''}
         ${a.unlocked ? `<span class="kb-who">${esc(a.who ? a.who.name : '')}</span><a onclick="signOut()">Sign Out</a>` : ''}`;
 }
