@@ -388,8 +388,11 @@
             // Approved/Passed row means this trainee already has some
             // history with this specific topic, so the normal per-status
             // handling below takes over instead.
-            const seqIdx = TOPIC_SEQUENCE.indexOf(t.key);
-            const prevKey = seqIdx > 0 ? TOPIC_SEQUENCE[seqIdx - 1] : null;
+            // Gate on the previous *active* topic: archived ones are hidden
+            // and can't be passed, so they must not block the next training.
+            const activeSeq = TOPIC_SEQUENCE.filter(k => !ARCHIVED_TOPICS.includes(k));
+            const seqIdx = activeSeq.indexOf(t.key);
+            const prevKey = seqIdx > 0 ? activeSeq[seqIdx - 1] : null;
             const prevPassed = prevKey ? __accessCache.some(a => a.topic_key === prevKey && a.status === 'Passed') : true;
 
             if (status === 'passed') {
