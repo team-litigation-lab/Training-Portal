@@ -24,7 +24,7 @@
     .pcard h3 { margin: 0; font-size: 15.5px; font-weight: 800; } .pcard .role { font-size: 12px; color: var(--slate); font-weight: 600; }
     .pcard p { margin: 0; font-size: 13px; color: #334155; line-height: 1.5; flex: 1; }
     .tags { display: flex; gap: 6px; flex-wrap: wrap; } .tags span { font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; background: #f1f5f9; color: var(--slate); }
-    .tags span.p-CM { background: #eff6ff; color: #1d4ed8; } .tags span.p-EA { background: #fdf2f8; color: #9d174d; } .tags span.p-All { background: #f0fdf4; color: var(--ok); } .tags span.p-FT { background: #fff7ed; color: #c2410c; }
+    .tags span.p-CM { background: #eff6ff; color: #1d4ed8; } .tags span.p-EA { background: #fdf2f8; color: #9d174d; } .tags span.p-All { background: #f0fdf4; color: var(--ok); } .tags span.p-FT { background: #fff7ed; color: #c2410c; } .tags span.p-PD { background: #f0fdfa; color: #0f766e; }
     .brief { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 18px; }
     @media (max-width: 900px) { .brief { grid-template-columns: 1fr; } }
     .brief h2 { margin: 0 0 6px; font-size: 22px; font-weight: 800; }
@@ -85,6 +85,7 @@
 <script src="/simulators/sim.js"></script>
 <script src="/simulators/call-pack-cm.js"></script>
 <script src="/simulators/call-pack-ft.js"></script>
+<script src="/simulators/call-pack-pd.js"></script>
 <script>
 /* ---------- caller library (add callers here, or in a pack file that adds to
    window.EXTRA_CALLERS; `program` drives the filter, `line` the sub-filter) ---------- */
@@ -133,7 +134,7 @@ const CALLERS = [
     opening: 'Hey! Rob Castillo, BrightLedger. I actually met Elias at the ABA TechShow — he told me to follow up. Can you give me his cell real quick?' }
 ].concat(window.EXTRA_CALLERS || []);
 
-const START_PROGRAM = (() => { const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'CM' : p.startsWith('EA') ? 'EA' : p.startsWith('FT') ? 'FT' : 'All'; })();
+const START_PROGRAM = (() => { const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'CM' : p.startsWith('EA') ? 'EA' : p.startsWith('FT') ? 'FT' : p.startsWith('PD') ? 'PD' : 'All'; })();
 let S = { filter: START_PROGRAM, line: new URLSearchParams(location.search).get('line') || 'all', note: '', persona: null, phase: 'pick', transcript: [], startedAt: 0, voice: true, busy: false, recog: null, recording: false, timer: null, debrief: null };
 const $app = () => document.getElementById('app');
 
@@ -153,13 +154,13 @@ function renderPick() {
     const list = inProgram.filter(c => S.line === 'all' || (S.line === 'core' ? !c.line : c.line === S.line));
     const lineBar = lines.length ? `<div class="filters lines">${[['all', 'All calls'], ['core', 'Core callers']].concat(lines.map(l => [l, (CALLERS.find(c => c.line === l) || {}).lineIcon ? CALLERS.find(c => c.line === l).lineIcon + ' ' + l : l])).map(([k, l]) => `<button class="${S.line === k ? 'on' : ''}" onclick="S.line=${Sim.esc(JSON.stringify(k))};render()">${Sim.esc(l)}</button>`).join('')}</div>` : '';
     $app().innerHTML = `
-        <div class="filters">${[['All', 'All callers'], ['FT', 'Foundational (CMS mock cases)'], ['CM', 'Case Management'], ['EA', 'Executive support (EA/PA)']].map(([k, l]) => `<button class="${S.filter === k ? 'on' : ''}" onclick="S.filter='${k}';S.line='all';render()">${l}</button>`).join('')}</div>
+        <div class="filters">${[['All', 'All callers'], ['FT', 'Foundational (CMS mock cases)'], ['CM', 'Case Management'], ['PD', 'Property Damage'], ['EA', 'Executive support (EA/PA)']].map(([k, l]) => `<button class="${S.filter === k ? 'on' : ''}" onclick="S.filter='${k}';S.line='all';render()">${l}</button>`).join('')}</div>
         ${lineBar}
         <div class="pick-grid">${list.map(c => `
             <div class="sim-card pcard" onclick="pick('${c.id}')">
                 <div class="top"><span class="av">${initials(c.name)}</span><div><h3>${Sim.esc(c.title)}</h3><div class="role">${Sim.esc(c.name)} · ${Sim.esc(c.role)}</div></div></div>
                 <p>${Sim.esc(c.blurb || c.you)}</p>
-                <div class="tags"><span class="p-${c.program}">${c.program === 'All' ? 'All programs' : c.program === 'CM' ? 'Case Management' : c.program === 'FT' ? 'Foundational' : 'EA / PA'}</span>${c.line ? `<span>${Sim.esc(c.line)}</span>` : ''}${c.dir === 'out' ? '<span class="dir">You call</span>' : ''}<span>${c.level}</span><span>${c.goals.length} goals</span></div>
+                <div class="tags"><span class="p-${c.program}">${c.program === 'All' ? 'All programs' : c.program === 'CM' ? 'Case Management' : c.program === 'FT' ? 'Foundational' : c.program === 'PD' ? 'Property Damage' : 'EA / PA'}</span>${c.line ? `<span>${Sim.esc(c.line)}</span>` : ''}${c.dir === 'out' ? '<span class="dir">You call</span>' : ''}<span>${c.level}</span><span>${c.goals.length} goals</span></div>
             </div>`).join('')}</div>`;
 }
 function pick(id) { S.persona = CALLERS.find(c => c.id === id); S.phase = 'brief'; S.transcript = []; S.debrief = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
@@ -171,7 +172,7 @@ function renderBrief() {
             <h2>${Sim.esc(c.title)}</h2>
             <p style="font-size:14.5px;line-height:1.6;margin:0;">${Sim.esc(c.you)}</p>
             <div class="facts"><b>What you know:</b> ${Sim.esc(c.facts)}</div>
-            ${c.caseFile && window.CM_CASE_SUMMARY ? `<details class="casefile"><summary>📂 Case summary: John Doe v. Apex Delivery Services</summary><pre>${Sim.esc(window.CM_CASE_SUMMARY)}</pre></details>` : ''}
+            ${c.caseFile && (c.caseSummary || window.CM_CASE_SUMMARY) ? `<details class="casefile"><summary>📂 Case summary: ${Sim.esc(c.caseLabel || 'John Doe v. Apex Delivery Services')}</summary><pre>${Sim.esc(c.caseSummary || window.CM_CASE_SUMMARY)}</pre></details>` : ''}
             ${c.caseDoc ? `<p style="font-size:13.5px;margin:12px 0 0;"><a class="sim-btn primary" style="padding:8px 16px;" href="${Sim.esc(c.caseDoc.url)}" target="_blank" rel="noopener">🗂 Open ${Sim.esc(c.caseDoc.id)} in the CMS ↗</a></p><details class="casefile"><summary>📂 Case file: ${Sim.esc(c.caseDoc.title)}</summary><pre>${Sim.esc(c.caseDoc.text)}</pre></details>` : ''}
             ${c.note ? `<p style="font-size:13px;margin:12px 0 0;"><b>📝 After the call:</b> you'll write the ${Sim.esc(c.note.title.toLowerCase())}. It's graded with the call.</p>` : ''}
             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
