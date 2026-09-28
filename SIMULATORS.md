@@ -9,7 +9,7 @@ claim a simulator below before starting it, and update it when you ship.**
 | Simulator | Page | Status | Built by / notes |
 |---|---|---|---|
 | Hub | `/simulators.html` | Live | Card list in the `SIMULATORS` array |
-| Call Simulator | `/simulators/call.html` | Live | Generic callers + CM pack `simulators/call-pack-cm.js` (27 John Doe calls) — CM chat |
+| Call Simulator | `/simulators/call.html` | Live | Generic callers + CM pack `simulators/call-pack-cm.js` (27 John Doe calls) — CM chat · PD pack `simulators/call-pack-pd.js` (16 Angela Carter property-damage calls: claim setup, coverage, rental/tow/shop, total-loss negotiation, release; `?program=PD`) — PD chat |
 | Calendaring | `/simulators/calendar.html` | Live | CM week + EA week — portal chat |
 | Email Workspace | `/simulators/email.html` | Live | Gmail-style practice inbox, no real Gmail. Packs in `simulators/email-packs.js` (CM, EA) + "generate for any program" — portal chat |
 | Email Replies | `/simulators/email-replies.html` | Live | One email at a time, answered on the portal or from the trainee's own inbox (Postmark delivery, off until configured; see README). Scenarios in `simulators/reply-packs/emails.json` (8 CM + 2 all programs); server: `functions/api/email-practice.js`, `email-inbound.js`, `_email.js` — CM chat |
