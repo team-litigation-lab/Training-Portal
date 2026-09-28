@@ -239,15 +239,6 @@
     .faq-item.open .faq-answer { max-height: 240px; }
     .faq-answer p { font-size: 13.5px; color: var(--slate); line-height: 1.6; padding: 0 4px 20px; }
 
-    /* ===== CONTACT ===== */
-    .contact-section { background: var(--paper-warm); }
-    .contact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 44px; }
-    @media (max-width: 860px) { .contact-grid { grid-template-columns: 1fr; } }
-    .contact-card { background: #fff; border-radius: 20px; padding: 26px; text-align: center; border: 1px solid rgba(15,33,72,0.06); }
-    .contact-card .icon { font-size: 26px; margin-bottom: 12px; }
-    .contact-card h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 5px; }
-    .contact-card a, .contact-card span { font-size: 13px; color: var(--slate); text-decoration: none; }
-    .contact-card a:hover { color: var(--orange); }
 
     /* ===== CTA BANNER ===== */
     .cta-banner {
@@ -284,7 +275,6 @@
             <a href="/kb.html" target="_blank" rel="noopener">Knowledge Base</a>
             <a href="#faq">FAQs</a>
             <a href="#about">About</a>
-            <a href="#contact">Contact</a>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
             <a href="/admin-login.html" class="btn-ghost-dark" title="Admin monitoring (sign-in required)">🔒 Admin</a>
@@ -500,37 +490,8 @@
             <div class="faq-answer"><p>Most activities are auto-graded instantly on submission. Anything needing a human eye is reviewed by an admin, and you'll see the released grade and feedback on your Grades &amp; Submissions page.</p></div>
         </div>
         <div class="faq-item">
-            <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">I'm interested in joining LSH — how do I apply? <span class="chev">&#9660;</span></button>
-            <div class="faq-answer"><p>Reach out through the Contact Us section below and our People team will point you toward current openings and the application process.</p></div>
-        </div>
-        <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">Do I need to log in here? <span class="chev">&#9660;</span></button>
-            <div class="faq-answer"><p>No. This page is open to everyone: open your program from the Training Directory. Each training program has its own sign-in, so if you can't get into your program, reach out to your batch administrator or use the contact details below.</p></div>
-        </div>
-    </div>
-</section>
-
-<section class="section contact-section" id="contact">
-    <div class="section-head">
-        <div class="eyebrow">Get in touch</div>
-        <h2>Contact Us</h2>
-        <p><em>Placeholder contact details — swap these for your real email, phone, and address.</em></p>
-    </div>
-    <div class="contact-grid">
-        <div class="contact-card">
-            <div class="icon">&#9993;</div>
-            <h3>Email</h3>
-            <a href="mailto:training@legalsupporthelp.example">training@legalsupporthelp.example</a>
-        </div>
-        <div class="contact-card">
-            <div class="icon">&#9742;</div>
-            <h3>Phone</h3>
-            <span>+1 (555) 010-0100</span>
-        </div>
-        <div class="contact-card">
-            <div class="icon">&#128205;</div>
-            <h3>Office</h3>
-            <span>Legal Support Help HQ</span>
+            <div class="faq-answer"><p>No. This page is open to everyone: open your program from the Training Directory. Each training program has its own sign-in, so if you can't get into your program, reach out to your batch administrator.</p></div>
         </div>
     </div>
 </section>
