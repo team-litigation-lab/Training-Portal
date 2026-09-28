@@ -33,7 +33,7 @@ To add program content to an existing simulator, add a pack file (like
   Only admins have a session (`Sim.isAdmin()`).
 - `?program=CM` / `?program=EA` should open that program's content first.
 - Gemini: `Sim.ai({ system, messages:[{role:'user'|'model', text}], json, maxTokens })`
-  → `/api/sim-ai` (GEMINI_API_KEY; public visitors go through `functions/_sim-guard.js`).
+  → `/api/sim-ai` (GEMINI_API_KEY; grading of submitted activities uses GEMINI_API_KEY1 when it's set; public visitors go through `functions/_sim-guard.js`).
   No Anthropic keys.
 - Results: `Sim.saveResult({ simulator, scenario, score, summary, details })` — keeps a
   browser copy and sends it to `/api/sim-results` (D1 `simulator_results`) when a name is set.

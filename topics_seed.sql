@@ -1,5 +1,5 @@
 INSERT INTO topics (key, name, sort_order) VALUES
-('STANDARD TRAINING', 'Standard Training', 1),
+('STANDARD TRAINING', 'Standard Foundational Training', 1),
 ('EA  PA TRAINING-OUTSOURCED MANP', 'EA / PA Training - Outsourced Manpower', 2),
 ('REVISED EA PA TRAINING', 'Revised EA PA Training', 3),
 ('CM TRAINING', 'CM Training', 4),
