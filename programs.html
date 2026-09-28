@@ -42,6 +42,7 @@
     .idx-head p { font-size: 14px; color: var(--slate); margin: 0; max-width: 60ch; }
 
     .queue-card { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; padding: 18px 20px; margin-bottom: 28px; }
+    .topic-free { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; vertical-align: middle; }
     .grant-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; padding: 18px 20px; margin-bottom: 28px; }
     .grant-card h3 { font-size: 13px; font-weight: 800; color: #166534; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.03em; }
     .grant-card p { font-size: 12px; color: #64748b; margin: 0 0 14px; }
@@ -176,6 +177,8 @@
     const EXTRA_PROGRAMS = [
         { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Programs', sort_order: 0 }
     ];
+    // Shown first on the index, ahead of the progression, with a "Free" badge.
+    const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
 
     // Fixed VA progression order — must match TOPIC_SEQUENCE in
     // functions/api/topics.js exactly. Duplicated here because a static
@@ -347,6 +350,8 @@
             .filter(t => !ARCHIVED_TOPICS.includes(t.key))
             .slice()
             .sort((a, b) => {
+                const pa = PINNED_PROGRAMS.indexOf(a.key), pb = PINNED_PROGRAMS.indexOf(b.key);
+                if (pa !== pb) return (pa === -1 ? Infinity : pa) < (pb === -1 ? Infinity : pb) ? -1 : 1;
                 const ia = seqIndex(a.key), ib = seqIndex(b.key);
                 // Compare directly: Infinity - Infinity is NaN, which left the
                 // unsequenced cards (Handouts, Free Upskill…) in random order.
@@ -368,7 +373,7 @@
             if (session.userType === 'Public') {
                 return `
                 <div class="topic-card">
-                    <h3>${escapeHtml(t.name)}</h3>
+                    <h3>${escapeHtml(t.name)}${PINNED_PROGRAMS.includes(t.key) ? ' <span class="topic-free">Free</span>' : ''}</h3>
                     <span class="topic-status ${built ? 'approved' : 'locked'}">${built ? 'Available' : 'Coming Soon'}</span>
                     ${built ? `<a class="topic-action-btn primary" href="${built}" target="_blank" rel="noopener">Open Program &rarr;</a>` : `<span class="topic-action-btn disabled">Coming Soon</span>`}
                 </div>`;
@@ -411,7 +416,7 @@
 
             return `
                 <div class="topic-card">
-                    <h3>${escapeHtml(t.name)}</h3>
+                    <h3>${escapeHtml(t.name)}${PINNED_PROGRAMS.includes(t.key) ? ' <span class="topic-free">Free</span>' : ''}</h3>
                     <span class="topic-status ${status}">${isAdmin ? (built ? 'Available' : 'Coming Soon') : statusLabel}</span>
                     ${actionHtml}
                 </div>
