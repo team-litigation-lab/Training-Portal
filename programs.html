@@ -165,24 +165,28 @@
 <script src="app.js"></script>
 <script src="portal.js"></script>
 <script>
-    // Standard Foundational Training, CM Training and EA PA Training are the
-    // only programs with a real, built portal so far — everything else in
-    // the topics table is reference-only until its own site exists. Keyed by
-    // the exact `key` value seeded into the topics table. Standard
-    // Foundational Training is the 18-day program (Foundational-Training
-    // repo). CM Training is the 5-day course (Case-Management-Training
-    // repo); the CMS it uses opens from inside it.
+    // Standard Foundational Training, CM Training, EA PA Training and
+    // Property Damage are the only programs with a real, built portal so
+    // far — everything else in the topics table is reference-only until its
+    // own site exists. Keyed by the exact `key` value seeded into the topics
+    // table. Standard Foundational Training is the 18-day program
+    // (Foundational-Training repo). CM Training is the 5-day course
+    // (Case-Management-Training repo); the CMS it uses opens from inside it.
+    // Property Damage is the 5-day PD Claims course
+    // (propertydamageclaimstraining repo).
     const BUILT_PROGRAMS = {
         'STANDARD TRAINING': 'https://foundational-training.legalsupporthelp.workers.dev/',
         'CM TRAINING': 'https://case-management-training.legalsupporthelp.workers.dev/',
-        'EA  PA TRAINING-OUTSOURCED MANP': 'https://ea-pa-training.legalsupporthelp.workers.dev/'
+        'EA  PA TRAINING-OUTSOURCED MANP': 'https://ea-pa-training.legalsupporthelp.workers.dev/',
+        'PROPERTY DAMAGE': 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/'
     };
 
     // Display names that replace the topics table's `name`, so a program can
     // be renamed without editing the live database. topics_seed.sql carries
     // the same names for new databases.
     const PROGRAM_NAMES = {
-        'STANDARD TRAINING': 'Standard Foundational Training'
+        'STANDARD TRAINING': 'Standard Foundational Training',
+        'PROPERTY DAMAGE': 'Property Damage Claims Training'
     };
 
     // Programs shown on the index that aren't in the live topics table yet.
