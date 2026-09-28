@@ -86,6 +86,9 @@
     .topic-action-btn.disabled { background: #f1f5f9; color: #94a3b8; cursor: default; }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
+    .sim-banner-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+    .sim-banner-row .sim-banner { margin-bottom: 0; }
+    @media (max-width: 760px) { .sim-banner-row { grid-template-columns: 1fr; } }
     .sim-banner-ic { width: 48px; height: 48px; border-radius: 14px; background: rgba(249,115,22,.18); border: 1px solid rgba(253,186,116,.45); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
     .sim-banner-tx { flex: 1; min-width: 0; } .sim-banner-tx b { display: block; font-size: 16px; } .sim-banner-tx span { font-size: 13px; color: #c7d2fe; }
     .sim-banner-go { background: var(--orange); color: #0f172a; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 8px 16px; white-space: nowrap; }
@@ -128,16 +131,18 @@
         <p id="idx-subhead">Every LSH training program in one place. Open a program to start. Each program has its own sign-in.</p>
     </div>
 
+    <div class="sim-banner-row">
     <a class="sim-banner" href="/simulators.html" target="_blank" rel="noopener">
         <span class="sim-banner-ic">🛠</span>
         <span class="sim-banner-tx"><b>Simulators</b><span>Calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
-    <a class="sim-banner" href="/kb.html" style="margin-top:-14px;" target="_blank" rel="noopener">
+    <a class="sim-banner" href="/kb.html" target="_blank" rel="noopener">
         <span class="sim-banner-ic">📚</span>
         <span class="sim-banner-tx"><b>Knowledge Base</b><span>Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know. Team access code required.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
+    </div>
     <div id="idx-queue-wrap"></div>
     <div id="idx-grant-wrap"></div>
     <div id="idx-topics" class="topic-grid">
