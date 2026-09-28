@@ -9,7 +9,7 @@ claim a simulator below before starting it, and update it when you ship.**
 | Simulator | Page | Status | Built by / notes |
 |---|---|---|---|
 | Hub | `/simulators.html` | Live | Card list in the `SIMULATORS` array |
-| Call Simulator | `/simulators/call.html` | Live | Generic callers + CM pack `simulators/call-pack-cm.js` (27 John Doe calls) — CM chat |
+| Call Simulator | `/simulators/call.html` | Live | Generic callers + CM pack `simulators/call-pack-cm.js` (27 John Doe calls) — CM chat · Foundational pack `simulators/call-pack-ft.js` (14 calls on the CMS Training Library cases: Reception, Calendar Management and Intake mock calls; `?program=FT`, `?line=<line>` opens one line; each call's `caseDoc` shows the case file and a link that opens it in the CMS) — Foundational chat |
 | Calendaring | `/simulators/calendar.html` | Live | CM week + EA week — portal chat |
 | Email Workspace | `/simulators/email.html` | Live | Gmail-style practice inbox, no real Gmail. Packs in `simulators/email-packs.js` (CM, EA) + "generate for any program" — portal chat |
 | Email Replies | `/simulators/email-replies.html` | Live | One email at a time, answered on the portal or from the trainee's own inbox (Postmark delivery, off until configured; see README). Scenarios in `simulators/reply-packs/emails.json` (8 CM + 2 all programs); server: `functions/api/email-practice.js`, `email-inbound.js`, `_email.js` — CM chat |
