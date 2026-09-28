@@ -1,5 +1,19 @@
 import { json, requireSession, logActivity, getSiteState } from '../_utils.js';
 
+// The fixed order VAs progress through. Must match TOPIC_SEQUENCE and
+// ARCHIVED_TOPICS in programs.html (a Pages Function and a static page can't
+// share a module). MARK_PASSED unlocks the next *active* topic, so archived
+// ones (hidden from the index) are skipped rather than unlocked.
+const TOPIC_SEQUENCE = [
+    'STANDARD TRAINING', 'LITIGATION', 'MEDSUM AND DEMAND', 'CM TRAINING',
+    'EA  PA TRAINING-OUTSOURCED MANP', 'REVISED EA PA TRAINING', 'REVISED CM TRAINING',
+    'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW',
+    'HEALTH SUBRO', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'LIEN VERIFICATION',
+    'MASS TORT', 'PROPERTY DAMAGE', 'REAL ESTATE LAW'
+];
+const ARCHIVED_TOPICS = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];
+const ACTIVE_SEQUENCE = TOPIC_SEQUENCE.filter(k => !ARCHIVED_TOPICS.includes(k));
+
 // Topic-gated progression: a trainee only sees "Approved" for topics an
 // admin has explicitly granted them, and "Pending" for ones they've asked
 // for. Deliberately admin-initiated for actual grants (GRANT), with
@@ -95,6 +109,40 @@ export async function onRequestPost({ request, env }) {
             ).bind(traineeUsername, topicKey, status, auth.session.username).run();
             await logActivity(db, auth.session.username, auth.session.batchId, 'TOPIC_ACCESS_' + status.toUpperCase(), { topicKey, traineeUsername });
             return json({ success: true });
+        }
+
+        if (action === 'MARK_PASSED') {
+            if (auth.session.userType !== 'Admin') return json({ success: false, error: 'Only admins can mark a training as passed.' }, 403);
+            const { traineeUsername } = body;
+            if (!topicKey || !traineeUsername) return json({ success: false, error: 'topicKey and traineeUsername are required.' }, 400);
+
+            await db.prepare(
+                `INSERT INTO trainee_topic_access (trainee_username, topic_key, status, requested_at, decided_at, decided_by)
+                 VALUES (?, ?, 'Passed', datetime('now'), datetime('now'), ?)
+                 ON CONFLICT(trainee_username, topic_key) DO UPDATE SET
+                    status = 'Passed', decided_at = datetime('now'), decided_by = excluded.decided_by`
+            ).bind(traineeUsername, topicKey, auth.session.username).run();
+
+            // Auto-unlock the next topic in the fixed progression, if there
+            // is one — this is what "the next training won't unlock unless
+            // they passed the last one" actually means in practice: passing
+            // IS the approval for what comes next, no separate request
+            // needed from the trainee.
+            const idx = ACTIVE_SEQUENCE.indexOf(topicKey);
+            let unlockedNext = null;
+            if (idx !== -1 && idx + 1 < ACTIVE_SEQUENCE.length) {
+                unlockedNext = ACTIVE_SEQUENCE[idx + 1];
+                await db.prepare(
+                    `INSERT INTO trainee_topic_access (trainee_username, topic_key, status, requested_at, decided_at, decided_by)
+                     VALUES (?, ?, 'Approved', datetime('now'), datetime('now'), ?)
+                     ON CONFLICT(trainee_username, topic_key) DO UPDATE SET
+                        status = CASE WHEN trainee_topic_access.status = 'Passed' THEN trainee_topic_access.status ELSE 'Approved' END,
+                        decided_at = datetime('now'), decided_by = excluded.decided_by`
+                ).bind(traineeUsername, unlockedNext, auth.session.username).run();
+            }
+
+            await logActivity(db, auth.session.username, auth.session.batchId, 'TOPIC_MARKED_PASSED', { topicKey, traineeUsername, unlockedNext });
+            return json({ success: true, unlockedNext });
         }
 
         return json({ success: false, error: 'Unknown action.' }, 400);
