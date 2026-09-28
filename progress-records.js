@@ -3,7 +3,7 @@
 // (/api/program-progress?program=<id>) and lists its trainees batch by batch.
 // A batch can be archived (hidden, its records kept in a snapshot) and
 // reopened or restored from the "Archived batches" list.
-const PROGRAM_ORDER = ['ft', 'eapa', 'cm', 'pd'];
+const PROGRAM_ORDER = ['ft', 'eapa', 'cm', 'pd', 'md'];
 const P = { data: null, cache: {}, snaps: {}, tab: 'people', program: (() => { try { return localStorage.getItem('pg-program') || 'ft'; } catch (e) { return 'ft'; } })(),
     status: 'active', q: '', sort: 'recent', open: {}, closed: {}, archOpen: false,
     fb: { day: '', status: '', q: '' } };
@@ -96,7 +96,7 @@ function cards() {
 }
 
 function programTabs() {
-    const progs = P.programs || PROGRAM_ORDER.map(id => ({ id, label: { ft: 'Standard Foundational Training', eapa: 'EA / PA Training', cm: 'CM Training', pd: 'PD Claims Training' }[id] || id }));
+    const progs = P.programs || PROGRAM_ORDER.map(id => ({ id, label: { ft: 'Standard Foundational Training', eapa: 'EA / PA Training', cm: 'CM Training', pd: 'PD Claims Training', md: 'Medsum & Demand Training' }[id] || id }));
     return `<div class="pg-ptabs" role="tablist">${PROGRAM_ORDER.map(id => progs.find(p => p.id === id)).filter(Boolean).map(p =>
         `<button role="tab" class="${P.program === p.id ? 'on' : ''}" onclick="switchProgram('${p.id}')">${esc(p.label)}</button>`).join('')}</div>`;
 }
