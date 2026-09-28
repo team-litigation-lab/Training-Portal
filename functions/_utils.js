@@ -398,7 +398,9 @@ export async function logTrainingActivity(trainingDb, actorUsername, actorBatch,
  * and on-demand from functions/api/ai-review.js when an admin wants to
  * regenerate it.
  *
- * Requires env.GEMINI_API_KEY (a Cloudflare Pages secret) to do anything —
+ * Uses env.GEMINI_API_KEY1 if set (grading's own key, so it doesn't compete with the
+ * simulators, which use GEMINI_API_KEY), otherwise env.GEMINI_API_KEY.
+ * Requires one of them (a Cloudflare Pages secret) to do anything —
  * silently no-ops without it, so the rest of the app works normally even
  * before that's configured.
  *
@@ -411,7 +413,7 @@ export async function logTrainingActivity(trainingDb, actorUsername, actorBatch,
  * current list if this starts failing.
  */
 export async function generateAiReview(env, { submissionId, activityTitle, questions, answers, notes }) {
-    const apiKey = env.GEMINI_API_KEY;
+    const apiKey = env.GEMINI_API_KEY1 || env.GEMINI_API_KEY;
     if (!apiKey) {
         console.error('generateAiReview: GEMINI_API_KEY is not configured — skipping.');
         return { ok: false, error: 'AI review is not configured yet (missing GEMINI_API_KEY).' };

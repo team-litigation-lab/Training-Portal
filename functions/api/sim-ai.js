@@ -15,7 +15,9 @@ export async function onRequestPost({ request, env }) {
         const blocked = await guardPublicSim(request, env);
         if (blocked) return blocked;
     }
-    if (!env.GEMINI_API_KEY) return json({ success: false, error: 'GEMINI_API_KEY is not configured on this site.' }, 500);
+    // The simulators use GEMINI_API_KEY; grading has its own key (GEMINI_API_KEY1, see _utils.js).
+    const apiKey = env.GEMINI_API_KEY;
+    if (!apiKey) return json({ success: false, error: 'GEMINI_API_KEY is not configured on this site.' }, 500);
 
     let body;
     try { body = await request.json(); } catch (e) { return json({ success: false, error: 'Invalid request body.' }, 400); }
@@ -39,7 +41,7 @@ export async function onRequestPost({ request, env }) {
     for (const model of models) {
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
             body: JSON.stringify(payload)
         });
         const data = await res.json().catch(() => ({}));
