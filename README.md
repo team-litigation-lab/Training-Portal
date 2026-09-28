@@ -48,6 +48,45 @@ Three simulators on the Simulators hub (`/simulators.html`) train the paperwork 
 - **Traps:** a privileged memo, the attorney-only case summary, a superseded complaint and private intake notes must never be filed.
 - **Scenarios:** the Harlow opposition (federal), John Doe's First Amended Complaint (state), and opening Santos v. Brightway Grocers (civil cover sheet, summons, $435 unlimited-civil fee, personal service). Data: `simulators/efiling-data.js`.
 
+## 🤝 Got a referral?
+
+The **Got a referral?** button on the home page (in the hero, next to *See how it works*) opens a pop-up card. Anyone can use it to refer someone to LSH.
+
+**What the form collects**
+- The person's full name, email and phone. Optional: location, the role they're interested in, LinkedIn, and why they'd be a good fit.
+- Their CV: PDF, DOC or DOCX, up to 10 MB.
+- The referrer's name, plus an optional email or Batch ID.
+- A consent box: the person agreed to share their details and CV.
+
+**Admins: 🤝 Referrals** (`/referrals.html`, linked from Master Control and the Directory's admin bar) lists every referral. From there you can:
+- download the CV;
+- set a status (New, Contacted, Interviewing, Hired, Not a fit) and keep a note;
+- filter, search and download a CSV;
+- delete a referral, which removes its CV too.
+
+**How it's stored and protected**
+- Endpoint: `functions/api/referrals.js`.
+- Sending is public, protected like the simulators: it only accepts requests from the portal's own pages, it's closed while the site is locked, it has a hidden anti-bot field, and each connection can send `REFERRAL_RATE_LIMIT` referrals per hour (default 5).
+- The file's type is checked from its content, not just its name.
+- Listing, downloading, updating and deleting are admin-only.
+- Data is in D1 `TRAINING_DB`, created on first use: `referrals` holds the details, `referral_files` holds the CV in 1 MB parts (the portal has no file bucket, and a D1 value is capped at 2 MB), and `referral_rate` holds the rate limit.
+
+## 🧭 Orientation
+
+**`/orientation.html`** is the Platform Orientation for the portal: a slide deck made for screen sharing in Google Meet. It shows nothing private: no passwords, access codes or trainee data.
+
+It has two tracks, switched at the top of the page:
+- **Trainees** (8 slides): what the portal is, the Training Directory, signing in inside each program, what's inside a program, the Simulators, the Knowledge Base, good habits, and first steps.
+- **Trainers & Admins** (8 slides): admin sign-in, the Directory's admin view (access queue, Mark Passed, Manually Grant Access), Master Control (monitoring, Broadcast & Ping, Access Control, activities and grading), Progress & Feedback, program admin, Knowledge Base review and simulator scores, and a daily checklist.
+
+How to use it:
+- Keys: ← → (or Page Up / Page Down / Space) change slides, and **F** toggles full screen.
+- **🖨 Print** prints the current track, one slide per page (or saves it as a PDF).
+- Deep links: `?track=admin&slide=3`.
+- Links to it: **Orientation** in the home page menu, and **🧭 Orientation** in the Training Directory's top bar. Signed-in admins get the admin track.
+
+To change the content, edit `SLIDES` in `orientation.html`.
+
 ## Knowledge Base
 
 **📚 Knowledge Base** (`/kb.html`; linked from the home page, the Training Directory and Master Control) is where LSH VAs find the firm's official SOPs and resources and share their own know-how, separate from the course lessons.

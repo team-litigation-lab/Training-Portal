@@ -7,7 +7,8 @@ const PortalNav = {
         ['home', '/index.html', 'Home'],
         ['directory', '/programs.html', 'Training Directory'],
         ['sims', '/simulators.html', '🛠 Simulators'],
-        ['kb', '/kb.html', '📚 Knowledge Base']
+        ['kb', '/kb.html', '📚 Knowledge Base'],
+        ['orient', '/orientation.html', '🧭 Orientation']
     ],
     embedded() { try { return window.self !== window.top; } catch (e) { return true; } },
     // Back to the previous portal page; a page opened fresh (new tab, bookmark) goes to its parent instead.
@@ -37,7 +38,7 @@ const PortalNav = {
 // nav bar. If no "← Back" is on the page shortly after it loads (Home excepted), a
 // floating one is added. The Checks workflow also fails any page without one.
 (function () {
-    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html', '/registration.html': '/index.html' };
+    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html', '/registration.html': '/index.html', '/orientation.html': '/index.html', '/referrals.html': '/core.html' };
     function ensureBack() {
         const path = location.pathname.replace(/\/$/, '/index.html');
         if (path === '/index.html' || PortalNav.embedded() || document.querySelector('.pn-back')) return;
