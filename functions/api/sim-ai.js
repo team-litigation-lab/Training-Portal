@@ -66,6 +66,6 @@ export async function onRequestPost({ request, env }) {
       if (!(limited || badKey)) break;   // only a rate limit or a rejected key is worth the next key
     }
     if (limit && !(last.status === 400 && /API key/i.test(last.error))) last = limit;
-    const friendly = last.status === 429 ? 'The AI service is busy — wait a minute and try again.' : last.error;
+    const friendly = last.status === 429 ? 'AI generation limit reached. Try again in a minute.' : last.error;
     return json({ success: false, error: friendly }, last.status === 429 ? 429 : 502);
 }

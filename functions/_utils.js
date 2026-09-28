@@ -477,7 +477,7 @@ Respond ONLY with a JSON object matching this exact shape, with no other text be
         if (!res.ok) {
             console.error('generateAiReview: Gemini API error', res.status, errText);
             return { ok: false, error: res.status === 429
-                ? 'The free Gemini limit has been reached for now (every model and key). Try again in a minute, or tomorrow if the daily limit is used up.'
+                ? 'AI generation limit reached. Try again in a minute.'
                 : `Gemini API error (${res.status}). The configured model may need updating — see https://ai.google.dev/gemini-api/docs/models.` };
         }
 
