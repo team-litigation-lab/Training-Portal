@@ -137,6 +137,8 @@ function renderPeoplePane() {
     renderTable();
 }
 
+// Preview deployments share the live course data, so archiving is off there (the API refuses too).
+const PREVIEW = /\.pages\.dev$/.test(location.hostname) && location.hostname.split('.').length > 3;
 const batchOf = (p) => (p.enrollments.find(t => t.status !== 'Archived') || p.enrollments[0]).batch || '';
 const batchName = (b) => b ? `Batch ${b}` : 'No batch set';
 function traineeRows(list) {
@@ -166,10 +168,11 @@ function renderTable() {
             <div class="pg-batch-hd" onclick="P.closed[${esc(JSON.stringify(b))}]=!P.closed[${esc(JSON.stringify(b))}];renderTable()">
                 <span class="pg-caret">${closed ? '▸' : '▾'}</span><b>📁 ${esc(batchName(b))}</b>
                 <span class="pg-muted">${ps.length} trainee${ps.length === 1 ? '' : 's'} · avg completion ${done}% · last active ${esc(ago(last))}</span>
-                ${b ? `<button class="pg-arch-btn" onclick="event.stopPropagation();archiveBatch(${esc(JSON.stringify(b))})">📦 Archive batch</button>` : ''}
+                ${b && !PREVIEW ? `<button class="pg-arch-btn" onclick="event.stopPropagation();archiveBatch(${esc(JSON.stringify(b))})">📦 Archive batch</button>` : ''}
             </div>
             ${closed ? '' : `<div class="sim-card" style="padding:0;"><div class="sim-table-wrap"><table class="sim-table pg-table">${TABLE_HEAD}<tbody>${traineeRows(ps)}</tbody></table></div></div>`}
         </section>`; }).join('') : `<div class="sim-card pg-muted">No trainees match these filters.</div>`;
+    if (PREVIEW) el.insertAdjacentHTML('afterbegin', `<div class="pg-note">Preview deployment: archiving and restoring are turned off here because previews read the live course data.</div>`);
     renderArchived();
     fitDetails();
 }
@@ -195,7 +198,7 @@ function renderArchived() {
                 <div><b>${esc(batchName(a.batch))}</b> <span class="pg-muted">${a.count} trainee${a.count === 1 ? '' : 's'}${a.archivedAt ? ` · archived ${esc(date(a.archivedAt))}` : ' · archived in the course'}</span></div>
                 <div class="pg-arch-acts">
                     ${a.snapshot ? `<button onclick="openSnapshot(${esc(JSON.stringify(a.batch))})">${snap && snap.show ? 'Hide' : 'Open'}</button>` : ''}
-                    <button onclick="restoreBatch(${esc(JSON.stringify(a.batch))})">↩ Restore</button>
+                    ${PREVIEW ? '' : `<button onclick="restoreBatch(${esc(JSON.stringify(a.batch))})">↩ Restore</button>`}
                 </div>
                 ${snap && snap.show ? `<div class="pg-arch-snap">${snap.loading ? '<span class="pg-muted">Loading…</span>' : snap.error ? `<span class="sim-error">${esc(snap.error)}</span>`
                     : `<div class="sim-table-wrap"><table class="sim-table pg-table">${TABLE_HEAD}<tbody>${traineeRows(snapPeople(snap.trainees))}</tbody></table></div>`}</div>` : ''}

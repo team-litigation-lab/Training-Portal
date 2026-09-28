@@ -255,10 +255,17 @@ export async function onRequestGet({ request, env }) {
 
 // Archive or restore one batch of one program (admins only).
 //   { action: 'ARCHIVE_BATCH' | 'RESTORE_BATCH', program, batch }
+// Pages preview deployments (<hash-or-branch>.<project>.pages.dev) share this
+// project's bindings, i.e. the live course data, so they never write to it.
+const isPreviewHost = (host) => /\.pages\.dev$/.test(host) && host.split('.').length > 3;
+
 export async function onRequestPost({ request, env }) {
     const auth = await requireSession(request, env, { adminOnly: true });
     if (!auth.ok) return auth.response;
     const noStore = { 'Cache-Control': 'no-store' };
+    if (isPreviewHost(new URL(request.url).hostname)) {
+        return json({ success: false, error: 'Archiving is turned off on preview deployments: they read the live course data. Use the live portal.' }, 403, noStore);
+    }
     let body;
     try { body = await request.json(); } catch (e) { return json({ success: false, error: 'Invalid request body.' }, 400, noStore); }
     const { action } = body || {};
