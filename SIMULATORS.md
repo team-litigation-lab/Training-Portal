@@ -18,6 +18,8 @@ claim a simulator below before starting it, and update it when you ship.**
 | Medical Records Requests | `/simulators/records.html` | Live | Records request platform on the John Doe file: HIPAA authorization review and e-signature, provider directory, simulated business-day clock, rejections, invoices vs the state fee cap, follow-ups, delivered records to review/flag/log, 100-point objectives. Data `records-data.js`. Describe it by what it does; don't use the name of the commercial platform it imitates — CM chat |
 | Court E-Filing | `/simulators/efiling.html` | Live | Federal CM/ECF-style and state e-filing-provider-style wizards with a filing folder to inspect and fix (OCR, /s/ signature, certificate of service, FRCP 5.2 redaction, 35 MB limit, passwords), clerk review and a graded receipt. Scenarios in `efiling-data.js` (federal opposition, John Doe amended complaint, new case) — CM chat |
 
+**New simulator page?** Add it to `PAGES` in `.github/scripts/smoke.cjs`, so the **Checks** workflow opens it on every pull request (it fails on page errors and on sideways scrolling at phone width).
+
 To add program content to an existing simulator, add a pack file (like
 `call-pack-cm.js` or a new key in `email-packs.js`) instead of a new simulator.
 
