@@ -145,6 +145,19 @@ let S = { filter: START_PROGRAM, line: new URLSearchParams(location.search).get(
 const $app = () => document.getElementById('app');
 
 function initials(n) { return n.split(' ').map(x => x[0]).join('').slice(0, 2); }
+// A case link into the CMS: from=portal lets the trainee in with just their name
+// (their name and batch fill in its form), so their work there is saved for the trainer.
+function cmsLink(url) {
+    try {
+        const u = new URL(url);
+        if (!/trainingcrm\.pages\.dev$/.test(u.hostname)) return url;
+        u.searchParams.set('from', 'portal');
+        const w = Sim.who();
+        if (w.name) u.searchParams.set('name', w.name);
+        if (w.batch) u.searchParams.set('batch', w.batch);
+        return u.toString();
+    } catch (e) { return url; }
+}
 function render() {
     Sim.label(S.phase === 'call' ? 'Call Simulator — on a call' : 'Call Simulator');
     if (S.phase === 'pick') return renderPick();
@@ -179,7 +192,7 @@ function renderBrief() {
             <p style="font-size:14.5px;line-height:1.6;margin:0;">${Sim.esc(c.you)}</p>
             <div class="facts"><b>What you know:</b> ${Sim.esc(c.facts)}</div>
             ${c.caseFile && (c.caseSummary || window.CM_CASE_SUMMARY) ? `<details class="casefile"><summary>📂 Case summary: ${Sim.esc(c.caseLabel || 'John Doe v. Apex Delivery Services')}</summary><pre>${Sim.esc(c.caseSummary || window.CM_CASE_SUMMARY)}</pre></details>` : ''}
-            ${c.caseDoc ? `<p style="font-size:13.5px;margin:12px 0 0;"><a class="sim-btn primary" style="padding:8px 16px;" href="${Sim.esc(c.caseDoc.url)}" target="_blank" rel="noopener">🗂 Open ${Sim.esc(c.caseDoc.id)} in the CMS ↗</a></p><details class="casefile"><summary>📂 Case file: ${Sim.esc(c.caseDoc.title)}</summary><pre>${Sim.esc(c.caseDoc.text)}</pre></details>` : ''}
+            ${c.caseDoc ? `<p style="font-size:13.5px;margin:12px 0 0;"><a class="sim-btn primary" style="padding:8px 16px;" href="${Sim.esc(cmsLink(c.caseDoc.url))}" target="_blank" rel="noopener">🗂 Open ${Sim.esc(c.caseDoc.id)} in the CMS ↗</a></p><details class="casefile"><summary>📂 Case file: ${Sim.esc(c.caseDoc.title)}</summary><pre>${Sim.esc(c.caseDoc.text)}</pre></details>` : ''}
             ${c.note ? `<p style="font-size:13px;margin:12px 0 0;"><b>📝 After the call:</b> you'll write the ${Sim.esc(c.note.title.toLowerCase())}. It's graded with the call.</p>` : ''}
             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
                 <button class="sim-btn orange" onclick="startCall()">${c.dir === 'out' ? '📞 Place the call' : '📞 Answer the call'}</button>
