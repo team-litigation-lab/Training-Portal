@@ -37,10 +37,9 @@ const Sim = {
         const me = admin ? `<span class="who">${Sim.esc(s.fullName || s.username || '')}</span><a onclick="logoutSession()">Log Out</a>`
             : `<a class="who" onclick="Sim.askWho(true)" title="Change who is practicing">${w.name ? `Practicing as ${Sim.esc(w.name)}${w.batch ? ' · ' + Sim.esc(w.batch) : ''} ✎` : 'Add your name ✎'}</a>`;
         return `<div class="sim-top">
-            <a class="sim-brand" href="/programs.html"><img src="/favicon.png" alt=""><span>LSH Training Portal<small>Simulators</small></span></a>
+            <a class="sim-brand" href="/index.html"><img src="/favicon.png" alt=""><span>LSH Training Portal<small>Simulators</small></span></a>
             <div class="sim-nav">
-                ${Sim.embedded() ? '' : '<a href="/programs.html">Training Index</a>'}
-                <a href="/simulators.html" class="${active === 'hub' ? 'on' : ''}">🛠 Simulators</a>
+                ${PortalNav.html(active === 'hub' ? 'sims' : '', { back: active === 'hub' ? '/programs.html' : '/simulators.html' })}
                 ${me}
             </div></div>`;
     },

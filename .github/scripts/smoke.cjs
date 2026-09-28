@@ -1,11 +1,12 @@
 // Smoke test: opens every page of the portal (static files, API calls answered
 // with empty data) at desktop and phone width, and fails on any page error or
-// on a page that scrolls sideways on a phone.
+// on a page that scrolls sideways on a phone. Every page but Home must show a
+// "← Back" button, and portal pages must not open other portal pages in a new tab.
 // Usage: node tests/smoke.cjs   (from the repository root; needs `npm i playwright`)
 const { chromium } = require('playwright');
 const http = require('http'); const fs = require('fs'); const path = require('path');
 const ROOT = process.cwd();
-const PAGES = ['/index.html', '/programs.html', '/simulators.html', '/kb.html', '/progress.html', '/registration.html', '/trainee-login.html', '/admin-login.html', '/orientation.html', '/orientation.html?track=admin', '/referrals.html',
+const PAGES = ['/index.html', '/programs.html', '/simulators.html', '/kb.html', '/progress.html', '/core.html', '/registration.html', '/trainee-login.html', '/admin-login.html', '/orientation.html', '/orientation.html?track=admin', '/referrals.html',
     '/simulators/call.html?program=CM', '/simulators/call.html?program=FT&line=Reception%20Mock%20Calls', '/simulators/email.html?program=CM', '/simulators/email-replies.html?program=CM', '/simulators/calendar.html?program=CM',
     '/simulators/docket.html?program=CM', '/simulators/records.html?program=CM', '/simulators/efiling.html?program=CM'];
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.md': 'text/markdown' };
@@ -29,6 +30,18 @@ const server = http.createServer((req, res) => {
             try { await page.goto(base + p, { waitUntil: 'load', timeout: 20000 }); await page.waitForTimeout(700); }
             catch (e) { failures.push(`[${vp.name}] ${p}: did not load (${e.message.split('\n')[0]})`); }
             if (vp.name === 'phone' && await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1).catch(() => false)) failures.push(`[phone] ${p}: the page scrolls sideways`);
+            if (vp.name === 'desktop') {
+                const nav = await page.evaluate(async (path) => {
+                    await new Promise(r => setTimeout(r, 1300));   // the safety-net Back button appears ~1.5 s after load
+                    const back = [...document.querySelectorAll('.pn-back')].some(a => { const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+                    const PORTAL = /^\/(index|programs|simulators|kb|progress|core|orientation|referrals)\.html$|^\/simulators\//;
+                    const newTab = [...document.querySelectorAll('a[target="_blank"]')].map(a => { try { return new URL(a.getAttribute('href'), location.href); } catch (e) { return null; } })
+                        .filter(u => u && u.origin === location.origin && PORTAL.test(u.pathname)).map(u => u.pathname);
+                    return { back, newTab, home: /^\/(index\.html)?$/.test(path) };
+                }, new URL(base + p).pathname).catch(() => ({ back: true, newTab: [], home: true }));
+                if (!nav.home && !nav.back) failures.push(`${p}: no "← Back" button (load /portal-nav.js; use PortalNav.html or Sim.topbar)`);
+                if (nav.newTab.length) failures.push(`${p}: portal page opens in a new tab (${[...new Set(nav.newTab)].join(', ')}); portal pages open in the same tab`);
+            }
             await page.close();
         }
     }

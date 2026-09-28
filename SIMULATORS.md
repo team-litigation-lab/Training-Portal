@@ -40,5 +40,13 @@ To add program content to an existing simulator, add a pack file (like
 - Styles: `sim-wrap`, `sim-hero`, `sim-card`, `sim-btn` (primary / orange / ghost),
   `sim-chip`, `sim-table`; navy `#0f2148` + orange `#f97316`. `.sim-wrap` needs
   `width:100%` because the body is a flex container.
+- Navigation: every portal page uses `PortalNav.html(active, { back })` from `/portal-nav.js`
+  (Home · Training Directory · Simulators · Knowledge Base, plus **← Back**, which goes to the
+  previous portal page or to `back` when the page was opened fresh). The simulator top bar
+  already includes it. Portal pages open in the **same tab**; only the training programs
+  (separate sites, no way back) open in a new tab.
+  **Every new page must load `/portal-nav.js`** (a page without its own Back button gets a
+  floating one) and must be added to `PAGES` in `.github/scripts/smoke.cjs`: the Checks
+  workflow fails any page without a visible "← Back" or with a portal link that opens a new tab.
 - Trainee-facing text avoids the word "AI".
 - Legal-work simulators (Docket, Records, E-Filing) share `simulators/legal-sim.css`; court deadline math lives in `simulators/legal-rules.js` (`LR.compute`).

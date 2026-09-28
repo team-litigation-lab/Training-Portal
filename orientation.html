@@ -108,9 +108,9 @@
     <a class="or-brand" href="/"><img src="/favicon.png" alt=""><span>LSH Training Portal<small>Orientation</small></span></a>
     <nav class="or-links">
         <a href="/">Home</a>
-        <a href="/programs.html" target="_blank" rel="noopener">Training Directory</a>
-        <a href="/simulators.html" target="_blank" rel="noopener">Simulators</a>
-        <a href="/kb.html" target="_blank" rel="noopener">Knowledge Base</a>
+        <a href="/programs.html">Training Directory</a>
+        <a href="/simulators.html">Simulators</a>
+        <a href="/kb.html">Knowledge Base</a>
     </nav>
 </div></div>
 
@@ -165,7 +165,7 @@ trainee: [
         <div class="or-card"><b>Simulators &amp; Knowledge Base</b><span>The two cards at the top of the Directory open them.</span></div>
     </div>
     <p class="or-note">Programs open now: ${PROGRAMS_LIVE}.</p>
-    <div class="or-go"><a class="btn pri" href="/programs.html" target="_blank" rel="noopener">Open the Training Directory ↗</a></div>` },
+    <div class="or-go"><a class="btn pri" href="/programs.html">Open the Training Directory</a></div>` },
 { k: 'Signing in', h: 'Each program has its own sign-in', body: `
     <p class="or-lead">You don't sign in on this portal. You sign in inside your program.</p>
     <ul class="pts">
@@ -195,7 +195,7 @@ trainee: [
     <ul class="pts" style="margin-top:16px;">
         <li>The first time, enter your <b>name and Batch ID</b> ("Who's practicing?") so your scores reach your trainer. Opening a simulator from inside your program fills them in for you.</li>
     </ul>
-    <div class="or-go"><a class="btn pri" href="/simulators.html" target="_blank" rel="noopener">Open the Simulators ↗</a></div>` },
+    <div class="or-go"><a class="btn pri" href="/simulators.html">Open the Simulators</a></div>` },
 { k: 'Knowledge Base', h: 'Look things up in the Knowledge Base', body: `
     <p class="or-lead">The Knowledge Base is where LSH VAs find the firm's SOPs and share what they know. It's for the team only.</p>
     <ul class="pts">
@@ -204,7 +204,7 @@ trainee: [
         <li><b>From the team:</b> tips, how-to guides, checklists and templates. Mark them 👍 Helpful, or reply with your own experience.</li>
         <li>Share your own. An admin reviews every post before it's published. Add a profile so people know who wrote it.</li>
     </ul>
-    <div class="or-go"><a class="btn pri" href="/kb.html" target="_blank" rel="noopener">Open the Knowledge Base ↗</a></div>` },
+    <div class="or-go"><a class="btn pri" href="/kb.html">Open the Knowledge Base</a></div>` },
 { k: 'Good habits', h: 'Tips for a smooth training', body: `
     <ul class="pts">
         <li>Use <b>Google Chrome</b>, and keep the portal and your program open in separate tabs.</li>
@@ -220,7 +220,7 @@ trainee: [
         <li>Start your first open lesson.</li>
         <li>Try a <b>Simulator</b>, and look around the <b>Knowledge Base</b>.</li>
     </ol>
-    <div class="or-go"><a class="btn pri" href="/programs.html" target="_blank" rel="noopener">Go to the Training Directory ↗</a></div>` }
+    <div class="or-go"><a class="btn pri" href="/programs.html">Go to the Training Directory</a></div>` }
 ],
 admin: [
 { k: 'The admin side', h: 'Running training from the master portal', body: `
@@ -337,5 +337,6 @@ document.addEventListener('keydown', e => {
     show((parseInt(q.get('slide'), 10) || 1) - 1);
 })();
 </script>
+<script src="/portal-nav.js"></script>
 </body>
 </html>

@@ -34,7 +34,9 @@
     @media (max-width: 640px) { .idx-top { flex-wrap: wrap; gap: 10px; padding: 14px 16px; } .idx-user { justify-content: flex-start; gap: 6px 14px; } }
     .idx-user-name { color: rgba(255,255,255,0.85); font-size: 12.5px; font-weight: 700; }
     .idx-logout { color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 600; text-decoration: none; cursor: pointer; }
-    .idx-logout:hover { color: #fff; }
+    .idx-logout:hover, .idx-logout.on { color: #fff; }
+    .idx-logout.on { font-weight: 800; }
+    @media (max-width: 760px) { .idx-top { flex-wrap: wrap; gap: 10px; padding: 14px 16px; } .idx-user { flex-wrap: wrap; gap: 10px 14px; } }
 
     .idx-wrap { max-width: 1280px; margin: 0 auto; padding: 40px 24px 80px; }
     /* Directory hero — the same navy and orange rings as the home page hero. */
@@ -103,6 +105,7 @@
     .sim-banner-tx { flex: 1; min-width: 0; } .sim-banner-tx b { display: block; font-size: 16px; } .sim-banner-tx span { font-size: 13px; color: #c7d2fe; }
     .sim-banner-go { background: var(--orange); color: #0f172a; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 8px 16px; white-space: nowrap; }
 </style>
+<script src="/portal-nav.js"></script>
 </head>
 <body>
 <script>
@@ -127,10 +130,7 @@
         Training Directory
     </div>
     <div class="idx-user" id="idx-user">
-        <a class="idx-logout" href="/index.html">Home</a>
-        <a class="idx-logout" href="/simulators.html" style="color:#fdba74;font-weight:800;" target="_blank" rel="noopener">🛠 Simulators</a>
-        <a class="idx-logout" href="/kb.html" style="color:#fdba74;font-weight:800;" target="_blank" rel="noopener">📚 Knowledge Base</a>
-        <a class="idx-logout" href="/orientation.html" style="color:#fdba74;font-weight:800;" target="_blank" rel="noopener">🧭 Orientation</a>
+        <script>document.write(PortalNav.html('directory', { back: '/index.html', cls: 'idx-logout' }));</script>
         <a class="idx-logout" href="/admin-login.html" title="Admin monitoring (sign-in required)">🔒 Admin</a>
     </div>
 </div>
@@ -143,12 +143,12 @@
     </div>
 
     <div class="sim-banner-row">
-    <a class="sim-banner" href="/simulators.html" target="_blank" rel="noopener">
+    <a class="sim-banner" href="/simulators.html">
         <span class="sim-banner-ic">🛠</span>
         <span class="sim-banner-tx"><b>Simulators</b><span>Calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
-    <a class="sim-banner" href="/kb.html" target="_blank" rel="noopener">
+    <a class="sim-banner" href="/kb.html">
         <span class="sim-banner-ic">📚</span>
         <span class="sim-banner-tx"><b>Knowledge Base</b><span>Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know. Team access code required.</span></span>
         <span class="sim-banner-go">Open →</span>
@@ -222,12 +222,11 @@
         if (session.userType === 'Admin') {
             const userEl = document.getElementById('idx-user');
             if (userEl) userEl.innerHTML = `
-                <a class="idx-logout" href="/simulators.html" style="color:#fdba74;font-weight:800;" target="_blank" rel="noopener">🛠 Simulators</a>
+                ${PortalNav.html('directory', { back: '/index.html', cls: 'idx-logout' })}
                 <span class="idx-user-name">${escapeHtml(session.fullName || session.username)}</span>
-                <a class="idx-logout" href="/kb.html">📚 Knowledge Base</a>
                 <a class="idx-logout" href="/progress.html">📊 Progress &amp; Feedback</a>
                 <a class="idx-logout" href="/referrals.html">🤝 Referrals</a>
-                <a class="idx-logout" href="/orientation.html?track=admin" target="_blank" rel="noopener">🧭 Orientation</a>
+                <a class="idx-logout" href="/orientation.html?track=admin">🧭 Orientation</a>
                 <a class="idx-logout" href="/core.html">Master Control &rarr;</a>
                 <a class="idx-logout" onclick="logoutSession()">Log Out</a>`;
         }
