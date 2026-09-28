@@ -15,7 +15,7 @@ INSERT INTO topics (key, name, sort_order) VALUES
 ('LIEN VERIFICATION', 'Lien Verification', 13),
 ('LITIGATION', 'Litigation', 14),
 ('MASS TORT', 'Mass Tort', 15),
-('MEDSUM AND DEMAND', 'Medsum and Demand', 16),
+('MEDSUM AND DEMAND', 'Medsum & Demand Training', 16),
 ('PROPERTY DAMAGE', 'Property Damage Claims Training', 17),
 ('REAL ESTATE LAW', 'Real Estate Law', 18),
 ('HANDOUTS', 'Handouts', 19),

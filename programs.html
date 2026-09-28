@@ -98,7 +98,7 @@
     .topic-action-btn.disabled { background: #f1f5f9; color: #94a3b8; cursor: default; }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
-    .sim-banner-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+    .sim-banner-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 28px; }
     .sim-banner-row .sim-banner { margin-bottom: 0; }
     @media (max-width: 760px) { .sim-banner-row { grid-template-columns: 1fr; } }
     .sim-banner-ic { width: 48px; height: 48px; border-radius: 14px; background: rgba(249,115,22,.18); border: 1px solid rgba(253,186,116,.45); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
@@ -153,6 +153,23 @@
         <span class="sim-banner-tx"><b>Knowledge Base</b><span>Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know. Team access code required.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
+    <a class="sim-banner" id="cms-banner" href="https://lshcasemanagementtraining-trainingcrm.pages.dev/?from=portal" target="_blank" rel="noopener">
+        <span class="sim-banner-ic">🗂</span>
+        <span class="sim-banner-tx"><b>Case Management System</b><span>The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. Just enter your name; your work is saved for your trainer.</span></span>
+        <span class="sim-banner-go">Open →</span>
+    </a>
+    <script>
+    // Fill in the CMS's name form with the name used on the Simulators, if there is one.
+    (function () {
+        try {
+            const who = JSON.parse(localStorage.getItem('LSH_SIM_WHO') || '{}') || {};
+            const link = document.getElementById('cms-banner'), url = new URL(link.href);
+            if (who.name) url.searchParams.set('name', String(who.name).slice(0, 60));
+            if (who.batch) url.searchParams.set('batch', String(who.batch).slice(0, 24));
+            link.href = url.toString();
+        } catch (e) { /* no saved name: the CMS asks for it */ }
+    })();
+    </script>
     </div>
     <div id="idx-queue-wrap"></div>
     <div id="idx-grant-wrap"></div>
@@ -165,20 +182,22 @@
 <script src="app.js"></script>
 <script src="portal.js"></script>
 <script>
-    // Standard Foundational Training, CM Training, EA PA Training and
-    // Property Damage are the only programs with a real, built portal so
-    // far — everything else in the topics table is reference-only until its
+    // Standard Foundational Training, CM Training, EA PA Training,
+    // Property Damage and Medsum & Demand are the only programs with a real,
+    // built portal so far — everything else in the topics table is reference-only until its
     // own site exists. Keyed by the exact `key` value seeded into the topics
     // table. Standard Foundational Training is the 18-day program
     // (Foundational-Training repo). CM Training is the 5-day course
     // (Case-Management-Training repo); the CMS it uses opens from inside it.
     // Property Damage is the 5-day PD Claims course
-    // (propertydamageclaimstraining repo).
+    // (propertydamageclaimstraining repo). Medsum and Demand is the 5-day
+    // Medsum & Demand course (medsumanddemandtraining repo).
     const BUILT_PROGRAMS = {
         'STANDARD TRAINING': 'https://foundational-training.legalsupporthelp.workers.dev/',
         'CM TRAINING': 'https://case-management-training.legalsupporthelp.workers.dev/',
         'EA  PA TRAINING-OUTSOURCED MANP': 'https://ea-pa-training.legalsupporthelp.workers.dev/',
-        'PROPERTY DAMAGE': 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/'
+        'PROPERTY DAMAGE': 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/',
+        'MEDSUM AND DEMAND': 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/'
     };
 
     // Display names that replace the topics table's `name`, so a program can
@@ -186,7 +205,8 @@
     // the same names for new databases.
     const PROGRAM_NAMES = {
         'STANDARD TRAINING': 'Standard Foundational Training',
-        'PROPERTY DAMAGE': 'Property Damage Claims Training'
+        'PROPERTY DAMAGE': 'Property Damage Claims Training',
+        'MEDSUM AND DEMAND': 'Medsum & Demand Training'
     };
 
     // Programs shown on the index that aren't in the live topics table yet.

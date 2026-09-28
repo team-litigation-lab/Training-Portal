@@ -159,7 +159,7 @@ With these set, archiving a batch also saves it (a CSV report and the full JSON 
 4. Redeploy. The page shows **☁ Save to Drive** on archived batches once Drive is set up.
 
 Where the records come from:
-- The programs keep their own trainees and sign-in. The portal reads their records from the course Workers' KV namespace through the `COURSE_KV` binding in `wrangler.toml`, which points at the same namespace as the courses' `LSH_KV`. EA/PA keys have no prefix (`trainee:*`, `feedback:*`, `tfeedback:*`); CM course keys start with `cm:`, PD Claims Training keys with `pd:`, Standard Foundational Training keys with `ft:`.
+- The programs keep their own trainees and sign-in. The portal reads their records from the course Workers' KV namespace through the `COURSE_KV` binding in `wrangler.toml`, which points at the same namespace as the courses' `LSH_KV`. EA/PA keys have no prefix (`trainee:*`, `feedback:*`, `tfeedback:*`); CM course keys start with `cm:`, PD Claims Training keys with `pd:`, Medsum & Demand Training keys with `md:`, Standard Foundational Training keys with `ft:`.
 - Simulator results (`simulator_results`), portal activities (`submissions`) and archive snapshots (`progress_archive`) are in this portal's D1 database.
 - Simulator and activity records are matched to trainees by name, because the programs have separate sign-ins.
 

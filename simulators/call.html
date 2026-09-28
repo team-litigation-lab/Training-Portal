@@ -39,15 +39,17 @@
     .phone .nm { font-size: 18px; font-weight: 800; } .phone .rl { font-size: 12.5px; color: #c7d2fe; }
     .phone .timer { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 700; margin: 14px 0 4px; }
     .phone .state { font-size: 12.5px; color: #fdba74; min-height: 18px; }
-    .phone .ctrls { display: flex; justify-content: center; gap: 12px; margin-top: 18px; }
-    .round { width: 58px; height: 58px; border-radius: 50%; border: none; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .round.mic { background: #fff; } .round.mic.rec { background: #22c55e; color: #fff; } .round.end { background: #dc2626; color: #fff; } .round.spk { background: rgba(255,255,255,.14); color: #fff; }
-    .round small { display: none; }
-    .round.spk.on { background: #f59e0b; color: #fff; }
-    .phone .vnote { margin-top: 12px; font-size: 12px; line-height: 1.45; color: #fde68a; background: rgba(0,0,0,.25); border-radius: 10px; padding: 8px 10px; text-align: left; }
-    .phone .ctrls { gap: 10px; flex-wrap: nowrap; } .phone .ctrls .round { width: 48px; height: 48px; font-size: 19px; flex: 0 0 48px; }
-    .phone .lbls { gap: 10px; } .phone .lbls span { width: 48px; }
-    .phone .lbls { display: flex; justify-content: center; gap: 12px; font-size: 11px; color: #c7d2fe; margin-top: 6px; } .phone .lbls span { width: 58px; }
+    .phone .big.ringing { animation: ringshake 1.1s ease-in-out infinite; }
+    .phone .big.ringing::after { content: ""; position: absolute; inset: -8px; border-radius: 50%; border: 3px solid rgba(34,197,94,.7); animation: pulse 1.1s ease-out infinite; }
+    @keyframes ringshake { 0%, 50%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(-7deg); } 20%, 40% { transform: rotate(7deg); } }
+    .phone .ctrls { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 8px; margin-top: 18px; }
+    .cbtn { background: none; border: none; padding: 0; font: inherit; color: #c7d2fe; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; width: 52px; }
+    .cbtn .round { width: 48px; height: 48px; border-radius: 50%; font-size: 19px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.14); color: #fff; transition: background .15s ease; }
+    .cbtn:hover .round { background: rgba(255,255,255,.24); }
+    .cbtn.on .round { background: #fff; color: #0f172a; } .cbtn.mic.on .round { background: #22c55e; color: #fff; }
+    .cbtn.end .round { background: #dc2626; } .cbtn.end:hover .round { background: #b91c1c; }
+    .phone .pnote { margin-top: 14px; font-size: 12px; line-height: 1.45; color: #c7d2fe; background: rgba(255,255,255,.08); border-radius: 12px; padding: 9px 11px; text-align: left; }
+    .phone .pnote.warn { color: #fde68a; background: rgba(245,158,11,.14); }
     .transcript { display: flex; flex-direction: column; gap: 10px; max-height: 56vh; overflow-y: auto; padding-right: 4px; }
     .bubble { max-width: 82%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
     .bubble.caller { background: #f1f5f9; align-self: flex-start; border-bottom-left-radius: 4px; }
@@ -77,7 +79,7 @@
     <section class="sim-hero">
         <div class="eyebrow">Simulator · Phone calls</div>
         <h1>Call Simulator</h1>
-        <p>Pick a caller, read your brief, then answer the call. The caller speaks out loud and reacts to what you say — answer by voice (Chrome or Edge, microphone allowed) or by typing. End the call when you're done for a scored debrief.</p>
+        <p>Pick a caller, read your brief, then take the call. It rings, the caller speaks out loud and reacts to what you say — answer out loud (Chrome or Edge, microphone allowed; hands-free listens as soon as the caller stops) or type. Hang up when you're done for a scored debrief.</p>
     </section>
     <div id="app"></div>
 </div>
@@ -139,11 +141,23 @@ const CALLERS = [
 ].concat(window.EXTRA_CALLERS || []);
 
 const START_PROGRAM = (() => { const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'CM' : p.startsWith('EA') ? 'EA' : p.startsWith('FT') ? 'FT' : p.startsWith('PD') ? 'PD' : 'All'; })();
-let S = { filter: START_PROGRAM, line: new URLSearchParams(location.search).get('line') || 'all', note: '', persona: null, phase: 'pick', transcript: [], startedAt: 0, voice: true, busy: false, recog: null, recording: false, timer: null, debrief: null,
-    handsFree: !!(window.SpeechRecognition || window.webkitSpeechRecognition), lastCaller: '', speakToken: null, utts: [], voiceError: false, ringing: false };
+let S = { filter: START_PROGRAM, line: new URLSearchParams(location.search).get('line') || 'all', note: '', persona: null, phase: 'pick', transcript: [], startedAt: 0, voice: true, busy: false, call: null, timer: null, debrief: null };
 const $app = () => document.getElementById('app');
 
 function initials(n) { return n.split(' ').map(x => x[0]).join('').slice(0, 2); }
+// A case link into the CMS: from=portal lets the trainee in with just their name
+// (their name and batch fill in its form), so their work there is saved for the trainer.
+function cmsLink(url) {
+    try {
+        const u = new URL(url);
+        if (!/trainingcrm\.pages\.dev$/.test(u.hostname)) return url;
+        u.searchParams.set('from', 'portal');
+        const w = Sim.who();
+        if (w.name) u.searchParams.set('name', w.name);
+        if (w.batch) u.searchParams.set('batch', w.batch);
+        return u.toString();
+    } catch (e) { return url; }
+}
 function render() {
     Sim.label(S.phase === 'call' ? 'Call Simulator — on a call' : 'Call Simulator');
     if (S.phase === 'pick') return renderPick();
@@ -168,7 +182,7 @@ function renderPick() {
                 <div class="tags"><span class="p-${c.program}">${c.program === 'All' ? 'All programs' : c.program === 'CM' ? 'Case Management' : c.program === 'FT' ? 'Foundational' : c.program === 'PD' ? 'Property Damage' : 'EA / PA'}</span>${c.line ? `<span>${Sim.esc(c.line)}</span>` : ''}${c.dir === 'out' ? '<span class="dir">You call</span>' : ''}<span>${c.level}</span><span>${c.goals.length} goals</span></div>
             </div>`).join('')}</div>`;
 }
-function pick(id) { S.persona = CALLERS.find(c => c.id === id); S.phase = 'brief'; S.transcript = []; S.debrief = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function pick(id) { stopCallMedia(); S.call = null; S.persona = CALLERS.find(c => c.id === id); S.phase = 'brief'; S.transcript = []; S.debrief = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function renderBrief() {
     const c = S.persona;
     $app().innerHTML = `<div class="sim-card"><div class="brief">
@@ -178,7 +192,7 @@ function renderBrief() {
             <p style="font-size:14.5px;line-height:1.6;margin:0;">${Sim.esc(c.you)}</p>
             <div class="facts"><b>What you know:</b> ${Sim.esc(c.facts)}</div>
             ${c.caseFile && (c.caseSummary || window.CM_CASE_SUMMARY) ? `<details class="casefile"><summary>📂 Case summary: ${Sim.esc(c.caseLabel || 'John Doe v. Apex Delivery Services')}</summary><pre>${Sim.esc(c.caseSummary || window.CM_CASE_SUMMARY)}</pre></details>` : ''}
-            ${c.caseDoc ? `<p style="font-size:13.5px;margin:12px 0 0;"><a class="sim-btn primary" style="padding:8px 16px;" href="${Sim.esc(c.caseDoc.url)}" target="_blank" rel="noopener">🗂 Open ${Sim.esc(c.caseDoc.id)} in the CMS ↗</a></p><details class="casefile"><summary>📂 Case file: ${Sim.esc(c.caseDoc.title)}</summary><pre>${Sim.esc(c.caseDoc.text)}</pre></details>` : ''}
+            ${c.caseDoc ? `<p style="font-size:13.5px;margin:12px 0 0;"><a class="sim-btn primary" style="padding:8px 16px;" href="${Sim.esc(cmsLink(c.caseDoc.url))}" target="_blank" rel="noopener">🗂 Open ${Sim.esc(c.caseDoc.id)} in the CMS ↗</a></p><details class="casefile"><summary>📂 Case file: ${Sim.esc(c.caseDoc.title)}</summary><pre>${Sim.esc(c.caseDoc.text)}</pre></details>` : ''}
             ${c.note ? `<p style="font-size:13px;margin:12px 0 0;"><b>📝 After the call:</b> you'll write the ${Sim.esc(c.note.title.toLowerCase())}. It's graded with the call.</p>` : ''}
             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
                 <button class="sim-btn orange" onclick="startCall()">${c.dir === 'out' ? '📞 Place the call' : '📞 Answer the call'}</button>
@@ -190,202 +204,212 @@ function renderBrief() {
             <div class="sim-kicker">You’ll be scored on</div>
             <ol>${c.goals.map(g => `<li>${Sim.esc(g)}</li>`).join('')}${c.note ? `<li>Documentation: ${Sim.esc(c.note.title)}</li>` : ''}</ol>
             ${c.tips ? `<div class="sim-kicker" style="margin-top:14px;">Tips for this line</div><ul>${c.tips.map(t => `<li>${Sim.esc(t)}</li>`).join('')}</ul>` : ''}
-            <p class="sim-muted" style="font-size:12.5px;margin-top:12px;">Tip: use a headset. On Chrome or Edge you can press 🎤 and speak; otherwise type your replies.</p>
+            <p class="sim-muted" style="font-size:12.5px;margin-top:12px;">Tip: use a headset. On Chrome or Edge just speak when it’s your turn (hands-free), or tap 🎙 Talk; you can always type instead.</p>
         </div>
     </div></div>`;
 }
-/* ---------- the call ---------- */
-function startCall() {
-    unlockAudio();                    // inside the click, so the browser lets the caller speak later
-    S.phase = 'call'; S.transcript = []; S.startedAt = Date.now(); S.voiceError = false; S.ringing = true;
-    clearInterval(S.timer);
-    render(); setState('Ringing…', false);
-    ring().then(() => {
-        if (S.phase !== 'call') return;
-        S.ringing = false; S.startedAt = Date.now(); S.timer = setInterval(tick, 1000);
-        callerSays(S.persona.opening);
-    });
-}
-/* ---------- voice (the same handling as the EA/PA portal's Live Roleplay calls) ---------- */
-function unlockAudio() {
-    if (!('speechSynthesis' in window)) return;
+/* ---------- the call: a real phone call, like the EA/PA course's calls ----------
+   It rings (or, for a call you place, you hear it ringing on the other end),
+   then connects. The caller speaks out loud (text-to-speech, one voice per
+   caller); in Chrome/Edge you answer out loud and, hands-free, the mic opens
+   by itself when the caller stops and your reply goes when you pause. Talk,
+   Replay, Speaker and Hang Up work as on a phone; typing always works too. */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+const CAN_SPEAK = 'speechSynthesis' in window;
+function unlockAudio() {   // called inside the click, so the browser lets the caller speak later
+    if (!CAN_SPEAK) return;
     try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); speechSynthesis.resume(); } catch (e) {}
 }
-function ring() {
-    return new Promise(res => {
-        try {
-            const Ctx = window.AudioContext || window.webkitAudioContext; const ctx = new Ctx();
-            const burst = (t) => [440, 480].forEach(f => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = f; g.gain.value = 0.05; o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 1.1); });
-            burst(0); burst(2.2);
-            setTimeout(() => { try { ctx.close(); } catch (e) {} res(); }, 3600);
-        } catch (e) { setTimeout(res, 1200); }
+function startCall() {
+    unlockAudio();
+    stopCallMedia();
+    const c = S.persona;
+    S.phase = 'call'; S.transcript = []; S.startedAt = 0;
+    S.call = { status: 'ringing', out: c.dir === 'out', handsFree: !!SR, muted: !S.voice, voiceError: false, lastCaller: '', speakToken: null, rec: null, ring: null, ended: false };
+    render();
+    const call = S.call;
+    ringTone(call).then(() => {
+        if (S.call !== call || S.phase !== 'call') return;
+        call.status = 'connected'; S.startedAt = Date.now();
+        clearInterval(S.timer); S.timer = setInterval(tick, 1000);
+        paintPhone();
+        callerSays(c.opening);
     });
 }
-// Speak the caller's line. Chrome drops long utterances and can swallow a speak() issued right after
-// cancel(), and never fires onend for an utterance it garbage-collected — so: sentence-sized chunks,
-// a short pause after cancel, the utterances kept on S.utts, and a timer in case onend never comes.
-function speak(text, onDone) {
-    const token = {}; S.speakToken = token;
-    const done = () => { if (S.speakToken === token) { S.speakToken = null; onDone(); } };
-    if (!S.voice || !('speechSynthesis' in window)) { done(); return; }
-    stopListening();
-    const chunks = (text.match(/[^.!?]+[.!?]*["”]?\s*/g) || [text]).map(t => t.trim()).filter(Boolean);
-    const wasBusy = speechSynthesis.speaking || speechSynthesis.pending;
-    if (wasBusy) speechSynthesis.cancel();
-    let started = false;
-    setTimeout(() => {
-        if (S.speakToken !== token) return;
-        try { speechSynthesis.resume(); } catch (e) {}
-        const v = pickVoice();
-        S.utts = chunks.map((c, i) => {
-            const u = new SpeechSynthesisUtterance(c);
-            if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-US';
-            u.rate = 1.02;
-            u.onstart = () => { started = true; if (S.voiceError) { S.voiceError = false; paintVoiceNote(); } };
-            if (i === chunks.length - 1) u.onend = done;
-            u.onerror = (ev) => { if (ev && ev.error === 'interrupted') return; S.voiceError = true; paintVoiceNote(); done(); };
-            speechSynthesis.speak(u);
-            return u;
-        });
-        // Nothing started within 2.5 s: this computer has no working voice — show the words and carry on.
-        setTimeout(() => { if (S.speakToken === token && !started && !speechSynthesis.speaking) { S.voiceError = true; paintVoiceNote(); speechSynthesis.cancel(); done(); } }, 2500);
-    }, wasBusy ? 150 : 30);
-    setTimeout(() => { if (S.speakToken === token) { speechSynthesis.cancel(); done(); } }, 4000 + text.split(/\s+/).length * 480);
+/* Inbound: two rings of the US ringtone. Outbound: the ringback you hear while the other phone rings. */
+function ringTone(call) {
+    return new Promise(res => {
+        try {
+            const Ctx = window.AudioContext || window.webkitAudioContext; const ctx = new Ctx(); call.ring = ctx;
+            const burst = (t, len) => { [440, 480].forEach(f => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = f; g.gain.value = 0.05; o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + len); }); };
+            if (call.out) { burst(0.3, 2); burst(4.3, 2); } else { burst(0, 1.1); burst(2.2, 1.1); }
+            setTimeout(() => { closeAudio(ctx); if (call.ring === ctx) call.ring = null; res(); }, call.out ? 6400 : 3600);
+        } catch (e) { setTimeout(res, 1500); }
+    });
 }
-function paintVoiceNote() {
-    const n = document.getElementById('voiceNote'); if (!n) return;
-    n.style.display = S.voiceError ? 'block' : 'none';
+function closeAudio(ctx) { try { if (ctx.state !== 'closed') ctx.close().catch(() => {}); } catch (e) {} }
+function stopCallMedia() {
+    clearInterval(S.timer);
+    const call = S.call;
+    if (call) { call.speakToken = null; if (call.ring) { closeAudio(call.ring); call.ring = null; } if (call.rec) { const r = call.rec; call.rec = null; try { r.abort(); } catch (e) {} } }
+    if (CAN_SPEAK) try { speechSynthesis.cancel(); } catch (e) {}
 }
-function replay() { if (!S.lastCaller || S.phase !== 'call') return; const was = S.voice; S.voice = true; setState('Speaking…', true); speak(S.lastCaller, afterCaller); S.voice = was; }
-function toggleHandsFree() {
-    S.handsFree = !S.handsFree;
-    const b = document.getElementById('hfBtn'); if (b) b.classList.toggle('on', S.handsFree);
-    if (S.handsFree && !S.busy && !S.speakToken && !S.recording && S.phase === 'call') startListening();
-    else setState(turnText(), false);
+function tick() { const t = document.getElementById('timer'); if (t) t.textContent = fmtSecs(Math.floor((Date.now() - S.startedAt) / 1000)); }
+function fmtSecs(s) { return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
+function statusText() {
+    const k = S.call || {}, c = S.persona;
+    return ({ ringing: k.out ? `Calling ${c.name.split(' ')[0]}…` : 'Incoming call…', connected: 'Connected', caller: '🔊 ' + c.name.split(' ')[0] + ' is speaking…', thinking: c.name.split(' ')[0] + ' is responding…',
+        yourturn: SR ? (k.handsFree ? 'Your turn — just speak' : 'Your turn — tap Talk or type') : 'Your turn — type your reply',
+        listening: '🎙 Listening… pause when you’re done', ended: 'Call ended' })[k.status] || '';
 }
-function turnText() {
-    if (!(window.SpeechRecognition || window.webkitSpeechRecognition)) return 'Your turn — type your reply';
-    return S.handsFree ? 'Your turn — just speak' : 'Your turn — tap 🎤 or type';
-}
-// After the caller has finished: it's the trainee's turn; in hands-free mode start listening.
-function afterCaller() {
-    if (S.phase !== 'call') return;
-    if (S.pendingEnd) { S.pendingEnd = false; setState('Call ended', false); setTimeout(endCall, 700); return; }
-    setState(turnText(), false);
-    if (S.handsFree) setTimeout(() => { if (S.phase === 'call' && !S.busy && !S.speakToken && !S.recording) startListening(); }, 250);
-}
-function tick() { const t = document.getElementById('timer'); if (t) { const s = Math.floor((Date.now() - S.startedAt) / 1000); t.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; } }
-function renderCall() {
-    const c = S.persona, canMic = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-    $app().innerHTML = `<div class="callbox">
-        <div class="phone">
-            <div class="big" id="bigAv">${initials(c.name)}</div>
-            <div class="nm">${Sim.esc(c.name)}</div><div class="rl">${Sim.esc(c.role)}</div>
-            <div class="timer" id="timer">00:00</div>
-            <div class="state" id="cstate">Connected</div>
-            <div class="ctrls">
-                ${canMic ? `<button class="round mic" id="micBtn" onclick="toggleMic()" title="Speak your reply">🎤</button>` : ''}
-                ${canMic ? `<button class="round spk ${S.handsFree ? 'on' : ''}" id="hfBtn" onclick="toggleHandsFree()" title="Hands-free: listen automatically after the caller finishes">🔁</button>` : ''}
-                <button class="round spk" onclick="replay()" title="Hear the caller's last line again">↻</button>
-                <button class="round spk" onclick="S.voice=!S.voice;if(!S.voice&&S.speakToken){S.speakToken=null;speechSynthesis.cancel();afterCaller();}this.textContent=S.voice?'🔊':'🔇'" title="Caller voice on/off">${S.voice ? '🔊' : '🔇'}</button>
-                <button class="round end" onclick="endCall()" title="Hang up and get your evaluation">✆</button>
-            </div>
-            <div class="lbls">${canMic ? '<span>Talk</span><span>Hands-free</span>' : ''}<span>Replay</span><span>Voice</span><span>End</span></div>
-            <div class="vnote" id="voiceNote" style="display:${S.voiceError ? 'block' : 'none'}">⚠ Your browser couldn't play the caller's voice. Check your speaker/volume and that Windows/macOS has a text-to-speech voice, then press ↻ Replay. The caller's words are in the transcript.</div>
-            ${canMic ? '' : '<div class="vnote" style="display:block">Voice replies need Chrome or Edge — type your replies. The caller will still speak.</div>'}
+function phoneHTML() {
+    const c = S.persona, k = S.call || {};
+    const btn = (cls, on, click, icon, label, title) => `<button type="button" class="cbtn ${cls} ${on ? 'on' : ''}" onclick="${click}" title="${title}"><span class="round">${icon}</span><span>${label}</span></button>`;
+    return `<div class="big ${k.status === 'caller' ? 'talking' : ''} ${k.status === 'ringing' ? 'ringing' : ''}" id="bigAv">${initials(c.name)}</div>
+        <div class="nm">${Sim.esc(c.name)}</div><div class="rl">${Sim.esc(c.role)}</div>
+        <div class="timer" id="timer">${S.startedAt ? fmtSecs(Math.floor((Date.now() - S.startedAt) / 1000)) : '00:00'}</div>
+        <div class="state" id="cstate">${Sim.esc(statusText())}</div>
+        <div class="ctrls">
+            ${SR ? btn('mic', k.status === 'listening', 'toggleTalk()', '🎙', k.status === 'listening' ? 'Listening' : 'Talk', 'Speak your reply') : ''}
+            ${SR ? btn('', k.handsFree, 'toggleHandsFree()', '🔁', 'Hands-free', 'Automatically listen after the caller finishes') : ''}
+            ${btn('', false, 'replay()', '↻', 'Replay', 'Hear the caller’s last line again')}
+            ${btn('', k.muted, 'toggleMute()', k.muted ? '🔇' : '🔊', k.muted ? 'Unmute' : 'Speaker', 'Caller voice on/off')}
+            ${btn('end', false, 'endCall()', '✆', 'Hang up', 'Hang up and get your debrief')}
         </div>
+        ${k.voiceError ? `<div class="pnote warn">⚠ Your browser couldn’t play the caller’s voice. Check your speaker/volume and that a text-to-speech voice is installed, then press Replay. The caller’s words are in the transcript.</div>` : ''}
+        ${!SR ? `<div class="pnote">Voice replies need Chrome or Edge — type your replies. The caller still speaks.</div>` : ''}`;
+}
+function paintPhone() { const p = document.getElementById('phone'); if (p) p.innerHTML = phoneHTML(); }
+function renderCall() {
+    $app().innerHTML = `<div class="callbox">
+        <div class="phone" id="phone">${phoneHTML()}</div>
         <div class="sim-card">
             <div class="sim-kicker">Live transcript</div>
             <div class="transcript" id="tx"></div>
             <div class="composer">
-                <textarea id="say" placeholder="${canMic ? 'Press 🎤 and speak, or type your reply…' : 'Type your reply…'}" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"></textarea>
+                <textarea id="say" placeholder="${SR ? 'Speak, or type your reply…' : 'Type your reply…'}" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"></textarea>
                 <button class="sim-btn primary" id="sendBtn" onclick="send()">Send</button>
             </div>
         </div></div>`;
-    paintTranscript();
+    paintTranscript(S.call && S.call.status === 'thinking');
 }
 function paintTranscript(typing) {
     const tx = document.getElementById('tx'); if (!tx) return;
     tx.innerHTML = S.transcript.map(m => `<div class="bubble ${m.who}"><b>${m.who === 'you' ? 'You' : Sim.esc(S.persona.name)}</b>${Sim.esc(m.text)}</div>`).join('') + (typing ? `<div class="typing">${Sim.esc(S.persona.name)} is talking…</div>` : '');
     tx.scrollTop = tx.scrollHeight;
 }
-function setState(t, talking) { const s = document.getElementById('cstate'); if (s) s.textContent = t; const a = document.getElementById('bigAv'); if (a) a.classList.toggle('talking', !!talking); }
+function setStatus(st) { if (S.call) { S.call.status = st; paintPhone(); } }
+/* One voice per caller: among the English voices for the caller's gender, the caller's name picks one. */
 function pickVoice() {
-    const vs = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang)); if (!vs.length) return null;
-    const f = /female|samantha|victoria|zira|aria|jenny|google us english/i, m = /male|daniel|david|guy|alex|fred|google uk english male/i;
-    return (S.persona.gender === 'f' ? vs.find(v => f.test(v.name)) : vs.find(v => m.test(v.name))) || vs.find(v => /en-US/i.test(v.lang)) || vs[0];
+    const vs = (CAN_SPEAK ? speechSynthesis.getVoices() : []).filter(v => /^en[-_]/i.test(v.lang)); if (!vs.length) return null;
+    const f = /female|samantha|victoria|zira|aria|jenny|susan|karen|moira|tessa|fiona|libby|sonia|emma|ava|allison|google us english/i, m = /\bmale|daniel|david|guy|alex|fred|mark|george|ryan|thomas|arthur|eric|brian|christopher|google uk english male/i;
+    const g = S.persona.gender === 'f' ? vs.filter(v => f.test(v.name) && !/\bmale/i.test(v.name)) : vs.filter(v => m.test(v.name));
+    const pool = g.length ? g : vs; let h = 0; for (const ch of S.persona.name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return pool[h % pool.length];
 }
 function callerSays(text) {
+    const call = S.call; if (!call) return;
     const ended = /\[END_CALL\]/.test(text);
-    const clean = text.replace(/\[END_CALL\]/g, '').trim();
+    const clean = String(text).replace(/\[END_CALL\]/g, '').trim();
     S.transcript.push({ who: 'caller', text: clean }); paintTranscript();
-    S.lastCaller = clean.replace(/\([^)]*\)/g, '').trim();   // stage directions aren't spoken
-    S.pendingEnd = ended;
-    setState('Speaking…', true);
-    speak(S.lastCaller, afterCaller);
+    call.lastCaller = clean; call.ended = ended;
+    speak(clean);
 }
+function speak(text) {
+    const call = S.call; if (!call) return;
+    stopListening();
+    const spoken = text.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!CAN_SPEAK || call.muted || !spoken) return afterCaller();
+    // Chrome drops long utterances and can swallow a speak() issued right after cancel(),
+    // so speak sentence-sized chunks and wait a beat first.
+    const chunks = (spoken.match(/[^.!?]+[.!?]*["”]?\s*/g) || [spoken]).map(t => t.trim()).filter(Boolean);
+    const wasBusy = speechSynthesis.speaking || speechSynthesis.pending;
+    if (wasBusy) speechSynthesis.cancel();
+    setStatus('caller');
+    const token = {}; call.speakToken = token; let started = false;
+    const done = () => { if (S.call === call && call.speakToken === token) { call.speakToken = null; afterCaller(); } };
+    setTimeout(() => {
+        if (S.call !== call || call.speakToken !== token) return;
+        try { speechSynthesis.resume(); } catch (e) {}
+        const v = pickVoice();
+        S.utts = chunks.map((t, i) => {   // kept on S so the browser can't garbage-collect them mid-speech
+            const u = new SpeechSynthesisUtterance(t); if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-US'; u.rate = 1.02;
+            u.onstart = () => { started = true; if (call.voiceError) { call.voiceError = false; paintPhone(); } };
+            if (i === chunks.length - 1) u.onend = done;
+            u.onerror = (ev) => { if (ev && ev.error === 'interrupted') return; call.voiceError = true; done(); };
+            speechSynthesis.speak(u); return u;
+        });
+        // Nothing started within 2.5s: the browser/OS has no working voice.
+        setTimeout(() => { if (S.call === call && call.speakToken === token && !started && !speechSynthesis.speaking) { call.voiceError = true; speechSynthesis.cancel(); done(); } }, 2500);
+    }, wasBusy ? 150 : 30);
+    // Safety net for browsers that never fire onend.
+    setTimeout(() => { if (S.call === call && call.speakToken === token) { speechSynthesis.cancel(); done(); } }, 4000 + spoken.split(/\s+/).length * 480);
+}
+function afterCaller() {
+    const call = S.call; if (!call || S.phase !== 'call') return;
+    if (call.ended) { setStatus('ended'); setTimeout(() => { if (S.call === call) endCall(); }, 900); return; }
+    setStatus('yourturn');
+    if (call.handsFree && SR) setTimeout(() => { if (S.call === call && call.status === 'yourturn' && !S.busy) listen(); }, 350);
+}
+function listen() {
+    const call = S.call; if (!call || !SR || S.phase !== 'call') return;
+    if (CAN_SPEAK) speechSynthesis.cancel(); call.speakToken = null;
+    stopListening();
+    const box = document.getElementById('say');
+    const rec = new SR(); rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = false;
+    let finalText = '', typed = (box && box.value.trim()) ? box.value.trim() + ' ' : '';
+    rec.onresult = (e) => { let interim = ''; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) finalText += t; else interim += t; } const b = document.getElementById('say'); if (b) b.value = (typed + finalText + ' ' + interim).trim(); };
+    rec.onerror = (e) => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { call.handsFree = false; call.micBlocked = true; alert('Microphone access is blocked — allow it in the browser’s address bar, or type your replies.'); } };
+    rec.onend = () => {
+        if (S.call !== call || call.rec !== rec) return;
+        call.rec = null;
+        const b = document.getElementById('say'); const said = (b && b.value.trim()) || finalText.trim();
+        if (said) send(); else setStatus('yourturn');
+    };
+    call.rec = rec; setStatus('listening');
+    try { rec.start(); } catch (e) { call.rec = null; setStatus('yourturn'); }
+}
+function stopListening(sendAfter) {
+    const call = S.call; if (!call || !call.rec) return;
+    const rec = call.rec; if (!sendAfter) call.rec = null;
+    try { sendAfter ? rec.stop() : rec.abort(); } catch (e) {}
+}
+function toggleTalk() { const call = S.call; if (!call || call.status === 'ringing') return; if (call.status === 'listening') stopListening(true); else listen(); }
+function toggleHandsFree() { const call = S.call; if (!call) return; call.handsFree = !call.handsFree; paintPhone(); if (call.handsFree && call.status === 'yourturn') listen(); }
+function toggleMute() { const call = S.call; if (!call) return; call.muted = !call.muted; S.voice = !call.muted; if (call.muted && CAN_SPEAK) { speechSynthesis.cancel(); if (call.speakToken) { call.speakToken = null; afterCaller(); } } paintPhone(); }
+function replay() { const call = S.call; if (!call || !call.lastCaller || call.status === 'ringing') return; const was = call.muted; call.muted = false; call.ended = false; speak(call.lastCaller); call.muted = was; }
 async function send() {
     const box = document.getElementById('say'); const text = (box && box.value || '').trim();
-    if (!text || S.busy) return;
+    if (!text || S.busy || !S.call || S.call.status === 'ringing') return;
     stopListening();
-    box.value = ''; S.transcript.push({ who: 'you', text }); S.busy = true; paintTranscript(true); setState(`${S.persona.name.split(' ')[0]} is responding…`, false);
+    box.value = ''; S.transcript.push({ who: 'you', text }); S.busy = true; paintTranscript(true); setStatus('thinking');
     const btn = document.getElementById('sendBtn'); if (btn) btn.disabled = true;
-    const c = S.persona;
+    const c = S.persona, call = S.call;
     const system = `You are role-playing a phone CALLER in a training simulation for legal support staff. Stay completely in character — you are ${c.name}, ${c.role}.
 ${c.hidden}
 The trainee on the other end: ${c.you}
 Rules: reply ONLY with what you say out loud next — 1 to 3 short, natural spoken sentences, no stage directions except an occasional short one in parentheses, no lists, no narration. React realistically to how well the trainee is handling you. Never mention that this is training or that you are an AI. When the call has reached a natural end (you have a clear next step, or you are hanging up), say your goodbye and put the token [END_CALL] at the very end.`;
-    const messages = [{ role: 'user', text: '(The phone rings and the trainee answers.)' }].concat(S.transcript.map(m => ({ role: m.who === 'you' ? 'user' : 'model', text: m.text })));
+    const messages = [{ role: 'user', text: c.dir === 'out' ? '(The trainee calls you and you pick up.)' : '(The phone rings and the trainee answers.)' }].concat(S.transcript.map(m => ({ role: m.who === 'you' ? 'user' : 'model', text: m.text })));
     try {
         const reply = await Sim.ai({ system, messages, maxTokens: 220 });
-        S.busy = false; if (btn) btn.disabled = false;
-        if (S.phase !== 'call') return;
+        S.busy = false; const b2 = document.getElementById('sendBtn'); if (b2) b2.disabled = false;
+        if (S.phase !== 'call' || S.call !== call) return;
         callerSays(reply || '…');
     } catch (e) {
-        S.busy = false; if (btn) btn.disabled = false;
+        S.busy = false; const b2 = document.getElementById('sendBtn'); if (b2) b2.disabled = false;
+        if (S.phase !== 'call' || S.call !== call) return;
         S.transcript.pop(); paintTranscript();
-        if (box) box.value = text;
-        S.handsFree = false; const hb = document.getElementById('hfBtn'); if (hb) hb.classList.remove('on');
-        setState('Connection problem — press Send to try again', false);
-        alert('The caller couldn’t respond: ' + e.message);
+        const b = document.getElementById('say'); if (b) b.value = text;
+        call.handsFree = false; setStatus('yourturn');
+        alert('The caller couldn’t respond: ' + e.message + '\nYour reply is back in the box — press Send to try again.');
     }
-}
-function toggleMic() {
-    if (S.recording && S.recog) { S.recog.stop(); return; }   // stop → sends what was heard
-    startListening();
-}
-function startListening() {
-    const R = window.SpeechRecognition || window.webkitSpeechRecognition; if (!R || S.phase !== 'call' || S.busy) return;
-    const btn = document.getElementById('micBtn');
-    S.speakToken = null; try { speechSynthesis.cancel(); } catch (e) {}   // talking over the caller interrupts them
-    stopListening();
-    const r = new R(); r.lang = 'en-US'; r.interimResults = true; r.continuous = false;
-    const box = document.getElementById('say'); let finalText = '';
-    r.onresult = (e) => { let interim = ''; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) finalText += t; else interim += t; } if (box) box.value = (finalText + ' ' + interim).trim(); };
-    r.onend = () => {
-        if (S.recog !== r) return;
-        S.recog = null; S.recording = false; if (btn) btn.classList.remove('rec');
-        if (box && box.value.trim()) send(); else setState(turnText(), false);
-    };
-    r.onerror = (e) => {
-        if (e && (e.error === 'not-allowed' || e.error === 'service-not-allowed')) {
-            S.handsFree = false; const hb = document.getElementById('hfBtn'); if (hb) hb.classList.remove('on');
-            setState('Microphone blocked — allow it in the address bar, or type', false);
-        }
-    };
-    S.recog = r; S.recording = true; if (btn) btn.classList.add('rec'); setState('🎙 Listening… pause when you’re done', false);
-    try { r.start(); } catch (e) { S.recog = null; S.recording = false; if (btn) btn.classList.remove('rec'); setState(turnText(), false); }
-}
-function stopListening() {
-    const r = S.recog; if (!r) return;
-    S.recog = null; S.recording = false; const btn = document.getElementById('micBtn'); if (btn) btn.classList.remove('rec');
-    try { r.abort ? r.abort() : r.stop(); } catch (e) {}
 }
 /* ---------- debrief ---------- */
 async function endCall() {
     if (S.phase !== 'call') return;
-    clearInterval(S.timer); S.speakToken = null; S.utts = []; try { speechSynthesis.cancel(); } catch (e) {} stopListening();
-    const secs = Math.round((Date.now() - S.startedAt) / 1000);
+    stopCallMedia();
+    const secs = S.startedAt ? Math.round((Date.now() - S.startedAt) / 1000) : 0;
+    S.call = null;
     const c = S.persona;
     if (c.note && S.transcript.some(m => m.who === 'you')) { S.secs = secs; S.note = c.note.template; S.phase = 'note'; return render(); }
     return grade(secs, '');
@@ -451,6 +475,7 @@ function renderDebrief() {
         ${again}</div>`;
 }
 document.addEventListener('DOMContentLoaded', () => { document.getElementById('topbar').innerHTML = Sim.topbar('call'); if ('speechSynthesis' in window) speechSynthesis.getVoices(); render(); });
+window.addEventListener('pagehide', () => { if (S.phase === 'call') stopCallMedia(); });
 </script>
 </body>
 </html>
