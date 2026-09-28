@@ -2671,7 +2671,7 @@ function showToast(message, type = 'info', duration = 3500, options = {}) {
 
 // 6. DYNAMIC BRAND MARK INJECTION
 function renderAgencyLogo() {
-    const imgTag = `<img src="/favicon.png" onerror="this.src='${AGENCY_LOGO}'" alt="LSH Logo" style="width:100%;height:100%;object-fit:cover;">`;
+    const imgTag = `<img src="/favicon.png" onerror="this.src='${AGENCY_LOGO}'" alt="LSH Logo" style="width:100%;height:100%;object-fit:contain;">`;
     document.querySelectorAll('#agency-seal, #agency-seal-admin, #auth-seal').forEach(el => {
         el.innerHTML = imgTag;
     });
