@@ -70,6 +70,7 @@
         box-shadow: 0 10px 28px rgba(249, 115, 22, 0.28);
         display: inline-block; border: none; cursor: pointer;
     }
+    button.btn-primary { font-family: inherit; }
     .btn-primary:hover { background: var(--orange-soft); transform: translateY(-1px); box-shadow: 0 14px 34px rgba(249, 115, 22, 0.36); }
     .btn-ghost-dark {
         color: #fff; font-weight: 700; font-size: 13.5px; text-decoration: none;
@@ -303,6 +304,7 @@
             <p class="tagline reveal d2">Empowering your journey from new hire to confident specialist.</p>
             <p class="lead reveal d3">You are on your way to becoming an important part of the team by upgrading your skills across different law practice areas. Explore structured modules and recorded lectures with real-time tracking, whether you are focusing on Family Law, Mass Tort, Case Management, or beyond.</p>
             <div class="hero-ctas reveal d4">
+                <button type="button" class="btn-primary" onclick="openReferral()">Got a referral?</button>
                 <a href="#features" class="btn-ghost-dark">See how it works</a>
             </div>
         </div>
@@ -521,6 +523,127 @@
     </div>
     <div class="footer-bottom">&copy; 2026 Legal Support Help. All Rights Reserved. <em>(social links are placeholders — send real URLs whenever you're ready)</em></div>
 </footer>
+
+<!-- Got a referral? — the pop-up card. Sends to /api/referrals; admins see referrals in /referrals.html. -->
+<style>
+    .rf-back { position: fixed; inset: 0; z-index: 1000; background: rgba(8,18,38,.62); display: none; align-items: flex-start; justify-content: center; padding: 28px 14px; overflow-y: auto; }
+    .rf-back.open { display: flex; }
+    .rf-card { background: #fff; color: var(--navy); width: 100%; max-width: 620px; border-radius: 22px; box-shadow: 0 30px 70px -20px rgba(0,0,0,.5); padding: 26px 26px 22px; position: relative; }
+    .rf-card h2 { font-size: 24px; font-weight: 900; margin: 4px 0 6px; letter-spacing: -.01em; }
+    .rf-card p.rf-sub { font-size: 14px; color: var(--slate); margin: 0 0 16px; line-height: 1.5; }
+    .rf-x { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e2e8f0; background: #fff; font-size: 16px; cursor: pointer; color: var(--navy); }
+    .rf-sec { font-size: 11.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--orange); margin: 16px 0 8px; }
+    .rf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+    .rf-grid .full { grid-column: 1 / -1; }
+    @media (max-width: 560px) { .rf-grid { grid-template-columns: 1fr; } .rf-card { padding: 22px 16px 18px; } }
+    .rf-card label { display: block; font-size: 12.5px; font-weight: 700; color: #334155; }
+    .rf-card label i { font-style: normal; font-weight: 500; color: var(--slate); }
+    .rf-card input[type=text], .rf-card input[type=email], .rf-card input[type=tel], .rf-card input[type=url], .rf-card textarea {
+        display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 14px; color: var(--navy); border: 1px solid #cbd5e1; border-radius: 10px; padding: 9px 11px; background: #fff; }
+    .rf-card textarea { min-height: 70px; resize: vertical; }
+    .rf-card input:focus, .rf-card textarea:focus { outline: 2px solid var(--orange); outline-offset: 0; border-color: var(--orange); }
+    .rf-file { margin-top: 4px; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 12px; font-size: 13px; color: var(--slate); background: #faf8f4; }
+    .rf-file input { font: inherit; font-size: 13px; max-width: 100%; }
+    .rf-consent { display: flex !important; gap: 10px; align-items: flex-start; font-weight: 600 !important; margin-top: 14px; line-height: 1.45; }
+    .rf-consent input { margin-top: 3px; width: 16px; height: 16px; flex: 0 0 auto; }
+    .rf-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+    .rf-err { display: none; margin-top: 12px; font-size: 13.5px; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 9px 12px; }
+    .rf-acts { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+    .rf-cancel { font: inherit; font-weight: 700; font-size: 14px; padding: 11px 20px; border-radius: 999px; border: 1px solid #cbd5e1; background: #fff; color: var(--navy); cursor: pointer; }
+    .rf-done { text-align: center; padding: 18px 6px 6px; }
+    .rf-done .big { font-size: 44px; }
+</style>
+<div class="rf-back" id="rfBack" onclick="if(event.target===this) closeReferral()">
+    <div class="rf-card" role="dialog" aria-modal="true" aria-labelledby="rfTitle">
+        <button type="button" class="rf-x" onclick="closeReferral()" aria-label="Close">✕</button>
+        <form id="rfForm" novalidate>
+            <div class="eyebrow">Refer someone to LSH</div>
+            <h2 id="rfTitle">Got a referral?</h2>
+            <p class="rf-sub">Know someone who'd be a great fit? Send us their contact details and CV, and our team will reach out to them.</p>
+
+            <div class="rf-sec">Who are you referring?</div>
+            <div class="rf-grid">
+                <label class="full">Full name<input type="text" name="name" autocomplete="off" required maxlength="120"></label>
+                <label>Email<input type="email" name="email" autocomplete="off" required maxlength="160"></label>
+                <label>Phone<input type="tel" name="phone" autocomplete="off" required maxlength="40" placeholder="Include the country code"></label>
+                <label>Location <i>(optional)</i><input type="text" name="location" autocomplete="off" maxlength="120" placeholder="City, country"></label>
+                <label>Role they're interested in <i>(optional)</i><input type="text" name="role" autocomplete="off" maxlength="120" placeholder="e.g. Virtual Assistant"></label>
+                <label class="full">LinkedIn <i>(optional)</i><input type="url" name="linkedin" autocomplete="off" maxlength="300" placeholder="https://linkedin.com/in/…"></label>
+                <label class="full">CV / résumé
+                    <div class="rf-file"><input type="file" name="cv" id="rfCv" accept=".pdf,.doc,.docx" required><div style="margin-top:6px;">PDF, DOC or DOCX, up to 10 MB.</div></div>
+                </label>
+                <label class="full">Why they'd be a great fit <i>(optional)</i><textarea name="note" maxlength="1500"></textarea></label>
+            </div>
+
+            <div class="rf-sec">About you</div>
+            <div class="rf-grid">
+                <label>Your name<input type="text" name="referrer_name" autocomplete="name" required maxlength="120"></label>
+                <label>Your email or Batch ID <i>(optional)</i><input type="text" name="referrer_contact" maxlength="160"></label>
+            </div>
+            <label class="rf-hp" aria-hidden="true">Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+
+            <label class="rf-consent"><input type="checkbox" name="consent" value="yes" required> The person I'm referring agreed to share their contact details and CV with LSH.</label>
+            <div class="rf-err" id="rfErr" role="alert"></div>
+            <div class="rf-acts">
+                <button type="button" class="rf-cancel" onclick="closeReferral()">Cancel</button>
+                <button type="submit" class="btn-primary" id="rfSend">Send referral</button>
+            </div>
+        </form>
+        <div class="rf-done" id="rfDone" hidden>
+            <div class="big">🎉</div>
+            <h2>Thank you!</h2>
+            <p class="rf-sub" id="rfDoneMsg">We've received your referral. Our team will reach out to them.</p>
+            <div class="rf-acts" style="justify-content:center;"><button type="button" class="rf-cancel" onclick="resetReferral()">Refer someone else</button><button type="button" class="btn-primary" onclick="closeReferral()">Done</button></div>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    const back = document.getElementById('rfBack'), form = document.getElementById('rfForm'), err = document.getElementById('rfErr');
+    let lastFocus = null;
+    function showErr(m) { err.textContent = m; err.style.display = m ? 'block' : 'none'; }
+    window.openReferral = function () {
+        lastFocus = document.activeElement;
+        back.classList.add('open'); document.body.style.overflow = 'hidden';
+        setTimeout(() => { const f = back.querySelector(form.hidden ? '#rfDone button' : 'input[name=name]'); if (f) f.focus(); }, 30);
+    };
+    window.closeReferral = function () {
+        back.classList.remove('open'); document.body.style.overflow = '';
+        if (lastFocus && lastFocus.focus) lastFocus.focus();
+    };
+    window.resetReferral = function () {
+        form.reset(); showErr(''); form.hidden = false; document.getElementById('rfDone').hidden = true;
+        const f = form.querySelector('input[name=name]'); if (f) f.focus();
+    };
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && back.classList.contains('open')) closeReferral(); });
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault(); showErr('');
+        const v = n => (form.elements[n].value || '').trim();
+        if (v('name').length < 2) return showErr("Enter the person's full name.");
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('email'))) return showErr("Enter the person's email address.");
+        if (v('phone').replace(/\D/g, '').length < 7) return showErr("Enter the person's phone number.");
+        const file = document.getElementById('rfCv').files[0];
+        if (!file) return showErr('Attach their CV (PDF, DOC or DOCX).');
+        if (!/\.(pdf|docx?)$/i.test(file.name)) return showErr('The CV must be a PDF, DOC or DOCX file.');
+        if (file.size > 10 * 1024 * 1024) return showErr('The CV is over 10 MB. Please attach a smaller file.');
+        if (v('referrer_name').length < 2) return showErr('Enter your name.');
+        if (!form.elements.consent.checked) return showErr('Please confirm the person agreed to share their details and CV.');
+        const btn = document.getElementById('rfSend'); btn.disabled = true; btn.textContent = 'Sending…';
+        try {
+            const res = await fetch('/api/referrals', { method: 'POST', body: new FormData(form) });
+            let data = {}; try { data = await res.json(); } catch (x) {}
+            if (!res.ok || !data.success) throw new Error(data.error || 'Something went wrong. Please try again.');
+            document.getElementById('rfDoneMsg').textContent = `We've received your referral for ${v('name')}. Our team will reach out to them.`;
+            form.hidden = true; document.getElementById('rfDone').hidden = false;
+            document.querySelector('#rfDone .btn-primary').focus();
+        } catch (x) {
+            showErr(x.message || 'Something went wrong. Please try again.');
+        } finally {
+            btn.disabled = false; btn.textContent = 'Send referral';
+        }
+    });
+})();
+</script>
 
 </body>
 </html>
