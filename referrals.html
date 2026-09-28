@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Referrals — LSH Training Portal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/simulators/sim.css">
+<!-- Admin: the referrals sent from "Got a referral?" on the home page (/api/referrals). -->
+<style>
+    .rf-filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .rf-filters button { border: 1px solid #cbd5e1; background: #fff; border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--navy); cursor: pointer; }
+    .rf-filters button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .rf-filters .n { font-size: 11px; opacity: .75; margin-left: 3px; }
+    .rf-filters input { font: inherit; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 7px 10px; background: #fff; min-width: 180px; flex: 1; }
+    .rf-list { display: grid; gap: 12px; }
+    .rf-item { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px 20px; }
+    @media (max-width: 820px) { .rf-item { grid-template-columns: 1fr; } }
+    .rf-item h3 { margin: 0 0 2px; font-size: 17px; color: var(--navy); }
+    .rf-meta { font-size: 12.5px; color: var(--slate); margin-bottom: 8px; }
+    .rf-contact { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13.5px; margin-bottom: 8px; }
+    .rf-contact a { color: var(--navy); font-weight: 700; text-decoration: none; overflow-wrap: anywhere; } .rf-contact a:hover { color: var(--orange); }
+    .rf-row { font-size: 13px; margin: 3px 0; color: #334155; overflow-wrap: anywhere; } .rf-row b { color: var(--slate); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin-right: 6px; }
+    .rf-note { font-size: 13px; background: #faf8f4; border-radius: 10px; padding: 8px 10px; margin-top: 6px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .rf-side { display: flex; flex-direction: column; gap: 8px; }
+    .rf-side select, .rf-side textarea { font: inherit; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 7px 10px; background: #fff; width: 100%; }
+    .rf-side textarea { min-height: 64px; resize: vertical; }
+    .rf-side .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+    .rf-pill { display: inline-block; font-size: 11px; font-weight: 800; border-radius: 999px; padding: 3px 9px; background: #eef2f7; color: var(--navy); margin-left: 6px; vertical-align: 2px; }
+    .rf-pill.New { background: #fff7ed; color: #c2410c; } .rf-pill.Hired { background: #dcfce7; color: #166534; } .rf-pill.Not { background: #f1f5f9; color: #64748b; }
+    .rf-saved { font-size: 12px; color: #166534; min-height: 16px; }
+</style>
+</head>
+<body>
+<script>
+    // Admins only (the API checks the session too). Anyone else goes to admin sign-in.
+    (function () {
+        try {
+            const raw = sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1');
+            const s = raw && raw !== 'null' ? JSON.parse(raw) : null;
+            if (!s || s.userType !== 'Admin') window.location.replace('/admin-login.html');
+        } catch (e) { window.location.replace('/admin-login.html'); }
+    })();
+</script>
+<div class="sim-top">
+    <a class="sim-brand" href="/programs.html"><img src="/favicon.png" alt=""><span>LSH Training Portal<small>Referrals</small></span></a>
+    <div class="sim-nav">
+        <a href="/programs.html">Training Index</a>
+        <a href="/core.html">Master Control</a>
+        <a href="/progress.html">📊 Progress &amp; Feedback</a>
+        <a onclick="logoutSession()">Log Out</a>
+    </div>
+</div>
+<div class="sim-wrap">
+    <section class="sim-hero">
+        <div class="eyebrow">Admin · Got a referral?</div>
+        <h1>Referrals</h1>
+        <p>People referred to LSH from the portal's home page, with their contact details and CV. Track each one's status, keep a note, and delete a referral when you no longer need it.</p>
+    </section>
+    <div id="app"><div class="sim-card"><div class="sim-loading">Loading referrals…</div></div></div>
+</div>
+
+<script src="/portal-nav.js"></script>
+<script src="/app.js"></script>
+<script src="/portal.js"></script>
+<script>
+const RF = { list: [], statuses: [], filter: 'all', q: '' };
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const when = iso => { try { return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return iso || ''; } };
+const size = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+
+async function load() {
+    try {
+        const res = await fetch('/api/referrals', { credentials: 'include' });
+        if (res.status === 401) { window.location.replace('/admin-login.html'); return; }
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Could not load referrals.');
+        RF.list = data.referrals; RF.statuses = data.statuses;
+        render();
+    } catch (e) {
+        document.getElementById('app').innerHTML = `<div class="sim-card" style="color:#b91c1c;">${esc(e.message)}</div>`;
+    }
+}
+function shown() {
+    const q = RF.q.toLowerCase();
+    return RF.list.filter(r => (RF.filter === 'all' || r.status === RF.filter) &&
+        (!q || [r.name, r.email, r.phone, r.location, r.role, r.referrer_name, r.referrer_contact].join(' ').toLowerCase().includes(q)));
+}
+function render() {
+    const count = s => RF.list.filter(r => s === 'all' || r.status === s).length;
+    const list = shown();
+    document.getElementById('app').innerHTML = `
+        <div class="rf-filters">
+            ${['all'].concat(RF.statuses).map(s => `<button type="button" class="${RF.filter === s ? 'on' : ''}" onclick="RF.filter='${s}'; render()">${s === 'all' ? 'All' : esc(s)}<span class="n">${count(s)}</span></button>`).join('')}
+            <input type="search" placeholder="Search name, email, phone, referrer…" value="${esc(RF.q)}" oninput="RF.q=this.value; renderList()">
+            <button type="button" onclick="downloadCsv()">⬇ CSV</button>
+        </div>
+        <div class="rf-list" id="rfList"></div>`;
+    renderList();
+}
+function renderList() {
+    const list = shown();
+    document.getElementById('rfList').innerHTML = list.length ? list.map(r => `
+        <div class="sim-card rf-item">
+            <div>
+                <h3>${esc(r.name)}<span class="rf-pill ${esc(String(r.status).split(' ')[0])}">${esc(r.status)}</span></h3>
+                <div class="rf-meta">Referred by <b>${esc(r.referrer_name)}</b>${r.referrer_contact ? ` (${esc(r.referrer_contact)})` : ''} · ${esc(when(r.created_at))}</div>
+                <div class="rf-contact">
+                    <a href="mailto:${esc(r.email)}">✉️ ${esc(r.email)}</a>
+                    <a href="tel:${esc(r.phone.replace(/[^\d+]/g, ''))}">📞 ${esc(r.phone)}</a>
+                    ${r.linkedin ? `<a href="${esc(r.linkedin)}" target="_blank" rel="noopener noreferrer">in LinkedIn ↗</a>` : ''}
+                </div>
+                ${r.location ? `<div class="rf-row"><b>Location</b>${esc(r.location)}</div>` : ''}
+                ${r.role ? `<div class="rf-row"><b>Interested in</b>${esc(r.role)}</div>` : ''}
+                ${r.note ? `<div class="rf-note">${esc(r.note)}</div>` : ''}
+            </div>
+            <div class="rf-side">
+                <a class="sim-btn primary" href="/api/referrals?cv=${r.id}">⬇ Download CV <span style="font-weight:600;opacity:.8;">${esc(r.file_name || '')} · ${size(r.file_size || 0)}</span></a>
+                <label class="rf-row"><b>Status</b>
+                    <select onchange="save(${r.id}, {status: this.value})">${RF.statuses.map(s => `<option ${s === r.status ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
+                <label class="rf-row"><b>Admin note</b>
+                    <textarea placeholder="e.g. Called 10/02, interview booked" onchange="save(${r.id}, {note: this.value})">${esc(r.admin_note || '')}</textarea></label>
+                <div class="rf-saved" id="rfSaved${r.id}">${r.updated_by ? `Updated by ${esc(r.updated_by)} · ${esc(when(r.updated_at))}` : ''}</div>
+                <div class="acts"><button type="button" class="sim-btn ghost" style="color:#b91c1c;" onclick="del(${r.id})">🗑 Delete</button></div>
+            </div>
+        </div>`).join('') : `<div class="sim-card" style="color:var(--slate);">${RF.list.length ? 'No referrals match.' : 'No referrals yet. They appear here when someone uses “Got a referral?” on the home page.'}</div>`;
+}
+async function save(id, patch) {
+    const el = document.getElementById('rfSaved' + id);
+    try {
+        const res = await fetch('/api/referrals', { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ id }, patch)) });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Not saved.');
+        const r = RF.list.find(x => x.id === id);
+        if (r) { if (patch.status) r.status = patch.status; if (patch.note != null) r.admin_note = patch.note; }
+        if (patch.status) render(); else if (el) el.textContent = '✓ Saved';
+    } catch (e) { if (el) { el.style.color = '#b91c1c'; el.textContent = e.message; } }
+}
+async function del(id) {
+    const r = RF.list.find(x => x.id === id);
+    if (!r || !confirm(`Delete the referral for ${r.name}, including their CV? This can't be undone.`)) return;
+    try {
+        const res = await fetch('/api/referrals?id=' + id, { method: 'DELETE', credentials: 'include' });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Not deleted.');
+        RF.list = RF.list.filter(x => x.id !== id); render();
+    } catch (e) { alert(e.message); }
+}
+function downloadCsv() {
+    const cols = ['created_at', 'name', 'email', 'phone', 'location', 'role', 'linkedin', 'note', 'referrer_name', 'referrer_contact', 'status', 'admin_note', 'file_name'];
+    const cell = v => { const s = String(v == null ? '' : v); return /^[=+\-@]/.test(s) ? `"'${s.replace(/"/g, '""')}"` : `"${s.replace(/"/g, '""')}"`; };
+    const csv = [cols.join(',')].concat(shown().map(r => cols.map(c => cell(r[c])).join(','))).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }));
+    a.download = `lsh-referrals-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+load();
+</script>
+</body>
+</html>

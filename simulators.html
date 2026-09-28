@@ -42,6 +42,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="/app.js"></script>
+<script src="/portal-nav.js"></script>
 <script src="/portal.js"></script>
 <script src="/simulators/sim.js"></script>
 <script>
@@ -74,7 +75,7 @@
                 <h3>${Sim.esc(s.title)}</h3>
                 <p>${Sim.esc(s.desc)}</p>
                 <div class="row"><span class="uses">${Sim.esc(s.uses)}</span>
-                    ${s.href ? `<a class="sim-btn primary" href="${s.href}" target="_blank" rel="noopener">Open →</a>` : `<button class="sim-btn ghost" disabled>Not yet</button>`}</div>
+                    ${s.href ? `<a class="sim-btn primary" href="${s.href}">Open →</a>` : `<button class="sim-btn ghost" disabled>Not yet</button>`}</div>
             </div>`).join('');
     }
 

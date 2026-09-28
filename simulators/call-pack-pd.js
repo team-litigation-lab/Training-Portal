@@ -4,8 +4,8 @@
    opening the claims, spotting coverage, setting up rentals, the tow yard and the shop,
    negotiating the total loss, the payoff and the release. Each call ends with the note it
    requires (note.template), graded with the call on the line's rubric.
-   The case summary is the PD course's Claim File (pd-training/build/pd_casefile.js in
-   EA-PA-TRAINING) — keep them in step.
+   The case summary is the PD course's Claim File (build/pd_casefile.js in the
+   propertydamageclaimstraining repository) — keep them in step.
    Loaded by /simulators/call.html before its caller library; adds to window.EXTRA_CALLERS. */
 (function () {
     // The Angela Carter claim summary the AI caller draws on (same facts as the PD course's Claim File).

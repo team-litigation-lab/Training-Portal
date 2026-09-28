@@ -23,6 +23,7 @@
         --gold: #eab308;
     }
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
     html { scroll-behavior: smooth; }
     body {
         margin: 0;
@@ -61,7 +62,11 @@
     .nav-links { display: flex; gap: 28px; align-items: center; }
     .nav-links a { color: rgba(255,255,255,0.7); font-size: 13.5px; font-weight: 600; text-decoration: none; transition: color 0.15s ease; }
     .nav-links a:hover { color: #fff; }
-    @media (max-width: 760px) { .nav-links { display: none; } }
+    @media (max-width: 760px) {
+        .nav-inner { flex-wrap: wrap; gap: 12px; padding: 14px 16px; }
+        .nav-links { order: 3; width: 100%; gap: 20px; overflow-x: auto; white-space: nowrap; padding: 4px 0 2px; }
+        .nav-inner .btn-primary { display: none; }
+    }
 
     .btn-primary {
         background: var(--orange); color: #0f172a; font-weight: 800; font-size: 14px;
@@ -70,6 +75,7 @@
         box-shadow: 0 10px 28px rgba(249, 115, 22, 0.28);
         display: inline-block; border: none; cursor: pointer;
     }
+    button.btn-primary { font-family: inherit; }
     .btn-primary:hover { background: var(--orange-soft); transform: translateY(-1px); box-shadow: 0 14px 34px rgba(249, 115, 22, 0.36); }
     .btn-ghost-dark {
         color: #fff; font-weight: 700; font-size: 13.5px; text-decoration: none;
@@ -163,6 +169,24 @@
     .section-head h2 { font-size: clamp(26px, 3.4vw, 38px); font-weight: 800; letter-spacing: -0.015em; margin: 12px 0 12px; color: var(--navy); }
     .section-head p { font-size: 15.5px; color: var(--slate); line-height: 1.6; }
 
+    .jump { padding-bottom: 24px; }
+    .jump-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+    @media (max-width: 900px) { .jump-grid { grid-template-columns: 1fr; } }
+    .jump-card { display: flex; flex-direction: column; gap: 10px; background: #fff; border: 1px solid rgba(15,33,72,0.08); border-radius: 18px; padding: 26px; text-decoration: none; color: var(--navy); box-shadow: 0 10px 30px -18px rgba(8,18,38,0.35); transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
+    .jump-card:hover { transform: translateY(-3px); border-color: rgba(249,115,22,0.45); box-shadow: 0 16px 36px -18px rgba(8,18,38,0.45); }
+    .jump-ic { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; width: 48px; height: 48px; border-radius: 14px; background: var(--navy); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .jump-card h3 { margin: 6px 0 0; font-size: 19px; font-weight: 800; }
+    .jump-card p { margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--slate); flex: 1; }
+    .jump-go { font-size: 13.5px; font-weight: 800; color: var(--orange); }
+    .simx { padding-top: 24px; }
+    .simx-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    @media (max-width: 760px) { .simx-grid { grid-template-columns: 1fr; } }
+    .simx-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid rgba(15,33,72,0.08); border-radius: 16px; padding: 16px 18px; text-decoration: none; color: var(--navy); transition: transform 0.15s ease, border-color 0.15s ease; }
+    .simx-card:hover { transform: translateY(-2px); border-color: rgba(249,115,22,0.45); }
+    .simx-ic { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: var(--paper-warm); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .simx-tx { flex: 1; min-width: 0; } .simx-tx b { display: block; font-size: 15.5px; font-weight: 800; }
+    .simx-tx span { display: block; font-size: 13.5px; line-height: 1.5; color: var(--slate); margin-top: 2px; }
+    .simx-go { color: var(--orange); font-weight: 800; font-size: 18px; }
     .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
     @media (max-width: 760px) { .feature-grid { grid-template-columns: 1fr; } }
     .feature-card {
@@ -271,14 +295,16 @@
     <div class="nav-inner">
         <div class="brand"><span class="brand-mark"><img src="/favicon.png" onerror="this.src='data:image/png;base64,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'" alt="LSH Logo"></span> LSH Training Portal</div>
         <div class="nav-links">
-            <a href="/programs.html" target="_blank" rel="noopener">Training Directory</a>
-            <a href="/kb.html" target="_blank" rel="noopener">Knowledge Base</a>
+            <a href="/programs.html">Training Directory</a>
+            <a href="/simulators.html">Simulators</a>
+            <a href="/kb.html">Knowledge Base</a>
+            <a href="/orientation.html">Orientation</a>
             <a href="#faq">FAQs</a>
             <a href="#about">About</a>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
             <a href="/admin-login.html" class="btn-ghost-dark" title="Admin monitoring (sign-in required)">🔒 Admin</a>
-            <a href="/programs.html" class="btn-primary" target="_blank" rel="noopener">Browse Trainings</a>
+            <a href="/programs.html" class="btn-primary">Browse Trainings</a>
         </div>
     </div>
 </nav>
@@ -302,6 +328,7 @@
             <p class="tagline reveal d2">Empowering your journey from new hire to confident specialist.</p>
             <p class="lead reveal d3">You are on your way to becoming an important part of the team by upgrading your skills across different law practice areas. Explore structured modules and recorded lectures with real-time tracking, whether you are focusing on Family Law, Mass Tort, Case Management, or beyond.</p>
             <div class="hero-ctas reveal d4">
+                <button type="button" class="btn-primary" onclick="openReferral()">Got a referral?</button>
                 <a href="#features" class="btn-ghost-dark">See how it works</a>
             </div>
         </div>
@@ -346,6 +373,34 @@
     </div>
 </div>
 
+<section class="section jump" id="start">
+    <div class="section-head">
+        <div class="eyebrow">Start here</div>
+        <h2>Where do you want to go?</h2>
+        <p>Everything on the portal is one click from here, and every page has <b>Home</b> and <b>← Back</b> buttons so you can always find your way back.</p>
+    </div>
+    <div class="jump-grid">
+        <a class="jump-card" href="/programs.html">
+            <span class="jump-ic">🎓</span>
+            <h3>Training Directory</h3>
+            <p>Every LSH training program. Open yours to continue your modules, lectures and activities.</p>
+            <span class="jump-go">Open the directory &rarr;</span>
+        </a>
+        <a class="jump-card" href="/simulators.html">
+            <span class="jump-ic">🛠️</span>
+            <h3>Simulators</h3>
+            <p>Practice the real work: phone calls, email, calendaring, docketing, medical records requests and court e-filing.</p>
+            <span class="jump-go">Start practicing &rarr;</span>
+        </a>
+        <a class="jump-card" href="/kb.html">
+            <span class="jump-ic">📚</span>
+            <h3>Knowledge Base</h3>
+            <p>Official SOPs and resources, plus tips and guides shared by LSH VAs. Team access code required.</p>
+            <span class="jump-go">Search the knowledge base &rarr;</span>
+        </a>
+    </div>
+</section>
+
 <section class="section" id="features">
     <div class="section-head">
         <div class="eyebrow">What's inside</div>
@@ -376,6 +431,24 @@
     </div>
 </section>
 
+<section class="section simx" id="simulators">
+    <div class="section-head">
+        <div class="eyebrow">Simulators</div>
+        <h2>Practice the real work before you do it for real.</h2>
+        <p>Hands-on simulators shared by every program. Each one gives you a score and specific feedback, and your trainer can see your results when you add your name.</p>
+    </div>
+    <div class="simx-grid">
+        <a class="simx-card" href="/simulators/call.html"><span class="simx-ic">📞</span><span class="simx-tx"><b>Call Simulator</b><span>Live phone calls with realistic callers — clients, adjusters, providers, executives. Answer by voice or typing.</span></span><span class="simx-go">&rarr;</span></a>
+        <a class="simx-card" href="/simulators/email.html"><span class="simx-ic">✉️</span><span class="simx-tx"><b>Email Workspace</b><span>A Gmail-style inbox: label, triage, reply, delegate and spot the phishing email.</span></span><span class="simx-go">&rarr;</span></a>
+        <a class="simx-card" href="/simulators/email-replies.html"><span class="simx-ic">✍️</span><span class="simx-tx"><b>Email Replies</b><span>One email at a time — write the reply the situation needs and get it scored.</span></span><span class="simx-go">&rarr;</span></a>
+        <a class="simx-card" href="/simulators/calendar.html"><span class="simx-ic">🗓️</span><span class="simx-tx"><b>Calendaring</b><span>A week full of conflicts. Fix it under real rules: court times, buffers, travel and deadlines.</span></span><span class="simx-go">&rarr;</span></a>
+        <a class="simx-card" href="/simulators/docket.html"><span class="simx-ic">⚖️</span><span class="simx-tx"><b>Docket System</b><span>Docket court notices and calendar every deadline they trigger, counted under the court’s rules.</span></span><span class="simx-go">&rarr;</span></a>
+        <a class="simx-card" href="/simulators/records.html"><span class="simx-ic">🏥</span><span class="simx-tx"><b>Medical Records Requests</b><span>Request records and bills, check authorizations, fees and follow-ups, and log what comes back.</span></span><span class="simx-go">&rarr;</span></a>
+        <a class="simx-card" href="/simulators/efiling.html"><span class="simx-ic">📤</span><span class="simx-tx"><b>Court E-Filing</b><span>Prepare and submit filings the way the court requires — fix the folder before the clerk rejects it.</span></span><span class="simx-go">&rarr;</span></a>
+    </div>
+    <div style="margin-top:26px;"><a href="/simulators.html" class="btn-primary">See all simulators &rarr;</a></div>
+</section>
+
 <section class="section" id="how">
     <div class="section-head">
         <div class="eyebrow">How it works</div>
@@ -391,12 +464,12 @@
         <div class="step-card">
             <div class="step-num">2</div>
             <h3>Complete Daily Activities</h3>
-            <p>Work through structured, day-by-day modules — most grade themselves the moment you submit.</p>
+            <p>Work through structured, day-by-day modules and recorded lectures — most activities grade themselves the moment you submit.</p>
         </div>
         <div class="step-card">
             <div class="step-num">3</div>
-            <h3>Watch Recorded Lectures</h3>
-            <p>Catch up on training sessions on your own schedule, any time you need a refresher.</p>
+            <h3>Practice in the Simulators</h3>
+            <p>Rehearse calls, email, calendaring, docketing and filings until the real thing feels familiar.</p>
         </div>
         <div class="step-card">
             <div class="step-num">4</div>
@@ -422,7 +495,8 @@
     </div>
 </section>
 
-<section class="section testimonial-section">
+<!-- Hidden until real trainee quotes are provided: remove the hidden attribute to show it. -->
+<section class="section testimonial-section" hidden>
     <div class="section-head">
         <div class="eyebrow">In their words</div>
         <h2>What trainees say about the program.</h2>
@@ -475,7 +549,15 @@
     <div id="faq-list">
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">What is the LSH Training Portal? <span class="chev">&#9660;</span></button>
-            <div class="faq-answer"><p>It's where LSH trainees across every program — Case Management, EA/PA, Business Law, Family Law, Mass Tort, and more — complete structured activities, watch recorded lectures, and track their progress — and where admins manage batches, grading, and announcements.</p></div>
+            <div class="faq-answer"><p>It's where LSH trainees across every program — Case Management, EA/PA, Business Law, Family Law, Mass Tort, and more — complete structured activities, watch recorded lectures, practice in the Simulators, look things up in the Knowledge Base and track their progress — and where admins manage batches, grading, and announcements.</p></div>
+        </div>
+        <div class="faq-item">
+            <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">What are the Simulators? <span class="chev">&#9660;</span></button>
+            <div class="faq-answer"><p>Practice versions of the tools and tasks you'll use on the job — phone calls, an email inbox, calendaring, docketing, medical records requests and court e-filing. Nothing you do there reaches a real client or court. Add your name when asked so your trainer can see your scores, or choose "just practice" to keep them to yourself.</p></div>
+        </div>
+        <div class="faq-item">
+            <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">What's in the Knowledge Base? <span class="chev">&#9660;</span></button>
+            <div class="faq-answer"><p>Official LSH SOPs and resources, plus tips, guides and lessons shared by LSH VAs. It's for our team only, so it asks for the team access code — get it from your trainer or team lead.</p></div>
         </div>
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">How long does training take? <span class="chev">&#9660;</span></button>
@@ -505,21 +587,146 @@
     </svg>
     <h2>Ready to pick up where you left off?</h2>
     <p>Open your program from the Training Directory to continue training. Admins can review team progress from Master Control.</p>
-    <a href="/programs.html" class="btn-primary" target="_blank" rel="noopener">Go to the Training Directory &rarr;</a>
+    <div class="hero-ctas" style="justify-content:center;">
+        <a href="/programs.html" class="btn-primary">Go to the Training Directory &rarr;</a>
+        <a href="/simulators.html" class="btn-ghost-dark">🛠 Open the Simulators</a>
+    </div>
 </div>
 
 <footer>
     <div class="footer-inner">
         <div class="foot-brand">LSH Training Portal</div>
-        <div class="social-row">
+        <div class="social-row" hidden><!-- hidden until real social URLs are provided -->
             <a href="#" class="social-link" title="LinkedIn" aria-label="LinkedIn">in</a>
             <a href="#" class="social-link" title="Facebook" aria-label="Facebook">f</a>
             <a href="#" class="social-link" title="X / Twitter" aria-label="X / Twitter">X</a>
             <a href="#" class="social-link" title="Instagram" aria-label="Instagram">ig</a>
         </div>
     </div>
-    <div class="footer-bottom">&copy; 2026 Legal Support Help. All Rights Reserved. <em>(social links are placeholders — send real URLs whenever you're ready)</em></div>
+    <div class="footer-bottom">&copy; 2026 Legal Support Help. All Rights Reserved.</div>
 </footer>
 
+<!-- Got a referral? — the pop-up card. Sends to /api/referrals; admins see referrals in /referrals.html. -->
+<style>
+    .rf-back { position: fixed; inset: 0; z-index: 1000; background: rgba(8,18,38,.62); display: none; align-items: flex-start; justify-content: center; padding: 28px 14px; overflow-y: auto; }
+    .rf-back.open { display: flex; }
+    .rf-card { background: #fff; color: var(--navy); width: 100%; max-width: 620px; border-radius: 22px; box-shadow: 0 30px 70px -20px rgba(0,0,0,.5); padding: 26px 26px 22px; position: relative; }
+    .rf-card h2 { font-size: 24px; font-weight: 900; margin: 4px 0 6px; letter-spacing: -.01em; }
+    .rf-card p.rf-sub { font-size: 14px; color: var(--slate); margin: 0 0 16px; line-height: 1.5; }
+    .rf-x { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e2e8f0; background: #fff; font-size: 16px; cursor: pointer; color: var(--navy); }
+    .rf-sec { font-size: 11.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--orange); margin: 16px 0 8px; }
+    .rf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+    .rf-grid .full { grid-column: 1 / -1; }
+    @media (max-width: 560px) { .rf-grid { grid-template-columns: 1fr; } .rf-card { padding: 22px 16px 18px; } }
+    .rf-card label { display: block; font-size: 12.5px; font-weight: 700; color: #334155; }
+    .rf-card label i { font-style: normal; font-weight: 500; color: var(--slate); }
+    .rf-card input[type=text], .rf-card input[type=email], .rf-card input[type=tel], .rf-card input[type=url], .rf-card textarea {
+        display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 14px; color: var(--navy); border: 1px solid #cbd5e1; border-radius: 10px; padding: 9px 11px; background: #fff; }
+    .rf-card textarea { min-height: 70px; resize: vertical; }
+    .rf-card input:focus, .rf-card textarea:focus { outline: 2px solid var(--orange); outline-offset: 0; border-color: var(--orange); }
+    .rf-file { margin-top: 4px; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 12px; font-size: 13px; color: var(--slate); background: #faf8f4; }
+    .rf-file input { font: inherit; font-size: 13px; max-width: 100%; }
+    .rf-consent { display: flex !important; gap: 10px; align-items: flex-start; font-weight: 600 !important; margin-top: 14px; line-height: 1.45; }
+    .rf-consent input { margin-top: 3px; width: 16px; height: 16px; flex: 0 0 auto; }
+    .rf-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+    .rf-err { display: none; margin-top: 12px; font-size: 13.5px; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 9px 12px; }
+    .rf-acts { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+    .rf-cancel { font: inherit; font-weight: 700; font-size: 14px; padding: 11px 20px; border-radius: 999px; border: 1px solid #cbd5e1; background: #fff; color: var(--navy); cursor: pointer; }
+    .rf-done { text-align: center; padding: 18px 6px 6px; }
+    .rf-done .big { font-size: 44px; }
+</style>
+<div class="rf-back" id="rfBack" onclick="if(event.target===this) closeReferral()">
+    <div class="rf-card" role="dialog" aria-modal="true" aria-labelledby="rfTitle">
+        <button type="button" class="rf-x" onclick="closeReferral()" aria-label="Close">✕</button>
+        <form id="rfForm" novalidate>
+            <div class="eyebrow">Refer someone to LSH</div>
+            <h2 id="rfTitle">Got a referral?</h2>
+            <p class="rf-sub">Know someone who'd be a great fit? Send us their contact details and CV, and our team will reach out to them.</p>
+
+            <div class="rf-sec">Who are you referring?</div>
+            <div class="rf-grid">
+                <label class="full">Full name<input type="text" name="name" autocomplete="off" required maxlength="120"></label>
+                <label>Email<input type="email" name="email" autocomplete="off" required maxlength="160"></label>
+                <label>Phone<input type="tel" name="phone" autocomplete="off" required maxlength="40" placeholder="Include the country code"></label>
+                <label>Location <i>(optional)</i><input type="text" name="location" autocomplete="off" maxlength="120" placeholder="City, country"></label>
+                <label>Role they're interested in <i>(optional)</i><input type="text" name="role" autocomplete="off" maxlength="120" placeholder="e.g. Virtual Assistant"></label>
+                <label class="full">LinkedIn <i>(optional)</i><input type="url" name="linkedin" autocomplete="off" maxlength="300" placeholder="https://linkedin.com/in/…"></label>
+                <label class="full">CV / résumé
+                    <div class="rf-file"><input type="file" name="cv" id="rfCv" accept=".pdf,.doc,.docx" required><div style="margin-top:6px;">PDF, DOC or DOCX, up to 10 MB.</div></div>
+                </label>
+                <label class="full">Why they'd be a great fit <i>(optional)</i><textarea name="note" maxlength="1500"></textarea></label>
+            </div>
+
+            <div class="rf-sec">About you</div>
+            <div class="rf-grid">
+                <label>Your name<input type="text" name="referrer_name" autocomplete="name" required maxlength="120"></label>
+                <label>Your email or Batch ID <i>(optional)</i><input type="text" name="referrer_contact" maxlength="160"></label>
+            </div>
+            <label class="rf-hp" aria-hidden="true">Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+
+            <label class="rf-consent"><input type="checkbox" name="consent" value="yes" required> The person I'm referring agreed to share their contact details and CV with LSH.</label>
+            <div class="rf-err" id="rfErr" role="alert"></div>
+            <div class="rf-acts">
+                <button type="button" class="rf-cancel" onclick="closeReferral()">Cancel</button>
+                <button type="submit" class="btn-primary" id="rfSend">Send referral</button>
+            </div>
+        </form>
+        <div class="rf-done" id="rfDone" hidden>
+            <div class="big">🎉</div>
+            <h2>Thank you!</h2>
+            <p class="rf-sub" id="rfDoneMsg">We've received your referral. Our team will reach out to them.</p>
+            <div class="rf-acts" style="justify-content:center;"><button type="button" class="rf-cancel" onclick="resetReferral()">Refer someone else</button><button type="button" class="btn-primary" onclick="closeReferral()">Done</button></div>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    const back = document.getElementById('rfBack'), form = document.getElementById('rfForm'), err = document.getElementById('rfErr');
+    let lastFocus = null;
+    function showErr(m) { err.textContent = m; err.style.display = m ? 'block' : 'none'; }
+    window.openReferral = function () {
+        lastFocus = document.activeElement;
+        back.classList.add('open'); document.body.style.overflow = 'hidden';
+        setTimeout(() => { const f = back.querySelector(form.hidden ? '#rfDone button' : 'input[name=name]'); if (f) f.focus(); }, 30);
+    };
+    window.closeReferral = function () {
+        back.classList.remove('open'); document.body.style.overflow = '';
+        if (lastFocus && lastFocus.focus) lastFocus.focus();
+    };
+    window.resetReferral = function () {
+        form.reset(); showErr(''); form.hidden = false; document.getElementById('rfDone').hidden = true;
+        const f = form.querySelector('input[name=name]'); if (f) f.focus();
+    };
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && back.classList.contains('open')) closeReferral(); });
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault(); showErr('');
+        const v = n => (form.elements[n].value || '').trim();
+        if (v('name').length < 2) return showErr("Enter the person's full name.");
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('email'))) return showErr("Enter the person's email address.");
+        if (v('phone').replace(/\D/g, '').length < 7) return showErr("Enter the person's phone number.");
+        const file = document.getElementById('rfCv').files[0];
+        if (!file) return showErr('Attach their CV (PDF, DOC or DOCX).');
+        if (!/\.(pdf|docx?)$/i.test(file.name)) return showErr('The CV must be a PDF, DOC or DOCX file.');
+        if (file.size > 10 * 1024 * 1024) return showErr('The CV is over 10 MB. Please attach a smaller file.');
+        if (v('referrer_name').length < 2) return showErr('Enter your name.');
+        if (!form.elements.consent.checked) return showErr('Please confirm the person agreed to share their details and CV.');
+        const btn = document.getElementById('rfSend'); btn.disabled = true; btn.textContent = 'Sending…';
+        try {
+            const res = await fetch('/api/referrals', { method: 'POST', body: new FormData(form) });
+            let data = {}; try { data = await res.json(); } catch (x) {}
+            if (!res.ok || !data.success) throw new Error(data.error || 'Something went wrong. Please try again.');
+            document.getElementById('rfDoneMsg').textContent = `We've received your referral for ${v('name')}. Our team will reach out to them.`;
+            form.hidden = true; document.getElementById('rfDone').hidden = false;
+            document.querySelector('#rfDone .btn-primary').focus();
+        } catch (x) {
+            showErr(x.message || 'Something went wrong. Please try again.');
+        } finally {
+            btn.disabled = false; btn.textContent = 'Send referral';
+        }
+    });
+})();
+</script>
+
+<script src="/portal-nav.js"></script>
 </body>
 </html>
