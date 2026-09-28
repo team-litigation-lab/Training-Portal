@@ -23,6 +23,7 @@
         --gold: #eab308;
     }
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
     html { scroll-behavior: smooth; }
     body {
         margin: 0;
@@ -176,6 +177,15 @@
     .jump-card h3 { margin: 6px 0 0; font-size: 19px; font-weight: 800; }
     .jump-card p { margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--slate); flex: 1; }
     .jump-go { font-size: 13.5px; font-weight: 800; color: var(--orange); }
+    .simx { padding-top: 24px; }
+    .simx-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    @media (max-width: 760px) { .simx-grid { grid-template-columns: 1fr; } }
+    .simx-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid rgba(15,33,72,0.08); border-radius: 16px; padding: 16px 18px; text-decoration: none; color: var(--navy); transition: transform 0.15s ease, border-color 0.15s ease; }
+    .simx-card:hover { transform: translateY(-2px); border-color: rgba(249,115,22,0.45); }
+    .simx-ic { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: var(--paper-warm); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .simx-tx { flex: 1; min-width: 0; } .simx-tx b { display: block; font-size: 15.5px; font-weight: 800; }
+    .simx-tx span { display: block; font-size: 13.5px; line-height: 1.5; color: var(--slate); margin-top: 2px; }
+    .simx-go { color: var(--orange); font-weight: 800; font-size: 18px; }
     .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
     @media (max-width: 760px) { .feature-grid { grid-template-columns: 1fr; } }
     .feature-card {
@@ -254,6 +264,8 @@
 
     /* ===== CONTACT ===== */
     .contact-section { background: var(--paper-warm); }
+    .contact-section:has(.contact-grid[hidden]) { padding-bottom: 56px; }
+    .contact-section:has(.contact-grid[hidden]) .section-head { margin-bottom: 0; }
     .contact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 44px; }
     @media (max-width: 860px) { .contact-grid { grid-template-columns: 1fr; } }
     .contact-card { background: #fff; border-radius: 20px; padding: 26px; text-align: center; border: 1px solid rgba(15,33,72,0.06); }
@@ -430,6 +442,24 @@
     </div>
 </section>
 
+<section class="section simx" id="simulators">
+    <div class="section-head">
+        <div class="eyebrow">Simulators</div>
+        <h2>Practice the real work before you do it for real.</h2>
+        <p>Hands-on simulators shared by every program. Each one gives you a score and specific feedback, and your trainer can see your results when you add your name.</p>
+    </div>
+    <div class="simx-grid">
+        <a class="simx-card" href="/simulators/call.html"><span class="simx-ic">📞</span><span class="simx-tx"><b>Call Simulator</b><span>Live phone calls with realistic callers — clients, adjusters, providers, executives. Answer by voice or typing.</span></span><span class="simx-go">&rarr;</span></a>
+        <a class="simx-card" href="/simulators/email.html"><span class="simx-ic">✉️</span><span class="simx-tx"><b>Email Workspace</b><span>A Gmail-style inbox: label, triage, reply, delegate and spot the phishing email.</span></span><span class="simx-go">&rarr;</span></a>
+        <a class="simx-card" href="/simulators/email-replies.html"><span class="simx-ic">✍️</span><span class="simx-tx"><b>Email Replies</b><span>One email at a time — write the reply the situation needs and get it scored.</span></span><span class="simx-go">&rarr;</span></a>
+        <a class="simx-card" href="/simulators/calendar.html"><span class="simx-ic">🗓️</span><span class="simx-tx"><b>Calendaring</b><span>A week full of conflicts. Fix it under real rules: court times, buffers, travel and deadlines.</span></span><span class="simx-go">&rarr;</span></a>
+        <a class="simx-card" href="/simulators/docket.html"><span class="simx-ic">⚖️</span><span class="simx-tx"><b>Docket System</b><span>Docket court notices and calendar every deadline they trigger, counted under the court’s rules.</span></span><span class="simx-go">&rarr;</span></a>
+        <a class="simx-card" href="/simulators/records.html"><span class="simx-ic">🏥</span><span class="simx-tx"><b>Medical Records Requests</b><span>Request records and bills, check authorizations, fees and follow-ups, and log what comes back.</span></span><span class="simx-go">&rarr;</span></a>
+        <a class="simx-card" href="/simulators/efiling.html"><span class="simx-ic">📤</span><span class="simx-tx"><b>Court E-Filing</b><span>Prepare and submit filings the way the court requires — fix the folder before the clerk rejects it.</span></span><span class="simx-go">&rarr;</span></a>
+    </div>
+    <div style="margin-top:26px;"><a href="/simulators.html" class="btn-primary">See all simulators &rarr;</a></div>
+</section>
+
 <section class="section" id="how">
     <div class="section-head">
         <div class="eyebrow">How it works</div>
@@ -445,12 +475,12 @@
         <div class="step-card">
             <div class="step-num">2</div>
             <h3>Complete Daily Activities</h3>
-            <p>Work through structured, day-by-day modules — most grade themselves the moment you submit.</p>
+            <p>Work through structured, day-by-day modules and recorded lectures — most activities grade themselves the moment you submit.</p>
         </div>
         <div class="step-card">
             <div class="step-num">3</div>
-            <h3>Watch Recorded Lectures</h3>
-            <p>Catch up on training sessions on your own schedule, any time you need a refresher.</p>
+            <h3>Practice in the Simulators</h3>
+            <p>Rehearse calls, email, calendaring, docketing and filings until the real thing feels familiar.</p>
         </div>
         <div class="step-card">
             <div class="step-num">4</div>
@@ -476,7 +506,8 @@
     </div>
 </section>
 
-<section class="section testimonial-section">
+<!-- Hidden until real trainee quotes are provided: remove the hidden attribute to show it. -->
+<section class="section testimonial-section" hidden>
     <div class="section-head">
         <div class="eyebrow">In their words</div>
         <h2>What trainees say about the program.</h2>
@@ -529,7 +560,15 @@
     <div id="faq-list">
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">What is the LSH Training Portal? <span class="chev">&#9660;</span></button>
-            <div class="faq-answer"><p>It's where LSH trainees across every program — Case Management, EA/PA, Business Law, Family Law, Mass Tort, and more — complete structured activities, watch recorded lectures, and track their progress — and where admins manage batches, grading, and announcements.</p></div>
+            <div class="faq-answer"><p>It's where LSH trainees across every program — Case Management, EA/PA, Business Law, Family Law, Mass Tort, and more — complete structured activities, watch recorded lectures, practice in the Simulators, look things up in the Knowledge Base and track their progress — and where admins manage batches, grading, and announcements.</p></div>
+        </div>
+        <div class="faq-item">
+            <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">What are the Simulators? <span class="chev">&#9660;</span></button>
+            <div class="faq-answer"><p>Practice versions of the tools and tasks you'll use on the job — phone calls, an email inbox, calendaring, docketing, medical records requests and court e-filing. Nothing you do there reaches a real client or court. Add your name when asked so your trainer can see your scores, or choose "just practice" to keep them to yourself.</p></div>
+        </div>
+        <div class="faq-item">
+            <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">What's in the Knowledge Base? <span class="chev">&#9660;</span></button>
+            <div class="faq-answer"><p>Official LSH SOPs and resources, plus tips, guides and lessons shared by LSH VAs. It's for our team only, so it asks for the team access code — get it from your trainer or team lead.</p></div>
         </div>
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">How long does training take? <span class="chev">&#9660;</span></button>
@@ -545,11 +584,11 @@
         </div>
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">I'm interested in joining LSH — how do I apply? <span class="chev">&#9660;</span></button>
-            <div class="faq-answer"><p>Reach out through the Contact Us section below and our People team will point you toward current openings and the application process.</p></div>
+            <div class="faq-answer"><p>Ask your LSH contact or recruiter about current openings and the application process.</p></div>
         </div>
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">Do I need to log in here? <span class="chev">&#9660;</span></button>
-            <div class="faq-answer"><p>No. This page is open to everyone: open your program from the Training Directory. Each training program has its own sign-in, so if you can't get into your program, reach out to your batch administrator or use the contact details below.</p></div>
+            <div class="faq-answer"><p>No. This page is open to everyone: open your program from the Training Directory. Each training program has its own sign-in, so if you can't get into your program, reach out to your trainer or batch administrator.</p></div>
         </div>
     </div>
 </section>
@@ -558,9 +597,10 @@
     <div class="section-head">
         <div class="eyebrow">Get in touch</div>
         <h2>Contact Us</h2>
-        <p><em>Placeholder contact details — swap these for your real email, phone, and address.</em></p>
+        <p>Questions about your training, access to your program or the Knowledge Base code? Your <b>trainer or batch administrator</b> is your first contact — they'll get you sorted quickly.</p>
     </div>
-    <div class="contact-grid">
+    <!-- Hidden until real contact details are provided: remove the hidden attribute to show it. -->
+    <div class="contact-grid" hidden>
         <div class="contact-card">
             <div class="icon">&#9993;</div>
             <h3>Email</h3>
@@ -597,14 +637,14 @@
 <footer>
     <div class="footer-inner">
         <div class="foot-brand">LSH Training Portal</div>
-        <div class="social-row">
+        <div class="social-row" hidden><!-- hidden until real social URLs are provided -->
             <a href="#" class="social-link" title="LinkedIn" aria-label="LinkedIn">in</a>
             <a href="#" class="social-link" title="Facebook" aria-label="Facebook">f</a>
             <a href="#" class="social-link" title="X / Twitter" aria-label="X / Twitter">X</a>
             <a href="#" class="social-link" title="Instagram" aria-label="Instagram">ig</a>
         </div>
     </div>
-    <div class="footer-bottom">&copy; 2026 Legal Support Help. All Rights Reserved. <em>(social links are placeholders — send real URLs whenever you're ready)</em></div>
+    <div class="footer-bottom">&copy; 2026 Legal Support Help. All Rights Reserved.</div>
 </footer>
 
 </body>
