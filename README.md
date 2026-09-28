@@ -126,7 +126,7 @@ Admins' own posts and replies are published straight away.
 
 **Admin → 📊 Progress & Feedback** (`/progress.html`, also linked from Master Control) is the central record of every trainee's training.
 
-**A tab per program:** Standard Foundational Training, EA / PA Training and CM Training. Each tab loads only its own program, so one request's KV reads go to one program.
+**A tab per program:** Standard Foundational Training, EA / PA Training, CM Training and PD Claims Training. Each tab loads only its own program, so one request's KV reads go to one program.
 
 **👤 Trainees**, grouped into 📁 batch sections (count, average completion, last activity). For each trainee:
 - status and days completed;
@@ -159,7 +159,7 @@ With these set, archiving a batch also saves it (a CSV report and the full JSON 
 4. Redeploy. The page shows **☁ Save to Drive** on archived batches once Drive is set up.
 
 Where the records come from:
-- The programs keep their own trainees and sign-in. The portal reads their records from the course Workers' KV namespace through the `COURSE_KV` binding in `wrangler.toml`, which points at the same namespace as the courses' `LSH_KV`. EA/PA keys have no prefix (`trainee:*`, `feedback:*`, `tfeedback:*`); CM course keys start with `cm:`, Standard Foundational Training keys with `ft:`.
+- The programs keep their own trainees and sign-in. The portal reads their records from the course Workers' KV namespace through the `COURSE_KV` binding in `wrangler.toml`, which points at the same namespace as the courses' `LSH_KV`. EA/PA keys have no prefix (`trainee:*`, `feedback:*`, `tfeedback:*`); CM course keys start with `cm:`, PD Claims Training keys with `pd:`, Standard Foundational Training keys with `ft:`.
 - Simulator results (`simulator_results`), portal activities (`submissions`) and archive snapshots (`progress_archive`) are in this portal's D1 database.
 - Simulator and activity records are matched to trainees by name, because the programs have separate sign-ins.
 
@@ -177,7 +177,7 @@ The API (`/api/program-progress`) is admin-only. It writes only to archive and r
 
 **Uptime** (`.github/workflows/uptime.yml`) checks every 30 minutes (at :07 and :37):
 - the live portal, including its database (`/api/site-state`) and the Docket simulator;
-- the CM and EA/PA courses;
+- the CM, EA/PA and PD Claims courses;
 - the CMS, including its database (`/api/state`).
 
 Each failing check is retried once after 20 seconds.
