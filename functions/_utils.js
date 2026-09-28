@@ -413,8 +413,9 @@ export async function logTrainingActivity(trainingDb, actorUsername, actorBatch,
  * current list if this starts failing.
  */
 export async function generateAiReview(env, { submissionId, activityTitle, questions, answers, notes }) {
-    const apiKey = env.GEMINI_API_KEY1 || env.GEMINI_API_KEY;
-    if (!apiKey) {
+    // Grading's own key first; if it's rate-limited (429) or rejected, the main key takes the request.
+    const keys = [env.GEMINI_API_KEY1, env.GEMINI_API_KEY].filter((k, i, a) => k && a.indexOf(k) === i);
+    if (!keys.length) {
         console.error('generateAiReview: GEMINI_API_KEY is not configured — skipping.');
         return { ok: false, error: 'AI review is not configured yet (missing GEMINI_API_KEY).' };
     }
@@ -449,17 +450,22 @@ Respond ONLY with a JSON object matching this exact shape, with no other text be
 }
 "suggestedScore" must be a plain number from 0 to 100.`;
 
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: 'application/json' }
-            })
-        });
+        let res, errText = '';
+        for (const apiKey of keys) {
+            res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { responseMimeType: 'application/json' }
+                })
+            });
+            if (res.ok) break;
+            errText = await res.text().catch(() => '');
+            if (!(res.status === 429 || (res.status === 400 && /API key/i.test(errText)))) break;   // only a limit or a bad key is worth the next key
+        }
 
         if (!res.ok) {
-            const errText = await res.text().catch(() => '');
             console.error('generateAiReview: Gemini API error', res.status, errText);
             return { ok: false, error: `Gemini API error (${res.status}). The configured model may need updating — see https://ai.google.dev/gemini-api/docs/models.` };
         }
