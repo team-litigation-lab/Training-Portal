@@ -1,4 +1,5 @@
 import { json, requireSession, logActivity } from '../_utils.js';
+import { driveConfigured, saveBatchToDrive } from '../_drive.js';
 
 // All-program trainee progress and feedback for admins (/progress.html).
 //
@@ -24,6 +25,9 @@ import { json, requireSession, logActivity } from '../_utils.js';
 //     feedback from KV, so old batches stop using up the read budget; the page
 //     shows them from the snapshot instead.
 //   - restoring clears the flag and deletes the snapshot.
+//   - with the Google Drive secrets set (see functions/_drive.js), archiving also
+//     saves the batch (CSV + JSON) to a Shared Drive folder and keeps its link;
+//     SAVE_TO_DRIVE saves an already-archived batch from its snapshot.
 // To add a program: its course's KV key prefix (the CM course stores every key
 // under "cm:"), number of days and course address.
 const PROGRAMS = [
@@ -137,15 +141,17 @@ function traineeFeedbackItem(rec, program) {
 async function ensureArchiveTable(db) {
     await db.prepare(`CREATE TABLE IF NOT EXISTS progress_archive (
         program TEXT NOT NULL, batch TEXT NOT NULL, archived_at TEXT NOT NULL, archived_by TEXT,
-        trainee_count INTEGER NOT NULL DEFAULT 0, snapshot TEXT NOT NULL, PRIMARY KEY (program, batch))`).run();
+        trainee_count INTEGER NOT NULL DEFAULT 0, snapshot TEXT NOT NULL, drive_url TEXT, PRIMARY KEY (program, batch))`).run();
+    // Tables made before the Drive export lack drive_url; adding it again just fails.
+    try { await db.prepare(`ALTER TABLE progress_archive ADD COLUMN drive_url TEXT`).run(); } catch (e) {}
 }
 async function archivedBatches(db, program) {
     try {
         await ensureArchiveTable(db);
         const { results } = await db.prepare(
-            `SELECT batch, archived_at, archived_by, trainee_count FROM progress_archive WHERE program = ? ORDER BY archived_at DESC`
+            `SELECT batch, archived_at, archived_by, trainee_count, drive_url FROM progress_archive WHERE program = ? ORDER BY archived_at DESC`
         ).bind(program).all();
-        return (results || []).map(r => ({ batch: r.batch, archivedAt: r.archived_at, archivedBy: r.archived_by, count: r.trainee_count }));
+        return (results || []).map(r => ({ batch: r.batch, archivedAt: r.archived_at, archivedBy: r.archived_by, count: r.trainee_count, driveUrl: r.drive_url || null }));
     } catch (e) { return []; }
 }
 const batchKey = (b) => String(b || '').trim();
@@ -219,7 +225,7 @@ export async function onRequestGet({ request, env }) {
         } catch (err) { return json({ success: false, error: err.message }, 500, noStore); }
     }
     const [simByName, workByName] = await Promise.all([simulatorSummary(env.TRAINING_DB), portalWorkSummary(env.TRAINING_DB)]);
-    const base = { success: true, programs, program: only || null, simulators: { byName: simByName }, portalWork: { byName: workByName },
+    const base = { success: true, programs, program: only || null, driveConfigured: driveConfigured(env), simulators: { byName: simByName }, portalWork: { byName: workByName },
         archivedBatches: only ? await archivedBatches(env.TRAINING_DB, only) : [] };
     const kv = env.COURSE_KV;
     if (!kv) {
@@ -273,10 +279,26 @@ export async function onRequestPost({ request, env }) {
     const batch = batchKey(body && body.batch);
     if (!program) return json({ success: false, error: 'Unknown program.' }, 400, noStore);
     if (!batch) return json({ success: false, error: 'Choose a batch.' }, 400, noStore);
-    if (action !== 'ARCHIVE_BATCH' && action !== 'RESTORE_BATCH') return json({ success: false, error: 'Unknown action.' }, 400, noStore);
+    if (!['ARCHIVE_BATCH', 'RESTORE_BATCH', 'SAVE_TO_DRIVE'].includes(action)) return json({ success: false, error: 'Unknown action.' }, 400, noStore);
+    const db = env.TRAINING_DB;
+    const toDrive = async (trainees) => {
+        const url = await saveBatchToDrive(env, { programLabel: program.label, batch, trainees, archivedBy: auth.session.username });
+        await db.prepare(`UPDATE progress_archive SET drive_url = ? WHERE program = ? AND batch = ?`).bind(url, program.id, batch).run();
+        return url;
+    };
+    if (action === 'SAVE_TO_DRIVE') {
+        if (!driveConfigured(env)) return json({ success: false, error: 'Google Drive isn’t set up yet (GDRIVE_SA_EMAIL, GDRIVE_SA_KEY, GDRIVE_ARCHIVE_FOLDER).' }, 400, noStore);
+        try {
+            await ensureArchiveTable(db);
+            const row = await db.prepare(`SELECT snapshot FROM progress_archive WHERE program = ? AND batch = ?`).bind(program.id, batch).first();
+            if (!row) return json({ success: false, error: 'No archive for that batch.' }, 404, noStore);
+            const url = await toDrive(JSON.parse(row.snapshot));
+            await logActivity(db, auth.session.username, auth.session.batchId, 'PROGRESS_BATCH_SAVED_TO_DRIVE', { program: program.id, batch });
+            return json({ success: true, driveUrl: url }, 200, noStore);
+        } catch (err) { return json({ success: false, error: err.message }, 502, noStore); }
+    }
     const kv = env.COURSE_KV;
     if (!kv) return json({ success: false, error: 'Course data isn’t connected (COURSE_KV).' }, 500, noStore);
-    const db = env.TRAINING_DB;
     try {
         await ensureArchiveTable(db);
         const ctx = makeKv(kv), p = program.prefix;
@@ -301,7 +323,15 @@ export async function onRequestPost({ request, env }) {
         for (const [key, v] of members) await kv.put(key, JSON.stringify({ ...v, archived: archiving }));
         if (!archiving) await db.prepare(`DELETE FROM progress_archive WHERE program = ? AND batch = ?`).bind(program.id, batch).run();
         await logActivity(db, auth.session.username, auth.session.batchId, archiving ? 'PROGRESS_BATCH_ARCHIVED' : 'PROGRESS_BATCH_RESTORED', { program: program.id, batch, count: members.length });
-        return json({ success: true, count: members.length }, 200, noStore);
+        // The archive itself is done; a Drive problem is reported, not fatal (Save to Drive retries).
+        let drive = null;
+        if (archiving && driveConfigured(env)) {
+            try {
+                const row = await db.prepare(`SELECT snapshot FROM progress_archive WHERE program = ? AND batch = ?`).bind(program.id, batch).first();
+                drive = { url: await toDrive(JSON.parse(row.snapshot)) };
+            } catch (e) { drive = { error: e.message }; }
+        }
+        return json({ success: true, count: members.length, ...(drive ? { drive } : {}) }, 200, noStore);
     } catch (err) {
         return json({ success: false, error: err.message }, 500, noStore);
     }
