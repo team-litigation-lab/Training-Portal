@@ -6,7 +6,8 @@ import { json, getSiteState } from './_utils.js';
 // an open door to the Gemini key:
 //   1. a site-wide Lock closes the simulators too;
 //   2. requests must come from this portal's own pages (Origin = this host);
-//   3. a per-IP rate limit (SIM_RATE_LIMIT requests per 10 minutes, default 60).
+//   3. a per-IP rate limit (SIM_RATE_LIMIT requests per 10 minutes, default 400: a whole class often shares
+//      one office connection, and one practice call alone makes 15–25 requests).
 // Signed-in admins skip this (their session is already checked).
 const WINDOW_SECONDS = 600;
 
@@ -20,7 +21,7 @@ export async function guardPublicSim(request, env) {
     try { originHost = origin ? new URL(origin).host : null; } catch (e) { originHost = null; }
     if (originHost !== host) return json({ success: false, error: 'Simulators can only be used from the LSH Training Portal.' }, 403);
 
-    const limit = Math.max(5, Number(env.SIM_RATE_LIMIT) || 60);
+    const limit = Math.max(5, Number(env.SIM_RATE_LIMIT) || 400);
     const ip = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
     const bucket = Math.floor(Date.now() / 1000 / WINDOW_SECONDS);
     const db = env.TRAINING_DB;

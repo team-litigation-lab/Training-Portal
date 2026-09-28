@@ -43,6 +43,10 @@
     .round { width: 58px; height: 58px; border-radius: 50%; border: none; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .round.mic { background: #fff; } .round.mic.rec { background: #22c55e; color: #fff; } .round.end { background: #dc2626; color: #fff; } .round.spk { background: rgba(255,255,255,.14); color: #fff; }
     .round small { display: none; }
+    .round.spk.on { background: #f59e0b; color: #fff; }
+    .phone .vnote { margin-top: 12px; font-size: 12px; line-height: 1.45; color: #fde68a; background: rgba(0,0,0,.25); border-radius: 10px; padding: 8px 10px; text-align: left; }
+    .phone .ctrls { gap: 10px; flex-wrap: nowrap; } .phone .ctrls .round { width: 48px; height: 48px; font-size: 19px; flex: 0 0 48px; }
+    .phone .lbls { gap: 10px; } .phone .lbls span { width: 48px; }
     .phone .lbls { display: flex; justify-content: center; gap: 12px; font-size: 11px; color: #c7d2fe; margin-top: 6px; } .phone .lbls span { width: 58px; }
     .transcript { display: flex; flex-direction: column; gap: 10px; max-height: 56vh; overflow-y: auto; padding-right: 4px; }
     .bubble { max-width: 82%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
@@ -135,7 +139,8 @@ const CALLERS = [
 ].concat(window.EXTRA_CALLERS || []);
 
 const START_PROGRAM = (() => { const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'CM' : p.startsWith('EA') ? 'EA' : p.startsWith('FT') ? 'FT' : p.startsWith('PD') ? 'PD' : 'All'; })();
-let S = { filter: START_PROGRAM, line: new URLSearchParams(location.search).get('line') || 'all', note: '', persona: null, phase: 'pick', transcript: [], startedAt: 0, voice: true, busy: false, recog: null, recording: false, timer: null, debrief: null };
+let S = { filter: START_PROGRAM, line: new URLSearchParams(location.search).get('line') || 'all', note: '', persona: null, phase: 'pick', transcript: [], startedAt: 0, voice: true, busy: false, recog: null, recording: false, timer: null, debrief: null,
+    handsFree: !!(window.SpeechRecognition || window.webkitSpeechRecognition), lastCaller: '', speakToken: null, utts: [], voiceError: false, ringing: false };
 const $app = () => document.getElementById('app');
 
 function initials(n) { return n.split(' ').map(x => x[0]).join('').slice(0, 2); }
@@ -191,10 +196,83 @@ function renderBrief() {
 }
 /* ---------- the call ---------- */
 function startCall() {
-    S.phase = 'call'; S.transcript = []; S.startedAt = Date.now();
-    clearInterval(S.timer); S.timer = setInterval(tick, 1000);
-    render();
-    callerSays(S.persona.opening);
+    unlockAudio();                    // inside the click, so the browser lets the caller speak later
+    S.phase = 'call'; S.transcript = []; S.startedAt = Date.now(); S.voiceError = false; S.ringing = true;
+    clearInterval(S.timer);
+    render(); setState('Ringing…', false);
+    ring().then(() => {
+        if (S.phase !== 'call') return;
+        S.ringing = false; S.startedAt = Date.now(); S.timer = setInterval(tick, 1000);
+        callerSays(S.persona.opening);
+    });
+}
+/* ---------- voice (the same handling as the EA/PA portal's Live Roleplay calls) ---------- */
+function unlockAudio() {
+    if (!('speechSynthesis' in window)) return;
+    try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); speechSynthesis.resume(); } catch (e) {}
+}
+function ring() {
+    return new Promise(res => {
+        try {
+            const Ctx = window.AudioContext || window.webkitAudioContext; const ctx = new Ctx();
+            const burst = (t) => [440, 480].forEach(f => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = f; g.gain.value = 0.05; o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 1.1); });
+            burst(0); burst(2.2);
+            setTimeout(() => { try { ctx.close(); } catch (e) {} res(); }, 3600);
+        } catch (e) { setTimeout(res, 1200); }
+    });
+}
+// Speak the caller's line. Chrome drops long utterances and can swallow a speak() issued right after
+// cancel(), and never fires onend for an utterance it garbage-collected — so: sentence-sized chunks,
+// a short pause after cancel, the utterances kept on S.utts, and a timer in case onend never comes.
+function speak(text, onDone) {
+    const token = {}; S.speakToken = token;
+    const done = () => { if (S.speakToken === token) { S.speakToken = null; onDone(); } };
+    if (!S.voice || !('speechSynthesis' in window)) { done(); return; }
+    stopListening();
+    const chunks = (text.match(/[^.!?]+[.!?]*["”]?\s*/g) || [text]).map(t => t.trim()).filter(Boolean);
+    const wasBusy = speechSynthesis.speaking || speechSynthesis.pending;
+    if (wasBusy) speechSynthesis.cancel();
+    let started = false;
+    setTimeout(() => {
+        if (S.speakToken !== token) return;
+        try { speechSynthesis.resume(); } catch (e) {}
+        const v = pickVoice();
+        S.utts = chunks.map((c, i) => {
+            const u = new SpeechSynthesisUtterance(c);
+            if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-US';
+            u.rate = 1.02;
+            u.onstart = () => { started = true; if (S.voiceError) { S.voiceError = false; paintVoiceNote(); } };
+            if (i === chunks.length - 1) u.onend = done;
+            u.onerror = (ev) => { if (ev && ev.error === 'interrupted') return; S.voiceError = true; paintVoiceNote(); done(); };
+            speechSynthesis.speak(u);
+            return u;
+        });
+        // Nothing started within 2.5 s: this computer has no working voice — show the words and carry on.
+        setTimeout(() => { if (S.speakToken === token && !started && !speechSynthesis.speaking) { S.voiceError = true; paintVoiceNote(); speechSynthesis.cancel(); done(); } }, 2500);
+    }, wasBusy ? 150 : 30);
+    setTimeout(() => { if (S.speakToken === token) { speechSynthesis.cancel(); done(); } }, 4000 + text.split(/\s+/).length * 480);
+}
+function paintVoiceNote() {
+    const n = document.getElementById('voiceNote'); if (!n) return;
+    n.style.display = S.voiceError ? 'block' : 'none';
+}
+function replay() { if (!S.lastCaller || S.phase !== 'call') return; const was = S.voice; S.voice = true; setState('Speaking…', true); speak(S.lastCaller, afterCaller); S.voice = was; }
+function toggleHandsFree() {
+    S.handsFree = !S.handsFree;
+    const b = document.getElementById('hfBtn'); if (b) b.classList.toggle('on', S.handsFree);
+    if (S.handsFree && !S.busy && !S.speakToken && !S.recording && S.phase === 'call') startListening();
+    else setState(turnText(), false);
+}
+function turnText() {
+    if (!(window.SpeechRecognition || window.webkitSpeechRecognition)) return 'Your turn — type your reply';
+    return S.handsFree ? 'Your turn — just speak' : 'Your turn — tap 🎤 or type';
+}
+// After the caller has finished: it's the trainee's turn; in hands-free mode start listening.
+function afterCaller() {
+    if (S.phase !== 'call') return;
+    if (S.pendingEnd) { S.pendingEnd = false; setState('Call ended', false); setTimeout(endCall, 700); return; }
+    setState(turnText(), false);
+    if (S.handsFree) setTimeout(() => { if (S.phase === 'call' && !S.busy && !S.speakToken && !S.recording) startListening(); }, 250);
 }
 function tick() { const t = document.getElementById('timer'); if (t) { const s = Math.floor((Date.now() - S.startedAt) / 1000); t.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; } }
 function renderCall() {
@@ -206,11 +284,15 @@ function renderCall() {
             <div class="timer" id="timer">00:00</div>
             <div class="state" id="cstate">Connected</div>
             <div class="ctrls">
-                ${canMic ? `<button class="round mic" id="micBtn" onclick="toggleMic()" title="Speak">🎤</button>` : ''}
-                <button class="round spk" onclick="S.voice=!S.voice;if(!S.voice)speechSynthesis.cancel();this.textContent=S.voice?'🔊':'🔇'" title="Caller voice on/off">${S.voice ? '🔊' : '🔇'}</button>
-                <button class="round end" onclick="endCall()" title="End call">✆</button>
+                ${canMic ? `<button class="round mic" id="micBtn" onclick="toggleMic()" title="Speak your reply">🎤</button>` : ''}
+                ${canMic ? `<button class="round spk ${S.handsFree ? 'on' : ''}" id="hfBtn" onclick="toggleHandsFree()" title="Hands-free: listen automatically after the caller finishes">🔁</button>` : ''}
+                <button class="round spk" onclick="replay()" title="Hear the caller's last line again">↻</button>
+                <button class="round spk" onclick="S.voice=!S.voice;if(!S.voice&&S.speakToken){S.speakToken=null;speechSynthesis.cancel();afterCaller();}this.textContent=S.voice?'🔊':'🔇'" title="Caller voice on/off">${S.voice ? '🔊' : '🔇'}</button>
+                <button class="round end" onclick="endCall()" title="Hang up and get your evaluation">✆</button>
             </div>
-            <div class="lbls">${canMic ? '<span>Speak</span>' : ''}<span>Voice</span><span>End</span></div>
+            <div class="lbls">${canMic ? '<span>Talk</span><span>Hands-free</span>' : ''}<span>Replay</span><span>Voice</span><span>End</span></div>
+            <div class="vnote" id="voiceNote" style="display:${S.voiceError ? 'block' : 'none'}">⚠ Your browser couldn't play the caller's voice. Check your speaker/volume and that Windows/macOS has a text-to-speech voice, then press ↻ Replay. The caller's words are in the transcript.</div>
+            ${canMic ? '' : '<div class="vnote" style="display:block">Voice replies need Chrome or Edge — type your replies. The caller will still speak.</div>'}
         </div>
         <div class="sim-card">
             <div class="sim-kicker">Live transcript</div>
@@ -237,18 +319,16 @@ function callerSays(text) {
     const ended = /\[END_CALL\]/.test(text);
     const clean = text.replace(/\[END_CALL\]/g, '').trim();
     S.transcript.push({ who: 'caller', text: clean }); paintTranscript();
-    if (S.voice && 'speechSynthesis' in window) {
-        speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(clean.replace(/\([^)]*\)/g, '')); const v = pickVoice(); if (v) u.voice = v; u.rate = 1.02;
-        setState('Speaking…', true);
-        u.onend = () => { setState(ended ? 'Call ended' : 'Your turn', false); if (ended) setTimeout(endCall, 700); };
-        speechSynthesis.speak(u);
-    } else { setState(ended ? 'Call ended' : 'Your turn', false); if (ended) setTimeout(endCall, 1200); }
+    S.lastCaller = clean.replace(/\([^)]*\)/g, '').trim();   // stage directions aren't spoken
+    S.pendingEnd = ended;
+    setState('Speaking…', true);
+    speak(S.lastCaller, afterCaller);
 }
 async function send() {
     const box = document.getElementById('say'); const text = (box && box.value || '').trim();
     if (!text || S.busy) return;
-    box.value = ''; S.transcript.push({ who: 'you', text }); S.busy = true; paintTranscript(true); setState('Listening…', false);
+    stopListening();
+    box.value = ''; S.transcript.push({ who: 'you', text }); S.busy = true; paintTranscript(true); setState(`${S.persona.name.split(' ')[0]} is responding…`, false);
     const btn = document.getElementById('sendBtn'); if (btn) btn.disabled = true;
     const c = S.persona;
     const system = `You are role-playing a phone CALLER in a training simulation for legal support staff. Stay completely in character — you are ${c.name}, ${c.role}.
@@ -265,27 +345,46 @@ Rules: reply ONLY with what you say out loud next — 1 to 3 short, natural spok
         S.busy = false; if (btn) btn.disabled = false;
         S.transcript.pop(); paintTranscript();
         if (box) box.value = text;
-        setState('Connection problem — try again', false);
+        S.handsFree = false; const hb = document.getElementById('hfBtn'); if (hb) hb.classList.remove('on');
+        setState('Connection problem — press Send to try again', false);
         alert('The caller couldn’t respond: ' + e.message);
     }
 }
 function toggleMic() {
-    const R = window.SpeechRecognition || window.webkitSpeechRecognition; if (!R) return;
+    if (S.recording && S.recog) { S.recog.stop(); return; }   // stop → sends what was heard
+    startListening();
+}
+function startListening() {
+    const R = window.SpeechRecognition || window.webkitSpeechRecognition; if (!R || S.phase !== 'call' || S.busy) return;
     const btn = document.getElementById('micBtn');
-    if (S.recording && S.recog) { S.recog.stop(); return; }
-    speechSynthesis.cancel();
+    S.speakToken = null; try { speechSynthesis.cancel(); } catch (e) {}   // talking over the caller interrupts them
+    stopListening();
     const r = new R(); r.lang = 'en-US'; r.interimResults = true; r.continuous = false;
     const box = document.getElementById('say'); let finalText = '';
     r.onresult = (e) => { let interim = ''; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) finalText += t; else interim += t; } if (box) box.value = (finalText + ' ' + interim).trim(); };
-    r.onend = () => { S.recording = false; if (btn) btn.classList.remove('rec'); setState('Your turn', false); if ((box && box.value.trim())) send(); };
-    r.onerror = () => { S.recording = false; if (btn) btn.classList.remove('rec'); };
-    S.recog = r; S.recording = true; if (btn) btn.classList.add('rec'); setState('Listening to you…', false);
-    r.start();
+    r.onend = () => {
+        if (S.recog !== r) return;
+        S.recog = null; S.recording = false; if (btn) btn.classList.remove('rec');
+        if (box && box.value.trim()) send(); else setState(turnText(), false);
+    };
+    r.onerror = (e) => {
+        if (e && (e.error === 'not-allowed' || e.error === 'service-not-allowed')) {
+            S.handsFree = false; const hb = document.getElementById('hfBtn'); if (hb) hb.classList.remove('on');
+            setState('Microphone blocked — allow it in the address bar, or type', false);
+        }
+    };
+    S.recog = r; S.recording = true; if (btn) btn.classList.add('rec'); setState('🎙 Listening… pause when you’re done', false);
+    try { r.start(); } catch (e) { S.recog = null; S.recording = false; if (btn) btn.classList.remove('rec'); setState(turnText(), false); }
+}
+function stopListening() {
+    const r = S.recog; if (!r) return;
+    S.recog = null; S.recording = false; const btn = document.getElementById('micBtn'); if (btn) btn.classList.remove('rec');
+    try { r.abort ? r.abort() : r.stop(); } catch (e) {}
 }
 /* ---------- debrief ---------- */
 async function endCall() {
     if (S.phase !== 'call') return;
-    clearInterval(S.timer); try { speechSynthesis.cancel(); } catch (e) {} if (S.recog) try { S.recog.stop(); } catch (e) {}
+    clearInterval(S.timer); S.speakToken = null; S.utts = []; try { speechSynthesis.cancel(); } catch (e) {} stopListening();
     const secs = Math.round((Date.now() - S.startedAt) / 1000);
     const c = S.persona;
     if (c.note && S.transcript.some(m => m.who === 'you')) { S.secs = secs; S.note = c.note.template; S.phase = 'note'; return render(); }
