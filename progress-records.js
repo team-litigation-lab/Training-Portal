@@ -180,7 +180,7 @@ function renderTable() {
 // ---------- archived batches ----------
 function archivedList() {
     const d = P.data || {}, byBatch = {};
-    (d.archivedBatches || []).forEach(a => { byBatch[a.batch] = { batch: a.batch, count: a.count, archivedAt: a.archivedAt, snapshot: true }; });
+    (d.archivedBatches || []).forEach(a => { byBatch[a.batch] = { batch: a.batch, count: a.count, archivedAt: a.archivedAt, snapshot: true, driveUrl: a.driveUrl }; });
     // Batches archived in the course itself (no snapshot here): every trainee in them archived.
     const all = (d.trainees || []), batches = [...new Set(all.map(t => t.batch || ''))];
     batches.forEach(b => { const ts = all.filter(t => (t.batch || '') === b);
@@ -198,6 +198,8 @@ function renderArchived() {
                 <div><b>${esc(batchName(a.batch))}</b> <span class="pg-muted">${a.count} trainee${a.count === 1 ? '' : 's'}${a.archivedAt ? ` · archived ${esc(date(a.archivedAt))}` : ' · archived in the course'}</span></div>
                 <div class="pg-arch-acts">
                     ${a.snapshot ? `<button onclick="openSnapshot(${esc(JSON.stringify(a.batch))})">${snap && snap.show ? 'Hide' : 'Open'}</button>` : ''}
+                    ${a.driveUrl ? `<a class="pg-drive" href="${esc(a.driveUrl)}" target="_blank" rel="noopener">📁 Google Drive ↗</a>`
+                        : a.snapshot && P.data.driveConfigured && !PREVIEW ? `<button onclick="saveToDrive(${esc(JSON.stringify(a.batch))})">☁ Save to Drive</button>` : ''}
                     ${PREVIEW ? '' : `<button onclick="restoreBatch(${esc(JSON.stringify(a.batch))})">↩ Restore</button>`}
                 </div>
                 ${snap && snap.show ? `<div class="pg-arch-snap">${snap.loading ? '<span class="pg-muted">Loading…</span>' : snap.error ? `<span class="sim-error">${esc(snap.error)}</span>`
@@ -231,11 +233,22 @@ async function batchAction(action, batch, confirmText) {
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.success) throw new Error(data.error || `That didn’t work (${res.status}).`);
         delete P.snaps[P.program + '|' + batch];
-        if (typeof showToast === 'function') showToast(`${batchName(batch)}: ${data.count} trainee${data.count === 1 ? '' : 's'} ${action === 'ARCHIVE_BATCH' ? 'archived' : 'restored'}.`, 'success');
+        const drive = data.drive ? (data.drive.url ? ' Saved to Google Drive.' : ` Not saved to Google Drive: ${data.drive.error} (use “Save to Drive” to retry).`) : '';
+        if (typeof showToast === 'function') showToast(`${batchName(batch)}: ${data.count} trainee${data.count === 1 ? '' : 's'} ${action === 'ARCHIVE_BATCH' ? 'archived' : 'restored'}.${drive}`, data.drive && data.drive.error ? 'error' : 'success');
         load(true);
     } catch (e) { alert(e.message); }
 }
-function archiveBatch(b) { batchAction('ARCHIVE_BATCH', b, `Archive ${batchName(b)} in ${progLabel(P.program)}? It moves to “Archived batches”, trainees in it are archived in the course too, and its records are kept. You can open or restore it any time.`); }
+async function saveToDrive(batch) {
+    try {
+        const res = await fetch('/api/program-progress', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'SAVE_TO_DRIVE', program: P.program, batch }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) throw new Error(data.error || `That didn’t work (${res.status}).`);
+        if (typeof showToast === 'function') showToast(`${batchName(batch)} saved to Google Drive.`, 'success');
+        load(true);
+    } catch (e) { alert(e.message); }
+}
+function archiveBatch(b) { batchAction('ARCHIVE_BATCH', b, `Archive ${batchName(b)} in ${progLabel(P.program)}? It moves to “Archived batches”, trainees in it are archived in the course too, and its records are kept${P.data.driveConfigured ? ' (and saved to Google Drive)' : ''}. You can open or restore it any time.`); }
 function restoreBatch(b) { batchAction('RESTORE_BATCH', b, `Restore ${batchName(b)} in ${progLabel(P.program)}? Its trainees become active again, here and in the course.`); }
 
 // The table scrolls sideways; keep the open trainee's detail in the visible part.
