@@ -42,7 +42,8 @@
     .at-tr { max-width: 240px; } .at-bbar .at-tr { max-width: 300px; min-width: 0; } .at-tr.own { border-color: var(--orange); background: #fff8f1; }
     .at-table td { vertical-align: middle; white-space: nowrap; }
     .at-table td.nm { white-space: normal; min-width: 140px; font-weight: 700; }
-    .at-time input { width: 120px; }
+    .at-time input { width: 120px; } .at-time input.auto { border-color: #86efac; background: #f0fdf4; }
+    .at-auto { display: inline-block; margin-left: 4px; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--ok); }
     .at-now { font: inherit; font-size: 13px; margin-left: 2px; padding: 5px 7px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; cursor: pointer; }
     select.at-st { font-weight: 800; border-radius: 999px; min-width: 160px; border-color: transparent; cursor: pointer; }
     select.at-st.empty { background: #fff; color: var(--slate); border-color: #cbd5e1; }
@@ -79,7 +80,7 @@
     <section class="sim-hero">
         <div class="eyebrow">Admin · Attendance by program</div>
         <h1>🕘 Attendance</h1>
-        <p>Pick a program and a day, then tag each trainee batch by batch: the training they’re taking, time in and out (Pacific time), their status and notes. It saves as you go, into the same records as the program’s own Admin → 🕘 Attendance tab, and the attendance Google Sheet picks it up.</p>
+        <p>Pick a program and a day, then tag each trainee batch by batch. Their Time In fills in on its own when they open their course (marked “auto”); add the time out, their status and notes. It saves as you go, into the same records as the program’s own Admin → 🕘 Attendance tab, and the attendance Google Sheet stays in step both ways.</p>
     </section>
     <div id="app"><div class="sim-card"><div class="sim-loading">Loading attendance…</div></div></div>
 </div>
@@ -98,14 +99,14 @@ const STATUSES = [
     { label: 'Undertime - No Approval', bg: '#ffcfc9', fg: '#b10202' }, { label: 'NCNS', bg: '#473821', fg: '#ffffff' }, { label: 'Sick Leave', bg: '#3d3d3d', fg: '#ffffff' },
     { label: 'RL', bg: '#ffcfc9', fg: '#b10202' }, { label: 'EOP', bg: '#bfe1f6', fg: '#0a53a8' }, { label: 'Absent with Notif', bg: '#753800', fg: '#ffffff' }
 ];
-const TZ = 'America/Los_Angeles';
+const TZ = 'America/New_York';   // attendance runs on Eastern time (EST, or EDT in summer)
 const A = { program: (() => { try { return localStorage.getItem('at-program') || 'ft'; } catch (e) { return 'ft'; } })(),
     date: null, data: null, loading: false, seq: 0, closed: {}, sum: {}, dirty: {}, timers: {}, saving: 0, failed: false };
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const js = v => esc(JSON.stringify(v));
 const statusOf = v => STATUSES.find(s => s.label.toLowerCase() === String(v || '').trim().toLowerCase()) || null;
-function ptDate(d) { return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d || new Date()); }
-function nowPT() { return new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()); }
+function etDate(d) { return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d || new Date()); }
+function nowET() { return new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()); }
 const isWeekday = iso => { const n = new Date(iso + 'T12:00:00Z').getUTCDay(); return n >= 1 && n <= 5; };
 function shiftDay(iso, n) { const d = new Date(iso + 'T12:00:00Z'); do d.setUTCDate(d.getUTCDate() + n); while (!isWeekday(d.toISOString().slice(0, 10))); return d.toISOString().slice(0, 10); }
 const longDate = iso => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
@@ -177,7 +178,8 @@ function saveNote(t) { const el = document.getElementById('atSave'); if (el) { e
 function setRow(key, id, field, value) {
     const b = batchOf(key); if (!b) return;
     const r = rec(b), p = b.trainees.find(x => x.id === id);
-    const row = r.rows[id] || (r.rows[id] = { name: '', training: '', timeIn: '', timeOut: '', status: '', note: '' });
+    const ci = (b.checkins || {})[id] || {};           // a new row keeps the automatic Time In
+    const row = r.rows[id] || (r.rows[id] = { name: '', training: '', timeIn: ci.timeIn || '', timeOut: '', status: '', note: '' });
     row[field] = String(value || '').slice(0, 300);
     row.name = (p && p.name) || row.name || id;
     touch(key, id);
@@ -221,12 +223,12 @@ function batchSection(b) {
             <button type="button" class="sim-btn ghost" onclick="At.summary(${js(key)})">📊 ${A.sum[key] ? 'Hide summary' : 'Summary'}</button>
         </div>
         <div class="sim-table-wrap"><table class="sim-table at-table">
-            <thead><tr><th>#</th><th>Name</th><th>Training</th><th>Time In (PT)</th><th>Time Out (PT)</th><th>Status</th><th>Notes</th></tr></thead>
-            <tbody>${b.trainees.map((p, i) => { const row = rows[p.id] || {};
+            <thead><tr><th>#</th><th>Name</th><th>Training</th><th>Time In (EST)</th><th>Time Out (EST)</th><th>Status</th><th>Notes</th></tr></thead>
+            <tbody>${b.trainees.map((p, i) => { const row = rows[p.id] || {}, auto = row.timeIn ? '' : ((b.checkins || {})[p.id] || {}).timeIn || '';
                 return `<tr><td class="at-muted">${i + 1}</td><td class="nm">${esc(p.name)}</td>
                     <td title="${row.training ? 'Set for this trainee' : 'The batch’s training'}">${trainingField(row.training || '', `At.field(${js(key)},${js(p.id)},'training',this.value)`, trainingOf(b), row.training ? ' own' : '')}</td>
-                    <td class="at-time"><input type="time" value="${esc(row.timeIn || '')}" onchange="At.field(${js(key)},${js(p.id)},'timeIn',this.value)"><button type="button" class="at-now" title="Now (Pacific time)" onclick="At.now(${js(key)},${js(p.id)},'timeIn',this)">⏱</button></td>
-                    <td class="at-time"><input type="time" value="${esc(row.timeOut || '')}" onchange="At.field(${js(key)},${js(p.id)},'timeOut',this.value)"><button type="button" class="at-now" title="Now (Pacific time)" onclick="At.now(${js(key)},${js(p.id)},'timeOut',this)">⏱</button></td>
+                    <td class="at-time"><input type="time" class="${auto ? 'auto' : ''}" title="${auto ? 'Recorded automatically when they opened the course' : ''}" value="${esc(row.timeIn || auto)}" onchange="At.field(${js(key)},${js(p.id)},'timeIn',this.value)"><button type="button" class="at-now" title="Now (Eastern time)" onclick="At.now(${js(key)},${js(p.id)},'timeIn',this)">⏱</button>${auto ? '<span class="at-auto">auto</span>' : ''}</td>
+                    <td class="at-time"><input type="time" value="${esc(row.timeOut || '')}" onchange="At.field(${js(key)},${js(p.id)},'timeOut',this.value)"><button type="button" class="at-now" title="Now (Eastern time)" onclick="At.now(${js(key)},${js(p.id)},'timeOut',this)">⏱</button></td>
                     <td>${statusSelect(key, p.id, row.status)}</td>
                     <td><input type="text" class="at-notes" maxlength="300" placeholder="Notes" value="${esc(row.note || '')}" oninput="At.field(${js(key)},${js(p.id)},'note',this.value)"></td></tr>`; }).join('')}</tbody>
         </table></div>
@@ -255,9 +257,9 @@ function renderSummary(b) {
 }
 function paint() {
     const app = document.getElementById('app');
-    if (!A.date) A.date = ptDate();
+    if (!A.date) A.date = etDate();
     const tabs = `<div class="at-ptabs" role="tablist">${PROGRAM_ORDER.map(id => `<button role="tab" class="${A.program === id ? 'on' : ''}" onclick="At.program('${id}')">${esc(progLabel(id))}</button>`).join('')}</div>`;
-    const isToday = A.date === ptDate(), d = A.data && A.data.program === A.program ? A.data : null;
+    const isToday = A.date === etDate(), d = A.data && A.data.program === A.program ? A.data : null;
     const lessons = d && d.lessons && d.lessons.length ? '' : `<datalist id="atLessons">${[...new Set(((d && d.batches) || []).flatMap(b => [b.record && b.record.training].concat(Object.values((b.record || {}).rows || {}).map(r => r.training))).filter(Boolean))].map(t => `<option value="${esc(t)}">`).join('')}</datalist>`;
     app.innerHTML = `${tabs}
     <div class="sim-card">
@@ -274,12 +276,12 @@ function paint() {
         </div>
         <div class="at-sheet">
             <a class="sim-btn primary" href="${SHEET_URL}" target="_blank" rel="noopener">📗 Open the attendance Google Sheet</a>
-            <span class="at-muted">Its “Platform Attendance” tab updates itself every 15 minutes from every program.</span>
+            <span class="at-muted">Its “Platform Attendance” tab updates itself every 15 minutes from every program, and edits made there come back here.</span>
             <details><summary>Set up the sheet’s sync (once)</summary>
                 <ol>
                     <li>In the sheet: <b>Extensions → Apps Script</b>. Replace what’s there with the sheet script (<button type="button" class="sim-btn ghost" onclick="At.copyScript()">📋 Copy the sheet script</button>) and save.</li>
                     <li>Reload the sheet. In the new <b>🕘 Platform Attendance</b> menu, choose <b>Set up (feed key)…</b> and paste the feed key: the <code>ATTENDANCE_FEED_KEY</code> secret of this portal’s Cloudflare Pages project.</li>
-                    <li>Allow the permissions Google asks for. It syncs now, then every 15 minutes; <b>Sync now</b> syncs any time.</li>
+                    <li>Allow the permissions Google asks for. It syncs now, then every 15 minutes, and edits made in the sheet to Training, Time In, Time Out, Status or Notes come back to the platform straight away. <b>Sync now</b> syncs any time.</li>
                 </ol>
             </details>
         </div>
@@ -291,11 +293,11 @@ function paint() {
 }
 
 /* ---------- CSV (opens in Excel and Google Sheets) ---------- */
-const CSV_HEAD = ['Program', 'Date', 'Day', 'Batch', 'Name', 'Training', 'Time In (PT)', 'Time Out (PT)', 'Status', 'Notes'];
-function csvRows(r, people, fallbackTraining) {
+const CSV_HEAD = ['Program', 'Date', 'Day', 'Batch', 'Name', 'Training', 'Time In (EST)', 'Time Out (EST)', 'Status', 'Notes'];
+function csvRows(r, people, fallbackTraining, checkins) {
     const ids = people.map(p => p.id); Object.keys(r.rows || {}).forEach(id => { if (!ids.includes(id)) ids.push(id); });
     return ids.map(id => { const row = (r.rows || {})[id] || {}, p = people.find(x => x.id === id);
-        return [progLabel(A.program), mdy(r.date), r.day || '', r.batch || '', (p && p.name) || row.name || id, row.training || r.training || fallbackTraining || '', time12(row.timeIn), time12(row.timeOut), row.status || '', row.note || '']; });
+        return [progLabel(A.program), mdy(r.date), r.day || '', r.batch || '', (p && p.name) || row.name || id, row.training || r.training || fallbackTraining || '', time12(row.timeIn || ((checkins || {})[id] || {}).timeIn), time12(row.timeOut), row.status || '', row.note || '']; });
 }
 function download(name, rows) {
     const q = v => { const s = String(v == null ? '' : v); return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
@@ -306,8 +308,8 @@ function download(name, rows) {
 
 window.At = {
     program(id) { if (id === A.program) return; flush(); A.program = id; A.sum = {}; A.data = null; try { localStorage.setItem('at-program', id); } catch (e) {} load(); },
-    date(v) { flush(); A.date = /^\d{4}-\d{2}-\d{2}$/.test(v || '') ? v : ptDate(); A.sum = {}; load(); },
-    go(n) { this.date(shiftDay(A.date || ptDate(), n)); },
+    date(v) { flush(); A.date = /^\d{4}-\d{2}-\d{2}$/.test(v || '') ? v : etDate(); A.sum = {}; load(); },
+    go(n) { this.date(shiftDay(A.date || etDate(), n)); },
     batch(key) { A.closed[key] = !A.closed[key]; paint(); },
     field(key, id, field, value) { setRow(key, id, field, value); },
     status(key, id, sel) {
@@ -315,7 +317,7 @@ window.At = {
         const s = statusOf(sel.value); sel.style.background = s ? s.bg : ''; sel.style.color = s ? s.fg : ''; sel.classList.toggle('empty', !s);
         const el = document.getElementById('atCount-' + key); if (el) el.innerHTML = counts(batchOf(key));
     },
-    now(key, id, field, btn) { const v = nowPT(), inp = btn.previousElementSibling; if (inp) inp.value = v; setRow(key, id, field, v); },
+    now(key, id, field, btn) { const v = nowET(), inp = btn.previousElementSibling; if (inp) inp.value = v; setRow(key, id, field, v); },
     head(key, field, value) {
         const b = batchOf(key); if (!b) return;
         const r = rec(b);
@@ -344,7 +346,7 @@ window.At = {
     },
     csvDay() {
         const d = A.data; if (!d || !d.batches.length) { alert('No trainees to download.'); return; }
-        download(`Attendance_${A.program.toUpperCase()}_${A.date}.csv`, d.batches.flatMap(b => csvRows(rec(b), b.trainees, b.training)));
+        download(`Attendance_${A.program.toUpperCase()}_${A.date}.csv`, d.batches.flatMap(b => csvRows(rec(b), b.trainees, b.training, b.checkins)));
     },
     csvBatch(key) {
         const b = batchOf(key), S = A.sum[key]; if (!b || !S || !S.records) return;
@@ -359,7 +361,7 @@ window.At = {
     }
 };
 window.addEventListener('beforeunload', flush);
-document.addEventListener('DOMContentLoaded', () => { A.date = ptDate(); load(); });
+document.addEventListener('DOMContentLoaded', () => { A.date = etDate(); load(); });
 </script>
 </body>
 </html>
