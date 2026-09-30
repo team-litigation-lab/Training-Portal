@@ -38,7 +38,7 @@ const PortalNav = {
 // nav bar. If no "← Back" is on the page shortly after it loads (Home excepted), a
 // floating one is added. The Checks workflow also fails any page without one.
 (function () {
-    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html', '/registration.html': '/index.html', '/orientation.html': '/index.html', '/referrals.html': '/core.html' };
+    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html', '/registration.html': '/index.html', '/orientation.html': '/index.html', '/referrals.html': '/core.html', '/attendance.html': '/core.html' };
     function ensureBack() {
         const path = location.pathname.replace(/\/$/, '/index.html');
         if (path === '/index.html' || PortalNav.embedded() || document.querySelector('.pn-back')) return;

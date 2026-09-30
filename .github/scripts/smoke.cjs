@@ -6,7 +6,7 @@
 const { chromium } = require('playwright');
 const http = require('http'); const fs = require('fs'); const path = require('path');
 const ROOT = process.cwd();
-const PAGES = ['/index.html', '/programs.html', '/simulators.html', '/kb.html', '/progress.html', '/core.html', '/registration.html', '/trainee-login.html', '/admin-login.html', '/orientation.html', '/orientation.html?track=admin', '/referrals.html',
+const PAGES = ['/index.html', '/programs.html', '/simulators.html', '/kb.html', '/progress.html', '/core.html', '/registration.html', '/trainee-login.html', '/admin-login.html', '/orientation.html', '/orientation.html?track=admin', '/referrals.html', '/attendance.html',
     '/simulators/call.html?program=CM', '/simulators/call.html?program=FT&line=Reception%20Mock%20Calls', '/simulators/call.html?program=PD', '/simulators/email.html?program=CM', '/simulators/email-replies.html?program=CM', '/simulators/calendar.html?program=CM',
     '/simulators/docket.html?program=CM', '/simulators/records.html?program=CM', '/simulators/efiling.html?program=CM'];
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.md': 'text/markdown' };
@@ -34,7 +34,7 @@ const server = http.createServer((req, res) => {
                 const nav = await page.evaluate(async (path) => {
                     await new Promise(r => setTimeout(r, 1300));   // the safety-net Back button appears ~1.5 s after load
                     const back = [...document.querySelectorAll('.pn-back')].some(a => { const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
-                    const PORTAL = /^\/(index|programs|simulators|kb|progress|core|orientation|referrals)\.html$|^\/simulators\//;
+                    const PORTAL = /^\/(index|programs|simulators|kb|progress|core|orientation|referrals|attendance)\.html$|^\/simulators\//;
                     const newTab = [...document.querySelectorAll('a[target="_blank"]')].map(a => { try { return new URL(a.getAttribute('href'), location.href); } catch (e) { return null; } })
                         .filter(u => u && u.origin === location.origin && PORTAL.test(u.pathname)).map(u => u.pathname);
                     return { back, newTab, home: /^\/(index\.html)?$/.test(path) };

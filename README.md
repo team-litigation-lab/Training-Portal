@@ -122,6 +122,35 @@ Admins' own posts and replies are published straight away.
 
 **Data** (D1 `TRAINING_DB`, created on first use): `kb_articles`, `kb_comments`, `kb_profiles`, `kb_stats` (views, helpful), `kb_votes`, `kb_settings` (the code's hash and version), `kb_rate`. Code: `functions/_kb.js`, `functions/api/kb/`, `kb.html`, `kb.js`, `kb-md.js`.
 
+## 🕘 Attendance (admin)
+
+**Admin → 🕘 Attendance** (`/attendance.html`; linked from Master Control and the Directory's admin bar) is every program's attendance, batch by batch. It shows and edits the same records as each course's own **Admin → 🕘 Attendance** tab (`js/attendance.js`, the same file in every course), so trainers can take attendance in either place.
+
+- **A tab per program**, then a day: today's date in Eastern time (EST, or EDT in summer), ◀ ▶ through the training days, or any date.
+- **Each batch** lists its approved, active trainees. Each row has:
+  - **Name**;
+  - **Training**: the batch's training, as the course picks it. For Foundational, that's the latest lesson opened for the batch (its Open Lessons), else the orientation. For the other courses, it's the day most of the batch is on. It can be changed for the batch or for one trainee;
+  - **Time In / Time Out** (Eastern time, typed or ⏱ Now). **Time In fills in on its own:** each course's Worker records it the first time a trainee opens the course that day (`/api/checkin`). It shows marked "auto" until a trainer sets one, and it's saved into the day when a trainer tags that trainee;
+  - **Status**, from the attendance sheet's dropdown in its colors. **✓ Mark the rest Present** tags everyone not yet tagged;
+  - **Notes**.
+
+  The batch's **Day N** counts its days already logged.
+- **Saving:** it saves as you go. The API re-reads the day and writes only the rows changed on screen, so trainers here and in the courses don't overwrite each other. Each row saved here records who saved it (`by`). Preview deployments don't save, since they share the live course data.
+- **📊 Summary** per batch (each trainee's count of every status, the last 10 days as colored squares), and **⬇ CSV** for a day or a batch's history.
+- **API:** `functions/api/attendance.js` (admin-only), with the shared rules in `functions/_attendance.js`. Records are `<course prefix>attendance:<batch key>:<YYYY-MM-DD>` in the courses' KV (`COURSE_KV`); the automatic Time Ins are `<course prefix>checkin:<YYYY-MM-DD>:<trainee id>` (each trainee's own key, with the time in its KV metadata so one list reads a whole day; kept 40 days). The Training list is each course's lessons, kept in `PROGRAMS` in `functions/_attendance.js`; update it when a course's lessons change. Medsum & Demand has none listed yet, so its Training is free text.
+
+### The attendance Google Sheet
+
+The attendance Google Sheet (linked from the page) gets a **Platform Attendance** tab that stays in step with the platform both ways: every program, one row per trainee per day, newest first, with the status dropdown and colors.
+
+- **Platform → sheet:** `attendance-sync.gs` runs in the sheet (Apps Script). Every 15 minutes it reads `/api/attendance-feed` (`functions/api/attendance-feed.js`: the last 14 days of every program, automatic Time Ins included) with a key, adds new rows and updates changed ones. A row changes only when the platform has a newer update for it. Older days stay in the sheet.
+- **Sheet → platform:** an edit to Training, Time In, Time Out, Status or Notes is sent straight away (an installable on-edit trigger → `POST /api/attendance-feed`), and changes only those fields of that trainee's day, recording `by: sheet:<editor>`. A time can be typed as 8:05 AM or 08:05. If an edit can't be sent, the row's **Sync note** says why and the edit stays in the sheet until that day changes on the platform. Date, Day, Program, Batch and Name come from the platform.
+- **Set up (once):**
+  1. In Cloudflare Pages → this project → **Settings → Variables and Secrets** (Production), add `ATTENDANCE_FEED_KEY` as a secret: a long random string. Redeploy. Until it's set, the feed is off.
+  2. In the sheet: **Extensions → Apps Script**. Replace what's there with `attendance-sync.gs` (the page's **📋 Copy the sheet script** button copies it) and save.
+  3. Reload the sheet. In the **🕘 Platform Attendance** menu, choose **Set up (feed key)…**, paste the key, and allow the permissions Google asks for. It syncs straight away, then every 15 minutes, and sends edits as they're made. **Sync now** syncs any time; **Turn off auto-sync** stops both directions.
+- Each sync reads the courses' KV: per program, a list of its attendance keys and one of its automatic Time Ins, plus one read per batch per day in the window. The feed key can also write attendance (the sheet's edits), so keep it to the sheet.
+
 ## Trainee Progress & Feedback (admin)
 
 **Admin → 📊 Progress & Feedback** (`/progress.html`, also linked from Master Control) is the central record of every trainee's training.
