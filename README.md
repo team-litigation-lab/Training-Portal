@@ -122,6 +122,34 @@ Admins' own posts and replies are published straight away.
 
 **Data** (D1 `TRAINING_DB`, created on first use): `kb_articles`, `kb_comments`, `kb_profiles`, `kb_stats` (views, helpful), `kb_votes`, `kb_settings` (the code's hash and version), `kb_rate`. Code: `functions/_kb.js`, `functions/api/kb/`, `kb.html`, `kb.js`, `kb-md.js`.
 
+## 🕘 Attendance (admin)
+
+**Admin → 🕘 Attendance** (`/attendance.html`; linked from Master Control and the Directory's admin bar) is every program's attendance, batch by batch. It shows and edits the same records as each course's own **Admin → 🕘 Attendance** tab (`js/attendance.js`, the same file in every course), so trainers can take attendance in either place.
+
+- **A tab per program**, then a day: today's date in Pacific time, ◀ ▶ through the training days, or any date.
+- **Each batch** lists its approved, active trainees. Each row has:
+  - **Name**;
+  - **Training**: the batch's training, as the course picks it. For Foundational, that's the latest lesson opened for the batch (its Open Lessons), else the orientation. For the other courses, it's the day most of the batch is on. It can be changed for the batch or for one trainee;
+  - **Time In / Time Out** (Pacific time, typed or ⏱ Now);
+  - **Status**, from the attendance sheet's dropdown in its colors. **✓ Mark the rest Present** tags everyone not yet tagged;
+  - **Notes**.
+
+  The batch's **Day N** counts its days already logged.
+- **Saving:** it saves as you go. The API re-reads the day and writes only the rows changed on screen, so trainers here and in the courses don't overwrite each other. Each row saved here records who saved it (`by`). Preview deployments don't save, since they share the live course data.
+- **📊 Summary** per batch (each trainee's count of every status, the last 10 days as colored squares), and **⬇ CSV** for a day or a batch's history.
+- **API:** `functions/api/attendance.js` (admin-only). Records are `<course prefix>attendance:<batch key>:<YYYY-MM-DD>` in the courses' KV (`COURSE_KV`). The Training list is each course's lessons, kept in `PROGRAMS` there; update it when a course's lessons change. Medsum & Demand has none listed yet, so its Training is free text.
+
+### The attendance Google Sheet
+
+The attendance Google Sheet (linked from the page) gets a **Platform Attendance** tab that fills itself from the platform every 15 minutes: every program, one row per trainee per day, newest first, with the status dropdown and colors.
+
+- **How:** `attendance-sync.gs` runs in the sheet (Apps Script). It reads `/api/attendance-feed` (`functions/api/attendance-feed.js`, the last 14 days of every program) with a key, adds new rows and updates changed ones. A row changes only when the platform has a newer update for it, so an edit made in the sheet stays until that trainee's day is changed on the platform. Older days stay in the sheet.
+- **Set up (once):**
+  1. In Cloudflare Pages → this project → **Settings → Variables and Secrets** (Production), add `ATTENDANCE_FEED_KEY` as a secret: a long random string. Redeploy. Until it's set, the feed is off.
+  2. In the sheet: **Extensions → Apps Script**. Replace what's there with `attendance-sync.gs` (the page's **📋 Copy the sheet script** button copies it) and save.
+  3. Reload the sheet. In the **🕘 Platform Attendance** menu, choose **Set up (feed key)…**, paste the key, and allow the permissions Google asks for. It syncs straight away, then every 15 minutes. **Sync now** syncs any time; **Turn off auto-sync** stops it.
+- Each sync reads the courses' KV: one list per program, plus one read per batch per day in the window.
+
 ## Trainee Progress & Feedback (admin)
 
 **Admin → 📊 Progress & Feedback** (`/progress.html`, also linked from Master Control) is the central record of every trainee's training.

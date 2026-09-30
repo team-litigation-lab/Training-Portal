@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance — LSH Training Portal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/simulators/sim.css">
+<!-- Admin: every program's attendance, batch by batch (/api/attendance). The same records as each
+     course's Admin → 🕘 Attendance tab; the Google Sheet syncs them (attendance-sync.gs, /api/attendance-feed). -->
+<style>
+    .at-ptabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+    .at-ptabs button { font: inherit; font-size: 14px; font-weight: 800; padding: 10px 18px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; color: var(--navy, #0f2148); cursor: pointer; }
+    .at-ptabs button.on { background: var(--navy, #0f2148); color: #fff; border-color: var(--navy, #0f2148); box-shadow: 0 6px 16px -10px rgba(15,33,72,.7); }
+    .at-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .at-bar input[type=date] { font: inherit; font-size: 14px; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 10px; }
+    .at-bigdate { font-size: 16px; font-weight: 800; color: var(--navy); margin-left: 4px; }
+    .at-today { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--ok); background: #f0fdf4; border-radius: 999px; padding: 5px 10px; }
+    .at-grow { flex: 1; }
+    .at-save { font-size: 12.5px; font-weight: 700; color: var(--ok); white-space: nowrap; } .at-save.bad { color: var(--bad); }
+    .at-muted { color: var(--slate); font-size: 13px; }
+    .at-note { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 14px; padding: 12px 16px; font-size: 13.5px; margin: 14px 0; }
+    .at-sheet { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+    .at-sheet summary { cursor: pointer; font-weight: 800; color: var(--navy); }
+    .at-sheet ol { margin: 8px 0 4px 20px; padding: 0; font-size: 13.5px; line-height: 1.6; }
+    .at-sheet details { flex-basis: 100%; }
+    .at-batch { margin-top: 16px; }
+    .at-bhd { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+    .at-toggle { font: inherit; font-size: 15.5px; font-weight: 800; color: var(--navy); background: none; border: 0; padding: 4px 0; cursor: pointer; }
+    .at-caret { display: inline-block; width: 14px; color: var(--slate); font-size: 12px; }
+    .at-counts { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+    .at-chip { display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .at-chip.none { background: #f1f5f9; color: var(--slate); }
+    .at-bbar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 10px 0 8px; font-size: 13.5px; }
+    .at-bbar label { display: inline-flex; gap: 6px; align-items: center; font-weight: 800; color: var(--navy); white-space: nowrap; min-width: 0; }
+    .at-table select, .at-table input, .at-bbar select, .at-bbar input { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: var(--ink, #0f172a); }
+    .at-day { width: 60px; }
+    .at-tr { max-width: 240px; } .at-bbar .at-tr { max-width: 300px; min-width: 0; } .at-tr.own { border-color: var(--orange); background: #fff8f1; }
+    .at-table td { vertical-align: middle; white-space: nowrap; }
+    .at-table td.nm { white-space: normal; min-width: 140px; font-weight: 700; }
+    .at-time input { width: 120px; }
+    .at-now { font: inherit; font-size: 13px; margin-left: 2px; padding: 5px 7px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; cursor: pointer; }
+    select.at-st { font-weight: 800; border-radius: 999px; min-width: 160px; border-color: transparent; cursor: pointer; }
+    select.at-st.empty { background: #fff; color: var(--slate); border-color: #cbd5e1; }
+    .at-notes { min-width: 160px; width: 100%; box-sizing: border-box; }
+    .at-sum { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); }
+    .at-sum-hd { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 6px; }
+    .at-sum-hd .sim-btn { margin-left: auto; }
+    .at-dots { display: flex; gap: 3px; } .at-dot { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: #e2e8f0; }
+    @media (max-width: 640px) { .at-counts { margin-left: 0; } .at-bbar label.at-trl { flex: 1 1 100%; } .at-bbar .at-tr { flex: 1; max-width: none; } }
+</style>
+<script src="/portal-nav.js"></script>
+</head>
+<body>
+<script>
+    // Admins only (the API checks the session too). Anyone else goes to admin sign-in.
+    (function () {
+        try {
+            const raw = sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1');
+            const s = raw && raw !== 'null' ? JSON.parse(raw) : null;
+            if (!s || s.userType !== 'Admin') window.location.replace('/admin-login.html');
+        } catch (e) { window.location.replace('/admin-login.html'); }
+    })();
+</script>
+<div class="sim-top">
+    <a class="sim-brand" href="/programs.html"><img src="/favicon.png" alt=""><span>LSH Training Portal<small>Attendance</small></span></a>
+    <div class="sim-nav">
+        <script>document.write(PortalNav.html('', { back: '/core.html' }));</script>
+        <a href="/core.html">Master Control</a>
+        <a href="/progress.html">📊 Progress &amp; Feedback</a>
+        <a onclick="logoutSession()">Log Out</a>
+    </div>
+</div>
+<div class="sim-wrap">
+    <section class="sim-hero">
+        <div class="eyebrow">Admin · Attendance by program</div>
+        <h1>🕘 Attendance</h1>
+        <p>Pick a program and a day, then tag each trainee batch by batch: the training they’re taking, time in and out (Pacific time), their status and notes. It saves as you go, into the same records as the program’s own Admin → 🕘 Attendance tab, and the attendance Google Sheet picks it up.</p>
+    </section>
+    <div id="app"><div class="sim-card"><div class="sim-loading">Loading attendance…</div></div></div>
+</div>
+
+<script src="/app.js"></script>
+<script src="/portal.js"></script>
+<script>
+// The attendance Google Sheet: its 🕘 Platform Attendance menu (attendance-sync.gs) fills a
+// "Platform Attendance" tab from /api/attendance-feed every 15 minutes.
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1zs7lqZiHaDYef3XymhoK9cUj2SV-AR3_IgWRUA1iRn8/edit';
+const PROGRAM_ORDER = ['ft', 'eapa', 'cm', 'pd', 'md'];
+// The attendance sheet's statuses and colors (the same as the courses' js/attendance.js).
+const STATUSES = [
+    { label: 'Present', bg: '#11734b', fg: '#ffffff' }, { label: 'Late', bg: '#d4edbc', fg: '#11734b' }, { label: 'Late with Notif', bg: '#e6cff2', fg: '#5a3286' },
+    { label: 'Early Out - POC Approved', bg: '#ffe5a0', fg: '#473821' }, { label: 'Undertime - POC Approved', bg: '#b10202', fg: '#ffffff' },
+    { label: 'Undertime - No Approval', bg: '#ffcfc9', fg: '#b10202' }, { label: 'NCNS', bg: '#473821', fg: '#ffffff' }, { label: 'Sick Leave', bg: '#3d3d3d', fg: '#ffffff' },
+    { label: 'RL', bg: '#ffcfc9', fg: '#b10202' }, { label: 'EOP', bg: '#bfe1f6', fg: '#0a53a8' }, { label: 'Absent with Notif', bg: '#753800', fg: '#ffffff' }
+];
+const TZ = 'America/Los_Angeles';
+const A = { program: (() => { try { return localStorage.getItem('at-program') || 'ft'; } catch (e) { return 'ft'; } })(),
+    date: null, data: null, loading: false, seq: 0, closed: {}, sum: {}, dirty: {}, timers: {}, saving: 0, failed: false };
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const js = v => esc(JSON.stringify(v));
+const statusOf = v => STATUSES.find(s => s.label.toLowerCase() === String(v || '').trim().toLowerCase()) || null;
+function ptDate(d) { return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d || new Date()); }
+function nowPT() { return new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()); }
+const isWeekday = iso => { const n = new Date(iso + 'T12:00:00Z').getUTCDay(); return n >= 1 && n <= 5; };
+function shiftDay(iso, n) { const d = new Date(iso + 'T12:00:00Z'); do d.setUTCDate(d.getUTCDate() + n); while (!isWeekday(d.toISOString().slice(0, 10))); return d.toISOString().slice(0, 10); }
+const longDate = iso => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+const mdy = iso => { const [y, m, d] = String(iso || '').split('-'); return y && m && d ? `${m}/${d}/${y}` : String(iso || ''); };
+const time12 = v => { const m = /^(\d{1,2}):(\d{2})/.exec(String(v || '')); if (!m) return ''; const h = +m[1]; return `${h % 12 || 12}:${m[2]} ${h < 12 ? 'AM' : 'PM'}`; };
+const progLabel = id => ((A.data && A.data.programs || []).find(p => p.id === id) || {}).label || { ft: 'Standard Foundational Training', eapa: 'EA / PA Training', cm: 'CM Training', pd: 'PD Claims Training', md: 'Medsum & Demand Training' }[id] || id;
+const batchOf = key => ((A.data && A.data.batches) || []).find(b => b.key === key);
+const rec = b => b.record || (b.record = { v: 1, batch: b.batch, date: A.date, day: b.day, training: b.training, rows: {} });   // a day not saved yet
+const trainingOf = b => (b.record && b.record.training) || b.training || '';
+
+async function load() {
+    const seq = ++A.seq, program = A.program, date = A.date;
+    A.loading = true; paint();
+    try {
+        const res = await fetch(`/api/attendance?program=${encodeURIComponent(program)}&date=${date}`, { credentials: 'include' });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401 || res.status === 403) { window.location.replace('/admin-login.html'); return; }
+        if (seq !== A.seq) return;
+        if (!res.ok || !data.success) throw new Error(data.error || `Couldn’t load the attendance (${res.status}).`);
+        (data.batches || []).forEach(b => {
+            b.onServer = !!b.record;
+            // Rows still waiting to save keep what's on screen.
+            const d = A.dirty[dkey(program, date, b.key)];
+            if (d && d.b.record) { const r = rec(b); d.rows.forEach(id => { r.rows[id] = d.b.record.rows[id]; }); d.b = b; }
+        });
+        A.data = data; A.error = '';
+    } catch (e) { if (seq === A.seq) { A.error = e.message; A.data = A.data && A.data.program === program ? A.data : null; } }
+    if (seq === A.seq) { A.loading = false; paint(); }
+}
+
+/* ---------- saving: only what changed here; the API merges it into the latest copy ----------
+   Each pending save keeps its program, day and batch, so switching program or day doesn't lose it. */
+const dkey = (program, date, key) => `${program}|${date}|${key}`;
+function touch(key, id) {
+    const b = batchOf(key), dk = dkey(A.program, A.date, key);
+    const d = A.dirty[dk] || (A.dirty[dk] = { key, b, program: A.program, date: A.date, head: false, rows: new Set() });
+    if (id) d.rows.add(id); else d.head = true;
+    clearTimeout(A.timers[dk]);
+    A.timers[dk] = setTimeout(() => save(dk), 700);
+    saveNote('Saving…');
+}
+function flush() { Object.keys(A.dirty).forEach(dk => { clearTimeout(A.timers[dk]); save(dk); }); }
+async function save(dk) {
+    const d = A.dirty[dk]; if (!d) return;
+    delete A.dirty[dk]; A.saving++;
+    const b = d.b, r = rec(b), rows = {}, first = !b.onServer;
+    d.rows.forEach(id => { rows[id] = r.rows[id]; });
+    let ok = false, data = {};
+    try {
+        const res = await fetch('/api/attendance', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ program: d.program, batch: d.key, batchLabel: b.batch, date: d.date, head: d.head || first ? { day: r.day, training: r.training } : {}, rows }) });
+        data = await res.json().catch(() => ({}));
+        ok = res.ok && data.success;
+        if (ok) {
+            b.onServer = true;
+            const pending = A.dirty[dk];            // take the other trainers' rows, keep ours that changed since
+            Object.entries((data.record && data.record.rows) || {}).forEach(([id, row]) => { if (!(pending && pending.rows.has(id)) && !d.rows.has(id)) r.rows[id] = row; });
+        }
+    } catch (e) { ok = false; }
+    if (!ok) {                                       // keep it, and try again shortly
+        const cur = A.dirty[dk] || (A.dirty[dk] = Object.assign({}, d, { head: false, rows: new Set() }));
+        cur.head = cur.head || d.head; d.rows.forEach(id => cur.rows.add(id));
+        clearTimeout(A.timers[dk]); A.timers[dk] = setTimeout(() => save(dk), 10000);
+    }
+    A.saving--; A.failed = !ok;
+    saveNote(!ok ? '⚠ Not saved yet' + (data.error ? `: ${data.error}` : '') + ' (trying again)' : A.saving || Object.keys(A.dirty).length ? 'Saving…' : '✓ Saved');
+}
+function saveNote(t) { const el = document.getElementById('atSave'); if (el) { el.textContent = t; el.className = 'at-save' + (/⚠/.test(t) ? ' bad' : ''); } }
+function setRow(key, id, field, value) {
+    const b = batchOf(key); if (!b) return;
+    const r = rec(b), p = b.trainees.find(x => x.id === id);
+    const row = r.rows[id] || (r.rows[id] = { name: '', training: '', timeIn: '', timeOut: '', status: '', note: '' });
+    row[field] = String(value || '').slice(0, 300);
+    row.name = (p && p.name) || row.name || id;
+    touch(key, id);
+}
+
+/* ---------- the page ---------- */
+function counts(b) {
+    const c = {}; let none = 0;
+    b.trainees.forEach(p => { const s = statusOf(((b.record || {}).rows || {})[p.id]?.status); if (s) c[s.label] = (c[s.label] || 0) + 1; else none++; });
+    return STATUSES.filter(s => c[s.label]).map(s => `<span class="at-chip" style="background:${s.bg};color:${s.fg};">${esc(s.label)} ${c[s.label]}</span>`).join('')
+        + (none ? `<span class="at-chip none">Not tagged ${none}</span>` : '');
+}
+function trainingField(val, onchange, extra, cls) {
+    const list = (A.data && A.data.lessons) || [];
+    if (!list.length) return `<input class="at-tr${cls || ''}" list="atLessons" maxlength="160" placeholder="${esc(extra || 'Training')}" value="${esc(val)}" onchange="${onchange}">`;
+    return `<select class="at-tr${cls || ''}" onchange="${onchange}">${extra != null ? `<option value="" ${val ? '' : 'selected'}>${esc(extra)}</option>` : ''}
+        ${list.map(t => `<option value="${esc(t)}" ${t === val ? 'selected' : ''}>${esc(t)}</option>`).join('')}
+        ${val && !list.includes(val) ? `<option value="${esc(val)}" selected>${esc(val)}</option>` : ''}</select>`;
+}
+function statusSelect(key, id, v) {
+    const s = statusOf(v);
+    return `<select class="at-st${s ? '' : ' empty'}" style="${s ? `background:${s.bg};color:${s.fg};` : ''}" onchange="At.status(${js(key)},${js(id)},this)">
+        <option value="">— Tag —</option>${STATUSES.map(o => `<option value="${esc(o.label)}" style="background:${o.bg};color:${o.fg};" ${s && s.label === o.label ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}
+        ${v && !s ? `<option value="${esc(v)}" selected>${esc(v)}</option>` : ''}</select>`;
+}
+function batchSection(b) {
+    const key = b.key, closed = !!A.closed[key], r = b.record || {}, rows = r.rows || {};
+    const label = b.batch ? 'Batch ' + b.batch : 'No batch set';
+    return `<section class="sim-card at-batch">
+        <div class="at-bhd">
+            <button type="button" class="at-toggle" onclick="At.batch(${js(key)})"><span class="at-caret">${closed ? '▸' : '▾'}</span> 📁 ${esc(label)}</button>
+            <span class="at-muted">${b.trainees.length} trainee${b.trainees.length === 1 ? '' : 's'}</span>
+            <span class="at-counts" id="atCount-${esc(key)}">${counts(b)}</span>
+        </div>
+        ${closed ? '' : `<div class="at-bbar">
+            <label>Day <input type="number" class="at-day" min="1" max="99" value="${esc(r.day || b.day)}" onchange="At.head(${js(key)},'day',this.value)"></label>
+            <span class="at-muted">${esc(longDate(A.date))}</span>
+            <label class="at-trl">Training ${trainingField(trainingOf(b), `At.head(${js(key)},'training',this.value)`)}</label>
+            <span class="at-grow"></span>
+            <button type="button" class="sim-btn ghost" onclick="At.allPresent(${js(key)})">✓ Mark the rest Present</button>
+            <button type="button" class="sim-btn ghost" onclick="At.summary(${js(key)})">📊 ${A.sum[key] ? 'Hide summary' : 'Summary'}</button>
+        </div>
+        <div class="sim-table-wrap"><table class="sim-table at-table">
+            <thead><tr><th>#</th><th>Name</th><th>Training</th><th>Time In (PT)</th><th>Time Out (PT)</th><th>Status</th><th>Notes</th></tr></thead>
+            <tbody>${b.trainees.map((p, i) => { const row = rows[p.id] || {};
+                return `<tr><td class="at-muted">${i + 1}</td><td class="nm">${esc(p.name)}</td>
+                    <td title="${row.training ? 'Set for this trainee' : 'The batch’s training'}">${trainingField(row.training || '', `At.field(${js(key)},${js(p.id)},'training',this.value)`, trainingOf(b), row.training ? ' own' : '')}</td>
+                    <td class="at-time"><input type="time" value="${esc(row.timeIn || '')}" onchange="At.field(${js(key)},${js(p.id)},'timeIn',this.value)"><button type="button" class="at-now" title="Now (Pacific time)" onclick="At.now(${js(key)},${js(p.id)},'timeIn',this)">⏱</button></td>
+                    <td class="at-time"><input type="time" value="${esc(row.timeOut || '')}" onchange="At.field(${js(key)},${js(p.id)},'timeOut',this.value)"><button type="button" class="at-now" title="Now (Pacific time)" onclick="At.now(${js(key)},${js(p.id)},'timeOut',this)">⏱</button></td>
+                    <td>${statusSelect(key, p.id, row.status)}</td>
+                    <td><input type="text" class="at-notes" maxlength="300" placeholder="Notes" value="${esc(row.note || '')}" oninput="At.field(${js(key)},${js(p.id)},'note',this.value)"></td></tr>`; }).join('')}</tbody>
+        </table></div>
+        ${A.sum[key] ? renderSummary(b) : ''}`}
+    </section>`;
+}
+function renderSummary(b) {
+    const S = A.sum[b.key];
+    if (!S || S.loading) return `<div class="at-sum at-muted">Loading the batch’s attendance…</div>`;
+    if (S.error) return `<div class="at-sum at-muted">${esc(S.error)}</div>`;
+    if (!S.records.length) return `<div class="at-sum at-muted">No attendance saved for this batch yet.</div>`;
+    const names = {}; b.trainees.forEach(p => names[p.id] = p.name);
+    S.records.forEach(r => Object.entries(r.rows || {}).forEach(([id, row]) => { if (!names[id]) names[id] = (row && row.name) || id; }));
+    const ids = Object.keys(names).sort((x, y) => names[x].localeCompare(names[y])), tally = {}, used = new Set();
+    ids.forEach(id => { tally[id] = {}; S.records.forEach(r => { const s = statusOf(((r.rows || {})[id] || {}).status); if (s) { tally[id][s.label] = (tally[id][s.label] || 0) + 1; used.add(s.label); } }); });
+    const cols = STATUSES.filter(s => used.has(s.label)), recent = S.records.slice(-10);
+    return `<div class="at-sum">
+        <div class="at-sum-hd"><b>📊 ${S.records.length} day${S.records.length === 1 ? '' : 's'} logged</b> <span class="at-muted">${esc(mdy(S.records[0].date))} – ${esc(mdy(S.records[S.records.length - 1].date))}</span>
+            <button type="button" class="sim-btn ghost" onclick="At.csvBatch(${js(b.key)})">⬇ Download all days (CSV)</button></div>
+        <div class="sim-table-wrap"><table class="sim-table at-table"><thead><tr><th>Name</th>${cols.map(s => `<th><span class="at-chip" style="background:${s.bg};color:${s.fg};">${esc(s.label)}</span></th>`).join('')}<th>Not tagged</th><th>Last ${recent.length} day${recent.length === 1 ? '' : 's'}</th></tr></thead>
+        <tbody>${ids.map(id => { const tagged = Object.values(tally[id]).reduce((a, n) => a + n, 0);
+            return `<tr><td class="nm">${esc(names[id])}</td>${cols.map(s => `<td>${tally[id][s.label] || '<span class="at-muted">0</span>'}</td>`).join('')}<td>${S.records.length - tagged || '<span class="at-muted">0</span>'}</td>
+                <td><span class="at-dots">${recent.map(r => { const row = (r.rows || {})[id] || {}, s = statusOf(row.status);
+                    return `<span class="at-dot" style="${s ? `background:${s.bg};` : ''}" title="${esc(`Day ${r.day || '?'} · ${mdy(r.date)}: ${row.status || 'not tagged'}${row.timeIn ? ' · in ' + time12(row.timeIn) : ''}`)}"></span>`; }).join('')}</span></td></tr>`; }).join('')}</tbody></table></div>
+    </div>`;
+}
+function paint() {
+    const app = document.getElementById('app');
+    if (!A.date) A.date = ptDate();
+    const tabs = `<div class="at-ptabs" role="tablist">${PROGRAM_ORDER.map(id => `<button role="tab" class="${A.program === id ? 'on' : ''}" onclick="At.program('${id}')">${esc(progLabel(id))}</button>`).join('')}</div>`;
+    const isToday = A.date === ptDate(), d = A.data && A.data.program === A.program ? A.data : null;
+    const lessons = d && d.lessons && d.lessons.length ? '' : `<datalist id="atLessons">${[...new Set(((d && d.batches) || []).flatMap(b => [b.record && b.record.training].concat(Object.values((b.record || {}).rows || {}).map(r => r.training))).filter(Boolean))].map(t => `<option value="${esc(t)}">`).join('')}</datalist>`;
+    app.innerHTML = `${tabs}
+    <div class="sim-card">
+        <div class="at-bar">
+            <button type="button" class="sim-btn ghost" title="Previous training day" onclick="At.go(-1)">◀</button>
+            <input type="date" value="${esc(A.date)}" onchange="At.date(this.value)" aria-label="Day">
+            <button type="button" class="sim-btn ghost" title="Next training day" onclick="At.go(1)">▶</button>
+            ${isToday ? '<span class="at-today">Today</span>' : '<button type="button" class="sim-btn ghost" onclick="At.date(null)">Today</button>'}
+            <span class="at-bigdate">${esc(longDate(A.date))}</span>
+            <span class="at-grow"></span>
+            <span id="atSave" class="at-save${A.failed ? ' bad' : ''}">${A.failed ? '⚠ Not saved' : ''}</span>
+            <button type="button" class="sim-btn ghost" onclick="At.csvDay()">⬇ This day (CSV)</button>
+            <button type="button" class="sim-btn ghost" onclick="load()">Refresh</button>
+        </div>
+        <div class="at-sheet">
+            <a class="sim-btn primary" href="${SHEET_URL}" target="_blank" rel="noopener">📗 Open the attendance Google Sheet</a>
+            <span class="at-muted">Its “Platform Attendance” tab updates itself every 15 minutes from every program.</span>
+            <details><summary>Set up the sheet’s sync (once)</summary>
+                <ol>
+                    <li>In the sheet: <b>Extensions → Apps Script</b>. Replace what’s there with the sheet script (<button type="button" class="sim-btn ghost" onclick="At.copyScript()">📋 Copy the sheet script</button>) and save.</li>
+                    <li>Reload the sheet. In the new <b>🕘 Platform Attendance</b> menu, choose <b>Set up (feed key)…</b> and paste the feed key: the <code>ATTENDANCE_FEED_KEY</code> secret of this portal’s Cloudflare Pages project.</li>
+                    <li>Allow the permissions Google asks for. It syncs now, then every 15 minutes; <b>Sync now</b> syncs any time.</li>
+                </ol>
+            </details>
+        </div>
+    </div>
+    ${A.error ? `<div class="at-note">${esc(A.error)}</div>` : ''}
+    ${lessons}
+    ${A.loading && !d ? '<div class="sim-card at-batch"><div class="sim-loading">Loading attendance…</div></div>'
+        : !d ? '' : d.batches.length ? d.batches.map(batchSection).join('') : '<div class="sim-card at-batch at-muted">No approved trainees in this program yet.</div>'}`;
+}
+
+/* ---------- CSV (opens in Excel and Google Sheets) ---------- */
+const CSV_HEAD = ['Program', 'Date', 'Day', 'Batch', 'Name', 'Training', 'Time In (PT)', 'Time Out (PT)', 'Status', 'Notes'];
+function csvRows(r, people, fallbackTraining) {
+    const ids = people.map(p => p.id); Object.keys(r.rows || {}).forEach(id => { if (!ids.includes(id)) ids.push(id); });
+    return ids.map(id => { const row = (r.rows || {})[id] || {}, p = people.find(x => x.id === id);
+        return [progLabel(A.program), mdy(r.date), r.day || '', r.batch || '', (p && p.name) || row.name || id, row.training || r.training || fallbackTraining || '', time12(row.timeIn), time12(row.timeOut), row.status || '', row.note || '']; });
+}
+function download(name, rows) {
+    const q = v => { const s = String(v == null ? '' : v); return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['﻿' + [CSV_HEAD].concat(rows).map(r => r.map(q).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+    a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+window.At = {
+    program(id) { if (id === A.program) return; flush(); A.program = id; A.sum = {}; A.data = null; try { localStorage.setItem('at-program', id); } catch (e) {} load(); },
+    date(v) { flush(); A.date = /^\d{4}-\d{2}-\d{2}$/.test(v || '') ? v : ptDate(); A.sum = {}; load(); },
+    go(n) { this.date(shiftDay(A.date || ptDate(), n)); },
+    batch(key) { A.closed[key] = !A.closed[key]; paint(); },
+    field(key, id, field, value) { setRow(key, id, field, value); },
+    status(key, id, sel) {
+        setRow(key, id, 'status', sel.value);
+        const s = statusOf(sel.value); sel.style.background = s ? s.bg : ''; sel.style.color = s ? s.fg : ''; sel.classList.toggle('empty', !s);
+        const el = document.getElementById('atCount-' + key); if (el) el.innerHTML = counts(batchOf(key));
+    },
+    now(key, id, field, btn) { const v = nowPT(), inp = btn.previousElementSibling; if (inp) inp.value = v; setRow(key, id, field, v); },
+    head(key, field, value) {
+        const b = batchOf(key); if (!b) return;
+        const r = rec(b);
+        if (field === 'day') { const n = Math.round(+value); if (!(n >= 1 && n <= 99)) { paint(); return; } r.day = n; } else r.training = String(value || '').slice(0, 160);
+        touch(key, null);
+        if (field === 'training') paint();
+    },
+    allPresent(key) {
+        const b = batchOf(key); if (!b) return;
+        const todo = b.trainees.filter(p => !statusOf(((b.record || {}).rows || {})[p.id]?.status));
+        if (!todo.length) { alert('Everyone in this batch is already tagged.'); return; }
+        todo.forEach(p => setRow(key, p.id, 'status', 'Present')); paint();
+    },
+    async summary(key) {
+        if (A.sum[key]) { delete A.sum[key]; paint(); return; }
+        A.sum[key] = { loading: true }; paint();
+        try {
+            const res = await fetch(`/api/attendance?program=${encodeURIComponent(A.program)}&batch=${encodeURIComponent(key)}&history=1`, { credentials: 'include' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) throw new Error(data.error || `Couldn’t load the batch (${res.status}).`);
+            const here = (batchOf(key) || {}).record, records = data.records || [];
+            if (here) { const i = records.findIndex(r => r.date === here.date); if (i >= 0) records[i] = here; else if (Object.keys(here.rows || {}).length) records.push(here); }
+            if (A.sum[key]) A.sum[key] = { records: records.sort((x, y) => String(x.date).localeCompare(String(y.date))) };
+        } catch (e) { if (A.sum[key]) A.sum[key] = { error: e.message }; }
+        paint();
+    },
+    csvDay() {
+        const d = A.data; if (!d || !d.batches.length) { alert('No trainees to download.'); return; }
+        download(`Attendance_${A.program.toUpperCase()}_${A.date}.csv`, d.batches.flatMap(b => csvRows(rec(b), b.trainees, b.training)));
+    },
+    csvBatch(key) {
+        const b = batchOf(key), S = A.sum[key]; if (!b || !S || !S.records) return;
+        download(`Attendance_${A.program.toUpperCase()}_${b.batch ? 'Batch-' + b.batch.replace(/\s+/g, '-') : 'No-batch'}_all-days.csv`, S.records.flatMap(r => csvRows(r, b.trainees, b.training)));
+    },
+    async copyScript() {
+        try {
+            const text = await fetch('/attendance-sync.gs', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(); return r.text(); });
+            await navigator.clipboard.writeText(text);
+            alert('Copied. Paste it into the sheet’s Apps Script editor (Extensions → Apps Script) and save.');
+        } catch (e) { window.open('/attendance-sync.gs', '_blank', 'noopener'); }
+    }
+};
+window.addEventListener('beforeunload', flush);
+document.addEventListener('DOMContentLoaded', () => { A.date = ptDate(); load(); });
+</script>
+</body>
+</html>
