@@ -194,6 +194,18 @@ Where the records come from:
 
 The API (`/api/program-progress`) is admin-only. It writes only to archive and restore batches; feedback is written and marked reviewed in each course. It stays under Workers KV's 1,000-operations-per-request limit and says so on the page if a very large program doesn't fit. To add a program, add it to `PROGRAMS` in `functions/api/program-progress.js` with its key prefix, number of days and course address, and to `PROGRAM_ORDER` in `progress-records.js`.
 
+## 📉 Server requests (every LSH site shares one monthly allowance)
+
+Every request that runs a Pages Function counts toward the Cloudflare account's monthly requests, shared by every LSH site (the courses, the CMS, this portal, Ring Channel, the Knowledge Base): 10 million a billing month on the Workers Paid plan, then charged. The EA/PA course repository's **Request budget** workflow switches the sites' servers off before the limit. So open pages ask sparingly:
+
+| What | How often | Before |
+|---|---|---|
+| The lock and pause, the alert and new pings: **one** request, `/api/live` (`functions/api/live.js`, `pollLive` in `portal.js`) | every 20 s; 60 s in a background tab; at once when the tab comes back | three requests (`/api/site-state`, `/api/alert`, `/api/pings`) every 3 s |
+| Heartbeat (`app.js`; the server allows 90 s between beats) | every 30 s, and when the tab comes back | every 2 s |
+| Progress and the leaderboard | once a minute, only on a page that shows them, only while it's in view | every 15 s on every signed-in page |
+
+About 98 requests a minute per signed-in tab became about 5. Pings are read from where the last one left off, so a slower check misses none. `/api/site-state`, `/api/alert` and `/api/pings` still answer on their own (Master Control uses them right after a change).
+
 ## Checks and uptime alerts (GitHub Actions)
 
 **Checks** (`.github/workflows/checks.yml`) runs on every pull request and every push to `main`. A red status means something is broken, and the log says what:
@@ -202,6 +214,7 @@ The API (`/api/program-progress`) is admin-only. It writes only to archive and r
   - every local file a page loads must exist;
   - JSON must be valid;
   - the Pages Functions must build (nothing is deployed).
+- **Server requests** (`.github/scripts/requests.cjs`): a signed-in page asks `/api/live` once on load and every 20 s, never `/api/site-state`, `/api/alert` or `/api/pings` on their own; a heartbeat every 30 s; progress once a minute; nothing in a background tab and both at once on coming back; the lock screen, the alert and a new ping from `/api/live` are shown, and the next check asks for pings since the last one; signed out, no pings are asked.
 - **Smoke test in a browser:** opens every portal page and simulator at desktop and phone width (API calls answered with empty data). It fails on any page error or a page that scrolls sideways on a phone. New simulator pages go in `PAGES` in `.github/scripts/smoke.cjs`.
 
 **Uptime** (`.github/workflows/uptime.yml`) checks every 30 minutes (at :07 and :37):
@@ -217,6 +230,6 @@ Each failing check is retried once after 20 seconds.
 
 GitHub pauses scheduled workflows after 60 days without a commit to the repository. The Actions tab shows a button to turn it back on.
 
-To run the checks locally: `node .github/scripts/check-site.mjs`, `node .github/scripts/smoke.cjs` (needs Playwright), `node .github/scripts/uptime.mjs`.
+To run the checks locally: `node .github/scripts/check-site.mjs`, `node .github/scripts/smoke.cjs` and `node .github/scripts/requests.cjs` (need Playwright), `node .github/scripts/uptime.mjs`.
 
 `_redirects` keeps `wrangler.toml`, the Markdown files, `topics_seed.sql`, `.github/` and the Functions source off the published site.

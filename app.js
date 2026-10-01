@@ -5,8 +5,12 @@
 let siteIsLocked = false;
 let siteLockedByAdmin = false;
 const SESSION_KEY = 'LSH_SESSION_V1';
-const HEARTBEAT_INTERVAL_MS = 2000;
-const LIVE_DATA_INTERVAL_MS = 15000;
+// Every request that runs a Function counts toward the Cloudflare account's monthly requests (shared by
+// every LSH site), so open pages ask sparingly. The heartbeat keeps the session alive: the server allows
+// HEARTBEAT_GRACE_SECONDS (90) between beats, and one is sent when the tab comes back into view.
+const HEARTBEAT_INTERVAL_MS = 30000;
+// Progress and the leaderboard: once a minute, only on a page that shows them and only while it's in view.
+const LIVE_DATA_INTERVAL_MS = 60000;
 let heartbeatIntervalId = null;
 let __heartbeatVisibilityHandler = null;
 let liveDataIntervalId = null;
@@ -65,7 +69,8 @@ function switchView(viewId) {
         if (viewId === 'admin-activities' || viewId === 'trainee-activities') {
             loadActivitiesData();
         }
-        if (viewId === 'trainee-landing' || viewId === 'admin-landing') {
+        if ((viewId === 'trainee-landing' || viewId === 'admin-landing') && Date.now() - __liveDataAt > 5000) {   // (not again if the live polling just did)
+            __liveDataAt = Date.now();   // the live polling's next refresh is a minute from now
             loadProgressData();
             loadLeaderboardData();
         }
@@ -171,16 +176,24 @@ function logoutSession() {
 // 2b-i. LIVE PROGRESS & LEADERBOARD POLLING
 // Keeps the progress bars and leaderboard current without a page refresh,
 // for whichever of the trainee/admin landing views happen to be visible.
+let __liveDataAt = 0, __liveDataVisibilityHandler = null;
 function startLiveDataPolling() {
     stopLiveDataPolling(); // idempotent
+    const shown = () => ['trainee-progress-bar', 'batch-progress-pct-card', 'leaderboard-body', 'admin-leaderboard-body', 'admin-progress-tracker-body']
+        .some(id => document.getElementById(id));
     const tick = () => {
+        if (document.hidden || !shown() || Date.now() - __liveDataAt < LIVE_DATA_INTERVAL_MS - 1000) return;   // (a second start right after the first doesn't ask again)
+        __liveDataAt = Date.now();
         loadProgressData();
         loadLeaderboardData();
     };
     tick();
     liveDataIntervalId = setInterval(tick, LIVE_DATA_INTERVAL_MS);
+    __liveDataVisibilityHandler = () => { if (!document.hidden && Date.now() - __liveDataAt >= LIVE_DATA_INTERVAL_MS) tick(); };
+    document.addEventListener('visibilitychange', __liveDataVisibilityHandler);
 }
 function stopLiveDataPolling() {
+    if (__liveDataVisibilityHandler) { document.removeEventListener('visibilitychange', __liveDataVisibilityHandler); __liveDataVisibilityHandler = null; }
     if (liveDataIntervalId) {
         clearInterval(liveDataIntervalId);
         liveDataIntervalId = null;
@@ -190,7 +203,7 @@ function stopLiveDataPolling() {
 // 2b. SESSION HEARTBEAT
 // Keeps the server-side `heartbeats` row fresh so requireSession() (see
 // _utils.js) keeps treating this tab as logged in. If this stops ticking,
-// the session is treated as expired within HEARTBEAT_GRACE_SECONDS (6s)
+// the session is treated as expired within HEARTBEAT_GRACE_SECONDS (90 s)
 // even if the signed session cookie itself hasn't expired yet.
 function startHeartbeat() {
     stopHeartbeat(); // idempotent — never run two intervals at once
