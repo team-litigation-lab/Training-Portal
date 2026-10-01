@@ -408,7 +408,12 @@ async function pollAlert() {
         // GET /api/alert is intentionally public (no requireSession) — it
         // has to work for a logged-out visitor sitting at the login screen too.
         const res = await fetch('/api/alert', { credentials: 'include' });
-        const data = await res.json().catch(() => null);
+        applyAlertData(await res.json().catch(() => null));
+    } catch (e) { /* retry next tick */ }
+}
+// The alert from /api/alert or /api/live (pollLive).
+function applyAlertData(data) {
+    try {
         if (!data) return;
 
         const statusLine = document.getElementById('alert-status-line');
@@ -502,11 +507,14 @@ let __siteState = { locked: false, paused: false };
 async function refreshSiteState() {
     try {
         const res = await fetch('/api/site-state', { credentials: 'include' });
-        const data = await res.json().catch(() => null);
-        if (!data || data.success === false) return;
-        __siteState = data;
-        applySiteStateUI(data);
+        applySiteStateData(await res.json().catch(() => null));
     } catch (e) { /* transient network error — next poll retries */ }
+}
+// The site state from /api/site-state or /api/live (pollLive).
+function applySiteStateData(data) {
+    if (!data || data.success === false) return;
+    __siteState = data;
+    applySiteStateUI(data);
 }
 
 function applySiteStateUI(state) {
@@ -809,7 +817,12 @@ async function pollPings() {
     try {
         const url = '/api/pings' + (__lastPingAt ? ('?since=' + encodeURIComponent(__lastPingAt)) : '');
         const res = await fetch(url, { credentials: 'include' });
-        const data = await res.json().catch(() => null);
+        applyPingsData(await res.json().catch(() => null));
+    } catch (e) { /* retry next tick */ }
+}
+// New pings from /api/pings or /api/live (pollLive).
+function applyPingsData(data) {
+    try {
         if (!data || data.success === false || !Array.isArray(data.pings)) return;
 
         if (!__pingsInitialized) {
@@ -836,13 +849,28 @@ window.addEventListener('DOMContentLoaded', () => {
     initDataAllowFilters();
     renderAlertSwatches();
 
-    refreshSiteState();
-    pollAlert();
-    pollPings();
-
-    setInterval(() => {
-        refreshSiteState();
-        pollAlert();
-        pollPings();
-    }, 3000);
+    pollLive();
+    // Every 20 s, every 60 s in a background tab (pings are fetched from where the last one left off, so
+    // none is missed), and right away when the tab comes back into view.
+    setInterval(() => { if (Date.now() - __liveAt >= (document.hidden ? LIVE_HIDDEN_MS : LIVE_MS) - 1000) pollLive(); }, LIVE_MS);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - __liveAt > 10000) pollLive(); });
 });
+
+// What every open page checks (the lock and pause, the alert and, signed in, new pings) in ONE request,
+// /api/live. Every request that runs a Function counts toward the Cloudflare account's monthly requests,
+// shared by every LSH site: this used to be three requests every 3 s from every open page.
+const LIVE_MS = 20000, LIVE_HIDDEN_MS = 60000;
+let __liveAt = 0;
+async function pollLive() {
+    __liveAt = Date.now();
+    const signedIn = !!getSession();
+    const q = signedIn ? '?pings=1' + (__lastPingAt ? '&since=' + encodeURIComponent(__lastPingAt) : '') : '';
+    try {
+        const res = await fetch('/api/live' + q, { credentials: 'include' });
+        const d = await res.json().catch(() => null);
+        if (!d || !d.success) return;
+        applySiteStateData(d.siteState);
+        applyAlertData(d.alert);
+        if (signedIn) applyPingsData(d.pings);
+    } catch (e) { /* transient network error — next poll retries */ }
+}

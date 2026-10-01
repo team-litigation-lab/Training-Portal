@@ -48,3 +48,7 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/smoke.cjs
+      - name: Server requests from an open page (one /api/live every 20 s, heartbeat every 30 s)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/requests.cjs
