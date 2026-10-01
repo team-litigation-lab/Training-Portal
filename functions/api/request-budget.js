@@ -1,6 +1,6 @@
 import { json, requireSession } from '../_utils.js';
 
-// 📊 The server request meter on the admin pages (request-budget.js, started from portal-nav.js;
+// 📊 The server request meter on the admin pages (request-budget.js, started from portal.js;
 // README → Server request meter), admins only.
 // Every LSH site shares one Cloudflare account and one monthly request allowance. The Request budget
 // workflow in EA-PA-TRAINING (.github/scripts/request-budget.mjs) saves the billing month's numbers to
