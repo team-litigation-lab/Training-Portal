@@ -874,3 +874,27 @@ async function pollLive() {
         if (signedIn) applyPingsData(d.pings);
     } catch (e) { /* transient network error — next poll retries */ }
 }
+
+// ==========================================
+// 📊 SERVER REQUEST METER (admins; README → Server request meter)
+// How much of the Cloudflare account's monthly request allowance (shared by every LSH site) is
+// used: a chip in a corner of every admin page, with the details on a click. request-budget.js is
+// the same file in every LSH platform; it's loaded only for a signed-in Admin, and not inside a
+// course's frame (the course shows its own). It asks /api/request-budget once when the page opens,
+// then every 15 minutes while the tab is in view. Bottom right, because Master Control's Log Out and
+// the floating "← Back" are bottom left; on a phone the chip can be nearly as wide as the screen, so
+// it sits above the "← Back".
+// ==========================================
+window.addEventListener('DOMContentLoaded', () => {
+    const isAdmin = () => { const s = getSession(); return !!s && s.userType === 'Admin'; };
+    let framed = true;
+    try { framed = window.self !== window.top; } catch (e) {}
+    if (framed || !isAdmin()) return;
+    const script = document.createElement('script');
+    script.src = '/request-budget.js';
+    script.onload = () => RequestBudget.start({
+        load: () => fetch('/api/request-budget', { credentials: 'include' }).then(r => r.json().catch(() => ({ error: 'HTTP ' + r.status }))),
+        isAdmin, site: 'portal', corner: 'bottom-right', offset: { x: 16, y: window.innerWidth <= 520 ? 56 : 16 }
+    });
+    document.head.appendChild(script);
+});
