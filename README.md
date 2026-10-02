@@ -87,15 +87,16 @@ The **Got a referral?** button on the home page (in the hero, next to *See how i
 
 It has two tracks, switched at the top of the page:
 - **Trainees** (8 slides): what the portal is, the Training Directory, signing in inside each program, what's inside a program, the Simulators, the Knowledge Base, good habits, and first steps.
-- **Trainers & Admins** (8 slides): admin sign-in, the Directory's admin view (access queue, Mark Passed, Manually Grant Access), Master Control (monitoring, Broadcast & Ping, Access Control, activities and grading), Progress & Feedback, program admin, Knowledge Base review and simulator scores, and a daily checklist.
+- **Trainers & Admins** (8 slides, signed-in admins only: trainees never see this track or its tab): admin sign-in, the Directory's admin view (access queue, Mark Passed, Manually Grant Access), Master Control (monitoring, Broadcast & Ping, Access Control, activities and grading), Progress & Feedback, program admin, Knowledge Base review and simulator scores, and a daily checklist.
 
 How to use it:
 - Keys: ← → (or Page Up / Page Down / Space) change slides, and **F** toggles full screen.
-- **🖨 Print** prints the current track, one slide per page (or saves it as a PDF).
+- **⬇ Download PDF** saves the current track as a PDF, one page per slide (`lsh-blueprint.js`, the same file as on every LSH platform). The cover and each page carry the deployed version (the page's ETag) and the date, so it's always made from what's live: nothing to rebuild by hand after a deploy.
+- **🖨 Print** prints the current track, one slide per page.
 - Deep links: `?track=admin&slide=3`.
 - Links to it: **Orientation** in the home page menu, and **🧭 Orientation** in the Training Directory's top bar. Signed-in admins get the admin track.
 
-To change the content, edit `SLIDES` in `orientation.html`.
+To change the content, edit `SLIDES` in `orientation.html`; the PDF is made from the same slides. `.github/scripts/blueprint.cjs` checks it in CI: trainees get the Trainees track only, an admin gets both, and each track downloads as a PDF with every slide and the deploy stamp.
 
 ## Knowledge Base
 
