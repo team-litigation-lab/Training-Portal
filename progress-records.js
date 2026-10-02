@@ -5,8 +5,8 @@
 // reopened or restored from the "Archived batches" list.
 const PROGRAM_ORDER = ['ft', 'eapa', 'cm', 'pd', 'md'];
 const P = { data: null, cache: {}, snaps: {}, tab: 'people', program: (() => { try { return localStorage.getItem('pg-program') || 'ft'; } catch (e) { return 'ft'; } })(),
-    status: 'active', q: '', sort: 'recent', open: {}, closed: {}, archOpen: false,
-    fb: { day: '', status: '', q: '' } };
+    status: 'active', batch: '', q: '', sort: 'recent', open: {}, closed: {}, archOpen: false,
+    fb: { day: '', status: '', batch: '', q: '' } };
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nameKey = (s) => String(s || '').split(' · ')[0].trim().toLowerCase().replace(/\s+/g, ' ');
 const avg = (xs) => { xs = xs.filter(v => v != null); return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : null; };
@@ -56,11 +56,21 @@ function people() {
         };
     });
 }
+// Every batch this program has (trainees' and feedback's), for the batch filters.
+function batchesOfProgram() {
+    const set = new Set();
+    (P.data.trainees || []).forEach(t => set.add(t.batch || ''));
+    (P.data.traineeFeedback || []).forEach(x => set.add(x.batch || ''));
+    return [...set].sort((a, b) => String(b).localeCompare(String(a), undefined, { numeric: true }));
+}
+const batchOptions = (cur) => `<option value="">All batches</option>${batchesOfProgram().map(b => `<option value="${esc(b || '__none')}" ${cur === (b || '__none') ? 'selected' : ''}>${esc(batchName(b))}</option>`).join('')}`;
+const inBatch = (want, b) => !want || (want === '__none' ? !b : b === want);
 function rows() {
     const q = P.q.trim().toLowerCase();
     const list = people().filter(p => {
         const en = p.enrollments; if (!en.length) return false;
         if (en.every(t => t.status === 'Archived')) return false;          // shown under Archived batches
+        if (!en.some(t => t.program === P.program && inBatch(P.batch, t.batch))) return false;
         if (P.status === 'active' && !en.some(t => t.status === 'Approved')) return false;
         if (P.status !== 'active' && P.status !== 'all' && !en.some(t => t.status === P.status)) return false;
         return !q || (p.name + ' ' + p.batches.join(' ')).toLowerCase().includes(q);
@@ -102,7 +112,7 @@ function programTabs() {
 }
 function switchProgram(id) {
     if (id === P.program) return;
-    P.program = id; P.open = {}; P.archOpen = false;
+    P.program = id; P.open = {}; P.archOpen = false; P.batch = ''; P.fb.batch = '';
     try { localStorage.setItem('pg-program', id); } catch (e) {}
     if (P.cache[id]) { P.data = P.cache[id]; render(); } else { P.data = null; load(); }
 }
@@ -126,6 +136,7 @@ function renderPeoplePane() {
     document.getElementById('pane').innerHTML = `
         <div class="pg-filters">
             <select onchange="P.status=this.value;render()" aria-label="Status">${[['active', 'Approved'], ['Pending', 'Pending approval'], ['all', 'All statuses']].map(([k, l]) => `<option value="${k}" ${P.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+            <select onchange="P.batch=this.value;render()" aria-label="Batch">${batchOptions(P.batch)}</select>
             <select onchange="P.sort=this.value;render()" aria-label="Sort">${[['recent', 'Last active'], ['behind', 'Furthest behind'], ['progress', 'Most progress'], ['kc', 'Knowledge Check avg'], ['drafts', 'Feedback drafts to review'], ['name', 'Name']].map(([k, l]) => `<option value="${k}" ${P.sort === k ? 'selected' : ''}>Sort: ${l}</option>`).join('')}</select>
             <input type="search" placeholder="Search name or batch…" value="${esc(P.q)}" oninput="P.q=this.value;renderTable()">
             <button onclick="exportCsv()">⬇ CSV</button>
@@ -301,6 +312,7 @@ function fbRows() {
         x.program === P.program &&
         (!f.day || (f.day === 'overall' ? !x.dayId : String(x.dayId) === f.day)) &&
         (!f.status || x.status === f.status) &&
+        inBatch(f.batch, x.batch) &&
         (!q || [x.name, x.batch, x.good, x.improve, x.facilitator].join(' ').toLowerCase().includes(q)));
 }
 function renderFeedbackPane() {
@@ -312,6 +324,7 @@ function renderFeedbackPane() {
     document.getElementById('pane').innerHTML = `
         <div class="pg-filters">
             <select onchange="P.fb.day=this.value;render()" aria-label="Day"><option value="">All days</option><option value="overall" ${f.day === 'overall' ? 'selected' : ''}>Program overall</option>${Array.from({ length: maxDays }, (_, i) => `<option value="${i + 1}" ${f.day === String(i + 1) ? 'selected' : ''}>Day ${i + 1}</option>`).join('')}</select>
+            <select onchange="P.fb.batch=this.value;render()" aria-label="Batch">${batchOptions(f.batch)}</select>
             <select onchange="P.fb.status=this.value;render()" aria-label="Status"><option value="">All statuses</option>${statuses.map(s => `<option ${f.status === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
             <input type="search" placeholder="Search names and comments…" value="${esc(f.q)}" oninput="P.fb.q=this.value;renderFeedbackList()">
             <button onclick="exportFeedbackCsv()">⬇ CSV</button>
@@ -325,7 +338,16 @@ function renderFeedbackPane() {
 function renderFeedbackList() {
     const el = document.getElementById('fblist'); if (!el) return;
     const items = fbRows();
-    el.innerHTML = items.length ? items.map(x => tfbCard(x, true)).join('') : '<div class="sim-card pg-muted">No feedback matches these filters.</div>';
+    if (!items.length) { el.innerHTML = '<div class="sim-card pg-muted">No feedback matches these filters.</div>'; return; }
+    // One section per batch (newest first), each with its response count and average stars, so batches are never mixed.
+    const groups = {};
+    items.forEach(x => { (groups[x.batch || ''] = groups[x.batch || ''] || []).push(x); });
+    el.innerHTML = Object.keys(groups).sort((a, b) => String(b).localeCompare(String(a), undefined, { numeric: true })).map(b => {
+        const g = groups[b], st = starAvg(g);
+        return `<section class="pg-batch"><div class="pg-batch-hd"><b>📁 ${esc(batchName(b))}</b>
+            <span class="pg-muted">${g.length} response${g.length === 1 ? '' : 's'}${st != null ? ` · avg ${(st / 20).toFixed(1)}★` : ''}</span></div>
+            ${g.map(x => tfbCard(x, true)).join('')}</section>`;
+    }).join('');
 }
 
 // ---------- CSV ----------
