@@ -103,17 +103,7 @@ function attemptLogin() {
     if (loginMsgDiv) { loginMsgDiv.innerText = ""; loginMsgDiv.className = "auth-msg"; loginMsgDiv.style.display = "none"; }
 
     let payload;
-    if (currentPortalMode === 'Trainee') {
-        // Trainees log in with just their full name — no username, no
-        // password. See functions/api/login.js for the matching logic and
-        // the deliberate security tradeoff this represents.
-        const fullNameInput = document.getElementById('login-fullname')?.value?.trim() || "";
-        if (!fullNameInput) {
-            if (loginMsgDiv) { loginMsgDiv.innerText = "Full name is required."; loginMsgDiv.className = "auth-msg error"; loginMsgDiv.style.display = ""; }
-            return;
-        }
-        payload = { fullName: fullNameInput, portalMode: currentPortalMode };
-    } else {
+    {
         const usernameInput = document.getElementById('login-username')?.value?.trim() || "";
         const passwordInput = document.getElementById('login-password')?.value || "";
         if (!usernameInput) {
@@ -217,7 +207,7 @@ function validateRegPassword(password) {
 function onRegUserTypeChange() {
     const type = document.getElementById('reg-usertype').value;
     const wrap = document.getElementById('reg-training-date-wrap');
-    if (wrap) wrap.classList.toggle('hidden', type === 'Admin');
+    if (wrap) { wrap.classList.toggle('hidden', type === 'Admin'); wrap.style.display = type === 'Admin' ? 'none' : ''; }
 }
 
 const DATA_ALLOW_PATTERNS = {

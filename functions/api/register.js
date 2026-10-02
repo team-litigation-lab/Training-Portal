@@ -25,11 +25,6 @@ export async function onRequestPost({ request, env }) {
     if (!['Admin', 'Trainee'].includes(userType)) {
         return json({ success: false, error: 'Invalid user type.' }, 400);
     }
-    // Trainee accounts are no longer created on the main portal: each
-    // training program has its own sign-in. Only admin accounts register here.
-    if (userType !== 'Admin') {
-        return json({ success: false, error: 'Trainee registration has moved into each training program. Only admin accounts register here.' }, 403);
-    }
     if (!REG_PASSWORD_RE.test(password)) {
         return json({
             success: false,

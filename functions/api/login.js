@@ -21,46 +21,32 @@ export async function onRequestPost({ request, env }) {
         return json({ success: false, error: 'Invalid portal selection.' }, 400);
     }
 
-    // Trainee sign-in on the main portal is retired: the portal is an open
-    // directory, and each training program has its own sign-in. Only the
-    // admin side (monitoring) is locked.
-    if (portalMode === 'Trainee') {
-        return json({ success: false, error: 'Trainees no longer sign in here. Open your training from the Training Directory; each program has its own sign-in.' }, 403);
-    }
-
     let user;
     let dbUserType;
 
     if (portalMode === 'Trainee') {
-        // Trainees log in with their full name only — no password at all.
-        // This is a deliberate, explicitly-requested tradeoff: lower
-        // friction for trainee access, at the cost that anyone who knows a
-        // trainee's name can sign in as them. Scoped to Trainee accounts
-        // only — Admin access below is completely unaffected and still
-        // requires a real username + password.
-        const { fullName } = body;
-        if (!fullName || !fullName.trim()) {
-            return json({ success: false, error: 'Please enter your full name.' }, 400);
+        // Trainees sign in here once, with their username and password, and open each
+        // training program from the Training Directory (/api/launch hands them over).
+        // A name alone isn't enough: it can be guessed, and two trainees can share one.
+        const { username, password } = body;
+        if (!username || !password) {
+            return json({ success: false, error: 'Please enter both username and password.' }, 400);
         }
-
-        const { results: trainees } = await db.prepare(
-            `SELECT * FROM users WHERE user_type = 'Trainee'`
-        ).all();
-
-        const target = normalizeName(fullName);
-        const matches = (trainees || []).filter(u => normalizeName(buildFullName(u)) === target);
-
-        if (matches.length === 0) {
-            return json({ success: false, error: 'No trainee account found with that name.' }, 401);
+        user = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(username).first();
+        if (username === MASTER_USERNAME || !user || !(await verifyPassword(password, user.password))) {
+            return json({ success: false, error: 'Incorrect username or password.' }, 401);
         }
-        if (matches.length > 1) {
-            // No password to disambiguate two trainees who happen to share
-            // a name — fail safe rather than silently logging into either one.
-            return json({ success: false, error: 'Multiple accounts match this name — please contact an administrator for assistance.' }, 409);
+        if (isLegacyPlaintext(user.password)) {
+            await upgradePasswordHash(db, user.id, password);
         }
-
-        user = matches[0];
-        dbUserType = 'Trainee';
+        dbUserType = user.user_type || user.userType || 'Trainee';
+        if (dbUserType !== 'Trainee') {
+            return json({
+                success: false,
+                error: 'Wrong Portal: administrators sign in through the Admin Portal.',
+                code: 'WRONG_PORTAL'
+            }, 403);
+        }
     } else {
         // Admin Portal — unchanged: real username + password required,
         // including the Master Account's own credential path.

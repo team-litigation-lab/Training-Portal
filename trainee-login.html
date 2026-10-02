@@ -3,16 +3,168 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Training Directory — LSH Training Portal</title>
+<title>Trainee Login — LSH Training Portal</title>
 <link rel="icon" type="image/png" href="/favicon.png">
-<meta http-equiv="refresh" content="0; url=/programs.html">
-<script>window.location.replace('/programs.html');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="styles.css">
+<style>
+    :root {
+        --navy: #0f2148; --navy-deep: #081226; --navy-mid: #132a5c;
+        --orange: #f97316; --orange-soft: #fb923c; --slate: #64748b; --paper: #faf8f4;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif;
+        background: var(--paper); color: var(--navy); -webkit-font-smoothing: antialiased;
+        /* styles.css (shared with core.html) sets body to height:100vh +
+           overflow:hidden for its own fixed "app shell" layout — this page
+           has no matching inner scroll container, so left as-is, this
+           silently blocks the page from scrolling if content ever exceeds
+           the viewport height. */
+        height: auto; overflow: visible;
+    }
+    .auth-shell {
+        min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr;
+    }
+    @media (max-width: 860px) { .auth-shell { grid-template-columns: 1fr; } .auth-visual { display: none; } }
+
+    .auth-visual {
+        position: relative; background: var(--navy-deep); overflow: hidden;
+        display: flex; flex-direction: column; justify-content: space-between; padding: 40px;
+    }
+    .auth-rings { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 520px; height: 520px; opacity: 0.85; pointer-events: none; }
+    .back-link {
+        position: relative; z-index: 1; color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 600;
+        text-decoration: none; display: inline-flex; align-items: center; gap: 6px; width: fit-content;
+        transition: color 0.15s ease;
+    }
+    .back-link:hover { color: #fff; }
+    .visual-copy { position: relative; z-index: 1; }
+    .visual-copy .badge {
+        display: inline-flex; align-items: center; gap: 8px; background: rgba(249,115,22,0.15);
+        color: var(--orange-soft); font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+        text-transform: uppercase; padding: 6px 14px; border-radius: 999px; margin-bottom: 20px;
+    }
+    .visual-copy h1 { color: #fff; font-size: 32px; font-weight: 800; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.01em; }
+    .visual-copy p { color: rgba(255,255,255,0.55); font-size: 14px; line-height: 1.6; max-width: 340px; margin: 0; }
+    .visual-foot { position: relative; z-index: 1; font-size: 12px; color: rgba(255,255,255,0.35); }
+
+    .auth-form-side { display: flex; align-items: flex-start; justify-content: center; padding: 40px 24px; }
+    .auth-card { width: 100%; max-width: 380px; }
+    .auth-card-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
+    .auth-card-mark {
+        width: 40px; height: 40px; border-radius: 0; background: #fff; padding: 3px; box-sizing: border-box;
+        display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
+    }
+    .auth-card-mark img { width: 100%; height: 100%; object-fit: contain; }
+    .auth-card-brand span { font-weight: 800; font-size: 14px; color: var(--navy); }
+    .auth-card h2 { font-size: 22px; font-weight: 800; margin: 0 0 6px; color: var(--navy); }
+    .auth-card .sub { font-size: 13.5px; color: var(--slate); margin: 0 0 28px; }
+
+    .auth-msg {
+        font-size: 12px; font-weight: 700; padding: 10px 14px; border-radius: 10px;
+        margin-bottom: 16px; display: none;
+    }
+    .auth-msg.error { display: block; background: #fef2f2; color: #b91c1c; }
+    .auth-msg.success { display: block; background: #f0fdf4; color: #166534; }
+    .auth-msg.info { display: block; background: #eff6ff; color: #1d4ed8; }
+
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 11.5px; font-weight: 700; color: var(--navy); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input {
+        width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 12px;
+        font-size: 14px; font-family: 'IBM Plex Sans', sans-serif; outline: none; color: var(--navy);
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .field input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(249,115,22,0.12); }
+    .field input::placeholder { color: #cbd5e1; }
+
+    .auth-submit {
+        width: 100%; padding: 13px; border-radius: 999px; border: none; background: var(--navy);
+        color: var(--orange); font-weight: 800; font-size: 13px; text-transform: uppercase;
+        letter-spacing: 0.04em; cursor: pointer; margin-top: 6px;
+        transition: background 0.2s ease, transform 0.12s ease;
+    }
+    .auth-submit:hover { background: var(--navy-mid); transform: translateY(-1px); }
+    .auth-submit:active { transform: translateY(0) scale(0.98); }
+    .auth-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .auth-switch { text-align: center; font-size: 12.5px; color: var(--slate); margin-top: 22px; }
+    .auth-switch a { color: var(--orange); font-weight: 700; text-decoration: none; cursor: pointer; }
+    .auth-switch a:hover { text-decoration: underline; }
+    .role-switch { text-align: center; margin-top: 10px; }
+    .role-switch a { font-size: 12px; color: var(--slate); text-decoration: none; }
+    .role-switch a:hover { color: var(--navy); }
+</style>
 </head>
-<body style="font-family:Arial,Helvetica,sans-serif;background:#081226;color:#fff;text-align:center;padding:60px 20px">
-<!-- Trainee sign-in on the main portal was retired: the portal is an open
-     directory and each training program has its own sign-in. This page
-     only forwards old links and bookmarks. Admins sign in at /admin-login.html. -->
-<p>Trainees no longer sign in here. Each training program has its own sign-in.</p>
-<p><a href="/programs.html" style="color:#f97316;font-weight:700">Open the Training Directory &rarr;</a></p>
+<body>
+
+<div class="auth-shell">
+    <div class="auth-visual">
+        <svg class="auth-rings" viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="260" cy="260" r="240" stroke="#f97316" stroke-width="1.5"/>
+            <circle cx="260" cy="260" r="205" stroke="#c06128" stroke-width="1.5"/>
+            <circle cx="260" cy="260" r="170" stroke="#864e39" stroke-width="1.5"/>
+            <circle cx="260" cy="260" r="135" stroke="#4c3c4a" stroke-width="1.5"/>
+            <circle cx="260" cy="260" r="100" stroke="#303353" stroke-width="1.5"/>
+            <circle cx="260" cy="260" r="20" fill="#132a5c"/>
+        </svg>
+        <a href="/index.html" class="back-link">&larr; Go to Landing Page</a>
+        <div class="visual-copy">
+            <div class="badge">Trainee Access</div>
+            <h1>One log in for all your training.</h1>
+            <p>Log in with the username and password you registered with. You won't be asked to sign in again inside each program.</p>
+        </div>
+        <div class="visual-foot">&copy; 2026 Legal Support Help. All Rights Reserved.</div>
+    </div>
+
+    <div class="auth-form-side">
+        <div class="auth-card">
+            <div class="auth-card-brand">
+                <span class="auth-card-mark"><img src="/favicon.png" onerror="this.src='data:image/png;base64,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'" alt="LSH Logo"></span>
+                <span>Legal Support Help</span>
+            </div>
+            <h2 id="admin-login-heading">Trainee Log In</h2>
+            <p class="sub" id="admin-login-sub">Log in once here, then open every training program from the Training Directory.</p>
+
+            <div id="auth-form-content">
+                <div id="auth-login-msg" class="auth-msg"></div>
+                <div class="field"><label>Username</label><input type="text" id="login-username" autocomplete="off" placeholder="Enter your username"></div>
+                <div class="field"><label>Password</label><input type="password" id="login-password" autocomplete="off" placeholder="Enter your password"></div>
+                <button class="auth-submit" onclick="attemptLogin()">Log In</button>
+
+                <div class="auth-switch">No account yet? <a href="/registration.html">Register here</a></div>
+                <div class="role-switch"><a href="/admin-login.html">Administrator? Admin log in &rarr;</a></div>
+            </div>
+
+            <div id="auth-locked-notice" style="display:none; text-align:center; padding:24px 4px;">
+                <div style="font-size:34px;margin-bottom:10px;">🔒</div>
+                <p style="font-size:13.5px;color:var(--slate);line-height:1.6;">The site is currently locked. Please wait for the administrator to unlock it.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/portal-nav.js"></script>
+<script src="app.js"></script>
+<script src="portal.js"></script>
+<script>
+    // This MUST run after portal.js loads — portal.js declares
+    // `let currentPortalMode = "Trainee";` at its own top level, and that
+    // declaration's initialization runs the moment the script executes,
+    // which would silently overwrite an assignment made before it loaded.
+    // That was the actual cause of this page sending the wrong portalMode
+    // to the backend regardless of what was set here — a real admin got
+    // rejected as "wrong portal" while trainee credentials worked fine on
+    // this page, exactly backwards from intended.
+    currentPortalMode = 'Trainee';
+    // Tells applyAuthPageLockState() (portal.js) how this page should react
+    // when the site is locked — see its definition for the full behavior
+    // per page type.
+    const AUTH_PAGE_TYPE = 'trainee-login';
+</script>
 </body>
 </html>

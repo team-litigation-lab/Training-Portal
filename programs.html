@@ -200,6 +200,12 @@
         'MEDSUM AND DEMAND': 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/'
     };
 
+    // Programs that open through this portal's single sign-in: their own site has no trainee
+    // sign-in, and trainees come in with a signed ticket from /api/launch (functions/api/launch.js).
+    // Keep in step with SSO_PROGRAMS there. Admins still open every program directly.
+    const SSO_PROGRAMS = ['STANDARD TRAINING'];
+    const programHref = (key, built, isAdmin) => (!isAdmin && SSO_PROGRAMS.includes(key)) ? '/api/launch?program=' + encodeURIComponent(key) : built;
+
     // Display names that replace the topics table's `name`, so a program can
     // be renamed without editing the live database. topics_seed.sql carries
     // the same names for new databases.
@@ -238,10 +244,10 @@
     let __accessCache = [];
 
     async function loadTrainingIndex() {
-        // Trainees don't sign in on the main portal any more; only an admin
-        // session changes this page (approval queue, Master Control link).
+        // Trainees and admins sign in on this portal. A trainee's session opens the programs from here
+        // (no second sign-in inside them); an admin's adds the approval queue and Master Control link.
         const stored = getSession();
-        const session = (stored && stored.userType === 'Admin') ? stored : { userType: 'Public' };
+        const session = (stored && (stored.userType === 'Admin' || stored.userType === 'Trainee')) ? stored : { userType: 'Public' };
 
         if (session.userType === 'Admin') {
             const userEl = document.getElementById('idx-user');
@@ -256,8 +262,20 @@
                 <a class="idx-logout" onclick="logoutSession()">Log Out</a>`;
         }
 
+        if (session.userType === 'Trainee') {
+            const userEl = document.getElementById('idx-user');
+            if (userEl) userEl.innerHTML = `
+                ${PortalNav.html('directory', { back: '/index.html', cls: 'idx-logout' })}
+                <span class="idx-user-name">${escapeHtml(session.fullName || session.username)}</span>
+                <a class="idx-logout" onclick="logoutSession()">Log Out</a>`;
+        } else if (session.userType === 'Public') {
+            const userEl = document.getElementById('idx-user');
+            if (userEl) userEl.insertAdjacentHTML('beforeend', `<a class="idx-logout" href="/trainee-login.html">Trainee Log In</a>`);
+        }
+
         const headingEl = document.getElementById('idx-heading');
         const subheadEl = document.getElementById('idx-subhead');
+        if (session.userType !== 'Admin' && subheadEl) subheadEl.textContent = 'Every LSH training program in one place. Trainees log in once here, then open each program from this page: no separate sign-in inside it.';
         if (session.userType === 'Admin') {
             if (headingEl) headingEl.textContent = 'Training Index — Admin View';
             if (subheadEl) subheadEl.textContent = 'Every program LSH runs. As an admin, all built programs are directly open to you — use the queue below to approve trainee requests.';
@@ -417,7 +435,9 @@
                 <div class="topic-card">
                     <h3>${escapeHtml(t.name)}${PINNED_PROGRAMS.includes(t.key) ? ' <span class="topic-free">Free</span>' : ''}</h3>
                     <span class="topic-status ${built ? 'approved' : 'locked'}">${built ? 'Available' : 'Coming Soon'}</span>
-                    ${built ? `<a class="topic-action-btn primary" href="${built}" target="_blank" rel="noopener">Open Program &rarr;</a>` : `<span class="topic-action-btn disabled">Coming Soon</span>`}
+                    ${built ? (SSO_PROGRAMS.includes(t.key)
+                        ? `<a class="topic-action-btn primary" href="/trainee-login.html">Log in to open &rarr;</a>`
+                        : `<a class="topic-action-btn primary" href="${built}" target="_blank" rel="noopener">Open Program &rarr;</a>`) : `<span class="topic-action-btn disabled">Coming Soon</span>`}
                 </div>`;
             }
 
@@ -442,7 +462,7 @@
             } else if (!built) {
                 actionHtml = `<span class="topic-action-btn disabled">Coming Soon</span>`;
             } else if (isAdmin || status === 'approved') {
-                actionHtml = `<a class="topic-action-btn primary" href="${built}" target="_blank" rel="noopener">Enter Program &rarr;</a>`;
+                actionHtml = `<a class="topic-action-btn primary" href="${programHref(t.key, built, isAdmin)}" target="_blank" rel="noopener">Enter Program &rarr;</a>`;
             } else if (status === 'pending') {
                 actionHtml = `<span class="topic-action-btn disabled">Awaiting Admin Approval</span>`;
             } else if (!isAdmin && status === 'locked' && prevKey && !prevPassed) {

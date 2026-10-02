@@ -1,5 +1,15 @@
 # cm-training-activity
 
+## Trainee sign-in on the Main Portal (single sign-in)
+
+Trainees log in once, here, and open each training program from the Training Directory. They aren't asked to sign in again inside the program.
+
+- **Register:** `/registration.html` (Trainee is the default type). An admin approves the account and assigns the Batch ID, as for admins. **Log in:** `/trainee-login.html` with the username and password they registered with (`/api/login`, `portalMode: "Trainee"`). A name alone no longer works. Admins still use `/admin-login.html`; an admin account used on the trainee form is told to use the Admin Portal.
+- **Open a program:** `/programs.html`. For a trainee whose access to the program is approved, the card's **Enter Program** goes to `/api/launch?program=<topic key>` (`functions/api/launch.js`), which checks the portal session and the approved access, then redirects to the program with a signed ticket (`?ticket=…`). The ticket carries the account's first name, last name and Batch ID, and is good for 5 minutes. Visitors who aren't logged in see **Log in to open** on those cards. Admins open every program directly, as before.
+- **Which programs:** `SSO_PROGRAMS` in `programs.html` and `SSO_PROGRAMS` in `functions/api/launch.js` (keep them the same). Today only **Standard Foundational Training** accepts tickets; the other programs still open directly and keep their own sign-in until they get the same change (`js/portal-gate.js` and the Worker endpoints in the Foundational-Training repo).
+- **Secret:** `PORTAL_SSO_SECRET` (Pages → Settings → Variables and Secrets, as a secret) must be the same value as the program's. Without it `/api/launch` answers "Not available yet". The ticket is `base64url(JSON {first, last, b, exp})` + `.` + `base64url(HMAC-SHA256(key = "portal-sso:" + secret, message = that text))`.
+- **Names must match the program's records.** The program makes a trainee's record id from the first name, last name and batch in the ticket, so a trainee already registered in a program keeps their progress only if their portal account has the same first name, last name and Batch ID they used there. (M.I. and suffix aren't sent.) Check this when creating accounts for existing trainees.
+
 ## Email Replies: inbox delivery setup
 
 `/simulators/email-replies.html` works right away in **Answer here** mode. To also send practice emails to trainees' own inboxes and score the replies they send from there, connect [Postmark](https://postmarkapp.com), which handles both sending and receiving. No change to your domain's mail (MX) records is needed.
