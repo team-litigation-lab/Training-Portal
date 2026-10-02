@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claim Your Account — LSH Training Portal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<style>
+    :root { --navy:#0f2148; --navy-deep:#081226; --orange:#f97316; --paper:#faf8f4; }
+    * { box-sizing: border-box; }
+    body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; font-family:Arial,Helvetica,sans-serif; background:var(--navy-deep); color:var(--navy); }
+    .card { width:100%; max-width:440px; background:var(--paper); border-radius:16px; padding:30px 28px; }
+    h1 { font-size:22px; margin:0 0 6px; }
+    p.sub { font-size:13.5px; color:#64748b; margin:0 0 20px; line-height:1.5; }
+    label { display:block; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; margin:14px 0 6px; }
+    input { width:100%; padding:11px 12px; border:1.5px solid #e2e8f0; border-radius:10px; font-size:14px; }
+    input:focus { outline:none; border-color:var(--orange); }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    button { width:100%; margin-top:20px; padding:13px; border:0; border-radius:10px; background:var(--navy); color:var(--orange); font-weight:800; text-transform:uppercase; font-size:13px; cursor:pointer; }
+    button:disabled { opacity:.6; cursor:not-allowed; }
+    #msg { margin-top:14px; font-size:13.5px; display:none; padding:10px 12px; border-radius:10px; }
+    #msg.error { display:block; background:#fee2e2; color:#991b1b; }
+    #msg.ok { display:block; background:#dcfce7; color:#166534; }
+    .links { margin-top:18px; font-size:13px; text-align:center; }
+    .links a { color:var(--navy); font-weight:700; }
+</style>
+</head>
+<body>
+<div class="card">
+    <h1>Claim your account</h1>
+    <p class="sub">Already registered in a training program or the CMS? You don't register again. Confirm your name and Batch ID, then choose a username and password for the LSH Training Portal.</p>
+    <div class="row">
+        <div><label for="first">First name</label><input id="first" autocomplete="given-name"></div>
+        <div><label for="last">Last name</label><input id="last" autocomplete="family-name"></div>
+    </div>
+    <label for="batch">Batch ID</label><input id="batch" placeholder="e.g. B300926" autocomplete="off">
+    <label for="username">Choose a username</label><input id="username" autocomplete="username" placeholder="Letters, numbers, underscores">
+    <label for="email">Email</label><input id="email" type="email" autocomplete="email">
+    <label for="password">Choose a password</label><input id="password" type="password" autocomplete="new-password" placeholder="8+ characters, letters and numbers">
+    <button id="go" onclick="claim()">Claim my account</button>
+    <div id="msg"></div>
+    <div class="links"><a href="/trainee-login.html">&larr; Back to Trainee Log In</a></div>
+</div>
+<script>
+async function claim() {
+    const msg = document.getElementById('msg'), btn = document.getElementById('go');
+    const v = (id) => document.getElementById(id).value.trim();
+    msg.className = ''; msg.style.display = 'none';
+    btn.disabled = true;
+    try {
+        const res = await fetch('/api/claim', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ firstName: v('first'), lastName: v('last'), batchId: v('batch'), username: v('username'), email: v('email'), password: document.getElementById('password').value }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) { msg.className = 'error'; msg.textContent = data.error || 'We couldn’t claim that account. Please try again.'; return; }
+        msg.className = 'ok'; msg.textContent = 'Done! Taking you to log in…';
+        setTimeout(() => { location.href = '/trainee-login.html'; }, 1200);
+    } catch (e) {
+        msg.className = 'error'; msg.textContent = 'Network error. Please try again.';
+    } finally { btn.disabled = false; }
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter') claim(); });
+</script>
+</body>
+</html>
