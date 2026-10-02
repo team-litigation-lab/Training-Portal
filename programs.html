@@ -203,7 +203,7 @@
     // Programs that open through this portal's single sign-in: their own site has no trainee
     // sign-in, and trainees come in with a signed ticket from /api/launch (functions/api/launch.js).
     // Keep in step with SSO_PROGRAMS there. Admins go through it too (no admin password again in the program).
-    const SSO_PROGRAMS = ['STANDARD TRAINING', 'EA  PA TRAINING-OUTSOURCED MANP'];
+    const SSO_PROGRAMS = ['STANDARD TRAINING', 'EA  PA TRAINING-OUTSOURCED MANP', 'CM TRAINING', 'PROPERTY DAMAGE', 'MEDSUM AND DEMAND'];
     const programHref = (key, built) => SSO_PROGRAMS.includes(key) ? '/api/launch?program=' + encodeURIComponent(key) : built;
 
     // Display names that replace the topics table's `name`, so a program can
