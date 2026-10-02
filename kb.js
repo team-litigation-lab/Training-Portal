@@ -59,19 +59,12 @@ function route() {
 
 // ---------- gate ----------
 function renderGate(app) {
-    const a = KB.access;
     app.innerHTML = `<div class="kb-gate sim-card">
         <div class="kb-gate-ic">📚</div>
         <h2>LSH Knowledge Base</h2>
-        <p>SOPs, resources and know-how shared by LSH VAs, for our team only. Enter the team access code from your trainer or team lead.</p>
-        ${a.configured ? `<form onsubmit="unlock(event)">
-            <label>Your Full Name<input id="g-name" autocomplete="name" required minlength="2" maxlength="80" value="${esc(localStorage.getItem('LSH_KB_NAME') || '')}"></label>
-            <label>Batch <span class="sim-muted">(optional)</span><input id="g-batch" maxlength="40" value="${esc(localStorage.getItem('LSH_KB_BATCH') || '')}"></label>
-            <label>Team Access Code<input id="g-code" type="password" autocomplete="off" required></label>
-            <div id="g-err" class="sim-error" hidden></div>
-            <button class="sim-btn primary" type="submit">Open the Knowledge Base</button>
-        </form>` : `<div class="kb-note">The Knowledge Base isn’t open yet. An admin needs to set the team access code.</div>`}
-        <p class="sim-muted kb-small">Admins: <a href="/admin-login.html">sign in</a> to manage the Knowledge Base${a.configured ? '' : ' and set the code'}.</p>
+        <p>SOPs, resources and know-how shared by LSH VAs, for our team only. Sign in on the LSH Training Portal to open it.</p>
+        <p><a class="sim-btn primary" href="/trainee-login.html" style="text-decoration:none;display:inline-block">Sign in on the Portal</a></p>
+        <p class="sim-muted kb-small">Admins: <a href="/admin-login.html">sign in</a> to manage the Knowledge Base.</p>
     </div>`;
 }
 async function unlock(e) {

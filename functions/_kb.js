@@ -94,11 +94,15 @@ export async function kbReader(request, env) {
         const name = oneLine(admin.fullName || admin.username, 80) || 'Admin';
         return { admin: true, adminUser: admin.username, who: { name, batch: 'Admin', key: 'admin|' + String(admin.username).toLowerCase() } };
     }
-    const payload = await verifySessionToken(getCookie(request, COOKIE), env.SESSION_SECRET).catch(() => null);
-    if (!payload || !payload.kb) return null;
-    const version = await getSetting(env.TRAINING_DB, 'code_version');
-    if (!version || payload.v !== version) return null;   // code changed since they signed in
-    return { admin: false, who: { name: payload.name, batch: payload.batch || '', key: personKey(payload.name, payload.batch) } };
+    // Everyone else comes in through the Portal: any signed-in, approved Portal user may read. The old shared
+    // team access code (and its cookie) no longer opens anything, so nobody outside LSH can get in with it.
+    if (!getCookie(request, 'lsh_session')) return null;
+    const auth = await requireSession(request, env);
+    if (!auth.ok) return null;
+    const s = auth.session;
+    const name = oneLine(s.fullName || s.username, 80) || 'Trainee';
+    const batch = oneLine(s.batchId || '', 40);
+    return { admin: false, who: { name, batch, key: personKey(name, batch) } };
 }
 
 export async function issueReaderCookie(env, name, batch, version) {

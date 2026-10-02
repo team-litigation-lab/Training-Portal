@@ -1,9 +1,7 @@
-import { json, getSiteState } from './_utils.js';
+import { json, getSiteState, requireSession } from './_utils.js';
 
-// Guard for the simulators' public endpoints. The portal has no trainee
-// sign-in (each program has its own), so /api/sim-ai and /api/sim-results
-// also serve visitors without a session. This keeps that from turning into
-// an open door to the Gemini key:
+// Guard for the simulators' endpoints. Everyone signs in on the Portal, and a valid
+// Portal session is required here (an outsider gets 401). On top of that:
 //   1. a site-wide Lock closes the simulators too;
 //   2. requests must come from this portal's own pages (Origin = this host);
 //   3. a per-IP rate limit (SIM_RATE_LIMIT requests per 10 minutes, default 400: a whole class often shares
@@ -12,6 +10,9 @@ import { json, getSiteState } from './_utils.js';
 const WINDOW_SECONDS = 600;
 
 export async function guardPublicSim(request, env) {
+    // Portal sign-in is the only way in: no session, no simulator (the Origin check below is only a second layer).
+    const auth = await requireSession(request, env);
+    if (!auth.ok) return auth.response;
     const state = await getSiteState(env.DB);
     if (state.locked) return json({ success: false, error: 'This page has been locked by an administrator.', code: 'SITE_LOCKED' }, 423);
 
