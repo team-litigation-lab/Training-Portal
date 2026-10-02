@@ -152,23 +152,11 @@
         <span class="sim-banner-tx"><b>Knowledge Base</b><span>Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know. Team access code required.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
-    <a class="sim-banner" id="cms-banner" href="https://lshcasemanagementtraining-trainingcrm.pages.dev/?from=portal" target="_blank" rel="noopener">
+    <a class="sim-banner" id="cms-banner" href="/api/launch?tool=cms" target="_blank" rel="noopener">
         <span class="sim-banner-ic">🗂</span>
-        <span class="sim-banner-tx"><b>Case Management System</b><span>The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. Just enter your name; your work is saved for your trainer.</span></span>
+        <span class="sim-banner-tx"><b>Case Management System</b><span>The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
-    <script>
-    // Fill in the CMS's name form with the name used on the Simulators, if there is one.
-    (function () {
-        try {
-            const who = JSON.parse(localStorage.getItem('LSH_SIM_WHO') || '{}') || {};
-            const link = document.getElementById('cms-banner'), url = new URL(link.href);
-            if (who.name) url.searchParams.set('name', String(who.name).slice(0, 60));
-            if (who.batch) url.searchParams.set('batch', String(who.batch).slice(0, 24));
-            link.href = url.toString();
-        } catch (e) { /* no saved name: the CMS asks for it */ }
-    })();
-    </script>
     </div>
     <div id="idx-queue-wrap"></div>
     <div id="idx-grant-wrap"></div>
