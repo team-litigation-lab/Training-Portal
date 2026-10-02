@@ -49,11 +49,13 @@ export async function onRequestGet({ request, env }) {
 
     const auth = await requireSession(request, env);
     if (!auth.ok) return Response.redirect(new URL('/trainee-login.html', request.url).toString(), 302);
-    if (!env.PORTAL_SSO_SECRET) return page(503, 'Not available yet', 'Single sign-in isn\'t set up yet. Please tell your trainer.');
+    // Ignore any space or line break pasted around the secret (the programs do the same).
+    const secret = String(env.PORTAL_SSO_SECRET || '').trim();
+    if (!secret) return page(503, 'Not available yet', 'Single sign-in isn\'t set up yet. Please tell your trainer.');
 
     // Administrators were signed in here with their admin password, so the program doesn't ask again.
     if (auth.session.userType === 'Admin') {
-        return Response.redirect(`${target}?ticket=${await makeTicket(env.PORTAL_SSO_SECRET, { admin: true })}`, 302);
+        return Response.redirect(`${target}?ticket=${await makeTicket(secret, { admin: true })}`, 302);
     }
     if (auth.session.userType !== 'Trainee') return page(403, 'Not available', 'This account can\'t open programs.');
 
@@ -67,6 +69,6 @@ export async function onRequestGet({ request, env }) {
         return page(403, 'Access not approved', 'Request access to this program in the Training Directory first, and wait for an administrator to approve it.');
     }
 
-    const ticket = await makeTicket(env.PORTAL_SSO_SECRET, { first: user.first_name.trim(), last: user.last_name.trim(), batch: String(user.batch_id).trim() });
+    const ticket = await makeTicket(secret, { first: user.first_name.trim(), last: user.last_name.trim(), batch: String(user.batch_id).trim() });
     return Response.redirect(`${target}?ticket=${ticket}`, 302);
 }
