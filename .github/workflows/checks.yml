@@ -42,7 +42,7 @@ jobs:
           node-version: 22
       - name: Install Playwright and Chromium
         run: |
-          npm install --no-save --no-package-lock --prefix "$RUNNER_TEMP/pw" playwright@1.56.1
+          npm install --no-save --no-package-lock --prefix "$RUNNER_TEMP/pw" playwright@1.56.1 jspdf@4.2.1
           "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium
       - name: Open every page and simulator (desktop and phone)
         env:
@@ -52,3 +52,7 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/requests.cjs
+      - name: Orientation (the admin track for admins only; each track downloads as a PDF with the deploy stamp)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/blueprint.cjs

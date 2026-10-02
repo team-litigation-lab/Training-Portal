@@ -127,6 +127,7 @@
             </div>
             <button type="button" class="btn" onclick="toggleFull()" title="Full screen (F)">⛶ Full screen</button>
             <button type="button" class="btn" onclick="window.print()" title="Print or save this track as a PDF">🖨 Print</button>
+            <button type="button" class="btn pri" id="orPdf" onclick="downloadTrackPdf()" title="Download this track as a PDF, made from the live site">⬇ Download PDF</button>
         </div>
     </div>
     <p class="or-tip" style="margin:-4px 0 14px;">Share this tab in Google Meet: nothing private is shown here. Use ← → to move between slides.</p>
@@ -330,13 +331,57 @@ document.addEventListener('keydown', e => {
     else if (e.key === 'f' || e.key === 'F') toggleFull();
 });
 
+/* ---------- 🧭 Who sees which track, and the PDF (README → 🧭 Orientation) ----------
+   Trainees (and visitors) get the Trainees track only; the Trainers & Admins track is for a signed-in Admin.
+   ⬇ Download PDF makes a real-text PDF of the track that's showing with lsh-blueprint.js (the same Blueprint engine
+   as every LSH platform), from the slides deployed right now, stamped with the deploy and the date. */
+function isAdmin() {
+    try { const s = JSON.parse(sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1') || 'null'); return !!(s && s.userType === 'Admin'); }
+    catch (e) { return false; }
+}
+// a slide as the Blueprint's { icon, title, points, where, tip }: its lead, list items, cards and notes, as text
+function asBlueprint(list, name) {
+    const text = (el) => el.textContent.replace(/\s+/g, ' ').trim();
+    const cut = (t) => t.length > 190 ? t.slice(0, 187).replace(/\s+\S*$/, '') + '…' : t;
+    return { name, sub: name === 'Trainee blueprint' ? 'The LSH Training Portal: how to find and use your training' : 'The LSH Training Portal: running training from the admin side',
+        slides: list.map(sl => {
+            const d = document.createElement('div'); d.innerHTML = sl.body;
+            const pts = [];
+            d.querySelectorAll('.or-lead, li, .or-card, .or-note').forEach(el => {
+                if (el.classList.contains('or-card')) { const b = el.querySelector('b'), sp = el.querySelector('span'); pts.push((b ? text(b) : '') + (sp ? ': ' + text(sp) : '')); }
+                else if (!el.closest('.or-card')) pts.push(text(el));
+            });
+            return { icon: '', title: sl.h.replace(/<[^>]+>/g, ''), points: pts.filter(Boolean).slice(0, 5).map(cut) };
+        }) };
+}
+let ver = null;
+function version() {
+    if (!ver) ver = fetch(location.pathname, { method: 'HEAD', cache: 'no-store' })
+        .then(r => { const t = (r.headers.get('etag') || '').replace(/^W\//, '').replace(/[^A-Za-z0-9]/g, ''); return t ? 'deploy ' + t.slice(0, 8) : ''; }).catch(() => '');
+    return ver;
+}
+window.LSH_BLUEPRINT = {
+    product: 'LSH Training Portal', site: 'LSH Training Portal', file: 'LSH_Training_Portal', logo: '/lsh-logo-dark.png',
+    get trainee() { return asBlueprint(SLIDES.trainee, 'Trainee blueprint'); },
+    get trainer() { return asBlueprint(SLIDES.admin, 'Trainer blueprint'); },
+    role: () => (isAdmin() ? 'trainer' : 'trainee'),
+    version
+};
+async function downloadTrackPdf() {
+    if (!window.LSHBlueprint) return;
+    await LSHBlueprint.pdf(track === 'admin' ? 'trainer' : 'trainee');
+}
+if (!isAdmin()) { delete SLIDES.admin; document.querySelectorAll('.or-tabs').forEach(t => t.hidden = true); }
+
 (function init() {
     const q = new URLSearchParams(location.search);
     if (SLIDES[q.get('track')]) track = q.get('track');
+    else if (isAdmin() && !q.get('track')) track = 'admin';
     renderTrack();
     show((parseInt(q.get('slide'), 10) || 1) - 1);
 })();
 </script>
+<script src="/lsh-blueprint.js"></script>
 <script src="/portal-nav.js"></script>
 </body>
 </html>
