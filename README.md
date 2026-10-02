@@ -89,6 +89,12 @@ It has two tracks, switched at the top of the page:
 - **Trainees** (8 slides): what the portal is, the Training Directory, signing in inside each program, what's inside a program, the Simulators, the Knowledge Base, good habits, and first steps.
 - **Trainers & Admins** (8 slides, signed-in admins only: trainees never see this track or its tab): admin sign-in, the Directory's admin view (access queue, Mark Passed, Manually Grant Access), Master Control (monitoring, Broadcast & Ping, Access Control, activities and grading), Progress & Feedback, program admin, Knowledge Base review and simulator scores, and a daily checklist.
 
+**The look:** on screen, each slide is a 16:9 slide on the LSH deck background:
+- navy, with the patterned band carrying the logo and its orange rule;
+- orange line-art waves at the sides (`DECK_ART` and the `@media screen` styles in `orientation.html`).
+
+The text and spacing scale with the slide, so it keeps the same layout at any size and in full screen. Every slide takes the tallest slide's height, so the controls never jump. The whole stage, **Next** included, fits the window's height. Print keeps light slides, to save ink.
+
 How to use it:
 - Keys: ← → (or Page Up / Page Down / Space) change slides, and **F** toggles full screen.
 - **⬇ Download PDF** saves the current track as a PDF, one page per slide (`lsh-blueprint.js`, the same file as on every LSH platform). The cover and each page carry the deployed version (the page's ETag) and the date, so it's always made from what's live: nothing to rebuild by hand after a deploy.

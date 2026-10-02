@@ -76,18 +76,71 @@
     .or-check { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; max-width: 900px; counter-reset: c; }
     .or-check li { counter-increment: c; display: flex; gap: 12px; align-items: baseline; font-size: clamp(14.5px, 1.45vw, 16.5px); line-height: 1.5; }
     .or-check li::before { content: counter(c); flex: 0 0 28px; height: 28px; border-radius: 50%; background: var(--navy); color: #fff; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
-    .or-mark { position: absolute; right: 22px; bottom: 16px; width: 34px; height: 34px; opacity: .5; border-radius: 8px; }
-
     .or-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-top: 1px solid var(--line); background: #fff; }
+    .or-pager { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
     .or-dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
     .or-dots button { width: 10px; height: 10px; border-radius: 50%; border: 0; background: #cbd5e1; padding: 0; cursor: pointer; }
     .or-dots button.on { background: var(--orange); width: 24px; border-radius: 6px; }
-    .or-count { font-size: 12.5px; color: var(--slate); font-weight: 600; white-space: nowrap; }
+    .or-count { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--slate); font-weight: 600; white-space: nowrap; }
+
+    /* On screen, the slides sit on the LSH deck background: navy, the patterned band with the logo and
+       its orange rule, and the orange line-art waves at the sides (.or-art, drawn once behind the slides).
+       Sizes are in cqw (the slide area's width), so the background keeps the deck's 16:9 proportions at
+       any size and in full screen. Print keeps the light slides above. */
+    @media screen {
+        #orSlides { --deck: #2b2e45; --deck-orange: #e07a2e; position: relative; container-type: inline-size; background: var(--deck); overflow: hidden; }
+        .or-art { position: absolute; inset: 0; pointer-events: none; }
+        .or-band { position: absolute; left: 0; top: 0; width: 80%; height: 9.8cqw; background-color: #84858e;
+            background-image: repeating-linear-gradient(33deg, rgba(255,255,255,.13) 0 1px, transparent 1px 2.6cqw), repeating-linear-gradient(-33deg, rgba(255,255,255,.13) 0 1px, transparent 1px 2.6cqw); }
+        .or-logo { position: absolute; left: 2.1cqw; top: 1.15cqw; display: flex; flex-direction: column; align-items: center; gap: .45cqw; }
+        .or-logo i { display: block; width: 5.4cqw; height: 5.4cqw; overflow: hidden; position: relative; }
+        /* lsh-logo-dark.png is 640 × 401 with the mark at x 168–472, y 10–312: show just the mark */
+        .or-logo img { position: absolute; width: 11.37cqw; left: -2.98cqw; top: -.18cqw; }
+        .or-logo b { color: #fff; font-size: 1.05cqw; font-weight: 800; letter-spacing: .01em; white-space: nowrap; }
+        .or-rule { position: absolute; left: 21%; width: 59%; top: 11cqw; height: max(2px, .28cqw); background: var(--deck-orange); }
+        .or-art svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+        .or-art path { fill: none; stroke: var(--deck-orange); stroke-width: 1; opacity: .5; }
+        /* every slide is stacked in one cell, so they all take the tallest one's height and the stage never jumps;
+           a slide is 16:9 unless its content needs more room */
+        #orSlides { display: grid; }
+        .or-art, .or-slide { grid-area: 1 / 1; }
+        .or-slide { display: block; visibility: hidden; position: relative; z-index: 1; aspect-ratio: 16 / 9; min-height: auto; padding: 13.6cqw 10cqw 3cqw; color: #e2e5ef; }
+        .or-slide.on { visibility: visible; }
+        /* text and spacing scale with the slide, like a real deck: the same layout at any size and in full screen */
+        .or-kicker { color: #fb923c; font-size: clamp(11px, 1.05cqw, 20px); }
+        .or-slide h2 { color: #fff; font-size: clamp(22px, 3.25cqw, 62px); margin: .7cqw 0 1cqw; }
+        .or-lead { color: #cfd4e2; font-size: clamp(14px, 1.55cqw, 30px); margin-bottom: 1.7cqw; }
+        .or-slide b { color: #fff; }
+        .or-slide ul.pts, .or-check { gap: .9cqw; max-width: 78cqw; }
+        .or-slide ul.pts li, .or-check li { font-size: clamp(14px, 1.4cqw, 27px); }
+        .or-slide ul.pts li { color: #e2e5ef; padding-left: 1.6em; }
+        .or-slide ul.pts li::before { left: .25em; top: .6em; width: .55em; height: .55em; border-radius: .18em; }
+        .or-check li::before { background: var(--orange); color: #fff; flex: 0 0 2.1em; height: 2.1em; font-size: .8em; }
+        .or-flow { gap: .7cqw; margin: .4cqw 0 1.9cqw; }
+        .or-flow span { background: #fff; color: var(--navy); font-size: clamp(13px, 1.2cqw, 23px); padding: .7em 1em; border-radius: .85em; }
+        .or-flow span.alt { background: transparent; color: #fff; border: 1px solid #fb923c; }
+        .or-flow i { color: #fb923c; font-size: clamp(13px, 1.2cqw, 23px); }
+        .or-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 17cqw), 1fr)); gap: 1cqw; }
+        .or-card { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.16); padding: 1.2cqw 1.4cqw; border-radius: 1.3cqw; }
+        .or-card b { font-size: clamp(14px, 1.3cqw, 25px); margin-bottom: .35cqw; }
+        .or-card span { color: #c3c9d9; font-size: clamp(13px, 1.15cqw, 22px); }
+        .or-note { color: #fde4cc; background: rgba(249,115,22,.14); border-color: rgba(251,146,60,.45); font-size: clamp(12.5px, 1.15cqw, 22px); margin-top: 1.5cqw; padding: .75em 1.05em; border-radius: .9em; max-width: 78cqw; }
+        .or-go { margin-top: 1.7cqw; gap: .9cqw; }
+        .or-go .btn { font-size: clamp(13px, 1.1cqw, 21px); padding: .62em 1.08em; border-radius: .78em; }
+        /* the whole stage fits the window's height, Next included (full screen fills the screen) */
+        .or-stage { max-width: max(640px, (100vh - 250px) * 16 / 9); margin: 0 auto; }
+        .or-stage:fullscreen { background: #1d1f31; }
+        .or-stage:fullscreen #orSlides { width: min(100vw, (100vh - 64px) * 16 / 9); margin: 0 auto; }
+        .or-stage:fullscreen .or-slide { max-width: none; }
+    }
 
     @media (max-width: 640px) {
         .or-slide { min-height: 0; }
+        #orSlides .or-slide { aspect-ratio: auto; padding: calc(14cqw + 8px) 18px 22px; }
+        .or-logo b { display: none; }
+        .or-art path { opacity: .22; }
         .or-controls { flex-wrap: wrap; }
-        .or-dots { order: 3; width: 100%; }
+        .or-pager { order: 3; width: 100%; }
         .or-links { margin-left: 0; }
     }
     @media print {
@@ -99,6 +152,7 @@
         .or-slide { display: block !important; min-height: 0; page-break-after: always; break-after: page; padding: 0.2in 0.1in; }
         .or-slide:last-child { page-break-after: auto; break-after: auto; }
         .or-slide:not([data-track~="print"]) { display: none !important; }
+        .or-art { display: none; }
     }
 </style>
 </head>
@@ -136,8 +190,7 @@
         <div id="orSlides"></div>
         <div class="or-controls">
             <button type="button" class="btn" id="orPrev" onclick="go(-1)">← Previous</button>
-            <div class="or-dots" id="orDots"></div>
-            <span class="or-count" id="orCount"></span>
+            <div class="or-pager"><div class="or-dots" id="orDots"></div><span class="or-count" id="orCount"></span></div>
             <button type="button" class="btn pri" id="orNext" onclick="go(1)">Next →</button>
         </div>
     </section>
@@ -292,14 +345,31 @@ admin: [
 let track = 'trainee', idx = 0;
 const $ = id => document.getElementById(id);
 
+// The deck background (on screen only): the patterned band with the logo, its orange rule, and two ribbons
+// of orange line art. A ribbon is a fan of curves between two edge curves that cross, which gives the twist.
+function ribbon(a, b, n) {
+    const mix = (t) => a.map((p, i) => [p[0] + (b[i][0] - p[0]) * t, p[1] + (b[i][1] - p[1]) * t].map(v => v.toFixed(1)).join(' '));
+    let d = '';
+    for (let i = 0; i < n; i++) { const [p0, p1, p2, p3] = mix(i / (n - 1)); d += `M${p0}C${p1} ${p2} ${p3}`; }
+    return `<path vector-effect="non-scaling-stroke" d="${d}"/>`;
+}
+const DECK_ART = `<div class="or-art" aria-hidden="true">
+    <div class="or-band"></div>
+    <div class="or-logo"><i><img src="/lsh-logo-dark.png" alt=""></i><b>LEGAL SUPPORT HELP</b></div>
+    <div class="or-rule"></div>
+    <svg viewBox="0 0 1600 900" preserveAspectRatio="none">
+        ${ribbon([[-20, 290], [230, 360], [20, 650], [150, 920]], [[-20, 430], [70, 520], [250, 720], [20, 920]], 26)}
+        ${ribbon([[1290, -20], [1590, 120], [1340, 400], [1620, 640]], [[1500, -20], [1360, 170], [1620, 330], [1620, 560]], 26)}
+    </svg>
+</div>`;
+
 function renderTrack() {
     const list = SLIDES[track];
-    $('orSlides').innerHTML = list.map((s, i) => `
+    $('orSlides').innerHTML = DECK_ART + list.map((s, i) => `
         <article class="or-slide" data-track="print" aria-label="Slide ${i + 1} of ${list.length}">
             <div class="or-kicker">${String(i + 1).padStart(2, '0')} · ${s.k}</div>
             <h2>${s.h}</h2>
             ${s.body}
-            <img class="or-mark" src="/favicon.png" alt="">
         </article>`).join('');
     $('orDots').innerHTML = list.map((s, i) => `<button type="button" title="${s.k}" aria-label="Slide ${i + 1}: ${s.k}" onclick="show(${i})"></button>`).join('');
     document.querySelectorAll('.or-tabs button').forEach(b => { const on = b.dataset.track === track; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
