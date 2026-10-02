@@ -38,10 +38,10 @@ export async function makeTicket(secret, who, now = Date.now()) {
     return payload + '.' + b64url(await crypto.subtle.sign('HMAC', key, enc.encode(payload)));
 }
 
-const page = (status, title, msg) => new Response(
+const page = (status, title, msg, href = '/programs.html', label = '&larr; Back to the Training Directory') => new Response(
     `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title></head>` +
     `<body style="font-family:Arial,Helvetica,sans-serif;background:#081226;color:#fff;text-align:center;padding:60px 20px"><h1 style="font-size:20px">${title}</h1><p style="color:#cbd5e1">${msg}</p>` +
-    `<p><a href="/programs.html" style="color:#f97316;font-weight:700">&larr; Back to the Training Directory</a></p></body></html>`,
+    `<p><a href="${href}" style="color:#f97316;font-weight:700">${label}</a></p></body></html>`,
     { status, headers: { 'Content-Type': 'text/html; charset=UTF-8', 'Cache-Control': 'no-store' } }
 );
 
@@ -51,7 +51,17 @@ export async function onRequestGet({ request, env }) {
     if (!target) return page(400, 'Unknown program', 'That program can\'t be opened this way.');
 
     const auth = await requireSession(request, env);
-    if (!auth.ok) return Response.redirect(new URL('/trainee-login.html', request.url).toString(), 302);
+    if (!auth.ok) {
+        // Say why, instead of silently sending people back to the login page (which looked like a loop).
+        const info = await auth.response.json().catch(() => ({}));
+        const why = {
+            NOT_AUTHENTICATED: ['Please log in', 'The Portal doesn\'t see you as logged in on this browser. Log in again, then open the program from the Training Directory.'],
+            SESSION_EXPIRED: ['Your Portal session timed out', 'The Portal stays signed in only while a Portal page is open and active. Log in again, then open the program from the Training Directory.'],
+            ACCESS_REVOKED: ['Your account isn\'t approved', 'Your account has been revoked or isn\'t approved yet. Please tell your trainer.'],
+            SITE_LOCKED: ['The Portal is locked', 'An administrator has locked the Portal for now. Please try again later.']
+        }[info.code] || ['Please log in', 'The Portal couldn\'t confirm your session. Log in again, then open the program from the Training Directory.'];
+        return page(401, why[0], why[1] + ` <span style="opacity:.6">(code: ${info.code || 'unknown'})</span>`, '/trainee-login.html', 'Go to Trainee Log In');
+    }
     // Ignore any space or line break pasted around the secret (the programs do the same).
     const secret = String(env.PORTAL_SSO_SECRET || '').trim();
     if (!secret) return page(503, 'Not available yet', 'Single sign-in isn\'t set up yet. Please tell your trainer.');
