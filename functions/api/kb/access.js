@@ -34,14 +34,8 @@ export async function onRequestPost({ request, env }) {
     }
 
     if (body.action === 'unlock') {
-        if (await overLimit(request, db, 'unlock', 10)) return json({ success: false, error: 'Too many attempts from this connection. Wait 10 minutes and try again.' }, 429);
-        const hash = await getSetting(db, 'code_hash');
-        if (!hash) return json({ success: false, error: 'The Knowledge Base isn’t open yet: an admin needs to set the team access code.' }, 409);
-        const name = oneLine(body.name, 80), batch = oneLine(body.batch, 40);
-        if (name.length < 2) return json({ success: false, error: 'Enter your full name.' }, 400);
-        if (!(await verifyPassword(String(body.code || '').trim(), hash))) return json({ success: false, error: 'That access code isn’t right. Ask your trainer or team lead for the current code.' }, 403);
-        const version = await getSetting(db, 'code_version');
-        return json({ success: true, who: { name, batch } }, 200, { ...noStore, 'Set-Cookie': await issueReaderCookie(env, name, batch, version) });
+        // The shared team access code is retired: the Knowledge Base opens only for people signed in on the LSH Training Portal.
+        return json({ success: false, error: 'Sign in on the LSH Training Portal to open the Knowledge Base.', code: 'PORTAL_ONLY' }, 403);
     }
 
     if (body.action === 'set-code') {
