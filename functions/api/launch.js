@@ -15,7 +15,10 @@ import { requireSession } from '../_utils.js';
 // get js/portal-gate.js and the Worker endpoints too (see the Foundational-Training repo).
 const SSO_PROGRAMS = {
     'STANDARD TRAINING': 'https://foundational-training.legalsupporthelp.workers.dev/',
-    'EA  PA TRAINING-OUTSOURCED MANP': 'https://ea-pa-training.legalsupporthelp.workers.dev/'
+    'EA  PA TRAINING-OUTSOURCED MANP': 'https://ea-pa-training.legalsupporthelp.workers.dev/',
+    'CM TRAINING': 'https://case-management-training.legalsupporthelp.workers.dev/',
+    'PROPERTY DAMAGE': 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/',
+    'MEDSUM AND DEMAND': 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/'
 };
 const TICKET_TTL_MS = 5 * 60 * 1000;
 
