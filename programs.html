@@ -109,16 +109,15 @@
 </head>
 <body>
 <script>
-    // Trainees no longer sign in on the main portal (each training program
-    // has its own sign-in). Drop any leftover trainee session so only an
-    // admin session ever changes what this page shows.
+    // Trainees and admins sign in on this portal, so their session is kept. Anything else (a malformed
+    // or leftover record) is dropped, so it can't change what this page shows.
     (function () {
         try {
             [sessionStorage, localStorage].forEach(function (st) {
                 const raw = st.getItem('LSH_SESSION_V1');
                 if (!raw || raw === 'null') return;
                 const s = JSON.parse(raw);
-                if (!s || s.userType !== 'Admin') st.removeItem('LSH_SESSION_V1');
+                if (!s || (s.userType !== 'Admin' && s.userType !== 'Trainee')) st.removeItem('LSH_SESSION_V1');
             });
         } catch (e) {}
     })();
