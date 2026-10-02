@@ -45,7 +45,19 @@ const page = (status, title, msg, href = '/programs.html', label = '&larr; Back 
     { status, headers: { 'Content-Type': 'text/html; charset=UTF-8', 'Cache-Control': 'no-store' } }
 );
 
-export async function onRequestGet({ request, env }) {
+export async function onRequestGet(ctx) {
+    // Never end in a blank Cloudflare error page (1101): say what failed, so it can be fixed.
+    try {
+        return await launch(ctx);
+    } catch (e) {
+        const detail = String((e && (e.message || e)) || 'unknown error').slice(0, 220);
+        console.error('launch failed:', e && e.stack || e);
+        return page(500, 'Couldn\'t open the program', 'Something went wrong on the Portal while opening it. Please send this to your administrator: ' +
+            `<br><code style="display:inline-block;margin-top:8px;padding:6px 10px;background:#0f2148;border-radius:8px;color:#fde68a">${detail.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))}</code>`);
+    }
+}
+
+async function launch({ request, env }) {
     const program = new URL(request.url).searchParams.get('program') || '';
     const target = Object.prototype.hasOwnProperty.call(SSO_PROGRAMS, program) ? SSO_PROGRAMS[program] : null;
     if (!target) return page(400, 'Unknown program', 'That program can\'t be opened this way.');
