@@ -89,7 +89,8 @@ async function launch({ request, env }) {
     if (!user.batch_id) return page(403, 'No batch yet', 'Your Batch ID is assigned when an administrator approves your registration. Please check back after that.');
 
     // Same rule the directory shows: the trainee needs approved (or passed) access to this program.
-    const access = await env.DB.prepare(`SELECT status FROM trainee_topic_access WHERE trainee_username = ? AND topic_key = ?`).bind(auth.session.username, program).first();
+    // Program access lives in TRAINING_DB (with the topics), not in DB (accounts and sessions).
+    const access = await env.TRAINING_DB.prepare(`SELECT status FROM trainee_topic_access WHERE trainee_username = ? AND topic_key = ?`).bind(auth.session.username, program).first();
     if (!access || (access.status !== 'Approved' && access.status !== 'Passed')) {
         return page(403, 'Access not approved', 'Request access to this program in the Training Directory first, and wait for an administrator to approve it.');
     }
