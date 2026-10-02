@@ -202,9 +202,9 @@
 
     // Programs that open through this portal's single sign-in: their own site has no trainee
     // sign-in, and trainees come in with a signed ticket from /api/launch (functions/api/launch.js).
-    // Keep in step with SSO_PROGRAMS there. Admins still open every program directly.
+    // Keep in step with SSO_PROGRAMS there. Admins go through it too (no admin password again in the program).
     const SSO_PROGRAMS = ['STANDARD TRAINING'];
-    const programHref = (key, built, isAdmin) => (!isAdmin && SSO_PROGRAMS.includes(key)) ? '/api/launch?program=' + encodeURIComponent(key) : built;
+    const programHref = (key, built) => SSO_PROGRAMS.includes(key) ? '/api/launch?program=' + encodeURIComponent(key) : built;
 
     // Display names that replace the topics table's `name`, so a program can
     // be renamed without editing the live database. topics_seed.sql carries
@@ -462,7 +462,7 @@
             } else if (!built) {
                 actionHtml = `<span class="topic-action-btn disabled">Coming Soon</span>`;
             } else if (isAdmin || status === 'approved') {
-                actionHtml = `<a class="topic-action-btn primary" href="${programHref(t.key, built, isAdmin)}" target="_blank" rel="noopener">Enter Program &rarr;</a>`;
+                actionHtml = `<a class="topic-action-btn primary" href="${programHref(t.key, built)}" target="_blank" rel="noopener">Enter Program &rarr;</a>`;
             } else if (status === 'pending') {
                 actionHtml = `<span class="topic-action-btn disabled">Awaiting Admin Approval</span>`;
             } else if (!isAdmin && status === 'locked' && prevKey && !prevPassed) {

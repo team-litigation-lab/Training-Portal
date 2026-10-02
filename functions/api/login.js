@@ -32,8 +32,15 @@ export async function onRequestPost({ request, env }) {
         if (!username || !password) {
             return json({ success: false, error: 'Please enter both username and password.' }, 400);
         }
+        // The master account is an administrator: with the right password, say where to sign in instead of "incorrect".
+        if (username === MASTER_USERNAME) {
+            if (verifyMasterCredentials(env, username, password)) {
+                return json({ success: false, error: 'This is an administrator account. Please use the Admin Login.', code: 'WRONG_PORTAL' }, 403);
+            }
+            return json({ success: false, error: 'Incorrect username or password.' }, 401);
+        }
         user = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(username).first();
-        if (username === MASTER_USERNAME || !user || !(await verifyPassword(password, user.password))) {
+        if (!user || !(await verifyPassword(password, user.password))) {
             return json({ success: false, error: 'Incorrect username or password.' }, 401);
         }
         if (isLegacyPlaintext(user.password)) {
@@ -43,7 +50,7 @@ export async function onRequestPost({ request, env }) {
         if (dbUserType !== 'Trainee') {
             return json({
                 success: false,
-                error: 'Wrong Portal: administrators sign in through the Admin Portal.',
+                error: 'This is an administrator account. Please use the Admin Login.',
                 code: 'WRONG_PORTAL'
             }, 403);
         }
