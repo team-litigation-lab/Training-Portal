@@ -196,37 +196,15 @@ The API (`/api/program-progress`) is admin-only. It writes only to archive and r
 
 ## 📉 Server requests (every LSH site shares one monthly allowance)
 
-Every request that runs a Pages Function counts toward the Cloudflare account's monthly requests, shared by every LSH site (the courses, the CMS, this portal, Ring Channel, the Knowledge Base): 10 million a billing month on the Workers Paid plan, then charged. The EA/PA course repository's **Request budget** workflow switches the sites' servers off before the limit. So open pages ask sparingly:
+Every request that runs a Pages Function counts toward the Cloudflare account's monthly requests, shared by every LSH site (the courses, the CMS, this portal, Ring Channel, the Knowledge Base): 10 million a billing month on the Workers Paid plan, then charged. So open pages ask sparingly:
 
 | What | How often | Before |
 |---|---|---|
 | The lock and pause, the alert and new pings: **one** request, `/api/live` (`functions/api/live.js`, `pollLive` in `portal.js`) | every 20 s; 60 s in a background tab; at once when the tab comes back | three requests (`/api/site-state`, `/api/alert`, `/api/pings`) every 3 s |
 | Heartbeat (`app.js`; the server allows 90 s between beats) | every 30 s, and when the tab comes back | every 2 s |
 | Progress and the leaderboard | once a minute, only on a page that shows them, only while it's in view | every 15 s on every signed-in page |
-| The server request meter (admins only; see below) | once when the page opens, then every 15 minutes while it's in view | (new) |
 
 About 98 requests a minute per signed-in tab became about 5. Pings are read from where the last one left off, so a slower check misses none. `/api/site-state`, `/api/alert` and `/api/pings` still answer on their own (Master Control uses them right after a change).
-
-## 📊 Server request meter (admin side of every LSH site)
-
-Admins see how much of the month's request allowance is used, on every LSH platform's admin side: here a small chip in the bottom-right corner of every admin page (Master Control, Training Directory, Progress & Feedback, Attendance, Referrals, Access Control, the Knowledge Base and the Simulators), once signed in as an Admin.
-
-| Chip | When |
-|---|---|
-| 🟢 **Requests 23%** | on track |
-| 🟠 **Getting close** / **On pace to run out Oct 24** | from 75%, or (after the month's first 3 days) when this month's pace reaches the limit before the allowance resets |
-| 🔴 **Nearly used up** | from 90% |
-| 🟥 **Paused until …** | the limit was reached: the sites' server parts are paused until the next billing month |
-| ⚪ **Not set up** / **Last checked 5 h ago** | no numbers yet (the Request budget workflow in EA-PA-TRAINING isn't set up: see its README → Monthly request budget), or it hasn't saved any for over 3 hours |
-
-When it's amber or red, a note appears above the chip (Dismiss hides it until it gets closer, or until next month). Click the chip for the details: the total and the limit, the projection for the month, each day (with a day's share of the limit as a dashed line), each site (this portal in bold), and what happens at the limit.
-
-How it works:
-- The **Request budget** workflow in EA-PA-TRAINING saves the month's numbers to the courses' KV namespace (key `_request-usage`; `COURSE_KV` here) about once an hour, and every 10 minutes from 75%.
-- `GET /api/request-budget` (`functions/api/request-budget.js`) answers an Admin with them, after the same server-side check as the other admin APIs (`requireSession` with `adminOnly`). Every LSH platform has the same endpoint for its own admins.
-- The meter is `request-budget.js`: **the same file in every LSH platform** (change it in one, copy it to all). `portal.js` loads it only when an Admin is signed in, and not inside a course's frame (the course shows its own). Home and Orientation don't load `portal.js` or keep the session alive, so they don't show it. It asks once when the page opens, then every 15 minutes while the tab is in view, so it costs next to nothing.
-- On a phone it sits a little higher, above the floating **← Back** button.
-- Tests: `.github/scripts/request-meter-widget.cjs` (the meter: every level, the note, the details, how often it asks; the same test in every platform) and `.github/scripts/request-meter.cjs` (this site: admins only, on the server and on every admin page; one request).
 
 ## Checks and uptime alerts (GitHub Actions)
 
@@ -237,7 +215,6 @@ How it works:
   - JSON must be valid;
   - the Pages Functions must build (nothing is deployed).
 - **Server requests** (`.github/scripts/requests.cjs`): a signed-in page asks `/api/live` once on load and every 20 s, never `/api/site-state`, `/api/alert` or `/api/pings` on their own; a heartbeat every 30 s; progress once a minute; nothing in a background tab and both at once on coming back; the lock screen, the alert and a new ping from `/api/live` are shown, and the next check asks for pings since the last one; signed out, no pings are asked.
-- **Server request meter** (`.github/scripts/request-meter-widget.cjs`, `request-meter.cjs`): `/api/request-budget` answers only an Admin (signed out 401, a trainee 403), with the month's numbers or none before the workflow has run; every admin page shows the meter after one request, bottom right; signed out, as a trainee or inside a course's frame nothing is shown, loaded or asked; each level (not set up, OK, getting close, nearly used up, on pace to run out, paused, old numbers, no answer) shows as it should; the note above the chip, dismissed, stays away until it gets closer; the details list each day and site; a background tab asks nothing.
 - **Smoke test in a browser:** opens every portal page and simulator at desktop and phone width (API calls answered with empty data). It fails on any page error or a page that scrolls sideways on a phone. New simulator pages go in `PAGES` in `.github/scripts/smoke.cjs`.
 
 **Uptime** (`.github/workflows/uptime.yml`) checks every 30 minutes (at :07 and :37):
@@ -253,6 +230,6 @@ Each failing check is retried once after 20 seconds.
 
 GitHub pauses scheduled workflows after 60 days without a commit to the repository. The Actions tab shows a button to turn it back on.
 
-To run the checks locally: `node .github/scripts/check-site.mjs`, `node .github/scripts/smoke.cjs`, `node .github/scripts/requests.cjs`, `node .github/scripts/request-meter-widget.cjs request-budget.js` and `node .github/scripts/request-meter.cjs` (need Playwright), `node .github/scripts/uptime.mjs`.
+To run the checks locally: `node .github/scripts/check-site.mjs`, `node .github/scripts/smoke.cjs`, `node .github/scripts/requests.cjs` (need Playwright), `node .github/scripts/uptime.mjs`.
 
 `_redirects` keeps `wrangler.toml`, the Markdown files, `topics_seed.sql`, `.github/` and the Functions source off the published site.
