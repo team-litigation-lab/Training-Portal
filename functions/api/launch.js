@@ -14,7 +14,8 @@ import { requireSession } from '../_utils.js';
 // Only programs whose site accepts tickets are listed. The others still open directly, until they
 // get js/portal-gate.js and the Worker endpoints too (see the Foundational-Training repo).
 const SSO_PROGRAMS = {
-    'STANDARD TRAINING': 'https://foundational-training.legalsupporthelp.workers.dev/'
+    'STANDARD TRAINING': 'https://foundational-training.legalsupporthelp.workers.dev/',
+    'EA  PA TRAINING-OUTSOURCED MANP': 'https://ea-pa-training.legalsupporthelp.workers.dev/'
 };
 const TICKET_TTL_MS = 5 * 60 * 1000;
 
