@@ -1,8 +1,8 @@
 import { requireSession } from '../_utils.js';
 
-// Opens a training program for the signed-in trainee, with no second sign-in there.
+// Opens a training program for the signed-in trainee or administrator, with no second sign-in there.
 //
-// GET /api/launch?program=<topic key>   (the trainee must be logged in on this portal)
+// GET /api/launch?program=<topic key>   (they must be logged in on this portal)
 //
 // The program trusts a short-lived ticket this function signs with PORTAL_SSO_SECRET (the same
 // secret is set on the program's Worker). The ticket says who the trainee is, from their portal
@@ -24,9 +24,12 @@ function b64url(bytes) {
     return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-export async function makeTicket(secret, { first, last, batch }, now = Date.now()) {
+// A trainee's ticket carries their name and batch; an administrator's is {r: 'a', exp}: the program signs
+// them in as an admin, because they already signed in here with their admin password.
+export async function makeTicket(secret, who, now = Date.now()) {
     const enc = new TextEncoder();
-    const payload = b64url(enc.encode(JSON.stringify({ first, last, b: batch, exp: now + TICKET_TTL_MS })));
+    const body = who.admin ? { r: 'a', exp: now + TICKET_TTL_MS } : { first: who.first, last: who.last, b: who.batch, exp: now + TICKET_TTL_MS };
+    const payload = b64url(enc.encode(JSON.stringify(body)));
     const key = await crypto.subtle.importKey('raw', enc.encode('portal-sso:' + secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     return payload + '.' + b64url(await crypto.subtle.sign('HMAC', key, enc.encode(payload)));
 }
@@ -45,10 +48,13 @@ export async function onRequestGet({ request, env }) {
 
     const auth = await requireSession(request, env);
     if (!auth.ok) return Response.redirect(new URL('/trainee-login.html', request.url).toString(), 302);
-    if (auth.session.userType !== 'Trainee') {
-        return page(403, 'Trainee accounts only', 'Administrators open programs directly from the Training Directory with their passphrase.');
-    }
     if (!env.PORTAL_SSO_SECRET) return page(503, 'Not available yet', 'Single sign-in isn\'t set up yet. Please tell your trainer.');
+
+    // Administrators were signed in here with their admin password, so the program doesn't ask again.
+    if (auth.session.userType === 'Admin') {
+        return Response.redirect(`${target}?ticket=${await makeTicket(env.PORTAL_SSO_SECRET, { admin: true })}`, 302);
+    }
+    if (auth.session.userType !== 'Trainee') return page(403, 'Not available', 'This account can\'t open programs.');
 
     const user = await env.DB.prepare(`SELECT first_name, last_name, batch_id FROM users WHERE username = ?`).bind(auth.session.username).first();
     if (!user || !user.first_name || !user.last_name) return page(403, 'Account incomplete', 'Your account has no name on record. Please tell your trainer.');
