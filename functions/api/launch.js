@@ -20,6 +20,10 @@ export const SSO_PROGRAMS = {
     'PROPERTY DAMAGE': 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/',
     'MEDSUM AND DEMAND': 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/'
 };
+// Shared tools that aren't programs: any signed-in, approved person opens them (no program access to request).
+export const SSO_TOOLS = {
+    cms: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/'
+};
 const TICKET_TTL_MS = 5 * 60 * 1000;
 
 function b64url(bytes) {
@@ -58,8 +62,11 @@ export async function onRequestGet(ctx) {
 }
 
 async function launch({ request, env }) {
-    const program = new URL(request.url).searchParams.get('program') || '';
-    const target = Object.prototype.hasOwnProperty.call(SSO_PROGRAMS, program) ? SSO_PROGRAMS[program] : null;
+    const params = new URL(request.url).searchParams;
+    const tool = params.get('tool') || '';
+    const program = params.get('program') || '';
+    const isTool = Object.prototype.hasOwnProperty.call(SSO_TOOLS, tool);
+    const target = isTool ? SSO_TOOLS[tool] : (Object.prototype.hasOwnProperty.call(SSO_PROGRAMS, program) ? SSO_PROGRAMS[program] : null);
     if (!target) return page(400, 'Unknown program', 'That program can\'t be opened this way.');
 
     const auth = await requireSession(request, env);
@@ -86,15 +93,15 @@ async function launch({ request, env }) {
 
     const user = await env.DB.prepare(`SELECT first_name, last_name, batch_id FROM users WHERE username = ?`).bind(auth.session.username).first();
     if (!user || !user.first_name || !user.last_name) return page(403, 'Account incomplete', 'Your account has no name on record. Please tell your trainer.');
-    if (!user.batch_id) return page(403, 'No batch yet', 'Your Batch ID is assigned when an administrator approves your registration. Please check back after that.');
+    if (!user.batch_id && !isTool) return page(403, 'No batch yet', 'Your Batch ID is assigned when an administrator approves your registration. Please check back after that.');
 
     // Same rule the directory shows: the trainee needs approved (or passed) access to this program.
     // Program access lives in TRAINING_DB (with the topics), not in DB (accounts and sessions).
-    const access = await env.TRAINING_DB.prepare(`SELECT status FROM trainee_topic_access WHERE trainee_username = ? AND topic_key = ?`).bind(auth.session.username, program).first();
+    const access = isTool ? { status: 'Approved' } : await env.TRAINING_DB.prepare(`SELECT status FROM trainee_topic_access WHERE trainee_username = ? AND topic_key = ?`).bind(auth.session.username, program).first();
     if (!access || (access.status !== 'Approved' && access.status !== 'Passed')) {
         return page(403, 'Access not approved', 'Request access to this program in the Training Directory first, and wait for an administrator to approve it.');
     }
 
-    const ticket = await makeTicket(secret, { first: user.first_name.trim(), last: user.last_name.trim(), batch: String(user.batch_id).trim() });
+    const ticket = await makeTicket(secret, { first: user.first_name.trim(), last: user.last_name.trim(), batch: String(user.batch_id || '').trim() });
     return Response.redirect(`${target}?ticket=${ticket}`, 302);
 }
