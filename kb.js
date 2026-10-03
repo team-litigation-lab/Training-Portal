@@ -528,7 +528,7 @@ function topbar() {
     document.getElementById('kb-nav').innerHTML = `
         ${PortalNav.html('kb', { back: '/programs.html' })}
         ${adminSess ? '<a href="/progress.html">📊 Progress &amp; Feedback</a><a href="/core.html">Master Control</a>' : ''}
-        ${a.unlocked ? `<span class="kb-who">${esc(a.who ? a.who.name : '')}</span><a onclick="signOut()">Sign Out</a>` : ''}`;
+        ${a.unlocked ? `<span class="kb-who">${esc(a.who ? a.who.name : '')}</span>` : ''}`;
 }
 async function start() {
     try { KB.access = await api('/api/kb/access'); }
