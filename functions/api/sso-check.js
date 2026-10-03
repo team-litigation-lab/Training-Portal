@@ -32,7 +32,7 @@ export async function onRequestGet({ request, env }) {
         if (!secret) result = ['PORTAL HAS NO SECRET', 'bad', 'PORTAL_SSO_SECRET isn\'t set on the Portal (Production), or the Portal hasn\'t been redeployed since it was added.'];
         else {
             try {
-                const ticket = await makeTicket(secret, { admin: true });
+                const ticket = await makeTicket(secret, { system: true });
                 const res = await fetch(url + 'api/auth/portal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticket }) });
                 result = describe(res.status, await res.json().catch(() => null));
             } catch (e) { result = ['UNREACHABLE', 'warn', String(e && e.message || e)]; }
