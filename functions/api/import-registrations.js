@@ -31,7 +31,7 @@ function splitName(r) {
 }
 
 async function programTrainees(url, secret) {
-    const ticket = await makeTicket(secret, { admin: true });
+    const ticket = await makeTicket(secret, { system: true });
     const auth = await fetch(url + 'api/auth/portal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticket }) });
     const a = await auth.json().catch(() => ({}));
     if (!auth.ok || !a.token) throw new Error((a && a.error) || ('program answered ' + auth.status));
@@ -48,7 +48,7 @@ async function programTrainees(url, secret) {
 }
 
 async function cmsTrainees(secret) {
-    const ticket = await makeTicket(secret, { admin: true });
+    const ticket = await makeTicket(secret, { system: true });
     const res = await fetch(CMS_URL + 'api/export-trainees', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticket }) });
     const d = await res.json().catch(() => ({}));
     if (!res.ok || !d.success) throw new Error((d && d.error) || ('the CMS answered ' + res.status));

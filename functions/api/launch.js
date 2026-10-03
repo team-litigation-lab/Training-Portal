@@ -32,11 +32,12 @@ function b64url(bytes) {
     return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-// A trainee's ticket carries their name and batch; an administrator's is {r: 'a', exp}: the program signs
-// them in as an admin, because they already signed in here with their admin password.
+// A trainee's ticket carries their name and batch. {r: 'a'} (an administrator) no longer signs anyone in: the platforms refuse it,
+// because administrators type the admin password on every platform. {r: 's'} is the Portal's own server-side tools only
+// (Sign-in check, registration import): never given to a person.
 export async function makeTicket(secret, who, now = Date.now()) {
     const enc = new TextEncoder();
-    const body = who.admin ? { r: 'a', exp: now + TICKET_TTL_MS } : { first: who.first, last: who.last, b: who.batch, exp: now + TICKET_TTL_MS };
+    const body = who.system ? { r: 's', exp: now + TICKET_TTL_MS } : who.admin ? { r: 'a', exp: now + TICKET_TTL_MS } : { first: who.first, last: who.last, b: who.batch, exp: now + TICKET_TTL_MS };
     const payload = b64url(enc.encode(JSON.stringify(body)));
     const key = await crypto.subtle.importKey('raw', enc.encode('portal-sso:' + secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     return payload + '.' + b64url(await crypto.subtle.sign('HMAC', key, enc.encode(payload)));
@@ -87,7 +88,8 @@ async function launch({ request, env }) {
 
     // Administrators were signed in here with their admin password, so the program doesn't ask again.
     if (auth.session.userType === 'Admin') {
-        return Response.redirect(`${target}?ticket=${await makeTicket(secret, { admin: true })}`, 302);
+        // Administrators type the admin password on every platform: no ticket signs them in, they land on that platform's password prompt.
+        return Response.redirect(`${target}?admin=1`, 302);
     }
     if (auth.session.userType !== 'Trainee') return page(403, 'Not available', 'This account can\'t open programs.');
 
