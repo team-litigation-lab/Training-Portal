@@ -191,6 +191,23 @@
     // sign-in, and trainees come in with a signed ticket from /api/launch (functions/api/launch.js).
     // Keep in step with SSO_PROGRAMS there. Admins go through it too (no admin password again in the program).
     const SSO_PROGRAMS = ['STANDARD TRAINING', 'EA  PA TRAINING-OUTSOURCED MANP', 'CM TRAINING', 'PROPERTY DAMAGE', 'MEDSUM AND DEMAND'];
+    // Opening a program asks the Portal to vouch for you (/api/launch), which needs a live Portal session. A Portal tab that sat in the
+    // background has its heartbeat slowed by the browser, so the session can look timed out right when you click. Wake it first, then go.
+    document.addEventListener('click', function (e) {
+        const a = e.target && e.target.closest ? e.target.closest('a[href^="/api/launch"]') : null;
+        if (!a || e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+        e.preventDefault();
+        const w = a.target === '_blank' ? window.open('', '_blank') : null;   // opened at once, so a popup blocker doesn't stop it
+        if (w) { try { w.opener = null; } catch (err) { /* keep going */ } }
+        const go = () => { if (w) w.location.href = a.href; else location.href = a.href; };
+        const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+        const timer = setTimeout(() => { if (ctl) ctl.abort(); }, 3000);
+        let who = '';
+        try { const sess = typeof getSession === 'function' ? getSession() : null; who = (sess && (sess.fullName || sess.username)) || ''; } catch (err) { /* no name needed */ }
+        fetch('/api/heartbeat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', signal: ctl ? ctl.signal : undefined,
+            body: JSON.stringify({ fullName: who, currentCase: 'Opening a program' }) })
+            .catch(() => {}).finally(() => { clearTimeout(timer); go(); });
+    }, true);
     const programHref = (key, built) => SSO_PROGRAMS.includes(key) ? '/api/launch?program=' + encodeURIComponent(key) : built;
 
     // Display names that replace the topics table's `name`, so a program can
