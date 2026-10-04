@@ -1,12 +1,5 @@
 import { json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME, verifyMasterCredentials } from '../_utils.js';
 
-// Normalizes a name for comparison — lowercase, strips periods/commas,
-// collapses whitespace — so "Juan D. Dela Cruz, Jr." and "juan d dela cruz jr"
-// match regardless of how a trainee happens to type it.
-function normalizeName(str) {
-    return String(str || '').toLowerCase().replace(/[.,]/g, '').replace(/\s+/g, ' ').trim();
-}
-
 export async function onRequestPost({ request, env }) {
     const db = env.DB;
     let body;

@@ -209,14 +209,6 @@ export function buildFullName(user) {
         + (user.suffix ? ', ' + user.suffix : '');
 }
 
-/**
- * Shared permission check for the server-side Case Repository: only the
- * case's original owner or an Admin may modify/delete it.
- */
-export function isOwnerOrAdmin(session, ownerUsername) {
-    return !!session && (session.userType === 'Admin' || session.username === ownerUsername);
-}
-
 /* =====================================================================
    PASSWORD HASHING (PBKDF2-SHA256 via Web Crypto)
    ===================================================================== */
@@ -299,58 +291,6 @@ export async function isUsernameTombstoned(db, username) {
 }
 
 /* =====================================================================
-   CASE ID GENERATION (server-enforced, cross-device unique)
-   ===================================================================== */
-export async function nextCaseId(db, typeCode) {
-    const row = await db.prepare(
-        `UPDATE case_id_counter SET value = value + 1 WHERE id = 1 RETURNING value`
-    ).first();
-    if (!row || typeof row.value !== 'number') {
-        throw new Error('case_id_counter is not set up — run the migration before issuing Case IDs.');
-    }
-    const year = new Date().getUTCFullYear();
-    const safeType = (typeCode || 'CASE').toString().replace(/[^A-Za-z0-9]/g, '').toUpperCase().substring(0, 4) || 'CASE';
-    const xxx = String(row.value).padStart(6, '0');
-    return `LSH-${year}-${safeType}-${xxx}`;
-}
-
-/* =====================================================================
-   PRINT SEQUENCE GENERATION (server-enforced, cross-device unique)
-   ===================================================================== */
-export async function nextPrintSequence(db, caseId) {
-    const row = await db.prepare(
-        `INSERT INTO print_sequence_counter (case_id, value) VALUES (?, 1)
-         ON CONFLICT(case_id) DO UPDATE SET value = value + 1
-         RETURNING value`
-    ).bind(caseId).first();
-    if (!row || typeof row.value !== 'number') {
-        throw new Error('print_sequence_counter is not set up — run the migration before issuing print sequences.');
-    }
-    return row.value;
-}
-
-export async function verifyAdminCredentials(db, batchId, password) {
-    const user = await db.prepare(
-        `SELECT * FROM users WHERE batch_id = ? AND user_type = 'Admin' AND status = 'Approved'`
-    ).bind(batchId).first();
-    if (!user) return null;
-    if (!(await verifyPassword(password, user.password))) return null;
-    if (isLegacyPlaintext(user.password)) await upgradePasswordHash(db, user.id, password);
-    return user;
-}
-
-export async function verifyUsernamePassword(db, username, password, userType) {
-    let query = `SELECT * FROM users WHERE username = ? AND status = 'Approved'`;
-    const binds = [username];
-    if (userType) { query += ` AND user_type = ?`; binds.push(userType); }
-    const user = await db.prepare(query).bind(...binds).first();
-    if (!user) return null;
-    if (!(await verifyPassword(password, user.password))) return null;
-    if (isLegacyPlaintext(user.password)) await upgradePasswordHash(db, user.id, password);
-    return user;
-}
-
-/* =====================================================================
    ACTIVITY LOGGING
    ===================================================================== */
 
@@ -365,27 +305,6 @@ export async function logActivity(db, actorUsername, actorBatch, action, details
         ).bind(actorUsername || null, actorBatch || null, action, details ? JSON.stringify(details) : null).run();
     } catch (e) {
         console.error('activity log failed', e);
-    }
-}
-
-/**
- * NEW: Dedicated training activity logger for the Training Activities Portal.
- * Ensures submissions, grades, and deck uploads are always logged to env.TRAINING_DB
- * so they appear in the new Master Control Panel Activity Logs tab.
- */
-export async function logTrainingActivity(trainingDb, actorUsername, actorBatch, actionType, description) {
-    try {
-        await trainingDb.prepare(
-            `INSERT INTO activity_log (actor_username, actor_batch, action, details, timestamp) 
-             VALUES (?, ?, ?, ?, datetime('now'))`
-        ).bind(
-            actorUsername || 'System', 
-            actorBatch || 'UNASSIGNED', 
-            actionType,                      // e.g., 'ACTIVITY_SUBMITTED', 'GRADE_RELEASED'
-            description                      // Plain text description or JSON string
-        ).run();
-    } catch (e) {
-        console.error('training activity log failed', e);
     }
 }
 
