@@ -93,6 +93,7 @@ It has two tracks, switched at the top of the page:
 How to use it:
 - Keys: ← → (or Page Up / Page Down / Space) change slides, and **F** toggles full screen.
 - **⬇ Download PDF** saves the current track as a PDF, one page per slide (`lsh-blueprint.js`, the same file as on every LSH platform). The cover and each page carry the deployed version (the page's ETag) and the date, so it's always made from what's live: nothing to rebuild by hand after a deploy.
+- **Numbering:** the PDF's cover is the Cover, then its pages are `1 / 8` to `8 / 8` (headed "1 of 8" to "8 of 8"), the same as the page's own counter. The cover isn't counted, so nothing says 9.
 - **🖨 Print** prints the current track, one slide per page.
 - Deep links: `?track=admin&slide=3`.
 - Links to it: **Orientation** in the home page menu, and **🧭 Orientation** in the Training Directory's top bar. Signed-in admins get the admin track.
