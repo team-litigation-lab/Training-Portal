@@ -2,31 +2,7 @@
 // PUBLIC PORTAL: REGISTRATION + LOGIN (Cloudflare API backed)
 // ==========================================
 
-function showRegisterView() {
-    window.location.href = '/registration.html';
-}
-
-function showLoginView() {
-    window.location.href = '/trainee-login.html';
-}
-
 let currentPortalMode = "Trainee";
-function switchPortalTab(mode) {
-    currentPortalMode = mode;
-    if (typeof currentPortalTab !== 'undefined') currentPortalTab = mode; // keep legacy var in sync
-    const traineeTab = document.getElementById('portal-tab-trainee');
-    const adminTab = document.getElementById('portal-tab-admin');
-    const authGate = document.getElementById('auth-gate');
-    if (mode === 'Admin') {
-        if (adminTab) adminTab.classList.add('active');
-        if (traineeTab) traineeTab.classList.remove('active');
-        if (authGate) authGate.classList.add('mode-admin');
-    } else {
-        if (traineeTab) traineeTab.classList.add('active');
-        if (adminTab) adminTab.classList.remove('active');
-        if (authGate) authGate.classList.remove('mode-admin');
-    }
-}
 
 function submitRegistration() {
     const msgDiv = document.getElementById('auth-register-msg');

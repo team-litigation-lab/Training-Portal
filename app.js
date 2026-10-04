@@ -272,15 +272,8 @@ function stopHeartbeat() {
 // 2c. STUBS — called by portal.js after login but not yet implemented.
 // Kept as safe no-ops so the post-login chain doesn't throw; each is a
 // separate task from session heartbeat.
-function startIdleTracking() {
-    // TODO: idle timeout tracking — not yet implemented.
-}
 function refreshSiteState() {
     // TODO: pause/lock site-state polling — not yet implemented.
-}
-function showTraineeDashboard() {
-    // TODO: dedicated trainee dashboard entry point — not yet implemented.
-    switchView('trainee-landing');
 }
 
 // 3. MASTER CONTROL (ADMIN)
@@ -2700,5 +2693,5 @@ window.addEventListener('DOMContentLoaded', () => {
     // login — so it also covers a session that was already active when
     // core.html loads directly (bookmarked link, tab restore, etc.), not
     // only the moment right after attemptLogin()'s redirect.
-    if (getSession()) { startHeartbeat(); startIdleTracking(); }
+    if (getSession()) { startHeartbeat(); }
 });

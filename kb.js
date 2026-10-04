@@ -77,11 +77,6 @@ async function unlock(e) {
         KB.access = { ...KB.access, unlocked: true, who: r.who }; topbar(); route();
     } catch (x) { err.textContent = x.message; err.hidden = false; }
 }
-async function signOut() {
-    if (KB.access && KB.access.admin) { logoutSession(); return; }
-    await post('/api/kb/access', { action: 'signout' }).catch(() => {});
-    KB.access.unlocked = false; KB.data = null; topbar(); go('#/');
-}
 
 // ---------- home ----------
 function scoreOf(x, terms) {
@@ -536,5 +531,5 @@ async function start() {
     topbar(); route();
 }
 document.addEventListener('DOMContentLoaded', start);
-Object.assign(window, { KB, go, unlock, signOut, renderHome, renderResults, toggleHelpful, submitComment, reviewComment, edTab, saveArticle, withdraw, reviewPost, setCode, route,
+Object.assign(window, { KB, go, unlock, renderHome, renderResults, toggleHelpful, submitComment, reviewComment, edTab, saveArticle, withdraw, reviewPost, setCode, route,
     renderPeople, pickPhoto, saveProfile, reviewProfile, hideProfile, avatar });
