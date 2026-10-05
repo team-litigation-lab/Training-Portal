@@ -162,6 +162,7 @@ const moduleFor = (c) => has(c, /calendar/i) ? 'calendaring' : has(c, /intake/i)
 const EMBEDS = {
     standard: [{ icon: '🔥', title: 'Standard Live Roleplay', desc: 'The Standard program\u2019s on-demand roleplay: pick a category, a situation and how hard you want to be pushed.', src: '/api/launch?program=' + encodeURIComponent('STANDARD TRAINING') + '&to=roleplay', module: 'standard' }],
     cms: [{ icon: '☎️', title: 'Front Desk Drill', desc: 'Scored incoming calls on the Training Library cases, by voice or text: find the file, verify the caller, handle or route the call.', src: '/api/launch?tool=cms&to=drill', module: 'cms', tab: true }],
+    calendaring: [{ icon: '📅', title: 'Calendaring Simulators (Standard Training, Litigation Week, Executive Week)', desc: 'Drag-and-drop, Google Calendar style: three tracks with the attorney\u2019s rules, an automated review and submit to your trainer.', src: '/api/launch?program=' + encodeURIComponent('STANDARD TRAINING') + '&to=calsim', module: 'calendaring' }],
     'ea-pa': [{ icon: '🔥', title: 'EA / PA Live Roleplay', desc: 'The EA/PA program\u2019s on-demand roleplay: category, situation and difficulty, with your executive on the line.', src: '/api/launch?program=' + encodeURIComponent('EA  PA TRAINING-OUTSOURCED MANP') + '&to=roleplay', module: 'ea-pa' }]
 };
 const START_FLOW = (() => {
