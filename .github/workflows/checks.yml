@@ -32,6 +32,8 @@ jobs:
         run: node .github/scripts/batch.mjs
       - name: AI gateway (one shared budget for every call flow; per-flow share, per-minute and per-person limits)
         run: node --no-warnings .github/scripts/ai-gateway.mjs
+      - name: Graded calls from the CMS count in the trainee's course (the Portal's results and each course's store)
+        run: node --no-warnings .github/scripts/call-results.mjs
       - name: Build the Pages Functions without deploying
         run: npx --yes wrangler@3 pages functions build --outdir "$RUNNER_TEMP/dist"
 
