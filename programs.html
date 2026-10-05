@@ -55,21 +55,6 @@
 
     .queue-card { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; padding: 18px 20px; margin-bottom: 28px; }
     .topic-free { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; vertical-align: middle; }
-    .grant-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; padding: 18px 20px; margin-bottom: 28px; }
-    .grant-card h3 { font-size: 13px; font-weight: 800; color: #166534; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.03em; }
-    .grant-card p { font-size: 12px; color: #64748b; margin: 0 0 14px; }
-    .grant-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    .grant-row input, .grant-row select {
-        padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 12.5px;
-        font-family: 'IBM Plex Sans', sans-serif; background: #fff;
-    }
-    .grant-row input { flex: 1; min-width: 160px; }
-    .grant-row select { min-width: 220px; }
-    .grant-row button {
-        padding: 9px 18px; border-radius: 8px; border: none; background: #166534; color: #fff;
-        font-weight: 700; font-size: 12px; cursor: pointer; white-space: nowrap;
-    }
-    .grant-row button:hover { background: #14532d; }
     .queue-card h3 { font-size: 13px; font-weight: 800; color: #9a3412; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.03em; }
     .queue-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid #fed7aa; font-size: 12.5px; }
     .queue-row:first-of-type { border-top: none; }
@@ -163,7 +148,6 @@
     </a>
     </div>
     <div id="idx-queue-wrap"></div>
-    <div id="idx-grant-wrap"></div>
     <div id="idx-topics" class="topic-grid">
         <div style="grid-column:1/-1; font-size:13px; color:#94a3b8; padding:20px;">Loading programs...</div>
     </div>
@@ -315,7 +299,6 @@
             EXTRA_PROGRAMS.forEach(x => { if (!__topicsCache.some(t => t.key === x.key)) __topicsCache.push({ ...x }); });
             __accessCache = data.access || [];
             renderQueue(session);
-            renderManualGrant(session);
             renderTopics(session);
             startLiveAccess(session);
         } catch (e) {
@@ -352,53 +335,6 @@
             `;
         }
         wrap.innerHTML = html;
-    }
-
-    // Manual override for admins — since sequential gating means a locked
-    // topic has no "Request Access" button for a trainee to even click
-    // (nothing to approve, because no request ever gets created), this is
-    // the only way to grant a topic out of order while programs are still
-    // being built out. Uses the same GRANT action the queue's Approve
-    // button already calls — no sequence check on the backend either way.
-    function renderManualGrant(session) {
-        const wrap = document.getElementById('idx-grant-wrap');
-        if (!wrap) return;
-        if (session.userType !== 'Admin') { wrap.innerHTML = ''; return; }
-
-        const options = __topicsCache
-            .filter(t => !ARCHIVED_TOPICS.includes(t.key) && !EXTRA_PROGRAMS.some(x => x.key === t.key))
-            .map(t => `<option value="${escapeHtml(t.key)}">${escapeHtml(t.name)}</option>`)
-            .join('');
-
-        wrap.innerHTML = `
-            <div class="grant-card">
-                <h3>Manually Grant Access</h3>
-                <p>Skips the request queue and any sequence lock entirely — use while programs are still being built out and the normal progression order isn't ready to enforce yet.</p>
-                <div class="grant-row">
-                    <input type="text" id="grant-username-input" placeholder="Trainee username">
-                    <select id="grant-topic-select">${options}</select>
-                    <button onclick="manualGrantAccess()">Grant Access</button>
-                </div>
-            </div>
-        `;
-    }
-
-    async function manualGrantAccess() {
-        const usernameInput = document.getElementById('grant-username-input');
-        const topicSelect = document.getElementById('grant-topic-select');
-        const traineeUsername = usernameInput.value.trim();
-        const topicKey = topicSelect.value;
-        if (!traineeUsername) { showToast('Enter a trainee username first.', 'error'); return; }
-
-        try {
-            await postJson('/api/topics', { action: 'GRANT', topicKey, traineeUsername });
-            const topicName = (__topicsCache.find(t => t.key === topicKey) || {}).name || topicKey;
-            showToast(`Granted ${traineeUsername} access to ${topicName}.`, 'success');
-            usernameInput.value = '';
-            loadTrainingIndex();
-        } catch (e) {
-            showToast(e.message, 'error');
-        }
     }
 
     // Archived — old/superseded modules kept in the database (and in any
