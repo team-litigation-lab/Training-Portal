@@ -79,6 +79,10 @@
     .queue-btn.deny { background: #fff; color: #b91c1c; border: 1px solid #fca5a5; }
 
     .topic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .topic-group { margin-bottom: 30px; }
+    .topic-group-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid rgba(249,115,22,.35); }
+    .topic-group-head h2 { font-size: 17px; font-weight: 900; margin: 0; color: var(--navy); letter-spacing: .01em; }
+    .topic-group-head span { font-size: 12px; color: #64748b; font-weight: 600; }
     @media (max-width: 1000px) { .topic-grid { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 560px) { .topic-grid { grid-template-columns: 1fr; } }
     .topic-card { background: #fff; border-radius: 18px; padding: 20px; border: 1px solid rgba(15,33,72,0.06); box-shadow: 0 6px 18px rgba(15,33,72,0.05); display: flex; flex-direction: column; gap: 12px; }
@@ -446,7 +450,7 @@
         if (!grid) return;
         const isAdmin = session.userType === 'Admin';
 
-        grid.innerHTML = orderedTopics().map(t => {
+        const cardFor = (t) => {
             const built = BUILT_PROGRAMS[t.key];
             const myAccess = isAdmin ? null : __accessCache.find(a => a.topic_key === t.key);
             const status = isAdmin ? 'approved' : (myAccess ? myAccess.status.toLowerCase() : 'locked');
@@ -487,7 +491,34 @@
                     ${actionHtml}
                 </div>
             `;
-        }).join('');
+        };
+        grid.className = 'topic-groups';
+        grid.innerHTML = groupedTopicsHtml(cardFor);
+    }
+
+    // The cards are grouped by practice area: everything personal injury is in one place.
+    const TOPIC_GROUPS = [
+        { title: 'Personal Injury Law', note: 'Everything personal injury, in the order we teach it',
+          keys: ['STANDARD TRAINING', 'MEDSUM AND DEMAND', 'CM TRAINING', 'PROPERTY DAMAGE', 'HEALTH SUBRO', 'LIEN VERIFICATION'] },
+        { title: 'Other Practice Areas', note: '',
+          keys: ['LITIGATION', 'MASS TORT', 'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'REAL ESTATE LAW'] },
+        { title: 'Support & Upskill', note: '',
+          keys: ['EA  PA TRAINING-OUTSOURCED MANP', 'FREE UPSKILL PROGRAMS'] }
+    ];
+    function groupedTopicsHtml(cardFor) {
+        const all = orderedTopics();
+        const used = new Set();
+        const sections = TOPIC_GROUPS.map(g => {
+            const cards = g.keys.map(k => all.find(t => t.key === k)).filter(Boolean);
+            cards.forEach(t => used.add(t.key));
+            return { title: g.title, note: g.note, cards };
+        });
+        // anything not named above (new programs, reference material) goes last, so nothing disappears
+        const rest = all.filter(t => !used.has(t.key));
+        if (rest.length) sections.push({ title: 'More Training & Resources', note: '', cards: rest });
+        return sections.filter(sec => sec.cards.length).map(sec =>
+            `<section class="topic-group"><div class="topic-group-head"><h2>${escapeHtml(sec.title)}</h2>${sec.note ? `<span>${escapeHtml(sec.note)}</span>` : ''}</div>`
+            + `<div class="topic-grid">${sec.cards.map(cardFor).join('')}</div></section>`).join('');
     }
 
     async function requestTopicAccess(topicKey) {
