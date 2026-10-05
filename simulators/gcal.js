@@ -109,7 +109,7 @@ const seedColor = (r) => r.color || (r.type === 'Blocked Time' ? (/review/i.test
 const guessType = (t) => /block|lunch|daily case/i.test(t) ? 'Blocked Time' : /conference/i.test(t) ? 'Internal Meeting' : /preparation|strategy|settlement meeting|deposition/i.test(t) ? 'Client Meeting' : 'Phone Call';
 const colorOf = (e) => (e.color && GCAL_COLORS[e.color]) || calOf(e.cal).color;
 const isBlock = (e) => e.seed && e.type === 'Blocked Time';
-const isNewConsult = (e) => Object.keys(GCAL_TYPES).some(t => GCAL_TYPES[t].newClient && new RegExp('^\\s*' + t.split(':').map(rx).join('\\W+'), 'i').test(e.title || ''));
+const isNewConsult = (e) => Object.keys(GCAL_TYPES).some(t => GCAL_TYPES[t].newClient && new RegExp('^\\s*' + t.split(':').map(x => rx(x.trim())).join('\\W+'), 'i').test(e.title || ''));
 const nmins = (n) => (+n.v || 0) * ({ minutes: 1, hours: 60, days: 1440, weeks: 10080 }[n.u] || 1);
 const reqDef = (id) => GCAL_REQUESTS.find(r => r.id === id);
 // The track this page runs (gcal.html?track=standard|cm|ea; gcal-data.js GCAL_TRACKS): "standard" is the original Google Calendar
@@ -272,7 +272,7 @@ function gradeBookEvent(e, q, R, all, today) {
     let mt = '';
     if (R.meeting === 'video') mt = e.meet ? '' : 'It’s a video call: add Google Meet video conferencing.';
     else if (R.meeting === 'phone') mt = e.meet ? (T.consult ? 'Consultations are phone only: remove the Google Meet link.' : 'The caller wants a phone call: remove the Google Meet link.') : (/phone|call/i.test(where) ? '' : 'Say it’s a phone call (Location: Phone) and the number the attorney will call.');
-    else mt = e.meet ? 'It’s in person: remove the Google Meet link.' : (new RegExp(rx(GCAL_OFFICE.split(',')[0]) + '|office', 'i').test(e.location || '') ? '' : `It’s in person: put the office in Location (${GCAL_OFFICE}).`);
+    else mt = e.meet ? 'It’s in person: remove the Google Meet link.' : (new RegExp(rx(GCAL_OFFICE.split(/[,\s]+/).slice(0, 2).join(' ')) + '|office', 'i').test(e.location || '') ? '' : `It’s in person: put the office in Location (${GCAL_OFFICE}).`);
     add(!mt, mt || ({ video: 'Video call: Google Meet added.', phone: 'Phone call.', office: 'In person, at the office.' })[R.meeting], 1);
     const tx = plain(e.desc);
     const need = [[CFG.who ? 'the person’s name' : 'the client’s name', hasName(tx, R.name)], ['the callback number', digits(tx).includes(digits(R.cb))]]

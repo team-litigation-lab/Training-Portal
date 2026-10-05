@@ -310,6 +310,24 @@ const server = http.createServer(async (req, res) => {
         if (!/Litigation Week|Executive Week/.test(r.title || '')) fail(`${track}: the page title should name the track (${r.title})`);
         await ctx.close();
     }
+    // Standard Training must grade exactly as it always did: an abbreviated office address still counts as the office, and a new-client
+    // consult counts toward the 3-a-day cap whatever the separator after "Client Consultation" (regressions found by the clones' review)
+    const sp = await open();
+    const reg = await sp.evaluate(() => {
+        const today = '2026-10-05', out = {}, R = GCAL_REQUESTS.find(r => r.id === 'csm-donovan'), q = GCAL.concretize(R, today), plan = GCAL.solve([q], today), e = plan[q.id];
+        const mk = (loc) => ({ events: [{ id: 'ev', cal: 'attorney', title: `${R.type} – ${R.name}`, date: e.date, start: e.start, end: e.end, allDay: false, tz: 'America/New_York', repeat: 'none', location: loc, meet: '',
+            desc: `Name: ${R.name}<br>CB Number: ${R.cb}<br>DOB: ${R.dob}<br>DOL: ${R.dol}<br>Notes: ${R.notesNeed.map(g => g[0]).join(', ')}`, guests: [], notifs: [{ m: 'email', v: 1, u: 'days' }], busy: true }], ex: {}, sx: {} });
+        out.loc = ['400 Commerce St', '400 Commerce St.', '400 commerce', '400 Commerce Ave, Suite 1200', 'Office'].map(l => GCAL.checkPlan(mk(l), [q], today).results[0].items.filter(i => !i.ok && /put the office/.test(i.t)).length);
+        const tue = GCAL.addDays(GCAL.weekStart(today, true), 8);   // a Tuesday
+        const titles = ['Client Consultation: New PI Case – A', 'Client Consultation:New PI Case – B', 'Client Consultation New PI Case – C', 'New Intake Consultation – D'];
+        const evs = titles.map((t, i) => ({ id: 'n' + i, cal: 'attorney', title: t, date: tue, start: ['09:30', '10:15', '11:00', '13:00'][i], end: ['10:00', '10:45', '11:30', '13:30'][i], allDay: false, tz: 'America/New_York', repeat: 'none', location: '', meet: '', desc: '', guests: [], notifs: [], busy: true }));
+        const all = GCAL.instancesOf({ events: evs.slice(0, 3), ex: {}, sx: {} }, tue, tue);
+        out.cap = GCAL.slotProblems(evs[3], all.concat([]), { consult: true, newClient: true }).some(t => /new client consults that day/.test(t));
+        return out;
+    });
+    if (reg.loc.some(n => n)) fail(`Standard Training: an abbreviated office address should still count as the office (${JSON.stringify(reg.loc)})`);
+    if (!reg.cap) fail('Standard Training: the 4th new-client consult of a day should be flagged whatever the separator after "Client Consultation"');
+    await sp.close();
     // the clones keep their own weekly schedule: the API takes ?track=cm|ea and refuses anything else (handled by functions/api/gcal-schedule.js)
     const sch = require('fs').readFileSync(path.join(ROOT, 'functions/api/gcal-schedule.js'), 'utf8');
     if (!/gcal_schedule_tracks/.test(sch) || !/trackOf/.test(sch)) fail('the weekly schedule should be kept per track (gcal_schedule_tracks)');
