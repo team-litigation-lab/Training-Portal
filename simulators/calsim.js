@@ -160,11 +160,11 @@ function renderPage(){
     + `</div>` + (C.SCENARIOS.filter(x => x.track === tk.id).length > 1 ? `<div class="cs-tabs cs-weeks">` + C.SCENARIOS.map((x, i) => x.track === tk.id ? `<button class="cs-tab cs-wk ${i === S.scn ? "active" : ""}" onclick="FTCalSim.pick(${i})">${e(x.title)} <i>${e(x.level)}</i></button>` : "").join("") : "");
   if(!open()) return `<div class="cs-wrap"><h1>📅 Calendaring Simulators</h1><div class="card" style="padding:20px;">🔒 This simulator opens with Lesson ${LESSON}, Calendaring &amp; Appointment Setting.</div></div>`;
   return `<div class="cs-wrap"><div class="cs-top"><div><h1>📅 Calendaring Simulators</h1>
-      <p class="cs-lead">${tk.icon} <b>${e(tk.title)}</b> · ${e(tk.where)}. Build the week in a Google Calendar style, run the automated review, then submit it to your trainer.</p></div>
+      <p class="cs-lead">Build the week in a Google Calendar style, run the automated review, then submit it to your trainer.</p></div>
       <div><button class="btn btn-ghost btn-sm" onclick="location.href='/simulators.html'">← Simulators</button></div></div>
     <div class="cs-tabs">${tabs}</div>
     <p class="cs-blurb">${e(tk.blurb)}</p>
-    <p class="cs-more">Also in Calendaring: <a href="/simulators/gcal.html${carry}">📞 Google Calendar Simulator</a> (book callers’ appointments) · <a href="/simulators/calendar.html${carry}">🗓 Conflicts week</a> (CM · EA/PA)</p>
+    <p class="cs-also">Also in Calendaring: <a href="/simulators/gcal.html${carry}">📞 Google Calendar Simulator</a> (book callers’ appointments) · <a href="/simulators/calendar.html${carry}">🗓 Conflicts week</a> (CM · EA/PA)</p>
     <div class="card cs-brief">${e(s.brief)}</div>
     ${S.err ? `<div class="cs-err">${e(S.err)}</div>` : ""}
     <div class="cs-main">${tasksHTML()}<div><div class="cs-gridwrap">${gridHTML()}</div><p class="cs-hint cs-legend">Eastern Time. Drag on an empty spot to add an event · drag to move · drag the bottom edge to resize · double-click to edit its details · ✕ deletes. Red means a clash, missing travel time or outside 9 to 5.</p></div></div>
@@ -462,8 +462,8 @@ window.CalSim = {render, show(page){ state.page = page; if(page === "scores") A.
 (function(){ const st = document.createElement("style"); st.id = "ft-calendar"; st.textContent = `
 main.main-calsim{max-width:1180px;margin:0 auto;padding:22px 16px 40px;}
 .cs-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;} .cs-top h1{margin:0 0 4px;color:var(--navy);font-size:28px;}
-.cs-lead{margin:0 0 14px;color:var(--ink-soft);font-size:15px;}
-.cs-more{margin:-4px 0 14px;font-size:12.5px;color:var(--ink-soft);} .cs-more a{color:var(--navy);font-weight:700;text-decoration:none;} .cs-more a:hover{text-decoration:underline;}
+.cs-top>div:first-child{flex:1 1 420px;min-width:0;} .cs-lead{margin:0 0 16px;color:var(--ink-soft);font-size:15px;}
+.cs-also{margin:0 0 14px;font-size:12.5px;color:var(--ink-soft);} .cs-also a{color:var(--navy);font-weight:700;text-decoration:none;} .cs-also a:hover{text-decoration:underline;}
 .cs-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
 .cs-tab{border:1px solid var(--line,#e5e7eb);background:var(--card,#fff);color:var(--navy);border-radius:999px;padding:8px 16px;font-weight:700;font-size:13.5px;cursor:pointer;}
 .cs-tab i{font-style:normal;font-weight:600;color:var(--ink-soft);margin-left:6px;font-size:12px;} .cs-tab.active{background:var(--navy);color:#fff;border-color:var(--navy);} .cs-tab.active i{color:#fdba74;}
