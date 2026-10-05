@@ -168,12 +168,17 @@ function logoutSession() {
     // event (see functions/api/logout.js). Local state is cleared
     // immediately below regardless of whether this network call succeeds —
     // the user shouldn't be stuck "logged in" locally over a network blip.
-    fetch('/api/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+    // The page waits for the cookie to be cleared before it leaves (the front door sends a signed-in browser to the Training Directory,
+    // so it must not meet the old cookie), and ?stay=1 asks it not to redirect this once.
+    const loggedOut = Promise.race([
+        fetch('/api/logout', { method: 'POST', credentials: 'include' }).catch(() => {}),
+        new Promise(resolve => setTimeout(resolve, 2500))
+    ]);
     clearSession();
     // core.html's auth-gate is just an empty placeholder now that login
     // lives on its own pages — go to the landing page instead of trying
     // to show in-page login content that no longer exists here.
-    window.location.href = '/index.html';
+    loggedOut.then(() => { window.location.href = '/index.html?stay=1'; });
 }
 
 // 2b-i. LIVE PROGRESS & LEADERBOARD POLLING

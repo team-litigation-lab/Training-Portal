@@ -30,8 +30,14 @@ jobs:
         run: node .github/scripts/check-site.mjs
       - name: Batch IDs (B + MMDDYY, no trainee number)
         run: node .github/scripts/batch.mjs
+      - name: Front door (signed-in trainees and admins go straight to the Training Directory; only a signed-out browser sees a sign-in box)
+        run: node --no-warnings .github/scripts/front-door.mjs
+      - name: Calendaring Simulators' saved work (trainee saves, admin-only feedback)
+        run: node --no-warnings .github/scripts/calsim.mjs
       - name: AI gateway (one shared budget for every call flow; per-flow share, per-minute and per-person limits)
         run: node --no-warnings .github/scripts/ai-gateway.mjs
+      - name: The Call Simulator opens the CMS's (signed in, on the link's tab and line)
+        run: node --no-warnings .github/scripts/calls-route.mjs
       - name: Graded calls from the CMS count in the trainee's course (the Portal's results and each course's store)
         run: node --no-warnings .github/scripts/call-results.mjs
       - name: Build the Pages Functions without deploying

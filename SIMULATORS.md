@@ -9,7 +9,7 @@ claim a simulator below before starting it, and update it when you ship.**
 | Simulator | Page | Status | Built by / notes |
 |---|---|---|---|
 | Hub | `/simulators.html` | Live | Card list in the `SIMULATORS` array |
-| Call Simulator | `/simulators/call.html` | Live | A real call, like the EA/PA course's calls: it rings (a call you place rings on the other end), the caller speaks (one voice per caller), hands-free turn-taking in Chrome/Edge (the mic opens when the caller stops; the reply goes when you pause), Talk, Replay, Speaker and Hang Up, a warning when the browser can't play the voice; typing always works. Generic callers + CM pack `simulators/call-pack-cm.js` (27 John Doe calls) — CM chat · Foundational pack `simulators/call-pack-ft.js` (14 calls on the CMS Training Library cases: Reception, Calendar Management and Intake mock calls; `?program=FT`, `?line=<line>` opens one line; each call's `caseDoc` shows the case file and a link that opens it in the CMS) — Foundational chat · PD pack `simulators/call-pack-pd.js` (16 Angela Carter property-damage calls: claim setup, coverage, rental/tow/shop, total-loss negotiation, release; `?program=PD`; each call's `caseSummary`/`caseLabel` shows the PD claim file) — PD chat |
+| Call Simulator | `/simulators/call.html` → the CMS | Live | **Lives in the CMS** (its 📞 Call Simulator panel; the calls are in the CMS's `call-packs.js`). This address and the Simulators cards send the trainee there through the Portal's sign-in, so nobody signs in again: `functions/_middleware.js` → `/api/launch?tool=cms&to=calls`, carrying `?flow=` (standard, cms, reception, intake, calendaring, ea-pa, pd), `?program=`, `?line=` and `?random=1` (a line's graded call) (`callsQuery` in `functions/api/launch.js`). Every program's lines are there, each with Practice and Graded calls: Standard Training (Reception, Calendar Management, Intake Mock Calls), Case Management, Property Damage and EA / PA. |
 | Calendaring | `/simulators/calendar.html` | Live | CM week + EA week — portal chat |
 | Google Calendar Simulator | `/simulators/gcal.html` | Live | Foundational Training's Calendar Management (Day 6), in a Google Calendar look-alike (no real Google). The attorney's week (`simulators/gcal-data.js`, `GCAL_ATTORNEY`: the owner's Monday–Friday list with the daily blocks, every week); an Admin can change it for everyone (Settings → Edit the weekly schedule; `functions/api/gcal-schedule.js`, D1 `gcal_schedule`). A set of 7 caller requests (book, move, cancel) dealt so it can be done under the rules; Check my calendar marks each against the rules and saves the score as `Google Calendar`. Each trainee's calendar is kept in their browser. Test: `.github/scripts/gcal.cjs` — Foundational chat |
 | Email Workspace | `/simulators/email.html` | Live | Gmail-style practice inbox, no real Gmail. Packs in `simulators/email-packs.js` (CM, EA) + "generate for any program" — portal chat |
@@ -21,8 +21,8 @@ claim a simulator below before starting it, and update it when you ship.**
 
 **New simulator page?** Add it to `PAGES` in `.github/scripts/smoke.cjs`, so the **Checks** workflow opens it on every pull request (it fails on page errors and on sideways scrolling at phone width).
 
-To add program content to an existing simulator, add a pack file (like
-`call-pack-cm.js` or a new key in `email-packs.js`) instead of a new simulator.
+To add program content to an existing simulator, add a pack file (like a new key in `email-packs.js`) instead of a new
+simulator. Calls go in the CMS's `call-packs.js`.
 
 ## Graded calls count in the course (`functions/api/call-results.js`)
 
@@ -54,11 +54,6 @@ progress: Standard Training by lesson (Reception 4, Calendar Management 5, Intak
   - **Direct:** every `GEMINI_API_KEY`, `GEMINI_API_KEY1` … `GEMINI_API_KEY9` set here is in the pool (each
     request starts on a random key; a rate-limited or rejected key hands over), with Gemini 3.x "thinking" set
     to low so callers answer quickly.
-- **Call Simulator voice** (`simulators/call.html`) uses the same handling as the EA/PA portal's Live Roleplay:
-  a ring, the caller's lines spoken in sentence-sized chunks (Chrome drops long ones), a safety timer when
-  the browser never reports the end of speech, a notice + ↻ Replay when the computer has no voice, and
-  🔁 Hands-free (on by default in Chrome/Edge): the mic opens by itself after the caller finishes and the
-  reply is sent when the trainee pauses.
 - Results: `Sim.saveResult({ simulator, scenario, score, summary, details })` — keeps a
   browser copy and sends it to `/api/sim-results` (D1 `simulator_results`) when a name is set.
 - Styles: `sim-wrap`, `sim-hero`, `sim-card`, `sim-btn` (primary / orange / ghost),

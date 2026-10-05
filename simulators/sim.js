@@ -11,7 +11,7 @@
             if (!s || s.userType !== 'Admin') st.removeItem('LSH_SESSION_V1');
         });
     } catch (e) {}
-    // A program can pass who is practicing: /simulators/call.html?program=CM&name=Jane%20Doe&batch=B-2026-014
+    // A program can pass who is practicing: /simulators/email.html?program=CM&name=Jane%20Doe&batch=B-2026-014
     try {
         const q = new URLSearchParams(location.search);
         if (q.get('name') || q.get('batch') || q.get('program')) {

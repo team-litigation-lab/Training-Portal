@@ -252,7 +252,13 @@
     async function loadTrainingIndex() {
         // Trainees and admins sign in on this portal. A trainee's session opens the programs from here
         // (no second sign-in inside them); an admin's adds the approval queue and Master Control link.
-        const stored = getSession();
+        let stored = getSession();
+        if (!stored) {   // a new tab (back from a program, a bookmark): the cookie says who is signed in even though this tab has no copy yet
+            try {
+                const me = await fetch('/api/me', { credentials: 'include', cache: 'no-store' });
+                if (me.ok) { const d = await me.json(); if (d && d.user) { setSession(d.user); stored = d.user; if (typeof startHeartbeat === 'function') startHeartbeat(); } }
+            } catch (e) { /* signed out: the directory shows its public view */ }
+        }
         const session = (stored && (stored.userType === 'Admin' || stored.userType === 'Trainee')) ? stored : { userType: 'Public' };
 
         if (session.userType === 'Admin') {
@@ -269,6 +275,7 @@
                 <a class="idx-logout" href="/api/sso-check" title="Does each program accept the Portal's sign-in ticket?">🔐 Sign-in check</a>
                 <a class="idx-logout" href="/api/admin-password-check" title="Does every platform accept the admin password?">🔑 Admin password check</a>
                 <a class="idx-logout" href="/api/ai-usage" title="Today's use of the shared AI budget, flow by flow">🤖 AI usage</a>
+                <a class="idx-logout" href="/simulators/calsim.html?view=scores" title="Each trainee's Calendaring Simulator submissions: the automated score and your feedback">📅 Calendar Scores</a>
                 <a class="idx-logout" href="/core.html#master">Master Control &rarr;</a>
                 <a class="idx-logout" onclick="logoutSession()">Log Out</a>`;
         }
