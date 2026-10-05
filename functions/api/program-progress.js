@@ -182,6 +182,34 @@ async function simulatorSummary(db) {
     }
 }
 
+
+// Calendaring Simulators (calsim_records), by trainee name and by the program each track belongs to:
+// Standard Training → ft, Litigation Week → cm, Executive Week → eapa. Latest submission per week, with the
+// automated % and the trainer's score, so each program's grading shows its own calendaring.
+const CAL_WEEKS = { rivera: ['ft', 'Standard · Week 1'], chen: ['ft', 'Standard · Week 2'], litigation: ['cm', 'Litigation Week'], executive: ['eapa', 'Executive Week'] };
+async function calsimSummary(db, usersDb) {
+    try {
+        const { results } = await db.prepare(`SELECT username, data FROM calsim_records LIMIT 1000`).all();
+        const byName = {};
+        for (const r of results || []) {
+            let d; try { d = JSON.parse(r.data); } catch (e) { continue; }
+            if (!d || !Array.isArray(d.submissions)) continue;
+            const u = await usersDb.prepare(`SELECT first_name, last_name FROM users WHERE username = ?`).bind(r.username).first();
+            const key = nameKey(u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : r.username);
+            if (!key) continue;
+            const latest = {};
+            d.submissions.forEach(z => { if (CAL_WEEKS[z.scn]) latest[z.scn] = z; });
+            for (const [scn, z] of Object.entries(latest)) {
+                const [program, label] = CAL_WEEKS[scn];
+                const rev = (d.reviews || {})[scn + '|' + z.at] || null;
+                const p = (byName[key] || (byName[key] = {}))[program] || (byName[key][program] = { weeks: [] });
+                p.weeks.push({ label, at: z.at || null, auto: z.auto && num(z.auto.pct) ? z.auto.pct : null, score: rev && num(rev.score) ? rev.score : null, comment: rev ? str(rev.comment, 400) : '' });
+            }
+        }
+        return byName;
+    } catch (e) { return {}; }   // no calendars saved yet
+}
+
 // Activities trainees submitted on the portal itself, with the grader's feedback.
 async function portalWorkSummary(db) {
     try {
@@ -226,8 +254,8 @@ export async function onRequestGet({ request, env }) {
             return json({ success: true, program: only, batch: batchKey(snapBatch), archivedAt: row.archived_at, archivedBy: row.archived_by, trainees: JSON.parse(row.snapshot) }, 200, noStore);
         } catch (err) { return json({ success: false, error: err.message }, 500, noStore); }
     }
-    const [simByName, workByName] = await Promise.all([simulatorSummary(env.TRAINING_DB), portalWorkSummary(env.TRAINING_DB)]);
-    const base = { success: true, programs, program: only || null, driveConfigured: driveConfigured(env), simulators: { byName: simByName }, portalWork: { byName: workByName },
+    const [simByName, workByName, calByName] = await Promise.all([simulatorSummary(env.TRAINING_DB), portalWorkSummary(env.TRAINING_DB), calsimSummary(env.TRAINING_DB, env.DB)]);
+    const base = { success: true, programs, program: only || null, driveConfigured: driveConfigured(env), simulators: { byName: simByName }, portalWork: { byName: workByName }, calsim: { byName: calByName },
         archivedBatches: only ? await archivedBatches(env.TRAINING_DB, only) : [] };
     const kv = env.COURSE_KV;
     if (!kv) {

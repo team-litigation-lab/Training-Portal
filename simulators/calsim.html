@@ -67,10 +67,11 @@
     if (me.admin) {
         const sw = document.getElementById('cs-switch'); sw.hidden = false;
         const paint = (p) => { sw.innerHTML = `<button class="sim-btn ${p === 'sim' ? 'orange' : 'ghost'}" onclick="CalSimTab('sim')">📅 Simulators (preview)</button><button class="sim-btn ${p === 'scores' ? 'orange' : 'ghost'}" onclick="CalSimTab('scores')">📊 Calendar Scores</button>`; };
-        window.CalSimTab = (p) => { paint(p); CalSim.show(p); history.replaceState(null, '', p === 'scores' ? '?view=scores' : location.pathname); };
+        window.CalSimTab = (p) => { paint(p); CalSim.show(p); const q = new URLSearchParams(location.search); if (p === 'scores') q.set('view', 'scores'); else q.delete('view'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '')); };
         paint(page);
     }
-    CalSim.render();
+    const want = new URLSearchParams(location.search).get('track');
+    if (page === 'sim' && want) CalSim.open(want); else CalSim.render();
 })();
 </script>
 </body>

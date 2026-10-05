@@ -288,13 +288,16 @@ function tfbCard(f, withName) {
         ${f.good ? `<p><b>Worked well</b><br>${esc(f.good)}</p>` : ''}${f.improve ? `<p><b>Improve</b><br>${esc(f.improve)}</p>` : ''}${f.facilitator ? `<p><b>For the facilitator</b><br>${esc(f.facilitator)}</p>` : ''}</div>`;
 }
 function detail(p) {
+    const d = P.data || {};
+    const cal = (t) => { const c = ((d.calsim && d.calsim.byName || {})[p.key] || {})[t.program]; if (!c) return '';
+        return `<h5>📅 Calendaring Simulators</h5>` + c.weeks.map(w => `<div class="pg-muted"><b>${esc(w.label)}</b> · 🤖 ${w.auto ?? '—'}${w.auto != null ? '%' : ''} · ${w.score != null ? '👤 ' + w.score + '/100' : 'to review'} · ${esc(date(w.at))}${w.comment ? '<br>' + esc(w.comment) : ''}</div>`).join(''); };
     const enr = p.enrollments.map(t => `<div class="pg-enr">
         <h4><span class="pg-prog ${esc(t.program)}">${esc(progLabel(t.program))}</span><span class="pg-st ${esc(t.status)}">${esc(t.status)}</span>
             <span class="pg-muted">${t.batch ? esc(t.batch) + ' · ' : ''}registered ${esc(date(t.registeredAt))} · last active ${esc(ago(t.lastActive))}</span></h4>
         <div class="pg-days">${Object.entries(t.days).map(([d, x]) => { const f = ((t.feedback || {}).days || {})[d];
             return `<div class="pg-day ${x.done ? 'done' : ''}"><b>Day ${d}</b>${x.done ? '✓ done' : 'not yet'}${x.score != null ? ` · KC ${x.score}%` : ''}${x.task != null ? `<br><span class="pg-muted">Task ${x.task}%</span>` : ''}${f ? `<br>${f.status === 'sent' ? rating(f.rating) : '<span class="pg-muted">feedback draft</span>'}` : ''}</div>`; }).join('')}</div>
         <span class="pg-muted">Knowledge Checks ${t.kcAvg ?? '—'}${t.kcAvg != null ? '%' : ''} · Practice ${t.practiceAvg ?? '—'}${t.practiceAvg != null ? '%' : ''} (${t.practiceDone} done, ${t.practiceRuns} run${t.practiceRuns === 1 ? '' : 's'}) · Roleplay ${t.roleplayAvg ?? '—'}${t.roleplayAvg != null ? `% (${t.roleplayRuns}×)` : ''}</span>
-        <h5>Trainer feedback</h5>${dayFeedback(t)}
+        ${cal(t)}<h5>Trainer feedback</h5>${dayFeedback(t)}
         ${p.sent.some(f => f.program === t.program) ? `<h5>Feedback they sent about ${esc(progLabel(t.program))}</h5>${p.sent.filter(f => f.program === t.program).map(f => tfbCard(f, false)).join('')}` : ''}
     </div>`).join('');
     const sim = p.sim ? `<div class="pg-enr"><h4>🛠 Portal simulators</h4><span class="pg-muted">${p.sim.runs} run${p.sim.runs === 1 ? '' : 's'} · average ${p.sim.avg ?? '—'}${p.sim.avg != null ? '%' : ''} · last ${esc(ago(p.sim.last))}</span>
