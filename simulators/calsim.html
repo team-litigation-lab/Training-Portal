@@ -28,14 +28,11 @@
     .cs-wrap input[type=text], .cs-wrap input[type=number], .cs-wrap textarea { font: inherit; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 8px; }
     #cs-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: #0b1633; color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 14px; opacity: 0; pointer-events: none; transition: all .2s; z-index: 9999; }
     #cs-toast.on { opacity: 1; transform: translateX(-50%); }
-    .cs-switch .sim-btn { padding: 7px 14px; font-size: 13px; }
-    .cs-switch { display: flex; gap: 8px; margin: 0 auto; max-width: 1180px; padding: 14px 16px 0; }
 </style>
 </head>
 <body>
 <div id="topbar"></div>
 <div class="cs-wrap">
-    <div class="cs-switch" id="cs-switch" hidden></div>
     <div id="cs-root"><div class="sim-loading" style="padding:40px;text-align:center;">Loading…</div></div>
 </div>
 
@@ -46,9 +43,19 @@
 <script>Sim.module = 'calendaring';</script>
 <script src="/simulators/calsim-core.js"></script>
 <script>
+// Calendaring Simulators: one page for the three Google Calendar Simulators (simulators/gcal.html), one per program:
+//   🎓 Standard Training (Foundational · Calendar Management): the original Google Calendar Simulator, as it was built;
+//   ⚖️ Litigation Week (Case Management) and 🏢 Executive Week (EA / PA): clones of it with their own week, callers and rules.
+// ?track=standard|cm|ea opens that simulator at once (the Foundational Training's cards link that way). Admins also get
+// 📊 Earlier scheduler scores (?view=scores): the earlier drag-and-drop scheduler's submissions (calsim.js, only used for this page now).
 (async function () {
     Sim.label('Calendaring Simulators');
     const root = document.getElementById('cs-root');
+    const q = new URLSearchParams(location.search);
+    const go = (track) => { const n = new URLSearchParams(location.search); n.delete('track'); n.delete('view'); if (track !== 'standard') n.set('track', track); return '/simulators/gcal.html' + (n.toString() ? '?' + n : ''); };
+    // (the Foundational Training's cards say litigation / executive for the Case Management / EA clones)
+    const want = ({ litigation: 'cm', executive: 'ea' })[String(q.get('track') || '').toLowerCase()] || String(q.get('track') || '').toLowerCase();
+    const direct = ['standard', 'cm', 'ea'].includes(want) && q.get('view') !== 'scores';
     let me;
     try {
         const r = await fetch('/api/calsim', { credentials: 'include' });
@@ -56,23 +63,38 @@
         if (!r.ok || !d.success) throw new Error(d.error || 'Sign in on the Portal first.');
         me = d.me;
     } catch (e) {
+        if (direct) { location.replace(go(want)); return; }     // (the simulator asks for a name itself)
         document.getElementById('topbar').innerHTML = Sim.topbar('calsim');
         root.innerHTML = '<div style="padding:40px;text-align:center;">' + Sim.esc(e.message) + ' <a href="/trainee-login.html">Sign in</a></div>';
         return;
     }
     if (!me.admin) Sim.setWho({ name: me.name, batch: me.batch });   // signed in on the Portal: no "who's practicing" box
+    if (direct) { location.replace(go(want)); return; }
     document.getElementById('topbar').innerHTML = Sim.topbar('calsim');
-    const page = me.admin && new URLSearchParams(location.search).get('view') === 'scores' ? 'scores' : 'sim';
-    window.CalSimHost = { me, root, page };
-    await new Promise((ok, no) => { const s = document.createElement('script'); s.src = '/simulators/calsim.js'; s.onload = ok; s.onerror = no; document.body.appendChild(s); });
-    if (me.admin) {
-        const sw = document.getElementById('cs-switch'); sw.hidden = false;
-        const paint = (p) => { sw.innerHTML = `<button class="sim-btn ${p === 'sim' ? 'orange' : 'ghost'}" onclick="CalSimTab('sim')">📅 Simulators (preview)</button><button class="sim-btn ${p === 'scores' ? 'orange' : 'ghost'}" onclick="CalSimTab('scores')">📊 Calendar Scores</button>`; };
-        window.CalSimTab = (p) => { paint(p); CalSim.show(p); const q = new URLSearchParams(location.search); if (p === 'scores') q.set('view', 'scores'); else q.delete('view'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '')); };
-        paint(page);
+    if (me.admin && q.get('view') === 'scores') {
+        root.innerHTML = '<div style="max-width:1180px;margin:0 auto;padding:14px 16px 0"><a href="/simulators/calsim.html" class="sim-btn ghost" style="text-decoration:none">← Calendaring Simulators</a></div><div id="cs-scores"></div>';
+        window.CalSimHost = { me, root: document.getElementById('cs-scores'), page: 'scores' };
+        await new Promise((ok, no) => { const s = document.createElement('script'); s.src = '/simulators/calsim.js'; s.onload = ok; s.onerror = no; document.body.appendChild(s); });
+        CalSim.show('scores');
+        return;
     }
-    const want = new URLSearchParams(location.search).get('track');
-    if (page === 'sim' && want) CalSim.open(want); else CalSim.render();
+    const TRACKS = [
+        { id: 'standard', icon: '🎓', title: 'Standard Training', where: 'Foundational · Calendar Management',
+          desc: 'The attorney’s calendar in a Google Calendar look-alike. Callers ask for appointments: book them on the Attorney’s Calendar under the attorney’s rules (title, description, Google Meet for video calls, an email reminder a day before, Eastern time, 15-minute buffers), move or cancel what they ask, then check the calendar.' },
+        { id: 'cm', icon: '⚖️', title: 'Litigation Week', where: 'Case Management',
+          desc: 'The same Google Calendar practice on a litigation attorney’s week: hearings, depositions and focus blocks to work around, with case status, treatment, expert, adjuster, mediation and settlement requests to book, move or cancel, under the litigation attorney’s rules.' },
+        { id: 'ea', icon: '🏢', title: 'Executive Week', where: 'EA / PA',
+          desc: 'The same Google Calendar practice on an executive’s week: board, travel, focus time and the all-hands to protect, with interviews, investor, vendor, press and donor requests to book, move or cancel, under the executive’s rules.' }
+    ];
+    root.innerHTML = `<div style="max-width:1180px;margin:0 auto;padding:24px 16px 40px">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start"><div><h1 style="margin:0 0 6px;color:#0b1633;font-size:28px">📆 Calendaring Simulators</h1>
+        <p style="margin:0 0 18px;color:#475569;max-width:760px">All the calendaring practice in one place: the Google Calendar Simulator for each program. Pick yours. Each one checks your calendar against its rules and saves the score for your trainer.</p></div>
+        ${me.admin ? '<a class="sim-btn ghost" style="text-decoration:none;align-self:flex-start" href="/simulators/calsim.html?view=scores" title="The earlier drag-and-drop scheduler’s submissions. Scores from the three simulators are under Recent results on the Simulators page.">📊 Earlier scheduler scores</a>' : ''}</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:14px">
+        ${TRACKS.map(t => `<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:10px"><div style="font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#c2410c">${Sim.esc(t.where)}</div>
+            <h3 style="margin:0;color:#0b1633;font-size:19px">${t.icon} ${Sim.esc(t.title)}</h3><p style="margin:0;color:#475569;font-size:14px;flex:1">${Sim.esc(t.desc)}</p>
+            <div><a class="sim-btn orange" style="text-decoration:none" href="${Sim.esc(go(t.id))}">Open →</a></div></div>`).join('')}</div>
+        <p style="margin:18px 0 0;color:#64748b;font-size:13.5px">Also: <a href="/simulators/calendar.html${location.search}">🗓 Conflicts week</a>, a week full of conflicts to move, shorten or remove under real rules. ${me.admin ? 'Your trainees’ scores from these simulators are under <a href="/simulators.html#results">Recent results</a> on the Simulators page.' : ''}</p></div>`;
 })();
 </script>
 </body>

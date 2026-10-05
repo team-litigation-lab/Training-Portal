@@ -20,6 +20,11 @@
      reason), and an email reminder a day before; moves and cancellations too; changing appointments no one
      asked about costs points. The score is saved with Sim.saveResult ('Google Calendar').
    • Everything is kept in this browser (localStorage, one calendar per trainee name).
+   • Tracks (gcal.html?track=standard|cm|ea; data and numbers in gcal-data.js, GCAL_TRACKS / GCAL_CFG): Standard Training is this
+     simulator exactly as it was built. The Case Management (Litigation Week) and EA / PA (Executive Week) simulators are clones of
+     it with their own week, callers, rules and request types; the executive's wording is applied as the page is drawn. Each track
+     keeps its own calendar in the browser, its own weekly schedule (/api/gcal-schedule?track=…) and saves its score as
+     'Google Calendar' with the track in the scenario.
    window.GCAL exposes the pure parts (solve, checkPlan, slotProblems…) for the test (.github/scripts/gcal.cjs). */
 (function () {
 Sim.module = 'calendaring';
@@ -104,9 +109,16 @@ const seedColor = (r) => r.color || (r.type === 'Blocked Time' ? (/review/i.test
 const guessType = (t) => /block|lunch|daily case/i.test(t) ? 'Blocked Time' : /conference/i.test(t) ? 'Internal Meeting' : /preparation|strategy|settlement meeting|deposition/i.test(t) ? 'Client Meeting' : 'Phone Call';
 const colorOf = (e) => (e.color && GCAL_COLORS[e.color]) || calOf(e.cal).color;
 const isBlock = (e) => e.seed && e.type === 'Blocked Time';
-const isNewConsult = (e) => /^\s*(client consultation\W+new pi case|new intake consultation)/i.test(e.title || '');
+const isNewConsult = (e) => Object.keys(GCAL_TYPES).some(t => GCAL_TYPES[t].newClient && new RegExp('^\\s*' + t.split(':').map(x => rx(x.trim())).join('\\W+'), 'i').test(e.title || ''));
 const nmins = (n) => (+n.v || 0) * ({ minutes: 1, hours: 60, days: 1440, weeks: 10080 }[n.u] || 1);
 const reqDef = (id) => GCAL_REQUESTS.find(r => r.id === id);
+// The track this page runs (gcal.html?track=standard|cm|ea; gcal-data.js GCAL_TRACKS): "standard" is the original Google Calendar
+// Simulator, and its numbers below are the ones it always had. The Case Management and EA / PA clones change the week, the callers,
+// the rules and these numbers, nothing else.
+const CFG = GCAL_CFG;
+const TRK = GCAL_TRACK === 'standard' ? '' : GCAL_TRACK;
+const API_SCHEDULE = '/api/gcal-schedule' + (TRK ? '?track=' + TRK : '');
+const rx = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // All events from `from` to `to` for a calendar state { events, ex, sx }: the attorney's week (with its changes),
 // the trainee's events (and their repeats), and the holidays.
@@ -151,27 +163,27 @@ function slotProblems(e, all, T) {
     if (e.allDay) return ['It’s an all-day event: give it a start and end time.'];
     const out = new Set(), s = mins(e.start), en = mins(e.end), w = wd(e.date);
     if (w === 0 || w === 6) out.add('It’s on a weekend.');
-    const outside = s < 8 * 60 || en > 17 * 60;
-    if (outside) out.add('It’s outside the attorney’s hours (8:00 AM – 5:00 PM; no new client consults after 5).');
+    const outside = s < CFG.open || en > CFG.close;
+    if (outside) out.add(`It’s outside the attorney’s hours (${ampm12(hhmm(CFG.open))} – ${ampm12(hhmm(CFG.close))}${CFG.newClientDays ? '; no new client consults after 5' : ''}).`);
     all.filter(o => o.iid !== e.iid && o.date === e.date && !o.allDay && o.cal === 'attorney').forEach(o => {
         const os = mins(o.start), oe = mins(o.end);
         if (outside && o.title === 'No Schedule Block') return;
         if (s < oe && os < en) out.add(isBlock(o) ? `It overlaps ${o.title} (${span(os, oe)}).` : `It’s double-booked with ${o.title} (${span(os, oe)}).`);
-        else if (!isBlock(o) && s < oe + 15 && os < en + 15) out.add(`There’s no 15-minute buffer next to ${o.title} (${span(os, oe)}).`);
+        else if (!isBlock(o) && s < oe + CFG.buffer && os < en + CFG.buffer) out.add(`There’s no ${CFG.buffer}-minute buffer next to ${o.title} (${span(os, oe)}).`);
     });
-    if (T.consult && (s < 9 * 60 + 30 || en > 15 * 60)) out.add('Phone consults are only between 9:30 AM and 3:00 PM.');
-    if (T.newClient) {
-        if (w !== 2 && w !== 4) out.add('New client consults are only on Tuesdays and Thursdays.');
+    if (T.consult && (s < CFG.consultFrom || en > CFG.consultTo)) out.add('Phone consults are only between 9:30 AM and 3:00 PM.');
+    if (T.newClient && CFG.newClientDays) {
+        if (!CFG.newClientDays.includes(w)) out.add('New client consults are only on Tuesdays and Thursdays.');
         const n = all.filter(o => o.date === e.date && o.cal === 'attorney' && (o.iid === e.iid || isNewConsult(o))).length + (all.some(o => o.iid === e.iid) ? 0 : 1);
-        if (n > 3) out.add(`That makes ${n} new client consults that day (the attorney takes 3 at most).`);
+        if (n > CFG.newClientMax) out.add(`That makes ${n} new client consults that day (the attorney takes ${CFG.newClientMax} at most).`);
     }
-    if (T.followUp && s < 12 * 60) out.add('Follow-ups aren’t scheduled in the morning.');
+    if (T.followUp && s < CFG.followUpFrom) out.add('Follow-ups aren’t scheduled in the morning.');
     return [...out];
 }
 function availText(q, R) {
     if (R.sameDay) return `today, ${shortDate(q.dates[0])}, at 3 PM (ET)`;
     const days = (q.dates || []).map(shortDate).join(' or ');
-    const any = mins(R.from) <= 8 * 60 && mins(R.to) >= 17 * 60;
+    const any = mins(R.from) <= CFG.open && mins(R.to) >= CFG.close;
     return `${days}${any ? ', any time' : `, ${ampm12(R.from)} – ${ampm12(R.to)}`} (ET)`;
 }
 
@@ -209,7 +221,7 @@ function solve(reqs, today, st) {
     const cands = (q, list) => {
         const R = reqDef(q.id), T = GCAL_TYPES[R.type] || { max: 30 }, dur = Math.min(30, T.max), out = [];
         const dates = R.sameDay ? q.alt : q.dates;
-        const lo = R.sameDay ? 8 * 60 : Math.max(8 * 60, mins(R.from)), hi = R.sameDay ? 17 * 60 : Math.min(17 * 60, mins(R.to));
+        const lo = R.sameDay ? CFG.open : Math.max(CFG.open, mins(R.from)), hi = R.sameDay ? CFG.close : Math.min(CFG.close, mins(R.to));
         (dates || []).forEach(d => {
             for (let s = lo; s + dur <= hi; s += 15) {
                 const e = { iid: 'plan:' + q.id, cal: 'attorney', title: `${R.type} – ${R.name}`, date: d, start: hhmm(s), end: hhmm(s + dur), allDay: false };
@@ -260,14 +272,15 @@ function gradeBookEvent(e, q, R, all, today) {
     let mt = '';
     if (R.meeting === 'video') mt = e.meet ? '' : 'It’s a video call: add Google Meet video conferencing.';
     else if (R.meeting === 'phone') mt = e.meet ? (T.consult ? 'Consultations are phone only: remove the Google Meet link.' : 'The caller wants a phone call: remove the Google Meet link.') : (/phone|call/i.test(where) ? '' : 'Say it’s a phone call (Location: Phone) and the number the attorney will call.');
-    else mt = e.meet ? 'It’s in person: remove the Google Meet link.' : (/400 commerce|office/i.test(e.location || '') ? '' : `It’s in person: put the office in Location (${GCAL_OFFICE}).`);
+    else mt = e.meet ? 'It’s in person: remove the Google Meet link.' : (new RegExp(rx(GCAL_OFFICE.split(/[,\s]+/).slice(0, 2).join(' ')) + '|office', 'i').test(e.location || '') ? '' : `It’s in person: put the office in Location (${GCAL_OFFICE}).`);
     add(!mt, mt || ({ video: 'Video call: Google Meet added.', phone: 'Phone call.', office: 'In person, at the office.' })[R.meeting], 1);
     const tx = plain(e.desc);
-    const need = [['the client’s name', hasName(tx, R.name)], ['the callback number', digits(tx).includes(digits(R.cb))], ['the DOB', hasDate(tx, R.dob)], ['the DOL', hasDate(tx, R.dol)]]
+    const need = [[CFG.who ? 'the person’s name' : 'the client’s name', hasName(tx, R.name)], ['the callback number', digits(tx).includes(digits(R.cb))]]
+        .concat(CFG.fields.includes('dob') ? [['the DOB', hasDate(tx, R.dob)]] : [], CFG.fields.includes('dol') ? [['the DOL', hasDate(tx, R.dol)]] : [])
         .concat((R.notesNeed || []).map(g => [`what it’s about (e.g. ${g[0]})`, g.some(k => tx.toLowerCase().includes(k.toLowerCase()))]));
     const got = need.filter(n => n[1]).length;
     pts += 1.5 * got / need.length;
-    items.push({ ok: got === need.length, t: got === need.length ? 'Description: name, callback number, DOB, DOL and the reason.' : `The description is missing ${need.filter(n => !n[1]).map(n => n[0]).join(', ')}.` });
+    items.push({ ok: got === need.length, t: got === need.length ? `Description: ${['name', 'callback number'].concat(CFG.fields.includes('dob') ? ['DOB'] : [], CFG.fields.includes('dol') ? ['DOL'] : []).join(', ')} and the reason.` : `The description is missing ${need.filter(n => !n[1]).map(n => n[0]).join(', ')}.` });
     const rem = (e.notifs || []).some(n => n.m === 'email' && nmins(n) === 1440);
     add(rem, rem ? 'Email reminder a day before.' : 'Add an email notification 1 day before.', 0.5);
     return { pts, max: 10, items, ev: e };
@@ -315,6 +328,7 @@ function checkPlan(st, reqs, today) {
     const extra = [];
     Object.keys(st.ex).forEach(k => { const m = /^s:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(k); const r = m && rowById(m[1]); if (r && !handled.has(k)) extra.push(`${r.title} on ${shortDate(m[2])}`); });
     Object.keys(st.sx).forEach(id => { const r = rowById(id); if (r && !reqs.some(q => q.row === id)) extra.push(`${r.title} (every week)`); });
+    if (CFG.who) out.forEach(r => r.items.forEach(i => { i.t = i.t.replace(/Attorney’s/g, 'Executive’s').replace(/attorney’s/g, 'executive’s'); }));
     const penalty = Math.min(25, extra.length * 5);
     const got = out.reduce((a, r) => a + r.pts, 0), max = out.reduce((a, r) => a + r.max, 0);
     const score = Math.max(0, Math.min(100, Math.round((max ? got / max * 100 : 100) - penalty)));
@@ -322,7 +336,7 @@ function checkPlan(st, reqs, today) {
 }
 
 /* ---------- state (this browser, one calendar per trainee) ---------- */
-const KEY = () => 'lsh_gcal:' + String(Sim.who().name || 'guest').trim().toLowerCase();
+const KEY = () => 'lsh_gcal:' + (TRK ? TRK + ':' : '') + String(Sim.who().name || 'guest').trim().toLowerCase();
 let S = null;
 const G = { pop: null, temp: null, drag: null, undo: null, q: '', menu: null, meet: null, ed: null };
 function fresh() {
@@ -342,7 +356,7 @@ function undo() { if (!G.undo) return; const u = JSON.parse(G.undo); S.events = 
 // An Admin's change to the weekly schedule, for everyone
 async function putRows() {
     try {
-        const res = await fetch('/api/gcal-schedule', { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: ROWS }) });
+        const res = await fetch(API_SCHEDULE, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: ROWS }) });
         const data = await res.json().catch(() => ({}));
         if (!data.success) snack(data.error || 'The schedule wasn’t saved. Try again.');
     } catch (e) { snack('The schedule wasn’t saved (no connection).'); }
@@ -579,7 +593,7 @@ function reqCard(q) {
         : R.kind === 'move' ? `<b>Now:</b> ${esc(shortDate(q.orig))}, ${span(mins(row.start), mins(row.end))} · <b>Can do:</b> ${esc(availText(q, R))}`
         : `<b>${R.sameDay ? 'Wants' : 'Can do'}:</b> ${esc(availText(q, R))}`;
     return `<div class="rq ${q.done ? 'done' : ''}"><div class="top"><span class="av">${esc(R.name[0])}</span><div style="min-width:0"><div class="nm">${esc(R.name)}</div><div class="ty">${esc(what)}</div></div><span class="kind ${kind}">${R.kind === 'book' ? 'Book' : R.kind === 'move' ? 'Move' : 'Cancel'}</span></div>
-        <dl><dt>Callback</dt><dd>${esc(R.cb)}</dd><dt>DOB</dt><dd>${esc(R.dob)}</dd><dt>DOL</dt><dd>${esc(R.dol)}</dd><dt>Case</dt><dd>${R.caseNo ? `${esc(R.caseNo)} <span style="color:#70757a">(${esc(R.mc)})</span>` : 'New client: no file yet'}</dd><dt>Caller</dt><dd>${esc(R.mood)}</dd></dl>
+        <dl><dt>Callback</dt><dd>${esc(R.cb)}</dd>${CFG.fields.length ? `<dt>DOB</dt><dd>${esc(R.dob)}</dd><dt>DOL</dt><dd>${esc(R.dol)}</dd><dt>Case</dt><dd>${R.caseNo ? `${esc(R.caseNo)}${R.mc ? ` <span style="color:#70757a">(${esc(R.mc)})</span>` : ''}` : 'New client: no file yet'}</dd>` : `<dt>Company</dt><dd>${esc(R.org || '')}</dd>`}<dt>Caller</dt><dd>${esc(R.mood)}</dd></dl>
         <q>${esc(R.said)}</q><div class="av2">${when}</div>
         <div class="acts"><button class="txt" data-a="req-go" data-id="${esc(q.id)}">Show on calendar</button><label><input type="checkbox" data-done="${esc(q.id)}" ${q.done ? 'checked' : ''}> Done</label></div></div>`;
 }
@@ -588,7 +602,7 @@ function renderPanel() {
     if (!S.panel) { panel.innerHTML = ''; return; }
     const head = (t) => `<div class="ph"><h3>${t}</h3><button class="ib" data-a="panel" data-p="" aria-label="Close panel">${ic('close')}</button></div>`;
     if (S.panel === 'rules') {
-        panel.innerHTML = head('The attorney’s rules') + `<div class="pb rules"><p class="lead">Calendar Management (Day 6). Plot every appointment on the <b>Attorney’s Calendar</b>, in Eastern time.</p>
+        panel.innerHTML = head('The attorney’s rules') + `<div class="pb rules"><p class="lead">${esc(CFG.lead)} Plot every appointment on the <b>Attorney’s Calendar</b>, in Eastern time.</p>
             <h4>Get from every caller</h4><ul>${GCAL_RULES.collect.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
             <h4>Title</h4><ul><li>${esc(GCAL_RULES.title)}</li></ul>
             <h4>Scheduling rules</h4><ul>${GCAL_RULES.scheduling.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
@@ -606,7 +620,7 @@ function renderPanel() {
         return;
     }
     const open = S.reqs.filter(q => !q.done).length;
-    panel.innerHTML = head('Calendar requests') + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). These callers want appointments booked, moved or cancelled on the attorney’s calendar. ${open ? `${open} still open.` : 'All marked done.'}</p>
+    panel.innerHTML = head('Calendar requests' + (TRK ? ' · ' + esc(CFG.label) : '')) + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). These callers want appointments booked, moved or cancelled on the attorney’s calendar. ${open ? `${open} still open.` : 'All marked done.'}</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="new-set">New set</button></div>
         ${S.reqs.map(reqCard).join('')}</div>`;
 }
@@ -848,7 +862,7 @@ function createAt(date, start) {
 function doCheck() {
     const r = checkPlan(S, S.reqs, S.today);
     S.result = Object.assign(r, { at: new Date().toISOString() }); S.panel = 'result'; save(); closeAll(); render();
-    Sim.saveResult({ simulator: 'Google Calendar', scenario: `Calendar Management · ${S.reqs.length} requests`, score: r.score,
+    Sim.saveResult({ simulator: 'Google Calendar', scenario: `${CFG.scenario} · ${S.reqs.length} requests`, score: r.score,
         summary: `${r.right}/${r.results.length} requests fully right${r.penalty ? `; −${r.penalty} for unasked changes` : ''}`,
         details: { results: r.results.map(x => ({ request: x.head, points: Math.round(x.pts * 10) / 10, max: x.max, missed: x.items.filter(i => !i.ok).map(i => i.t) })), extra: r.extra } });
 }
@@ -884,7 +898,7 @@ function bind() {
             check: () => doCheck(),
             'admin-edit': () => { if (!Sim.isAdmin()) return; G.admin = !G.admin; G.undo = null; closeAll(); render(); snack(G.admin ? 'Editing the weekly schedule for everyone' : 'Back to your practice calendar'); },
             'admin-reset': () => dialog('Restore the original schedule?', '<p style="margin:0;color:#444746">The attorney’s week goes back to how it came, for everyone.</p>', async () => {
-                try { const res = await fetch('/api/gcal-schedule', { method: 'DELETE', credentials: 'include' }); const data = await res.json().catch(() => ({})); if (!data.success) { snack(data.error || 'Could not restore it.'); return; } } catch (e) { snack('Could not restore it (no connection).'); return; }
+                try { const res = await fetch(API_SCHEDULE, { method: 'DELETE', credentials: 'include' }); const data = await res.json().catch(() => ({})); if (!data.success) { snack(data.error || 'Could not restore it.'); return; } } catch (e) { snack('Could not restore it (no connection).'); return; }
                 ROWS = GCAL_ATTORNEY.map(r => Object.assign({}, r)); G.undo = null; render(); snack('The original schedule is back');
             }, 'Restore'),
             'new-set': () => dialog('A new set of requests?', '<p style="margin:0;color:#444746">New callers come in. Your calendar is cleared so you start fresh.</p>', () => { S = fresh(); save(); closeAll(); render(); snack('New requests are in'); }, 'New set'),
@@ -1013,15 +1027,32 @@ function onUp(ev) {
     askScope(g.inst, 'edit', (scope) => { applyChange(g.inst, scope === 'all' ? { start: fields.start, end: fields.end } : fields, scope); render(); snack('Event saved', true); });
 }
 
+/* ---------- the executive's wording (EA / PA track) ---------- */
+// The Executive Week reads "executive" where the attorney's calendar says "attorney": what's shown is reworded as it's drawn (not what
+// the trainee types).
+if (CFG.who) {
+    const WHO = CFG.who, rep = (t) => t.replace(/Attorney’s Calendar/g, WHO.cal).replace(/Attorney’s/g, 'Executive’s').replace(/attorney’s/g, 'executive’s').replace(/Attorney/g, 'Executive').replace(/attorney/g, 'executive');
+    const skip = (n) => { for (let x = n.nodeType === 1 ? n : n.parentNode; x && x !== document.body; x = x.parentNode) if (x.isContentEditable || /^(TEXTAREA|INPUT|SCRIPT|STYLE)$/.test(x.tagName)) return true; return false; };
+    const fix = (n) => {
+        if (n.nodeType === 3) { if (/ttorney/.test(n.nodeValue) && !skip(n)) n.nodeValue = rep(n.nodeValue); return; }
+        if (n.nodeType !== 1 || skip(n)) return;
+        ['title', 'aria-label', 'placeholder'].forEach(a => { const v = n.getAttribute(a); if (v && /ttorney/.test(v)) n.setAttribute(a, rep(v)); });
+        n.childNodes.forEach(fix);
+    };
+    new MutationObserver(ms => ms.forEach(m => { m.addedNodes.forEach(fix); if (m.type === 'characterData') fix(m.target); })).observe(document.body, { childList: true, subtree: true, characterData: true });
+    fix(document.body);
+}
 /* ---------- start ---------- */
 window.GCAL = { solve, checkPlan, slotProblems, concretize, instancesOf, dealRequests, simToday, datesIn, addDays, weekStart, rows: () => ROWS, setRows: (r) => { ROWS = r; } };
 function start() {
     if (!document.getElementById('app')) return;
     const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal');
+    if (TRK) document.title = 'Google Calendar Simulator · ' + CFG.label + ' — LSH Training Portal';
+    if (TRK) { const eb = document.querySelector('.eyebrow'); if (eb) eb.textContent = 'Simulator · ' + CFG.scenario; }
     S = load() || fresh(); save();
     render();
     // the weekly schedule as an Admin set it (if they did)
-    fetch('/api/gcal-schedule', { credentials: 'include' }).then(r => r.json()).then(data => {
+    fetch(API_SCHEDULE, { credentials: 'include' }).then(r => r.json()).then(data => {
         if (data && data.success && Array.isArray(data.rows) && data.rows.length && data.rows.every(r => r && r.id && r.title && /^\d\d:\d\d$/.test(r.start))) {
             ROWS = data.rows; S.reqs = S.reqs.filter(q => q && (q.row == null || rowById(q.row))); render();
         }
