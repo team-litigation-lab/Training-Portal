@@ -24,6 +24,15 @@ claim a simulator below before starting it, and update it when you ship.**
 To add program content to an existing simulator, add a pack file (like a new key in `email-packs.js`) instead of a new
 simulator. Calls go in the CMS's `call-packs.js`.
 
+## Graded calls count in the course (`functions/api/call-results.js`)
+
+The CMS Call Simulator sends each **graded** call here, server to server (header `X-Gateway-Key` = `AI_GATEWAY_SECRET`, the
+AI gateway's shared secret). It's saved in `simulator_results` on the trainee's Portal account (found by first name, last name
+and batch), so the progress page shows it, and in the course's own store, the KV namespace every course Worker shares
+(`COURSE_KV`): `<prefix>callsim:<trainee id>` (FT `ft:`, CM `cm:`, PD `pd:`, EA / PA no prefix and its `trainee-alias:`),
+with the id the course gives the trainee (the slug of "first last" and the batch). The course shows it on the trainee's
+progress: Standard Training by lesson (Reception 4, Calendar Management 5, Intake 6), the others by line.
+
 ## Shared conventions (`simulators/sim.js`, `simulators/sim.css`)
 
 - Page shell: load `/app.js`, `/portal.js`, `/simulators/sim.js`, then the simulator's
