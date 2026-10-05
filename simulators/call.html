@@ -161,7 +161,7 @@ const moduleFor = (c) => has(c, /calendar/i) ? 'calendaring' : has(c, /intake/i)
 // through the same gateway and budget; their saved history stays with the program.
 const EMBEDS = {
     standard: [{ icon: '🔥', title: 'Standard Live Roleplay', desc: 'The Standard program\u2019s on-demand roleplay: pick a category, a situation and how hard you want to be pushed.', src: '/api/launch?program=' + encodeURIComponent('STANDARD TRAINING') + '&to=roleplay', module: 'standard' }],
-    cms: [{ icon: '☎️', title: 'Front Desk Drill', desc: 'Scored incoming calls on the Training Library cases, by voice or text: find the file, verify the caller, handle or route the call.', src: '/api/launch?tool=cms&to=drill', module: 'cms' }],
+    cms: [{ icon: '☎️', title: 'Front Desk Drill', desc: 'Scored incoming calls on the Training Library cases, by voice or text: find the file, verify the caller, handle or route the call.', src: '/api/launch?tool=cms&to=drill', module: 'cms', tab: true }],
     'ea-pa': [{ icon: '🔥', title: 'EA / PA Live Roleplay', desc: 'The EA/PA program\u2019s on-demand roleplay: category, situation and difficulty, with your executive on the line.', src: '/api/launch?program=' + encodeURIComponent('EA  PA TRAINING-OUTSOURCED MANP') + '&to=roleplay', module: 'ea-pa' }]
 };
 const START_FLOW = (() => {
@@ -214,7 +214,9 @@ function render() {
     if (S.phase === 'note') return renderNote();
     if (S.phase === 'debrief') return renderDebrief();
 }
-function openEmbed(k, i) { const e = EMBEDS[k][i]; S.embed = e; Sim.module = e.module; S.phase = 'embed'; render(); }
+// `tab`: the CMS keeps its sign-in in a cookie, which the browser doesn't send into a frame on another site, so it opens in its own tab
+// (the Portal sign-in carries over); the programs keep theirs in the page, so they open right here.
+function openEmbed(k, i) { const e = EMBEDS[k][i]; if (e.tab) { window.open(e.src, '_blank', 'noopener'); return; } S.embed = e; Sim.module = e.module; S.phase = 'embed'; render(); }
 function renderEmbed() {
     if (S.embed) {
         const e = S.embed;
@@ -237,7 +239,7 @@ function renderPick() {
     $app().innerHTML = `
         <div class="filters flows" role="tablist" aria-label="Call flow">${FLOWS.map(f => `<button class="${S.flow === f.k ? 'on' : ''}" role="tab" aria-selected="${S.flow === f.k}" onclick="S.flow='${f.k}';S.line='all';render()">${f.icon} ${f.label}</button>`).join('')}</div>
         ${flow.note ? `<p class="sim-muted" style="margin:6px 2px 10px;font-size:13px;">${Sim.esc(flow.note)}</p>` : ''}
-        ${(EMBEDS[flow.k] || []).map((e, i) => `<div class="sim-card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"><div><h3 style="margin:0 0 4px;">${e.icon} ${Sim.esc(e.title)}</h3><p style="margin:0;font-size:13.5px;">${Sim.esc(e.desc)}</p></div><button class="sim-btn orange" onclick="openEmbed('${flow.k}',${i})">Open it here</button></div>`).join('')}
+        ${(EMBEDS[flow.k] || []).map((e, i) => `<div class="sim-card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"><div><h3 style="margin:0 0 4px;">${e.icon} ${Sim.esc(e.title)}</h3><p style="margin:0;font-size:13.5px;">${Sim.esc(e.desc)}</p></div><button class="sim-btn orange" onclick="openEmbed('${flow.k}',${i})">${e.tab ? 'Open ↗' : 'Open it here'}</button></div>`).join('')}
         ${flow.embed ? `<div class="sim-card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"><div><h3 style="margin:0 0 4px;">🗓 Calendaring Simulator</h3><p style="margin:0;font-size:13.5px;">A real week full of conflicts: move, shorten or remove events under real rules, then check your plan.</p></div><button class="sim-btn orange" onclick="S.phase='embed';render()">Open it here</button></div>` : ''}
         ${lineBar}
         <div class="pick-grid">${list.map(c => `
