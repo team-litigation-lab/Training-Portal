@@ -316,6 +316,7 @@
             renderQueue(session);
             renderManualGrant(session);
             renderTopics(session);
+            startLiveAccess(session);
         } catch (e) {
             const grid = document.getElementById('idx-topics');
             if (grid) grid.innerHTML = `<div style="grid-column:1/-1; font-size:13px; color:#b91c1c; padding:20px;">${escapeHtml(e.message)}</div>`;
@@ -520,6 +521,40 @@
             `<section class="topic-group"><div class="topic-group-head"><h2>${escapeHtml(sec.title)}</h2>${sec.note ? `<span>${escapeHtml(sec.note)}</span>` : ''}</div>`
             + `<div class="topic-grid">${sec.cards.map(cardFor).join('')}</div></section>`).join('');
     }
+
+    // Live access: while a trainee has a request waiting for approval, the page asks for the latest every 12 seconds (only while the tab is
+    // in view, and again the moment they come back to it), so an approved program turns into "Enter Program" without a refresh.
+    let __liveTimer = null, __liveSession = null;
+    const sameAccess = (a, b) => JSON.stringify((a || []).map(x => x.topic_key + ':' + x.status).sort()) === JSON.stringify((b || []).map(x => x.topic_key + ':' + x.status).sort());
+    function startLiveAccess(session) {
+        if (__liveTimer) { clearInterval(__liveTimer); __liveTimer = null; }
+        __liveSession = session;
+        if (!session || session.userType !== 'Trainee') return;
+        if (!__accessCache.some(a => String(a.status).toLowerCase() === 'pending')) return;
+        __liveTimer = setInterval(checkAccessNow, 12000);
+    }
+    async function checkAccessNow() {
+        if (document.hidden || !__liveSession) return;
+        try {
+            const res = await fetch('/api/topics', { credentials: 'include', cache: 'no-store' });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!data.success) return;
+            const next = data.access || [];
+            if (sameAccess(__accessCache, next)) return;
+            const nameOf = key => ((__topicsCache.find(t => t.key === key) || {}).name) || key;
+            next.forEach(n => {
+                const was = __accessCache.find(a => a.topic_key === n.topic_key);
+                const now = String(n.status).toLowerCase(), before = was ? String(was.status).toLowerCase() : '';
+                if (before === 'pending' && (now === 'approved' || now === 'passed')) showToast('Approved: you can now open ' + nameOf(n.topic_key) + '.', 'success');
+                else if (before === 'pending' && now === 'denied') showToast('Your request for ' + nameOf(n.topic_key) + ' was not approved.', 'error');
+            });
+            __accessCache = next;
+            renderTopics(__liveSession);
+            startLiveAccess(__liveSession);
+        } catch (e) { /* try again on the next tick */ }
+    }
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && __liveTimer) checkAccessNow(); });
 
     async function requestTopicAccess(topicKey) {
         try {
