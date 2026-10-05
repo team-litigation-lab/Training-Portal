@@ -106,7 +106,7 @@ let ROWS = GCAL_ATTORNEY.map(r => Object.assign({}, r));
 const rowById = (id) => ROWS.find(r => r.id === id);
 const calOf = (id) => GCAL_CALENDARS.find(c => c.id === id) || GCAL_CALENDARS[1];
 const seedColor = (r) => r.color || (r.type === 'Blocked Time' ? (/review/i.test(r.title) ? 'blueberry' : 'graphite') : r.type === 'Phone Call' ? 'tangerine' : r.type === 'Internal Meeting' ? 'basil' : '');
-const guessType = (t) => /block|lunch|daily case/i.test(t) ? 'Blocked Time' : /conference/i.test(t) ? 'Internal Meeting' : /preparation|strategy|settlement meeting|deposition/i.test(t) ? 'Client Meeting' : 'Phone Call';
+const guessType = (t) => (/block|lunch|daily case/i.test(t) || (TRK && /board|travel|focus|briefing/i.test(t))) ? 'Blocked Time' : /conference/i.test(t) ? 'Internal Meeting' : /preparation|strategy|settlement meeting|deposition/i.test(t) ? 'Client Meeting' : 'Phone Call';
 const colorOf = (e) => (e.color && GCAL_COLORS[e.color]) || calOf(e.cal).color;
 const isBlock = (e) => e.seed && e.type === 'Blocked Time';
 const isNewConsult = (e) => Object.keys(GCAL_TYPES).some(t => GCAL_TYPES[t].newClient && new RegExp('^\\s*' + t.split(':').map(x => rx(x.trim())).join('\\W+'), 'i').test(e.title || ''));
@@ -116,8 +116,12 @@ const reqDef = (id) => GCAL_REQUESTS.find(r => r.id === id);
 // Simulator, and its numbers below are the ones it always had. The Case Management and EA / PA clones change the week, the callers,
 // the rules and these numbers, nothing else.
 const CFG = GCAL_CFG;
+const BOOK_MAX = CFG.exact ? 11 : 10;   // Standard Training scores a booking out of 10 as it always did; the clones out of what the checks add up to
+// The executive's wording (EA / PA track): the page's own fixed texts say "executive" where the attorney's say "attorney". Only fixed
+// texts go through WW(); anything the trainee typed or a caller said is never reworded. Standard and Case Management are unchanged.
+const WW = (t) => !CFG.who ? t : String(t).replace(/Attorney['’]s Calendar/g, CFG.who.cal).replace(/Attorney(['’]s)?/g, (m, p) => 'Executive' + (p || '')).replace(/attorney(['’]s)?/g, (m, p) => 'executive' + (p || ''));
 const TRK = GCAL_TRACK === 'standard' ? '' : GCAL_TRACK;
-const API_SCHEDULE = '/api/gcal-schedule' + (TRK ? '?track=' + TRK : '');
+const API_SCHEDULE = '/api/gcal-schedule' + (TRK ? '?track=' + TRK : '');   // (Standard Training: no query, as it always was)
 const rx = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // All events from `from` to `to` for a calendar state { events, ex, sx }: the attorney's week (with its changes),
@@ -164,7 +168,7 @@ function slotProblems(e, all, T) {
     const out = new Set(), s = mins(e.start), en = mins(e.end), w = wd(e.date);
     if (w === 0 || w === 6) out.add('It’s on a weekend.');
     const outside = s < CFG.open || en > CFG.close;
-    if (outside) out.add(`It’s outside the attorney’s hours (${ampm12(hhmm(CFG.open))} – ${ampm12(hhmm(CFG.close))}${CFG.newClientDays ? '; no new client consults after 5' : ''}).`);
+    if (outside) out.add(WW(`It’s outside the attorney’s hours (${ampm12(hhmm(CFG.open))} – ${ampm12(hhmm(CFG.close))}${CFG.newClientDays ? '; no new client consults after 5' : ''}).`));
     all.filter(o => o.iid !== e.iid && o.date === e.date && !o.allDay && o.cal === 'attorney').forEach(o => {
         const os = mins(o.start), oe = mins(o.end);
         if (outside && o.title === 'No Schedule Block') return;
@@ -175,7 +179,7 @@ function slotProblems(e, all, T) {
     if (T.newClient && CFG.newClientDays) {
         if (!CFG.newClientDays.includes(w)) out.add('New client consults are only on Tuesdays and Thursdays.');
         const n = all.filter(o => o.date === e.date && o.cal === 'attorney' && (o.iid === e.iid || isNewConsult(o))).length + (all.some(o => o.iid === e.iid) ? 0 : 1);
-        if (n > CFG.newClientMax) out.add(`That makes ${n} new client consults that day (the attorney takes ${CFG.newClientMax} at most).`);
+        if (n > CFG.newClientMax) out.add(WW(`That makes ${n} new client consults that day (the attorney takes ${CFG.newClientMax} at most).`));
     }
     if (T.followUp && s < CFG.followUpFrom) out.add('Follow-ups aren’t scheduled in the morning.');
     return [...out];
@@ -256,13 +260,13 @@ function gradeBookEvent(e, q, R, all, today) {
     const items = []; let pts = 0;
     const add = (ok, t, w) => { items.push({ ok, t }); if (ok) pts += w; };
     const T = GCAL_TYPES[R.type] || { max: 30 };
-    add(e.cal === 'attorney', e.cal === 'attorney' ? 'On the Attorney’s Calendar.' : `It’s on the ${calOf(e.cal).name}, not the Attorney’s Calendar.`, 1);
+    add(e.cal === 'attorney', e.cal === 'attorney' ? WW('On the Attorney’s Calendar.') : WW(`It’s on the ${calOf(e.cal).name}, not the Attorney’s Calendar.`), 1);
     const okTitle = alnum(e.title) === alnum(R.type + R.name);
-    add(okTitle, okTitle ? 'Title: the request type and the client’s name.' : `The title should be “${R.type} – ${R.name}” (it’s “${e.title}”).`, 1.5);
+    add(okTitle, okTitle ? `Title: the request type and the ${CFG.who ? 'person' : 'client'}’s name.` : `The title should be “${R.type} – ${R.name}” (it’s “${e.title}”).`, 1.5);
     add((e.tz || ET) === ET, (e.tz || ET) === ET ? 'Time zone: Eastern.' : `The event’s time zone is ${(TZS.find(z => z[0] === e.tz) || [0, e.tz])[1]}; the calendar should be in Eastern (EST).`, 0.5);
     const probs = slotProblems(e, all, T);
-    if (R.sameDay && e.date === today && !/approv/i.test(plain(e.desc))) probs.push('Same-day bookings need the attorney’s approval: book the next business day, or write in the description that it’s pending the attorney’s approval.');
-    add(!probs.length, probs.length ? probs.join(' ') : 'The slot follows the attorney’s rules (free, 15-minute buffers, hours).', 3);
+    if (R.sameDay && e.date === today && !/approv/i.test(plain(e.desc))) probs.push(WW('Same-day bookings need the attorney’s approval: book the next business day, or write in the description that it’s pending the attorney’s approval.'));
+    add(!probs.length, probs.length ? probs.join(' ') : WW('The slot follows the attorney’s rules (free, 15-minute buffers, hours).'), 3);
     const okDates = R.sameDay ? [today].concat(q.alt || []) : (q.dates || []);
     const inWin = okDates.includes(e.date) && (R.sameDay || (mins(e.start) >= mins(R.from) && mins(e.end) <= mins(R.to)));
     add(inWin, inWin ? 'A time the caller can do.' : `It isn’t a time the caller can do (${R.sameDay ? 'today or the next business day' : availText(q, R)}).`, 1);
@@ -271,7 +275,7 @@ function gradeBookEvent(e, q, R, all, today) {
     const where = `${e.location || ''} ${plain(e.desc)}`;
     let mt = '';
     if (R.meeting === 'video') mt = e.meet ? '' : 'It’s a video call: add Google Meet video conferencing.';
-    else if (R.meeting === 'phone') mt = e.meet ? (T.consult ? 'Consultations are phone only: remove the Google Meet link.' : 'The caller wants a phone call: remove the Google Meet link.') : (/phone|call/i.test(where) ? '' : 'Say it’s a phone call (Location: Phone) and the number the attorney will call.');
+    else if (R.meeting === 'phone') mt = e.meet ? (T.consult ? 'Consultations are phone only: remove the Google Meet link.' : 'The caller wants a phone call: remove the Google Meet link.') : (/phone|call/i.test(where) ? '' : WW('Say it’s a phone call (Location: Phone) and the number the attorney will call.'));
     else mt = e.meet ? 'It’s in person: remove the Google Meet link.' : (new RegExp(rx(GCAL_OFFICE.split(/[,\s]+/).slice(0, 2).join(' ')) + '|office', 'i').test(e.location || '') ? '' : `It’s in person: put the office in Location (${GCAL_OFFICE}).`);
     add(!mt, mt || ({ video: 'Video call: Google Meet added.', phone: 'Phone call.', office: 'In person, at the office.' })[R.meeting], 1);
     const tx = plain(e.desc);
@@ -283,7 +287,7 @@ function gradeBookEvent(e, q, R, all, today) {
     items.push({ ok: got === need.length, t: got === need.length ? `Description: ${['name', 'callback number'].concat(CFG.fields.includes('dob') ? ['DOB'] : [], CFG.fields.includes('dol') ? ['DOL'] : []).join(', ')} and the reason.` : `The description is missing ${need.filter(n => !n[1]).map(n => n[0]).join(', ')}.` });
     const rem = (e.notifs || []).some(n => n.m === 'email' && nmins(n) === 1440);
     add(rem, rem ? 'Email reminder a day before.' : 'Add an email notification 1 day before.', 0.5);
-    return { pts, max: 10, items, ev: e };
+    return { pts, max: BOOK_MAX, items, ev: e };
 }
 function checkPlan(st, reqs, today) {
     const all = instancesOf(st, addDays(today, -7), addDays(today, 42));
@@ -294,9 +298,9 @@ function checkPlan(st, reqs, today) {
         if (R.kind !== 'book' && !row) return { id: q.id, head, pts: 0, max: 0, items: [{ ok: true, t: 'No longer on the schedule (an Admin changed it).' }] };
         if (R.kind === 'book') {
             const cands = all.filter(e => !e.seed && e.cal !== 'holidays' && hasName(e.title, R.name));
-            if (!cands.length) return { id: q.id, head, pts: 0, max: 10, items: [{ ok: false, t: 'It isn’t on the calendar.' }] };
+            if (!cands.length) return { id: q.id, head, pts: 0, max: BOOK_MAX, items: [{ ok: false, t: 'It isn’t on the calendar.' }] };
             const best = cands.map(e => gradeBookEvent(e, q, R, all, today)).sort((a, b) => b.pts - a.pts)[0];
-            return { id: q.id, head, pts: best.pts, max: 10, items: best.items, when: `${shortDate(best.ev.date)} · ${best.ev.allDay ? 'all day' : span(mins(best.ev.start), mins(best.ev.end))}` };
+            return { id: q.id, head, pts: best.pts, max: BOOK_MAX, items: best.items, when: `${shortDate(best.ev.date)} · ${best.ev.allDay ? 'all day' : span(mins(best.ev.start), mins(best.ev.end))}` };
         }
         const iid = `s:${q.row}@${q.orig}`; handled.add(iid);
         const inst = all.find(e => e.seed && e.row === q.row && e.origDate === q.orig);
@@ -317,7 +321,7 @@ function checkPlan(st, reqs, today) {
             const inWin = (q.dates || []).includes(target.date) && mins(target.start) >= mins(R.from) && mins(target.end) <= mins(R.to);
             items.push({ ok: inWin, t: inWin ? `Moved to ${shortDate(target.date)}, ${span(mins(target.start), mins(target.end))}: a time the caller can do.` : `Moved to ${shortDate(target.date)}, ${span(mins(target.start), mins(target.end))}; the caller asked for ${availText(q, R)}.` }); if (inWin) pts += 2;
             const probs = slotProblems(target, all, T);
-            items.push({ ok: !probs.length, t: probs.length ? probs.join(' ') : 'The new slot follows the attorney’s rules.' }); if (!probs.length) pts += 4;
+            items.push({ ok: !probs.length, t: probs.length ? probs.join(' ') : WW('The new slot follows the attorney’s rules.') }); if (!probs.length) pts += 4;
             const dur = mins(target.end) - mins(target.start);
             items.push({ ok: dur >= 15 && dur <= T.max, t: `Length: ${dur} minutes (at most ${T.max}).` }); if (dur >= 15 && dur <= T.max) pts += 1;
         }
@@ -328,7 +332,6 @@ function checkPlan(st, reqs, today) {
     const extra = [];
     Object.keys(st.ex).forEach(k => { const m = /^s:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(k); const r = m && rowById(m[1]); if (r && !handled.has(k)) extra.push(`${r.title} on ${shortDate(m[2])}`); });
     Object.keys(st.sx).forEach(id => { const r = rowById(id); if (r && !reqs.some(q => q.row === id)) extra.push(`${r.title} (every week)`); });
-    if (CFG.who) out.forEach(r => r.items.forEach(i => { i.t = i.t.replace(/Attorney’s/g, 'Executive’s').replace(/attorney’s/g, 'executive’s'); }));
     const penalty = Math.min(25, extra.length * 5);
     const got = out.reduce((a, r) => a + r.pts, 0), max = out.reduce((a, r) => a + r.max, 0);
     const score = Math.max(0, Math.min(100, Math.round((max ? got / max * 100 : 100) - penalty)));
@@ -336,7 +339,7 @@ function checkPlan(st, reqs, today) {
 }
 
 /* ---------- state (this browser, one calendar per trainee) ---------- */
-const KEY = () => 'lsh_gcal:' + (TRK ? TRK + ':' : '') + String(Sim.who().name || 'guest').trim().toLowerCase();
+const KEY = () => 'lsh_gcal' + (TRK ? '.' + TRK : '') + ':' + String(Sim.who().name || 'guest').trim().toLowerCase();
 let S = null;
 const G = { pop: null, temp: null, drag: null, undo: null, q: '', menu: null, meet: null, ed: null };
 function fresh() {
@@ -562,7 +565,7 @@ function agendaHtml(list, emptyText) {
 }
 function renderMain() {
     renderMainInner();
-    if (G.admin) $('#gc-main').insertAdjacentHTML('afterbegin', `<div class="adm" role="status"><b>Editing the attorney’s weekly schedule for everyone.</b> Add, change, move or delete appointments on the Attorney’s Calendar: every trainee gets the change.
+    if (G.admin) $('#gc-main').insertAdjacentHTML('afterbegin', `<div class="adm" role="status"><b>Editing the ${WW('attorney’s')} weekly schedule for everyone.</b> Add, change, move or delete appointments on the ${WW('Attorney’s Calendar')}: every trainee gets the change.
         <span style="margin-left:auto;display:flex;gap:6px"><button class="pill" data-a="admin-reset">Restore the original</button><button class="blue" data-a="admin-edit">Done</button></span></div>`);
 }
 function renderMainInner() {
@@ -580,7 +583,7 @@ function renderMainInner() {
 function renderRail() {
     const open = S.reqs.filter(q => !q.done).length;
     $('#gc-rail').innerHTML = `<button class="ib ${S.panel === 'requests' ? 'on' : ''}" data-a="panel" data-p="requests" aria-label="Calendar requests" title="Calendar requests">${ic('req')}${open ? `<span class="badge">${open}</span>` : ''}</button>
-        <button class="ib ${S.panel === 'rules' ? 'on' : ''}" data-a="panel" data-p="rules" aria-label="The attorney's rules" title="The attorney's rules">${ic('book')}</button>
+        <button class="ib ${S.panel === 'rules' ? 'on' : ''}" data-a="panel" data-p="rules" aria-label="${WW("The attorney's rules")}" title="${WW("The attorney's rules")}">${ic('book')}</button>
         <button class="ib ${S.panel === 'result' ? 'on' : ''}" data-a="check" aria-label="Check my calendar" title="Check my calendar">${ic('grade')}</button>`;
 }
 function reqCard(q) {
@@ -602,7 +605,7 @@ function renderPanel() {
     if (!S.panel) { panel.innerHTML = ''; return; }
     const head = (t) => `<div class="ph"><h3>${t}</h3><button class="ib" data-a="panel" data-p="" aria-label="Close panel">${ic('close')}</button></div>`;
     if (S.panel === 'rules') {
-        panel.innerHTML = head('The attorney’s rules') + `<div class="pb rules"><p class="lead">${esc(CFG.lead)} Plot every appointment on the <b>Attorney’s Calendar</b>, in Eastern time.</p>
+        panel.innerHTML = head(WW('The attorney’s rules')) + `<div class="pb rules"><p class="lead">${esc(CFG.lead)} Plot every appointment on the <b>${WW('Attorney’s Calendar')}</b>, in Eastern time.</p>
             <h4>Get from every caller</h4><ul>${GCAL_RULES.collect.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
             <h4>Title</h4><ul><li>${esc(GCAL_RULES.title)}</li></ul>
             <h4>Scheduling rules</h4><ul>${GCAL_RULES.scheduling.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
@@ -620,7 +623,7 @@ function renderPanel() {
         return;
     }
     const open = S.reqs.filter(q => !q.done).length;
-    panel.innerHTML = head('Calendar requests' + (TRK ? ' · ' + esc(CFG.label) : '')) + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). These callers want appointments booked, moved or cancelled on the attorney’s calendar. ${open ? `${open} still open.` : 'All marked done.'}</p>
+    panel.innerHTML = head('Calendar requests' + (TRK ? ' · ' + esc(CFG.label) : '')) + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). These callers want appointments booked, moved or cancelled on the ${WW('attorney’s')} calendar. ${open ? `${open} still open.` : 'All marked done.'}</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="new-set">New set</button></div>
         ${S.reqs.map(reqCard).join('')}</div>`;
 }
@@ -690,7 +693,7 @@ function openDetail(iid, rect) {
         ${(e.guests || []).length ? `<div class="row">${ic('people')}<div class="sub">${e.guests.length} guest${e.guests.length === 1 ? '' : 's'}<br>${e.guests.map(esc).join('<br>')}</div></div>` : ''}
         ${e.desc ? `<div class="row">${ic('notes')}<div class="desc">${sanitize(e.desc)}</div></div>` : ''}
         ${notif.length ? `<div class="row">${ic('bell')}<div class="sub">${notif.map(esc).join('<br>')}</div></div>` : ''}
-        <div class="row">${ic('cal')}<div class="sub">${esc(c.name)}${e.seed ? '<br><span style="font-size:12.5px">The attorney’s standing appointment (every week)</span>' : ''}</div></div>
+        <div class="row">${ic('cal')}<div class="sub">${esc(c.name)}${e.seed ? `<br><span style="font-size:12.5px">${WW('The attorney’s standing appointment (every week)')}</span>` : ''}</div></div>
         ${(e.tz || ET) !== ET ? `<div class="row">${ic('clock')}<div class="sub">Time zone: ${esc((TZS.find(z => z[0] === e.tz) || [0, e.tz])[1])}</div></div>` : ''}
         <div style="height:12px"></div>`;
     gc().appendChild(el); place(el, rect); G.pop = el; G.popIid = iid;
@@ -739,7 +742,7 @@ function drawEditor() {
             ${d.allDay ? '' : `<select id="ed-start" aria-label="Start time">${timeOpts(d.start)}</select><span>to</span><select id="ed-end" aria-label="End time">${timeOpts(d.end, d.start)}</select>`}
             <label><input type="checkbox" id="ed-allday" ${d.allDay ? 'checked' : ''}> All day</label>
             <select id="ed-tz" aria-label="Time zone">${TZS.map(z => `<option value="${z[0]}" ${z[0] === (d.tz || ET) ? 'selected' : ''}>(${gmt(z[0], d.date)}) ${esc(z[1])}</option>`).join('')}</select>
-            ${isSeed ? '<span style="color:#70757a;font-size:13px">Weekly (the attorney’s standing appointment)</span>' : `<select id="ed-rep" aria-label="Repeat">${rep.map(r => `<option value="${r[0]}" ${r[0] === (d.repeat || 'none') ? 'selected' : ''}>${esc(r[1])}</option>`).join('')}</select>`}</div>
+            ${isSeed ? `<span style="color:#70757a;font-size:13px">${WW('Weekly (the attorney’s standing appointment)')}</span>` : `<select id="ed-rep" aria-label="Repeat">${rep.map(r => `<option value="${r[0]}" ${r[0] === (d.repeat || 'none') ? 'selected' : ''}>${esc(r[1])}</option>`).join('')}</select>`}</div>
         <div class="ed-cols"><div>
             <div class="ed-tabs"><button class="${E.tab === 'details' ? 'on' : ''}" data-a="ed-tab" data-t="details">Event details</button><button class="${E.tab === 'find' ? 'on' : ''}" data-a="ed-tab" data-t="find">Find a time</button></div>
             <div class="ed-body">${E.tab === 'find' ? findHtml(d) : `
@@ -751,7 +754,7 @@ function drawEditor() {
                 <div class="row">${ic('cal')}<div class="two">${calSelect('ed-cal', d.cal).replace('class="fin"', '')}<select id="ed-color" aria-label="Event color">${colorOpts.map(c => `<option value="${c[0]}" ${c[0] === (d.color || '') ? 'selected' : ''}>${c[1]}</option>`).join('')}</select></div></div>
                 <div class="row">${ic('lock')}<div class="two"><select id="ed-busy" aria-label="Show as"><option value="busy" ${d.busy !== false ? 'selected' : ''}>Busy</option><option value="free" ${d.busy === false ? 'selected' : ''}>Free</option></select><select id="ed-vis" aria-label="Visibility">${[['default', 'Default visibility'], ['public', 'Public'], ['private', 'Private']].map(v => `<option value="${v[0]}" ${v[0] === (d.vis || 'default') ? 'selected' : ''}>${v[1]}</option>`).join('')}</select></div></div>
                 <div class="row">${ic('notes')}<div class="rte"><div class="bar"><button data-cmd="bold" aria-label="Bold"><b>B</b></button><button data-cmd="italic" aria-label="Italic"><i>I</i></button><button data-cmd="underline" aria-label="Underline"><u>U</u></button><button data-cmd="insertOrderedList" aria-label="Numbered list">1.</button><button data-cmd="insertUnorderedList" aria-label="Bulleted list">•</button><button data-cmd="createLink" aria-label="Link">🔗</button><button data-cmd="removeFormat" aria-label="Remove formatting">T̸</button></div>
-                    <div class="area" id="ed-desc" contenteditable="true" data-ph="Add description: name, callback number, DOB, DOL and what it’s about" aria-label="Description">${sanitize(d.desc)}</div></div></div>`}
+                    <div class="area" id="ed-desc" contenteditable="true" data-ph="${esc(['Add description: name', 'callback number'].concat(CFG.fields.includes('dob') ? ['DOB'] : [], CFG.fields.includes('dol') ? ['DOL'] : []).join(', ') + ' and what it’s about')}" aria-label="Description">${sanitize(d.desc)}</div></div></div>`}
             </div></div>
             <div class="guests"><h4>Guests</h4><input class="fld" id="ed-guest" placeholder="Add guests (email), then Enter" aria-label="Add guests" style="width:100%;font:inherit;border:0;background:#f1f3f4;border-radius:4px;padding:9px 10px">
                 ${d.guests.map((g, i) => `<div class="g"><span class="gav">${esc(g[0].toUpperCase())}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(g)}</span><button class="ib" data-a="ed-ungu" data-i="${i}" aria-label="Remove guest">${ic('close')}</button></div>`).join('')}
@@ -763,7 +766,7 @@ function findHtml(d) {
     const me = d.allDay ? null : Object.assign({ iid: 'me', title: d.title || '(No title)', cal: d.cal, color: d.color, _n: 1, _c: 0 }, d);
     let hours = '', lines = '';
     for (let h = 1; h < 24; h++) { hours += `<span style="position:absolute;top:${h * HH}px;right:6px;font-size:10px;color:#70757a;transform:translateY(-50%)">${hourLabel(h)}</span>`; lines += `<div class="ln" style="top:${h * HH}px"></div>`; }
-    return `<p style="margin:0 0 8px;color:#444746;font-size:13px">${esc(longDate(d.date))} on the Attorney’s Calendar${me ? ` · this event: ${span(mins(d.start), mins(d.end))}` : ''}</p>
+    return `<p style="margin:0 0 8px;color:#444746;font-size:13px">${esc(longDate(d.date))} on the ${WW('Attorney’s Calendar')}${me ? ` · this event: ${span(mins(d.start), mins(d.end))}` : ''}</p>
         <div class="find" id="ed-find"><div style="position:relative;height:${24 * HH}px">${hours}</div><div class="wk-col" style="height:${24 * HH}px">${lines}${layoutDay(evs).map(e => evHtml(e)).join('')}${me ? evHtml(me, 'ghost') : ''}</div></div>`;
 }
 function saveEditor() {
@@ -816,7 +819,7 @@ function openMeet(e) {
         const t = M.t0 ? Math.floor((Date.now() - M.t0) / 1000) : 0;
         el.innerHTML = `<div class="mtop"><span>${esc(e.title || 'Meeting')}</span><button class="mb" data-m="x" aria-label="Close" style="width:40px;height:40px">${ic('close')}</button></div>
             <div class="mmain">${M.stage === 'lobby' ? `${tile(me, '#5f6368')}<div class="ready"><h3>Ready to join?</h3><p>${R ? esc(R.name) + ' is waiting' : 'No one else is here'}</p><button class="jn" data-m="join">Join now</button></div>`
-                : M.stage === 'in' ? `${tile(me + ' (You)', '#5f6368', true)}${tile('Attorney', '#1a73e8', true)}${R ? tile(R.name, '#7cb342', true) : ''}`
+                : M.stage === 'in' ? `${tile(me + ' (You)', '#5f6368', true)}${tile(WW('Attorney'), '#1a73e8', true)}${R ? tile(R.name, '#7cb342', true) : ''}`
                 : `<div class="ready"><h3>You left the meeting</h3><p>meet.google.com/${esc(e.meet)}</p><button class="jn" data-m="join">Rejoin</button> <button class="jn" data-m="x" style="background:none;color:#8ab4f8;border:1px solid #5f6368">Return to the calendar</button></div>`}</div>
             ${M.stage !== 'left' ? `<div class="mbar"><button class="mb ${M.mic ? '' : 'off'}" data-m="mic" aria-label="${M.mic ? 'Turn off microphone' : 'Turn on microphone'}">${ic('mic')}</button><button class="mb ${M.cam ? '' : 'off'}" data-m="cam" aria-label="${M.cam ? 'Turn off camera' : 'Turn on camera'}">${ic('video')}</button>
                 ${M.stage === 'in' ? `<button class="mb" aria-label="Captions">${ic('cc')}</button><button class="mb" aria-label="Raise hand">${ic('hand')}</button><button class="mb" aria-label="Present now">${ic('present')}</button><button class="mb end" data-m="leave" aria-label="Leave call">${ic('end')}</button>` : ''}</div>` : ''}
@@ -897,7 +900,7 @@ function bind() {
             panel: () => { S.panel = a.dataset.p === S.panel ? '' : a.dataset.p; save(); renderPanel(); renderRail(); },
             check: () => doCheck(),
             'admin-edit': () => { if (!Sim.isAdmin()) return; G.admin = !G.admin; G.undo = null; closeAll(); render(); snack(G.admin ? 'Editing the weekly schedule for everyone' : 'Back to your practice calendar'); },
-            'admin-reset': () => dialog('Restore the original schedule?', '<p style="margin:0;color:#444746">The attorney’s week goes back to how it came, for everyone.</p>', async () => {
+            'admin-reset': () => dialog('Restore the original schedule?', '<p style="margin:0;color:#444746">' + WW('The attorney’s week goes back to how it came, for everyone.') + '</p>', async () => {
                 try { const res = await fetch(API_SCHEDULE, { method: 'DELETE', credentials: 'include' }); const data = await res.json().catch(() => ({})); if (!data.success) { snack(data.error || 'Could not restore it.'); return; } } catch (e) { snack('Could not restore it (no connection).'); return; }
                 ROWS = GCAL_ATTORNEY.map(r => Object.assign({}, r)); G.undo = null; render(); snack('The original schedule is back');
             }, 'Restore'),
@@ -947,7 +950,7 @@ function bind() {
         if (ev.target.id === 'ed-guest' && ev.key === 'Enter') {
             ev.preventDefault(); const v = ev.target.value.trim();
             if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { edSync(); if (!G.ed.d.guests.includes(v)) G.ed.d.guests.push(v); drawEditor(); setTimeout(() => { const g = $('#ed-guest'); if (g) g.focus(); }, 10); }
-            else snack('Enter an email address, e.g. client@example.com');
+            else snack('Enter an email address, e.g. ' + (CFG.who ? 'name@example.com' : 'client@example.com'));
         }
         if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches('.ev[data-iid], .ag-e[data-iid]')) { ev.preventDefault(); openDetail(ev.target.dataset.iid, ev.target.getBoundingClientRect()); }
     });
@@ -996,6 +999,7 @@ function onMove(ev) {
     if (!g.moved && Math.abs(ev.clientX - g.x0) + Math.abs(ev.clientY - g.y0) < 5) return;
     g.moved = true;
     if (g.kind === 'new') {
+        g.col = document.querySelector(`.wk-col[data-d="${g.date}"]`) || g.col;   // (the grid is redrawn on every move)
         g.b = yMin(g.col, ev.clientY);
         const s = snap(Math.min(g.a, g.b), 15), e = Math.max(snap(Math.max(g.a, g.b), 15), s + 15);
         G.temp = { date: g.date, start: hhmm(s), end: hhmm(Math.min(e, 1439)), cal: G.admin ? 'attorney' : 'lsh' };
@@ -1027,21 +1031,6 @@ function onUp(ev) {
     askScope(g.inst, 'edit', (scope) => { applyChange(g.inst, scope === 'all' ? { start: fields.start, end: fields.end } : fields, scope); render(); snack('Event saved', true); });
 }
 
-/* ---------- the executive's wording (EA / PA track) ---------- */
-// The Executive Week reads "executive" where the attorney's calendar says "attorney": what's shown is reworded as it's drawn (not what
-// the trainee types).
-if (CFG.who) {
-    const WHO = CFG.who, rep = (t) => t.replace(/Attorney’s Calendar/g, WHO.cal).replace(/Attorney’s/g, 'Executive’s').replace(/attorney’s/g, 'executive’s').replace(/Attorney/g, 'Executive').replace(/attorney/g, 'executive');
-    const skip = (n) => { for (let x = n.nodeType === 1 ? n : n.parentNode; x && x !== document.body; x = x.parentNode) if (x.isContentEditable || /^(TEXTAREA|INPUT|SCRIPT|STYLE)$/.test(x.tagName)) return true; return false; };
-    const fix = (n) => {
-        if (n.nodeType === 3) { if (/ttorney/.test(n.nodeValue) && !skip(n)) n.nodeValue = rep(n.nodeValue); return; }
-        if (n.nodeType !== 1 || skip(n)) return;
-        ['title', 'aria-label', 'placeholder'].forEach(a => { const v = n.getAttribute(a); if (v && /ttorney/.test(v)) n.setAttribute(a, rep(v)); });
-        n.childNodes.forEach(fix);
-    };
-    new MutationObserver(ms => ms.forEach(m => { m.addedNodes.forEach(fix); if (m.type === 'characterData') fix(m.target); })).observe(document.body, { childList: true, subtree: true, characterData: true });
-    fix(document.body);
-}
 /* ---------- start ---------- */
 window.GCAL = { solve, checkPlan, slotProblems, concretize, instancesOf, dealRequests, simToday, datesIn, addDays, weekStart, rows: () => ROWS, setRows: (r) => { ROWS = r; } };
 function start() {
@@ -1049,6 +1038,7 @@ function start() {
     const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal');
     if (TRK) document.title = 'Google Calendar Simulator · ' + CFG.label + ' — LSH Training Portal';
     if (TRK) { const eb = document.querySelector('.eyebrow'); if (eb) eb.textContent = 'Simulator · ' + CFG.scenario; }
+    if (CFG.who) { const hp = document.querySelector('.sim-hero p'); if (hp) hp.innerHTML = WW(hp.innerHTML); }   // (fixed text of the page)
     S = load() || fresh(); save();
     render();
     // the weekly schedule as an Admin set it (if they did)

@@ -23,7 +23,7 @@ async function ensureTable(db) {
 }
 const TRACKS = ['cm', 'ea'];
 // The track asked for (null: the Standard Training week, kept in the first table) or false when it isn't one we know.
-const trackOf = (request) => { const t = new URL(request.url).searchParams.get('track'); return !t || t === 'standard' ? null : TRACKS.includes(t) ? t : false; };
+const trackOf = (request) => { const t = new URL(request.url).searchParams.get('track'); return t === null || t === 'standard' ? null : TRACKS.includes(t) ? t : false; };   // (only a missing track is Standard Training: an empty one is refused)
 async function ensureTracks(db) {
     await db.prepare(`CREATE TABLE IF NOT EXISTS gcal_schedule_tracks (
         track TEXT PRIMARY KEY,

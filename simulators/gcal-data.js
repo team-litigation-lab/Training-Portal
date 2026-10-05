@@ -209,7 +209,7 @@ const GCAL_STD_CFG = { who: null, open: 8 * 60, close: 17 * 60, buffer: 15, cons
 
 /* ---------- Case Management: a litigation attorney's week (Litigation Week) ---------- */
 const GCAL_CM_ATTORNEY = (() => {
-    const note = (n, cb, dol, sp) => `Name: ${n}\nCB Number: ${cb}\nDOL: ${dol}\nSpecial Notes: ${sp}`;
+    const note = (n, cb, dol, sp) => `Name: ${n}\nCB Number: ${cb}\nDOL: ${dol}\nSpecial Note: ${sp}`;
     const blk = (id, wd, start, end, title) => ({ id, wd, start, end, type: 'Blocked Time', title, location: '', notes: '', color: '' });
     const row = (id, wd, start, end, type, title, notes) => ({ id, wd, start, end, type, title, location: '', notes: notes || '', color: '' });
     const out = [];
@@ -218,19 +218,19 @@ const GCAL_CM_ATTORNEY = (() => {
             blk(d + '-lunch', w, '12:00', '13:00', 'Lunch Break'), blk(d + '-late', w, '17:00', '23:59', 'No Schedule Block')); });
     out.push(
         row('mon-team', 1, '09:00', '10:00', 'Internal Meeting', 'Litigation Team Meeting', 'Weekly case list with the paralegals.'),
-        row('mon-pierce', 1, '10:30', '11:15', 'Client Meeting', 'Deposition Preparation: Dwayne Pierce', note('Dwayne Pierce', '805-123-4567', 'March 12, 2025', 'Prepare for his deposition on Thursday.')),
+        row('mon-pierce', 1, '10:30', '11:15', 'Client Meeting', 'Deposition Preparation: Dwayne Pierce', note('Dwayne Pierce', '805-123-4567', 'March 12, 2025', 'Prepare for his deposition.')),
         row('mon-holt', 1, '14:00', '14:30', 'Phone Call', 'Adjuster Negotiation Call: Karen Holt', note('Karen Holt', '805-123-4567', 'June 03, 2025', 'Second counter-offer from the carrier.')),
         row('mon-haddad', 1, '15:15', '16:00', 'Client Meeting', 'Mediation Preparation Call: Omar Haddad', note('Omar Haddad', '805-123-4567', 'August 19, 2025', 'Mediation is in two weeks.')),
         blk('tue-court', 2, '09:00', '12:00', 'Court: Motion Hearing (travel included)'),
         row('tue-torres', 2, '13:00', '13:30', 'Phone Call', 'Treatment Status Call: Bianca Torres', note('Bianca Torres', '805-123-4567', 'January 22, 2026', 'Update on her physical therapy.')),
         row('tue-hargrove', 2, '14:30', '15:30', 'Internal Meeting', 'Discovery Conference: Hargrove Case', 'Interrogatories and requests for production.'),
         row('tue-calloway', 2, '16:00', '16:30', 'Phone Call', 'Case Status Update: Wes Calloway', note('Wes Calloway', '805-123-4567', 'November 02, 2025', 'Wants to know where the case stands.')),
-        row('wed-reyes', 3, '09:30', '10:30', 'Phone Call', 'Expert Witness Call: Dr. Imani Reyes', 'Her report on the spinal injury.'),
-        row('wed-whitfield', 3, '10:45', '11:30', 'Client Meeting', 'Demand Review Meeting: Paula Whitfield', note('Paula Whitfield', '805-123-4567', 'September 14, 2025', 'Go over the demand letter before it goes out.')),
-        blk('wed-depoblock', 3, '14:00', '15:00', 'Deposition Block: Defendant Marsh (virtual)'),
+        row('wed-reyes', 3, '09:30', '10:00', 'Phone Call', 'Expert Witness Call: Dr. Imani Reyes', 'Her report on the spinal injury.'),
+        row('wed-whitfield', 3, '10:45', '11:15', 'Client Meeting', 'Demand Review Meeting: Paula Whitfield', note('Paula Whitfield', '805-123-4567', 'September 14, 2025', 'Go over the demand letter before it goes out.')),
+        blk('wed-depoblock', 3, '14:00', '15:00', 'Deposition Block: Marsh Case (virtual)'),
         row('wed-pike', 3, '15:30', '16:00', 'Phone Call', 'Medical Records Review: Jonah Pike', note('Jonah Pike', '805-123-4567', 'December 08, 2025', 'New ER and MRI records came in.')),
         blk('thu-depo', 4, '08:30', '12:00', 'Deposition: Marsh v. Delta Freight (out of office)'),
-        row('thu-walsh', 4, '13:30', '14:15', 'Client Meeting', 'Settlement Conference: Teresa Walsh', note('Teresa Walsh', '805-123-4567', 'July 07, 2025', 'Review the offer and the lien amounts.')),
+        row('thu-walsh', 4, '13:30', '14:00', 'Client Meeting', 'Settlement Conference: Teresa Walsh', note('Teresa Walsh', '805-123-4567', 'July 07, 2025', 'Review the offer and the lien amounts.')),
         row('thu-vega', 4, '15:00', '15:30', 'Phone Call', 'Case Status Update: Mario Vega', note('Mario Vega', '805-123-4567', 'February 28, 2026', 'Wants an update after the carrier’s letter.')),
         row('fri-park', 5, '09:00', '09:30', 'Phone Call', 'Client Verification Call: Helen Park', note('Helen Park', '805-123-4567', 'October 30, 2025', 'Confirm her contact details and treatment.')),
         row('fri-strategy', 5, '10:00', '11:00', 'Internal Meeting', 'Weekly Case Strategy Meeting', 'The attorney and the case managers.'),
@@ -242,9 +242,10 @@ const GCAL_CM_OFFICE = '400 Commerce Street, Suite 1200';
 const GCAL_CM_RULES = {
     scheduling: GCAL_STD_RULES.scheduling,
     notes: [
+        'The attorney takes appointments Monday to Friday, 8:00 AM – 5:00 PM.',
         'The attorney is in court or at depositions on the blocked days: never book over a hearing, a deposition or a focus block.',
-        'Case status updates, treatment status calls, records reviews, verification calls, adjuster and expert calls are max 30 minutes.',
-        'Treatment status calls and other follow-ups are not scheduled during mornings.',
+        'Case status updates, treatment status calls, records reviews, verification calls, adjuster and expert calls, and urgent meeting requests are max 30 minutes.',
+        'Treatment status calls are follow-ups: they are not scheduled during mornings.',
         'Demand review and mediation preparation meetings are max 45 minutes.',
         'Deposition preparation, settlement conferences and discovery conferences are max 1 hour.',
         'Video calls (experts, mediation prep) need a Google Meet link; phone calls do not.',
@@ -252,7 +253,7 @@ const GCAL_CM_RULES = {
         'Same-day bookings require attorney approval.'
     ],
     collect: GCAL_STD_RULES.collect,
-    title: GCAL_STD_RULES.title
+    title: 'Use the request type and the client’s name, e.g. Case Status Update – Jane Doe.'
 };
 const GCAL_CM_TYPES = {
     'Case Status Update': { max: 30 },
@@ -273,7 +274,7 @@ const GCAL_CM_REQUESTS = [
       said: 'It’s been a month since I heard anything on my case. Could the attorney call me with an update? Any day this week works.',
       when: 0, days: [1, 2, 3, 4, 5], from: '08:00', to: '17:00', meeting: 'phone', notesNeed: [['status', 'update']] },
     { id: 'trt-okoye', kind: 'book', type: 'Treatment Status Call', name: 'Chinedu Okoye', cb: '(555) 020-4421', dob: '07/02/1990', dol: '12/19/2025', mood: 'Easy-going',
-      said: 'I finished my third month of physical therapy and my doctor wants to talk about next steps. Wednesday or next Monday afternoon is best for me.',
+      said: 'I finished my third month of physical therapy and my doctor wants to talk about next steps. Next Monday or Wednesday afternoon is best for me.',
       when: 1, days: [1, 3], from: '12:00', to: '17:00', meeting: 'phone', notesNeed: [['therapy', 'treatment', 'PT']] },
     { id: 'mrr-santos', kind: 'book', type: 'Medical Records Review', name: 'Elena Santos', cb: '(555) 020-4432', dob: '11/09/1972', dol: '09/04/2025', mood: 'Quiet',
       said: 'My new MRI report came in and the attorney wanted to go through it with me. I can do Wednesday or Friday this week, in the morning.',
@@ -284,13 +285,13 @@ const GCAL_CM_REQUESTS = [
     { id: 'mpc-ferris', kind: 'book', type: 'Mediation Preparation Call', name: 'Gwen Ferris', cb: '(555) 020-4454', dob: '02/14/1976', dol: '06/27/2025', mood: 'Determined',
       said: 'Our mediation is next week and I’d like a video call to go over what to expect. Thursday or Friday afternoon this week.',
       when: 0, days: [4, 5], from: '12:00', to: '17:00', meeting: 'video', notesNeed: [['mediation']] },
-    { id: 'ewc-ahmed', kind: 'book', type: 'Expert Witness Call', name: 'Dr. Samir Ahmed', cb: '(555) 020-4465', dob: '09/21/1968', dol: '04/16/2025', mood: 'Formal',
-      said: 'This is Dr. Ahmed, the orthopedic expert on the Valdez case. I can walk the attorney through my findings on a video call next Tuesday or Thursday, after 1.',
+    { id: 'ewc-ahmed', kind: 'book', type: 'Expert Witness Call', name: 'Samir Ahmed', cb: '(555) 020-4465', dob: '09/21/1968', dol: '04/16/2025', mood: 'Formal',
+      said: 'This is Dr. Samir Ahmed, the orthopedic expert on the Valdez case. I can walk the attorney through my findings on a video call next Tuesday or Thursday, after 1.',
       when: 1, days: [2, 4], from: '13:00', to: '17:00', meeting: 'video', notesNeed: [['expert', 'orthopedic', 'findings']] },
     { id: 'dem-brooks', kind: 'book', type: 'Demand Review Meeting', name: 'Colin Brooks', cb: '(555) 020-4476', dob: '12/05/1985', dol: '07/13/2025', mood: 'Hopeful',
       said: 'I’d like to see the demand letter before it goes to the insurance company. I can come to the office Monday to Wednesday this week, afternoons.',
       when: 0, days: [1, 2, 3], from: '13:00', to: '17:00', meeting: 'office', notesNeed: [['demand']] },
-    { id: 'adj-yoon', kind: 'book', type: 'Adjuster Negotiation Call', name: 'Min-jun Yoon', cb: '(555) 020-4487', dob: '04/08/1993', dol: '01/25/2026', mood: 'Businesslike',
+    { id: 'adj-yoon', kind: 'book', type: 'Adjuster Negotiation Call', name: 'Minjun Yoon', cb: '(555) 020-4487', dob: '04/08/1993', dol: '01/25/2026', mood: 'Businesslike',
       said: 'The adjuster called with a new offer and I want the attorney to handle it. Next Monday or Tuesday morning, please.',
       when: 1, days: [1, 2], from: '08:00', to: '12:00', meeting: 'phone', notesNeed: [['adjuster', 'offer']] },
     { id: 'cvc-novak', kind: 'book', type: 'Client Verification Call', name: 'Ivana Novak', cb: '(555) 020-4498', dob: '08/17/1979', dol: '11/30/2025', mood: 'Chatty',
@@ -300,7 +301,7 @@ const GCAL_CM_REQUESTS = [
       said: 'The defense made a settlement offer and I need to sit down with the attorney. I can come in next Tuesday or Wednesday afternoon.',
       when: 1, days: [2, 3], from: '13:00', to: '17:00', meeting: 'office', notesNeed: [['settlement', 'offer']] },
     { id: 'urgent-quigley', kind: 'book', type: 'Urgent Meeting Request', name: 'Fiona Quigley', cb: '(555) 020-4520', dob: '01/20/1988', dol: '09/29/2025', mood: 'Upset, in a hurry',
-      said: 'The insurance company sent me a letter saying they will close my claim today. I need to talk to my attorney TODAY, on a video call if possible.',
+      said: 'The insurance company sent me a letter saying they will close my claim today. I need to talk to my attorney TODAY, at 3 if possible, on a video call.',
       when: 0, days: [0], from: '08:00', to: '17:00', meeting: 'video', sameDay: true, notesNeed: [['claim', 'closing', 'urgent']] },
     // already on the calendar: move it, or take it off
     { id: 'move-whitfield', kind: 'move', seed: 'wed-whitfield', name: 'Paula Whitfield', cb: '805-123-4567', dob: '04/22/1978', dol: '09/14/2025', mood: 'Apologetic',
@@ -314,7 +315,7 @@ const GCAL_CM_REQUESTS = [
     { id: 'cancel-torres', kind: 'cancel', seed: 'tue-torres', name: 'Bianca Torres', cb: '805-123-4567', dob: '12/15/1991', dol: '01/22/2026', mood: 'Apologetic',
       said: 'I’m sorry, my therapist rescheduled me, so I can’t do the Tuesday call. Please cancel it, and I’ll call to set a new time.' }
 ];
-const GCAL_CM_CFG = { who: null, open: 8 * 60, close: 17 * 60, buffer: 15, consultFrom: 0, consultTo: 24 * 60, newClientDays: null, newClientMax: 3,
+const GCAL_CM_CFG = { who: null, exact: true, open: 8 * 60, close: 17 * 60, buffer: 15, consultFrom: 0, consultTo: 24 * 60, newClientDays: null, newClientMax: 3,
     followUpFrom: 12 * 60, fields: ['dob', 'dol'], scenario: 'Litigation Week · Case Management', label: 'Litigation Week', lead: 'Case Management: the litigation attorney’s week.' };
 
 /* ---------- EA / PA: the executive's week (Executive Week) ---------- */
@@ -328,17 +329,17 @@ const GCAL_EA_ATTORNEY = (() => {
             blk(d + '-lunch', w, '12:00', '13:00', 'Lunch Break'), blk(d + '-late', w, '18:00', '23:59', 'No Schedule Block')); });
     out.push(
         row('mon-standup', 1, '09:00', '10:00', 'Internal Meeting', 'Leadership Stand-up', 'The executive team.'),
-        row('mon-northgate', 1, '10:30', '11:30', 'Client Meeting', 'Investor Update Call: Northgate Capital', note('Daniel Ortiz', '212-555-0100', 'Northgate Capital', 'Quarterly update.')),
+        row('mon-northgate', 1, '10:30', '11:15', 'Client Meeting', 'Investor Update Call: Northgate Capital', note('Daniel Ortiz', '212-555-0100', 'Northgate Capital', 'Quarterly update.')),
         row('mon-cfo', 1, '14:00', '15:00', 'Internal Meeting', 'Board Prep with the CFO', 'Numbers for the board deck.'),
         blk('tue-focus', 2, '09:00', '11:00', 'Focus Time: Strategy Planning'),
-        row('tue-apex', 2, '13:00', '14:00', 'Client Meeting', 'Vendor Review: Apex Legal Tech', note('Mei Lin', '212-555-0111', 'Apex Legal Tech', 'Contract renewal.')),
-        row('tue-press', 2, '15:00', '15:45', 'Phone Call', 'Press Interview: Law360', note('Sarah Whitlock', '212-555-0122', 'Law360', 'Interview on firm growth.')),
+        row('tue-apex', 2, '13:00', '13:45', 'Client Meeting', 'Vendor Review: Apex Legal Tech', note('Mei Lin', '212-555-0111', 'Apex Legal Tech', 'Contract renewal.')),
+        row('tue-press', 2, '15:00', '15:30', 'Phone Call', 'Press Interview: Law360', note('Sarah Whitlock', '212-555-0122', 'Law360', 'Interview on firm growth.')),
         row('wed-heads', 3, '09:30', '10:30', 'Internal Meeting', 'Department Heads 1:1s', 'Back-to-back 1:1s.'),
-        row('wed-raman', 3, '11:00', '11:45', 'Phone Call', 'Candidate Interview: Priya Raman, VP Marketing', note('Priya Raman', '212-555-0133', 'Candidate', 'Second-round interview.')),
-        blk('wed-board', 3, '14:00', '16:00', 'Board Meeting'),
+        row('wed-raman', 3, '11:00', '11:30', 'Phone Call', 'Candidate Interview: Priya Raman, VP Marketing', note('Priya Raman', '212-555-0133', 'Candidate', 'Second-round interview.')),
+        row('wed-board', 3, '14:00', '16:00', 'Internal Meeting', 'Board Meeting', 'The board of directors.'),
         blk('thu-travel', 4, '08:30', '10:00', 'Travel: Client Site Visit'),
         row('thu-harbor', 4, '10:00', '12:00', 'Client Meeting', 'Site Visit: Harbor Point Insurance', note('Gregory Shaw', '212-555-0144', 'Harbor Point Insurance', 'Walk the claims floor.')),
-        row('thu-meridian', 4, '14:00', '14:45', 'Client Meeting', 'Contract Review: Meridian Group', note('Alicia Moreau', '212-555-0155', 'Meridian Group', 'Review the services agreement.')),
+        row('thu-meridian', 4, '14:00', '14:30', 'Client Meeting', 'Contract Review: Meridian Group', note('Alicia Moreau', '212-555-0155', 'Meridian Group', 'Review the services agreement.')),
         row('thu-beck', 4, '16:00', '16:30', 'Phone Call', 'Donor Call: Beck Foundation', note('Thomas Beck', '212-555-0166', 'Beck Foundation', 'Thank-you and next gift.')),
         row('fri-allhands', 5, '09:00', '10:00', 'Internal Meeting', 'All-hands', 'The whole firm.'),
         row('fri-coo', 5, '11:00', '11:30', 'Phone Call', 'Weekly Check-in: Chief of Staff', 'Priorities for the week ahead.'),
@@ -385,24 +386,24 @@ const GCAL_EA_TYPES = {
 const GCAL_EA_REQUESTS = [
     { id: 'ea-ci-bennett', kind: 'book', type: 'Candidate Interview', name: 'Marcus Bennett', cb: '(555) 030-1101', org: 'Candidate: Director of Operations', mood: 'Professional',
       said: 'I’m the finalist for Director of Operations and was asked to interview with the executive. I can do a video call Thursday or Friday afternoon this week.',
-      when: 0, days: [4, 5], from: '13:00', to: '17:00', meeting: 'video', notesNeed: [['interview', 'candidate', 'operations']] },
+      when: 0, days: [4, 5], from: '13:00', to: '18:00', meeting: 'video', notesNeed: [['interview', 'candidate', 'operations']] },
     { id: 'ea-inv-solis', kind: 'book', type: 'Investor Update Call', name: 'Camila Solis', cb: '(555) 030-1112', org: 'Solis Ventures', mood: 'Direct',
-      said: 'Solis Ventures would like a short update call with the executive next Tuesday or Wednesday, mornings, before the markets get busy.',
+      said: 'Solis Ventures would like a short update on a video call with the executive next Tuesday or Wednesday, mornings, before the markets get busy.',
       when: 1, days: [2, 3], from: '08:00', to: '12:00', meeting: 'video', notesNeed: [['investor', 'update', 'Solis']] },
     { id: 'ea-vr-kline', kind: 'book', type: 'Vendor Review', name: 'Nathan Kline', cb: '(555) 030-1123', org: 'Kline Office Systems', mood: 'Friendly',
       said: 'We’re up for renewal and I’d like 45 minutes with the executive to go over the new pricing. I can come to the office Monday or Wednesday this week, afternoons.',
-      when: 0, days: [1, 3], from: '13:00', to: '17:00', meeting: 'office', notesNeed: [['renewal', 'pricing', 'vendor']] },
+      when: 0, days: [1, 3], from: '13:00', to: '18:00', meeting: 'office', notesNeed: [['renewal', 'pricing', 'vendor']] },
     { id: 'ea-press-ruiz', kind: 'book', type: 'Press Interview', name: 'Elena Ruiz', cb: '(555) 030-1134', org: 'Legal Business Weekly', mood: 'Brisk',
       said: 'I’m writing about law-firm growth and would love 30 minutes with the executive on a video call. Tuesday or Thursday next week, afternoons are best.',
-      when: 1, days: [2, 4], from: '13:00', to: '17:00', meeting: 'video', notesNeed: [['press', 'interview', 'article', 'growth']] },
+      when: 1, days: [2, 4], from: '13:00', to: '18:00', meeting: 'video', notesNeed: [['press', 'interview', 'article', 'growth']] },
     { id: 'ea-donor-hale', kind: 'book', type: 'Donor Call', name: 'Priscilla Hale', cb: '(555) 030-1145', org: 'Hale Family Trust', mood: 'Warm',
       said: 'The trust would like to speak with the executive about this year’s gift. A phone call this week, Wednesday or Friday, any time in the afternoon.',
-      when: 0, days: [3, 5], from: '12:00', to: '17:00', meeting: 'phone', notesNeed: [['gift', 'donor', 'trust']] },
+      when: 0, days: [3, 5], from: '12:00', to: '18:00', meeting: 'phone', notesNeed: [['gift', 'donor', 'trust']] },
     { id: 'ea-1on1-cfo', kind: 'book', type: 'Executive 1:1', name: 'Rajesh Patel', cb: '(555) 030-1156', org: 'CFO', mood: 'Easy-going',
-      said: 'I need 30 minutes with the executive to go over the budget before the board. Anytime Monday or Tuesday next week.',
+      said: 'I need 30 minutes with the executive, in person at the office, to go over the budget before the board. Anytime Monday or Tuesday next week.',
       when: 1, days: [1, 2], from: '08:00', to: '18:00', meeting: 'office', notesNeed: [['budget', 'board']] },
     { id: 'ea-strat-wong', kind: 'book', type: 'Strategy Meeting', name: 'Alice Wong', cb: '(555) 030-1167', org: 'Chief of Staff', mood: 'Focused',
-      said: 'We need an hour with the executive to plan the second half of the year. I can do Tuesday or Friday next week, any time.',
+      said: 'We need an hour with the executive, in person at the office, to plan the second half of the year. I can do Tuesday or Friday next week, any time.',
       when: 1, days: [2, 5], from: '08:00', to: '18:00', meeting: 'office', notesNeed: [['strategy', 'plan']] },
     { id: 'ea-partner-nash', kind: 'book', type: 'Partner Introduction Call', name: 'Victor Nash', cb: '(555) 030-1178', org: 'Nash & Cole LLP', mood: 'Courteous',
       said: 'A mutual contact suggested I introduce Nash & Cole to the executive. A phone call Monday or Wednesday this week would be ideal.',
@@ -411,7 +412,7 @@ const GCAL_EA_REQUESTS = [
       said: 'Our staffing agreement needs the executive’s sign-off. Could we meet at the office next Wednesday or Thursday afternoon?',
       when: 1, days: [3, 4], from: '13:00', to: '18:00', meeting: 'office', notesNeed: [['staffing', 'agreement', 'sign']] },
     { id: 'ea-urgent-fox', kind: 'book', type: 'Urgent Meeting Request', name: 'Dana Fox', cb: '(555) 030-1190', org: 'Chief Legal Officer', mood: 'Urgent',
-      said: 'A regulator has called and the executive needs to hear about it today. Can we do a quick video call this afternoon?',
+      said: 'A regulator has called and the executive needs to hear about it today. Can we do a quick video call today at 3 PM, if possible?',
       when: 0, days: [0], from: '08:00', to: '18:00', meeting: 'video', sameDay: true, notesNeed: [['regulator', 'urgent']] },
     { id: 'ea-move-raman', kind: 'move', seed: 'wed-raman', name: 'Priya Raman', cb: '212-555-0133', org: 'Candidate', mood: 'Apologetic',
       said: 'I have the second-round interview on Wednesday at 11, but my current employer has me in a meeting then. Could we move it to Monday or Tuesday afternoon?',
@@ -424,7 +425,7 @@ const GCAL_EA_REQUESTS = [
     { id: 'ea-cancel-beck', kind: 'cancel', seed: 'thu-beck', name: 'Thomas Beck', cb: '212-555-0166', org: 'Beck Foundation', mood: 'Gracious',
       said: 'I’m traveling this week, so I have to cancel the Thursday call. I’ll get in touch when I’m back.' }
 ];
-const GCAL_EA_CFG = { who: { noun: 'executive', cal: 'Executive’s Calendar' }, open: 8 * 60, close: 18 * 60, buffer: 15, consultFrom: 0, consultTo: 24 * 60, newClientDays: null, newClientMax: 3,
+const GCAL_EA_CFG = { who: { noun: 'executive', cal: 'Executive’s Calendar' }, exact: true, open: 8 * 60, close: 18 * 60, buffer: 15, consultFrom: 0, consultTo: 24 * 60, newClientDays: null, newClientMax: 3,
     followUpFrom: 0, fields: [], scenario: 'Executive Week · EA / PA', label: 'Executive Week', lead: 'EA / PA: the executive’s week.' };
 
 // The track this page runs (gcal.html?track=standard|cm|ea): the original Google Calendar Simulator is "standard".
@@ -433,9 +434,9 @@ const GCAL_TRACKS = {
     cm: { attorney: GCAL_CM_ATTORNEY, requests: GCAL_CM_REQUESTS, rules: GCAL_CM_RULES, types: GCAL_CM_TYPES, office: GCAL_CM_OFFICE, cfg: GCAL_CM_CFG },
     ea: { attorney: GCAL_EA_ATTORNEY, requests: GCAL_EA_REQUESTS, rules: GCAL_EA_RULES, types: GCAL_EA_TYPES, office: GCAL_EA_OFFICE, cfg: GCAL_EA_CFG }
 };
-const GCAL_TRACK = (() => { try { const t = new URLSearchParams(location.search).get('track'); return GCAL_TRACKS[t] ? t : 'standard'; } catch (e) { return 'standard'; } })();
+const GCAL_TRACK = (() => { try { const t = new URLSearchParams(location.search).get('track'); return ['standard', 'cm', 'ea'].includes(t) ? t : 'standard'; } catch (e) { return 'standard'; } })();
 const GCAL_ATTORNEY = GCAL_TRACKS[GCAL_TRACK].attorney, GCAL_REQUESTS = GCAL_TRACKS[GCAL_TRACK].requests, GCAL_RULES = GCAL_TRACKS[GCAL_TRACK].rules,
     GCAL_TYPES = GCAL_TRACKS[GCAL_TRACK].types, GCAL_OFFICE = GCAL_TRACKS[GCAL_TRACK].office, GCAL_CFG = GCAL_TRACKS[GCAL_TRACK].cfg;
 // The calendar's name for the executive's week; the CM requests all belong to files.
 if (GCAL_CFG.who) { GCAL_CALENDARS[0].name = GCAL_CFG.who.cal; GCAL_CALENDARS[0].owner = 'Executive (the firm\u2019s executive)'; }
-GCAL_CM_REQUESTS.forEach((r, i) => { if (r.kind === 'book' && !r.caseNo) r.caseNo = 'LSH-2026-CM-' + (902110 + i * 37); });
+GCAL_CM_REQUESTS.forEach((r, i) => { if (!r.caseNo) r.caseNo = 'LSH-2026-CM-' + (902110 + i * 37); });
