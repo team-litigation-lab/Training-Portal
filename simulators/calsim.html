@@ -60,6 +60,9 @@
         root.innerHTML = '<div style="padding:40px;text-align:center;">' + Sim.esc(e.message) + ' <a href="/trainee-login.html">Sign in</a></div>';
         return;
     }
+    // Every calendaring task is on the Google Calendar page now; only the trainer's Calendar Scores stay here.
+    const qs0 = new URLSearchParams(location.search);
+    if (!(me.admin && qs0.get('view') === 'scores')) { location.replace('/simulators/gcal.html' + (qs0.toString() ? '?' + qs0 : '')); return; }
     if (!me.admin) Sim.setWho({ name: me.name, batch: me.batch });   // signed in on the Portal: no "who's practicing" box
     document.getElementById('topbar').innerHTML = Sim.topbar('calsim');
     const page = me.admin && new URLSearchParams(location.search).get('view') === 'scores' ? 'scores' : 'sim';

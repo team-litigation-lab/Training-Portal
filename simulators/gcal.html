@@ -247,6 +247,10 @@
         .ag-d { grid-template-columns: 70px minmax(0, 1fr); } .ag-e { grid-template-columns: 10px 96px minmax(0, 1fr); }
         .gc-hide-sm { display: none !important; }
     }
+    .cs-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 14px; }
+    .cs-tabs a { border: 1px solid #e5e7eb; background: #fff; color: #0f2148; border-radius: 999px; padding: 8px 16px; font-weight: 700; font-size: 13.5px; text-decoration: none; }
+    .cs-tabs a i { font-style: normal; font-weight: 600; color: #64748b; margin-left: 6px; font-size: 12px; }
+    .cs-tabs a.on { background: #0f2148; color: #fff; border-color: #0f2148; } .cs-tabs a.on i { color: #fdba74; }
 </style>
 </head>
 <body>
@@ -257,6 +261,7 @@
         <h1>Google Calendar Simulator</h1>
         <p>The attorney’s calendar, as in Google Calendar. Callers ask for appointments: put each one on the <b>Attorney’s Calendar</b> under the attorney’s rules, with the right title, a full description, a Google Meet link when it’s a video call, and an email reminder a day before. Move or cancel what callers ask you to. Then press <b>Check my calendar</b>.</p>
     </section>
+    <div class="cs-tabs" id="cs-tabs"></div>
     <div id="app"></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -264,6 +269,31 @@
 <script src="/portal-nav.js"></script>
 <script src="/portal.js"></script>
 <script src="/simulators/sim.js"></script>
+<script src="/simulators/calsim-core.js"></script>
+<script>
+/* Calendaring Simulators: one Google Calendar look for every calendaring task. ?track=standard|litigation|executive[&week=id] runs that
+   week (gcal.js reads window.CALSIM_MODE); no track is the callers' appointments simulator. */
+(function () {
+    var q = new URLSearchParams(location.search), C = window.FTCalCore, track = q.get('track'), week = q.get('week'), scn = null;
+    if (C && track) scn = C.SCENARIOS.filter(function (x) { return x.track === track && x.id === week; })[0] || C.SCENARIOS.filter(function (x) { return x.track === track; })[0] || null;
+    if (scn) window.CALSIM_MODE = { scn: scn };
+    var keep = new URLSearchParams(location.search); ['track', 'week', 'view'].forEach(function (k) { keep.delete(k); });
+    var base = keep.toString();
+    var link = function (page, extra) { var p = new URLSearchParams(base); Object.keys(extra || {}).forEach(function (k) { p.set(k, extra[k]); }); var t = p.toString(); return page + (t ? '?' + t : ''); };
+    var tabs = [{ t: '📞 Callers’ appointments', i: 'Standard · Calendar Management', h: link('/simulators/gcal.html'), on: !scn }];
+    if (C) C.SCENARIOS.forEach(function (x) { var tk = C.trackOf(x.track); tabs.push({ t: tk.icon + ' ' + x.short, i: tk.where, h: link('/simulators/gcal.html', { track: x.track, week: x.id }), on: !!scn && scn.id === x.id }); });
+    tabs.push({ t: '🗓 Conflicts week', i: 'CM · EA/PA', h: link('/simulators/calendar.html'), on: false });
+    var box = document.getElementById('cs-tabs');
+    if (box) box.innerHTML = tabs.map(function (x) { return '<a href="' + x.h.replace(/"/g, '&quot;') + '"' + (x.on ? ' class="on"' : '') + ' title="' + x.i + '">' + x.t + '</a>'; }).join('');
+    if (scn) {
+        var tk = C.trackOf(scn.track), hero = document.querySelector('.sim-hero');
+        if (hero) hero.innerHTML = '<div class="eyebrow">Simulator · Calendaring · ' + tk.where + '</div><h1>' + tk.icon + ' ' + scn.title + '</h1><p>Build the week on the calendar below, in a Google Calendar look: add each task as an event, with a description, Google Meet for video calls and an email reminder a day before where the task says so. Then press <b>Check my calendar</b>, and <b>Submit</b> it to your trainer for a score and feedback.</p>';
+    }
+    document.addEventListener('calsim-ready', function (e) {
+        if (e.detail && e.detail.me && e.detail.me.admin && box) box.insertAdjacentHTML('beforeend', '<a href="' + link('/simulators/calsim.html', { view: 'scores', track: scn ? scn.track : 'standard' }) + '">📊 Calendar Scores</a>');
+    });
+})();
+</script>
 <script src="/simulators/gcal-data.js"></script>
 <script src="/simulators/gcal.js"></script>
 </body>

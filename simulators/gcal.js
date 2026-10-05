@@ -95,9 +95,28 @@ function sanitize(html) {
 }
 const textToHtml = (s) => esc(s).replace(/\n/g, '<br>');
 
+/* ---------- Calendaring scenario mode ----------
+   gcal.html?track=standard|litigation|executive[&week=id] runs one of the Calendaring Simulators' weeks (calsim-core.js) in this
+   Google Calendar look: the week's fixed events are the (read-only) calendar, the tasks are in the right-hand panel, 🎯 Check my
+   calendar runs the automated review (calsim-core's review) and 📤 Submit sends the week to the trainer; the trainee's calendar and
+   submissions are kept in their /api/calsim record. Without ?track= this is the callers' appointments simulator, as before. */
+const CM = window.CALSIM_MODE || null, C = window.FTCalCore || null;
+const SCN = CM && C ? CM.scn : null;
+const HOST = { me: null, data: null, timer: null };
+const blankRec = () => ({ v: 2, drafts: {}, autos: [], submissions: [], reviews: {}, external: [] });
+function scnRows(sc) {
+    const rows = sc.fixed.map(f => ({ id: 'f-' + f.id, wd: f.day + 1, start: hhmm(f.start), end: hhmm(f.end), type: f.kind === 'lunch' ? 'Blocked Time' : 'Client Meeting',
+        title: f.title, location: '', notes: f.note || '', color: f.kind === 'court' ? 'tangerine' : f.kind === 'lunch' ? 'graphite' : '' }));
+    for (let w = 1; w <= 5; w++) {
+        rows.push({ id: 'early' + w, wd: w, start: '00:00', end: '08:00', type: 'Blocked Time', title: 'No Schedule Block', location: '', notes: '', color: '' },
+            { id: 'late' + w, wd: w, start: '17:00', end: '23:59', type: 'Blocked Time', title: 'No Schedule Block', location: '', notes: '', color: '' });
+    }
+    return rows;
+}
+
 /* ---------- calendars, colors, the attorney's week ---------- */
 // The attorney's week: as it came (GCAL_ATTORNEY), or as an Admin changed it for everyone (/api/gcal-schedule).
-let ROWS = GCAL_ATTORNEY.map(r => Object.assign({}, r));
+let ROWS = SCN ? scnRows(SCN) : GCAL_ATTORNEY.map(r => Object.assign({}, r));
 const rowById = (id) => ROWS.find(r => r.id === id);
 const calOf = (id) => GCAL_CALENDARS.find(c => c.id === id) || GCAL_CALENDARS[1];
 const seedColor = (r) => r.color || (r.type === 'Blocked Time' ? (/review/i.test(r.title) ? 'blueberry' : 'graphite') : r.type === 'Phone Call' ? 'tangerine' : r.type === 'Internal Meeting' ? 'basil' : '');
@@ -107,6 +126,94 @@ const isBlock = (e) => e.seed && e.type === 'Blocked Time';
 const isNewConsult = (e) => /^\s*(client consultation\W+new pi case|new intake consultation)/i.test(e.title || '');
 const nmins = (n) => (+n.v || 0) * ({ minutes: 1, hours: 60, days: 1440, weeks: 10080 }[n.u] || 1);
 const reqDef = (id) => GCAL_REQUESTS.find(r => r.id === id);
+
+// The trainee's events in the scenario's week, in calsim-core's shape (Monday is day 0).
+const scnWeek = () => weekStart(S.today, true);
+function scnEvents() {
+    const wk = scnWeek(), out = [];
+    instancesOf(S, wk, addDays(wk, 4)).forEach(e => {
+        if (e.seed || e.readOnly || e.allDay || e.cal === 'holidays') return;
+        out.push({ id: String(e.iid).slice(0, 24), title: e.title || '', day: wd(e.date) - 1, start: mins(e.start), dur: mins(e.end) - mins(e.start), desc: plain(e.desc).trim(),
+            meet: !!e.meet, remind: (e.notifs || []).some(n => n.m === 'email' && nmins(n) === 1440), guests: (e.guests || []).map(g => String((g && (g.email || g.name)) || g)).join(', ') });
+    });
+    return out;
+}
+function scnQueue() { if (!SCN || !HOST.data || HOST.me.admin) return; clearTimeout(HOST.timer); HOST.timer = setTimeout(scnPush, 900); }
+async function scnPush() {
+    const d = HOST.data; d.g = d.g || {};
+    d.g[SCN.id] = { events: S.events, done: S.reqs.filter(q => q.done).map(q => q.id), at: new Date().toISOString() };
+    d.drafts = d.drafts || {}; d.drafts[SCN.id] = C.clean(scnEvents());
+    try {
+        const r = await fetch('/api/calsim', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: d }) });
+        const j = await r.json().catch(() => ({}));
+        if (j.reviews) d.reviews = j.reviews;
+        if (!r.ok || j.success === false) snack(j.error || 'Couldn’t save your calendar. Check your connection.');
+    } catch (e) { snack('Couldn’t save your calendar. Check your connection.'); }
+}
+function scnCheck() {
+    const raw = scnEvents();
+    if (!raw.length) { snack(`Add your events to the calendar first (the week of ${longDate(scnWeek())}).`); return; }
+    const r = C.review(SCN, raw);
+    S.result = Object.assign(r, { at: new Date().toISOString(), dropped: raw.length - C.clean(raw).length }); S.panel = 'result'; save(); closeAll(); render();
+    if (HOST.data && !HOST.me.admin) { HOST.data.autos.push({ scn: SCN.id, at: S.result.at, pct: r.pct, score: r.score, max: r.max }); HOST.data.autos = HOST.data.autos.slice(-30); scnQueue(); }
+}
+function scnSubmit() {
+    const raw = scnEvents();
+    if (!raw.length) { snack('Add your events to the calendar before submitting.'); return; }
+    const r = C.review(SCN, raw);
+    dialog('Submit to your trainer?', `<p style="margin:0;color:#444746">Your calendar for <b>${esc(SCN.short)}</b> goes to your trainer for a score and feedback. Automated review: ${r.pct}%.${raw.length < SCN.tasks.length ? ` You have ${raw.length} event${raw.length === 1 ? '' : 's'} for ${SCN.tasks.length} tasks.` : ''}</p>`, () => {
+        if (HOST.data && !HOST.me.admin) {
+            HOST.data.submissions.push({ scn: SCN.id, at: new Date().toISOString(), events: C.clean(raw), auto: { pct: r.pct, score: r.score, max: r.max } });
+            HOST.data.submissions = HOST.data.submissions.slice(-20); scnQueue();
+            Sim.saveResult({ simulator: 'Calendaring', scenario: SCN.short, score: r.pct, summary: `${r.done}/${r.items.length} tasks fully right; submitted to the trainer`,
+                details: { results: r.items.map(i => ({ task: i.title, points: i.pts, max: i.weight, missed: i.checks.filter(c => !c.ok).map(c => c.why) })) } });
+            snack('Calendar submitted to your trainer.');
+        } else snack('Trainer preview: nothing was submitted.');
+        render();
+    }, 'Submit');
+}
+function taskCard(k) {
+    const q = S.reqs.find(x => x.id === k.id) || {}, needs = [];
+    if (k.needs && k.needs.meet) needs.push('Google Meet'); if (k.needs && k.needs.remind) needs.push('Email reminder a day before');
+    return `<div class="rq ${q.done ? 'done' : ''}"><div class="top"><span class="av">${esc(k.title[0])}</span><div style="min-width:0"><div class="nm">${esc(k.title)}</div><div class="ty">${k.dur} minutes${needs.length ? ' · ' + esc(needs.join(' · ')) : ''}</div></div></div>
+        <q>${esc(k.note)}</q><div class="acts"><button class="txt" data-a="req-go" data-id="${esc(k.id)}">Show the week</button><label><input type="checkbox" data-done="${esc(k.id)}" ${q.done ? 'checked' : ''}> Done</label></div></div>`;
+}
+function scnPanel(panel, head) {
+    if (S.panel === 'rules') {
+        panel.innerHTML = head('The rules') + `<div class="pb rules"><p class="lead">${esc(SCN.brief)}</p>
+            <h4>Already on the calendar</h4><ul>${SCN.fixed.filter(f => f.kind !== 'lunch').map(f => `<li>${esc(C.DAYS[f.day])} ${esc(C.fmt(f.start))} to ${esc(C.fmt(f.end))}: ${esc(f.title)}${f.buffer ? ` (keep ${f.buffer} minutes free before and after)` : ''}</li>`).join('')}<li>Lunch, 12:00 to 1:00 PM every day</li></ul>
+            <h4>Always</h4><ul><li>Business hours: 9:00 AM to 5:00 PM, Eastern time.</li>${SCN.gap ? `<li>Leave ${SCN.gap} minutes between events.</li>` : ''}<li>Name each event after its task and give it a description. Add Google Meet to video calls and an email reminder a day before when the task says so.</li></ul></div>`;
+        return;
+    }
+    if (S.panel === 'result' && S.result) {
+        const r = S.result, col = r.pct >= 85 ? '#188038' : r.pct >= 70 ? '#e37400' : '#d93025';
+        panel.innerHTML = head('Your calendar, checked') + `<div class="pb"><div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.pct}%</div>
+            <div class="lead" style="margin:0">${r.done} of ${r.items.length} tasks fully right. ${r.passed ? 'This meets the attorney’s rules.' : 'See what to fix below.'}${r.dropped ? `<br><span style="color:#70757a">${r.dropped} event${r.dropped === 1 ? '' : 's'} outside 8 AM to 6 PM or off the 15-minute slots weren’t counted.</span>` : ''}</div></div>
+            ${r.items.map(i => `<div class="res-r"><h5><span>${esc(i.title)}</span><span>${i.pts}/${i.weight}</span></h5><ul>${i.checks.map(c => `<li class="${c.ok ? 'ok' : 'no'}"><span>${esc(c.ok ? c.label : c.why)}</span></li>`).join('')}</ul></div>`).join('')}
+            ${r.extras.length ? `<div class="res-r"><h5><span>Events that match no task</span><span></span></h5><ul>${r.extras.map(x => `<li class="no"><span>${esc(x.title || '(No title)')}${x.why.length ? ': ' + esc(x.why.join(' ')) : ''}</span></li>`).join('')}</ul></div>` : ''}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="blue" data-a="panel" data-p="requests">Back to the tasks</button><button class="pill" data-a="scn-submit">📤 Submit to my trainer</button></div></div>`;
+        return;
+    }
+    const last = HOST.data && HOST.data.submissions.filter(x => x.scn === SCN.id).pop(), rv = last && HOST.data.reviews[SCN.id + '|' + last.at];
+    const fb = last ? `<div class="rq"><div class="nm">📤 Submitted ${esc(new Date(last.at).toLocaleString())} · 🤖 ${last.auto.pct}%</div>${rv ? `<div class="av2"><b>👤 Your trainer: ${esc(rv.score)}/100</b>${rv.comment ? '<br>' + esc(rv.comment) : ''}${rv.tasks && Object.keys(rv.tasks).length ? '<ul>' + SCN.tasks.filter(t => rv.tasks[t.id]).map(t => `<li><b>${esc(t.title)}:</b> ${esc(rv.tasks[t.id])}</li>`).join('') + '</ul>' : ''}</div>` : '<div class="av2">Waiting for your trainer’s feedback.</div>'}</div>` : '';
+    panel.innerHTML = head('Tasks to schedule') + `<div class="pb"><p class="lead">${esc(SCN.brief)}</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="scn-submit">📤 Submit to my trainer</button></div>${fb}${SCN.tasks.map(taskCard).join('')}</div>`;
+}
+async function scnStart() {
+    S = fresh();
+    try {
+        const r = await fetch('/api/calsim', { credentials: 'include' }), j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.success) throw new Error(j.error || 'Sign in on the Portal first.');
+        HOST.me = j.me; HOST.data = Object.assign(blankRec(), j.data || {});
+        ['autos', 'submissions'].forEach(k => { if (!Array.isArray(HOST.data[k])) HOST.data[k] = []; });
+        if (!HOST.data.reviews || typeof HOST.data.reviews !== 'object') HOST.data.reviews = {};
+        if (!j.me.admin) { Sim.setWho({ name: j.me.name, batch: j.me.batch }); const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal'); }
+        const g = (HOST.data.g || {})[SCN.id];
+        if (g) { S.events = Array.isArray(g.events) ? g.events : []; (g.done || []).forEach(id => { const q = S.reqs.find(x => x.id === id); if (q) q.done = true; }); }
+        document.dispatchEvent(new CustomEvent('calsim-ready', { detail: { me: j.me } }));
+    } catch (e) { $('#app').innerHTML = `<div class="sim-card" style="margin:20px"><p>${esc(e.message)} <a href="/trainee-login.html">Sign in</a></p></div>`; return; }
+    render();
+}
 
 // All events from `from` to `to` for a calendar state { events, ex, sx }: the attorney's week (with its changes),
 // the trainee's events (and their repeats), and the holidays.
@@ -119,7 +226,7 @@ function instancesOf(st, from, to, rows) {
             const sx = st.sx[r.id]; if (sx && sx.del) return;
             const iid = `s:${r.id}@${d}`, x = st.ex[iid]; if (x && x.del) return;
             const e = { iid, sid: 's:' + r.id, row: r.id, seed: true, cal: 'attorney', title: r.title, type: r.type, date: d, start: r.start, end: r.end, allDay: false,
-                color: seedColor(r), location: r.location || '', meet: '', desc: textToHtml(r.notes || ''), guests: [], notifs: [], tz: ET, repeat: 'weekly', busy: true, vis: 'default', origDate: d };
+                color: seedColor(r), location: r.location || '', meet: '', desc: textToHtml(r.notes || ''), guests: [], notifs: [], tz: ET, repeat: 'weekly', busy: true, vis: 'default', origDate: d, readOnly: !!SCN };
             if (sx) Object.assign(e, sx);
             if (x) Object.assign(e, x);
             out.push(e);
@@ -328,10 +435,10 @@ const G = { pop: null, temp: null, drag: null, undo: null, q: '', menu: null, me
 function fresh() {
     const today = simToday();
     return { v: 1, today, view: innerWidth < 640 ? 'day' : 'week', anchor: today, mini: today.slice(0, 7), side: innerWidth > 900, panel: innerWidth > 1100 ? 'requests' : '',
-        hidden: {}, set: { dur: 30, weekends: false, tz2: false }, events: [], ex: {}, sx: {}, reqs: dealRequests(today), result: null };
+        hidden: {}, set: { dur: 30, weekends: false, tz2: false }, events: [], ex: {}, sx: {}, reqs: SCN ? SCN.tasks.map(k => ({ id: k.id, done: false })) : dealRequests(today), result: null };
 }
-function load() { try { const s = JSON.parse(localStorage.getItem(KEY()) || 'null'); if (s && s.v === 1 && Array.isArray(s.reqs)) return s; } catch (e) { /* none */ } return null; }
-function save() { try { localStorage.setItem(KEY(), JSON.stringify(S)); } catch (e) { /* private mode */ } }
+function load() { if (SCN) return null; try { const s = JSON.parse(localStorage.getItem(KEY()) || 'null'); if (s && s.v === 1 && Array.isArray(s.reqs)) return s; } catch (e) { /* none */ } return null; }
+function save() { if (SCN) { scnQueue(); return; } try { localStorage.setItem(KEY(), JSON.stringify(S)); } catch (e) { /* private mode */ } }
 // (an Admin editing the weekly schedule sees the schedule itself: no practice changes or own events)
 const stNow = () => G.admin ? { events: [], ex: {}, sx: {} } : S;
 const instances = (from, to, all) => instancesOf(stNow(), from, to).filter(e => all || !S.hidden[e.cal]);
@@ -587,6 +694,7 @@ function renderPanel() {
     const panel = $('#gc-panel'); panel.classList.toggle('off', !S.panel);
     if (!S.panel) { panel.innerHTML = ''; return; }
     const head = (t) => `<div class="ph"><h3>${t}</h3><button class="ib" data-a="panel" data-p="" aria-label="Close panel">${ic('close')}</button></div>`;
+    if (SCN) { scnPanel(panel, head); return; }
     if (S.panel === 'rules') {
         panel.innerHTML = head('The attorney’s rules') + `<div class="pb rules"><p class="lead">Calendar Management (Day 6). Plot every appointment on the <b>Attorney’s Calendar</b>, in Eastern time.</p>
             <h4>Get from every caller</h4><ul>${GCAL_RULES.collect.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
@@ -881,14 +989,14 @@ function bind() {
             reset: () => dialog('Start over?', '<p style="margin:0;color:#444746">Your events and changes are cleared and a new set of requests comes in.</p>', () => { S = fresh(); save(); closeAll(); render(); }, 'Start over'),
             create: () => createAt(S.view === 'day' ? S.anchor : null),
             panel: () => { S.panel = a.dataset.p === S.panel ? '' : a.dataset.p; save(); renderPanel(); renderRail(); },
-            check: () => doCheck(),
-            'admin-edit': () => { if (!Sim.isAdmin()) return; G.admin = !G.admin; G.undo = null; closeAll(); render(); snack(G.admin ? 'Editing the weekly schedule for everyone' : 'Back to your practice calendar'); },
+            check: () => (SCN ? scnCheck() : doCheck()), 'scn-submit': () => scnSubmit(),
+            'admin-edit': () => { if (SCN || !Sim.isAdmin()) return; G.admin = !G.admin; G.undo = null; closeAll(); render(); snack(G.admin ? 'Editing the weekly schedule for everyone' : 'Back to your practice calendar'); },
             'admin-reset': () => dialog('Restore the original schedule?', '<p style="margin:0;color:#444746">The attorney’s week goes back to how it came, for everyone.</p>', async () => {
                 try { const res = await fetch('/api/gcal-schedule', { method: 'DELETE', credentials: 'include' }); const data = await res.json().catch(() => ({})); if (!data.success) { snack(data.error || 'Could not restore it.'); return; } } catch (e) { snack('Could not restore it (no connection).'); return; }
                 ROWS = GCAL_ATTORNEY.map(r => Object.assign({}, r)); G.undo = null; render(); snack('The original schedule is back');
             }, 'Restore'),
             'new-set': () => dialog('A new set of requests?', '<p style="margin:0;color:#444746">New callers come in. Your calendar is cleared so you start fresh.</p>', () => { S = fresh(); save(); closeAll(); render(); snack('New requests are in'); }, 'New set'),
-            'req-go': () => { const q = S.reqs.find(x => x.id === a.dataset.id); if (!q) return; const d = (q.orig || (q.dates || [])[0]); if (d) { S.anchor = d; S.mini = d.slice(0, 7); if (S.view === 'month' || S.view === 'agenda') S.view = 'week'; save(); closeAll(); render(); } },
+            'req-go': () => { if (SCN) { S.anchor = S.today; S.mini = S.today.slice(0, 7); if (S.view === 'month' || S.view === 'agenda') S.view = 'week'; save(); closeAll(); render(); return; } const q = S.reqs.find(x => x.id === a.dataset.id); if (!q) return; const d = (q.orig || (q.dates || [])[0]); if (d) { S.anchor = d; S.mini = d.slice(0, 7); if (S.view === 'month' || S.view === 'agenda') S.view = 'week'; save(); closeAll(); render(); } },
             undo: () => undo(), 'snack-x': () => document.querySelectorAll('.gc-snack').forEach(n => n.remove()),
             'pop-x': () => closeAll(),
             'q-meet': () => { G.qmeet = meetCode(); $('#q-meet').innerHTML = `<button class="join" data-a="noop">${ic('video')}Join with Google Meet</button><div class="link">meet.google.com/${esc(G.qmeet)}</div>`; },
@@ -1018,6 +1126,7 @@ window.GCAL = { solve, checkPlan, slotProblems, concretize, instancesOf, dealReq
 function start() {
     if (!document.getElementById('app')) return;
     const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal');
+    if (SCN) { scnStart(); return; }
     S = load() || fresh(); save();
     render();
     // the weekly schedule as an Admin set it (if they did)
