@@ -252,7 +252,13 @@
     async function loadTrainingIndex() {
         // Trainees and admins sign in on this portal. A trainee's session opens the programs from here
         // (no second sign-in inside them); an admin's adds the approval queue and Master Control link.
-        const stored = getSession();
+        let stored = getSession();
+        if (!stored) {   // a new tab (back from a program, a bookmark): the cookie says who is signed in even though this tab has no copy yet
+            try {
+                const me = await fetch('/api/me', { credentials: 'include', cache: 'no-store' });
+                if (me.ok) { const d = await me.json(); if (d && d.user) { setSession(d.user); stored = d.user; if (typeof startHeartbeat === 'function') startHeartbeat(); } }
+            } catch (e) { /* signed out: the directory shows its public view */ }
+        }
         const session = (stored && (stored.userType === 'Admin' || stored.userType === 'Trainee')) ? stored : { userType: 'Public' };
 
         if (session.userType === 'Admin') {
