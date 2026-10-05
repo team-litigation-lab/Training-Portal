@@ -458,6 +458,17 @@ function renderRegistrations() {
     `).join('');
 }
 
+// A trainee's Batch ID can be a cohort ("B300926": B + DDMMYY) or the long per-person form ("B30092026-LSHTRAINEE-004"): both belong
+// to the same cohort, so logins are grouped by the cohort and the newest batch comes first.
+function batchCohort(id) {
+    const v = String(id || '').trim().toUpperCase();
+    if (!v || v === 'UNASSIGNED') return { key: 'No Batch', sort: '0' };
+    let m = v.match(/^B(\d{2})(\d{2})(\d{4})(?:-.*)?$/);
+    if (m) return { key: 'B' + m[1] + m[2] + m[3].slice(2), sort: m[3] + m[2] + m[1] };
+    m = v.match(/^B(\d{2})(\d{2})(\d{2})$/);
+    if (m) return { key: v, sort: '20' + m[3] + m[2] + m[1] };
+    return { key: v, sort: '1' };
+}
 function renderUsersList() {
     const container = document.getElementById('users-list');
     if (!container) return;
@@ -468,16 +479,25 @@ function renderUsersList() {
         return;
     }
 
-    container.innerHTML = ['Admin', 'Trainee'].map(type => {
-        const rows = visible
-            .filter(u => u.userType === type)
-            .sort((a, b) => String(a.batchId).localeCompare(String(b.batchId)));
-        if (rows.length === 0) return '';
-        return `
-            <div class="mc-section-title">${type} Accounts</div>
-            ${rows.map(renderUserRow).join('')}
-        `;
-    }).join('');
+    const q = ((document.getElementById('users-search') || {}).value || '').trim().toLowerCase();
+    const match = u => !q || [u.fullName, u.username, u.email, u.batchId].some(v => String(v || '').toLowerCase().includes(q));
+    const byName = (a, b) => String(a.fullName).localeCompare(String(b.fullName));
+
+    const admins = visible.filter(u => u.userType === 'Admin' && match(u)).sort(byName);
+    const groups = new Map();
+    visible.filter(u => u.userType === 'Trainee' && match(u)).forEach(u => {
+        const c = batchCohort(u.batchId);
+        if (!groups.has(c.key)) groups.set(c.key, { key: c.key, sort: c.sort, users: [] });
+        groups.get(c.key).users.push(u);
+    });
+    const batches = [...groups.values()].sort((a, b) => b.sort.localeCompare(a.sort));
+
+    const search = `<input type="text" id="users-search" placeholder="Search name, username, email or batch" value="${escapeHtml(q)}" oninput="renderUsersList(); const i=document.getElementById('users-search'); i.focus(); i.setSelectionRange(i.value.length,i.value.length);" style="width:100%;max-width:380px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:12px;font-size:12px;">`;
+    const section = (title, count, rows) => `<div class="mc-section-title">${escapeHtml(title)} <span style="font-weight:600;color:#64748b;font-size:11px;">· ${count} ${count === 1 ? 'login' : 'logins'}</span></div>${rows.map(renderUserRow).join('')}`;
+    container.innerHTML = search
+        + (admins.length ? section('Admin Accounts', admins.length, admins) : '')
+        + batches.map(g => section(g.key === 'No Batch' ? 'No Batch yet' : 'Batch ' + g.key, g.users.length, g.users.sort(byName))).join('')
+        + ((!admins.length && !batches.length) ? '<p style="font-size:12px;color:#94a3b8;">No accounts match.</p>' : '');
 }
 
 // =========================================================
@@ -594,6 +614,7 @@ function renderUserRow(u) {
                 <div style="font-size:11px;color:#64748b;margin-top:2px;">${escapeHtml(u.batchId)} &middot; ${escapeHtml(u.username)} &middot; ${escapeHtml(u.email || '')}</div>
             </div>
             <div style="display:flex;gap:8px;flex-shrink:0;">
+                ${canEditUser(u) ? `<button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="openEditUser(${u.id})">Edit</button>` : ''}
                 ${isSuspended
                     ? `<button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="reactivateUser(${u.id})">Reactivate</button>`
                     : `<button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="suspendUser(${u.id})">Suspend</button>`
@@ -2763,4 +2784,54 @@ async function paSet(username, topicKey, action) {
         showToast(action === 'DENY' ? 'Access revoked.' : 'Access granted.', 'success');
         loadProgramAccess();
     } catch (e) { showToast(e.message, 'error'); }
+}
+
+
+// ===== Edit an account: Batch ID, name, email, username, new password (functions/api/update-user.js) =====
+function canEditUser(u) {
+    const me = getSession();
+    if (!me || u.username === 'LSHADMIN123') return false;
+    return u.userType !== 'Admin' || me.username === 'LSHADMIN123';
+}
+function openEditUser(id) {
+    const u = (__usersCache || []).find(x => x.id === id);
+    if (!u) return;
+    const old = document.getElementById('edit-user-overlay'); if (old) old.remove();
+    const el = document.createElement('div');
+    el.id = 'edit-user-overlay'; el.className = 'modal-overlay open'; el.style.zIndex = '2500';   // above Master Control (1500)
+    const f = (idn, label, val, type = 'text', hint = '') => `<label style="display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;color:#64748b;margin:10px 0 4px;">${label}</label><input id="eu-${idn}" type="${type}" value="${escapeHtml(val)}" autocomplete="off" style="width:100%;padding:9px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;">${hint ? `<div style="font-size:10.5px;color:#94a3b8;margin-top:3px;">${hint}</div>` : ''}`;
+    el.innerHTML = `<div class="modal-box"><h3 style="margin:0 0 4px;font-size:16px;">Edit ${escapeHtml(u.fullName)}</h3>
+        <div style="font-size:11px;color:#64748b;">${escapeHtml(u.userType)} account</div>
+        ${f('first', 'First name', u.first_name || '')}${f('last', 'Last name', u.last_name || '')}${f('email', 'Email', u.email || '', 'email')}
+        ${f('username', 'Username', u.username, 'text', 'Changing it moves their grades, submissions and program access to the new username, and signs them out.')}
+        ${f('batch', 'Batch ID', u.batchId === 'UNASSIGNED' ? '' : u.batchId, 'text', 'Changing the Batch ID changes who the programs think this trainee is: a program that already has them under the old Batch ID will start a new record under the new one.')}
+        ${f('password', 'New password (leave blank to keep)', '', 'password', 'At least 8 characters, letters and numbers. Signs them out.')}
+        <div id="eu-error" style="color:#b91c1c;font-size:12px;font-weight:700;margin-top:10px;display:none;"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+            <button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="document.getElementById('edit-user-overlay').remove()">Cancel</button>
+            <button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="saveEditUser(${u.id})">Save</button>
+        </div></div>`;
+    document.body.appendChild(el);
+}
+async function saveEditUser(id) {
+    const u = (__usersCache || []).find(x => x.id === id);
+    if (!u) return;
+    const v = k => document.getElementById('eu-' + k).value.trim();
+    const payload = { userId: id };
+    if (v('first') !== (u.first_name || '')) payload.firstName = v('first');
+    if (v('last') !== (u.last_name || '')) payload.lastName = v('last');
+    if (v('email') !== (u.email || '')) payload.email = v('email');
+    if (v('username') !== u.username) payload.username = v('username');
+    const oldBatch = u.batchId === 'UNASSIGNED' ? '' : u.batchId;
+    if (v('batch').toUpperCase() !== String(oldBatch).toUpperCase()) payload.batchId = v('batch');
+    if (document.getElementById('eu-password').value) payload.password = document.getElementById('eu-password').value;
+    if (Object.keys(payload).length === 1) { document.getElementById('edit-user-overlay').remove(); return; }
+    if (payload.batchId !== undefined && !confirm('Change this trainee\'s Batch ID?\n\nPrograms that already know them under the old Batch ID will treat them as a new trainee under the new one.')) return;
+    const err = document.getElementById('eu-error'); err.style.display = 'none';
+    try {
+        await postJson('/api/update-user', payload);
+        document.getElementById('edit-user-overlay').remove();
+        showToast('Account updated.', 'success');
+        loadUsersData();
+    } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
 }
