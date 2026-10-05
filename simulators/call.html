@@ -157,6 +157,13 @@ const FLOWS = [
 // the AI budget flow for a call: the line first (a reception call counts as Reception wherever it is), then the program
 const moduleFor = (c) => has(c, /calendar/i) ? 'calendaring' : has(c, /intake/i) ? 'intake' : has(c, /reception|front desk/i) ? 'reception'
     : c.program === 'FT' ? 'standard' : c.program === 'CM' ? 'cms' : c.program === 'PD' ? 'pd' : c.program === 'EA' ? 'ea-pa' : 'portal';
+// The programs' own simulators, opened inside this workspace through the Portal's single sign-in (no second login). Their AI goes
+// through the same gateway and budget; their saved history stays with the program.
+const EMBEDS = {
+    standard: [{ icon: '🔥', title: 'Standard Live Roleplay', desc: 'The Standard program\u2019s on-demand roleplay: pick a category, a situation and how hard you want to be pushed.', src: '/api/launch?program=' + encodeURIComponent('STANDARD TRAINING') + '&to=roleplay', module: 'standard' }],
+    cms: [{ icon: '☎️', title: 'Front Desk Drill', desc: 'Scored incoming calls on the Training Library cases, by voice or text: find the file, verify the caller, handle or route the call.', src: '/api/launch?tool=cms&to=drill', module: 'cms' }],
+    'ea-pa': [{ icon: '🔥', title: 'EA / PA Live Roleplay', desc: 'The EA/PA program\u2019s on-demand roleplay: category, situation and difficulty, with your executive on the line.', src: '/api/launch?program=' + encodeURIComponent('EA  PA TRAINING-OUTSOURCED MANP') + '&to=roleplay', module: 'ea-pa' }]
+};
 const START_FLOW = (() => {
     const q = new URLSearchParams(location.search), f = String(q.get('flow') || '').toLowerCase();
     if (FLOWS.some(x => x.k === f)) return f;
@@ -207,10 +214,17 @@ function render() {
     if (S.phase === 'note') return renderNote();
     if (S.phase === 'debrief') return renderDebrief();
 }
+function openEmbed(k, i) { const e = EMBEDS[k][i]; S.embed = e; Sim.module = e.module; S.phase = 'embed'; render(); }
 function renderEmbed() {
+    if (S.embed) {
+        const e = S.embed;
+        $app().innerHTML = `<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;"><button class="sim-btn ghost" onclick="S.embed=null;Sim.module='portal';S.phase='pick';render()">← Back to the calls</button><span class="sim-muted" style="font-size:13px;">${Sim.esc(e.title)}</span><a class="sim-btn ghost" style="margin-left:auto;" href="${Sim.esc(e.src)}" target="_blank" rel="noopener">Open in its own tab ↗</a></div>
+            <iframe src="${Sim.esc(e.src)}" title="${Sim.esc(e.title)}" allow="microphone; autoplay" style="width:100%;height:calc(100vh - 170px);min-height:600px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;"></iframe>`;
+        return;
+    }
     const f = FLOWS.find(x => x.k === S.flow) || FLOWS[0];
     Sim.module = 'calendaring';
-    $app().innerHTML = `<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;"><button class="sim-btn ghost" onclick="Sim.module='portal';S.phase='pick';render()">← Back to the calls</button><span class="sim-muted" style="font-size:13px;">${Sim.esc(f.label)}: Calendaring Simulator</span></div>
+    $app().innerHTML = `<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;"><button class="sim-btn ghost" onclick="S.embed=null;Sim.module='portal';S.phase='pick';render()">← Back to the calls</button><span class="sim-muted" style="font-size:13px;">${Sim.esc(f.label)}: Calendaring Simulator</span></div>
         <iframe src="${Sim.esc(f.embed)}" title="Calendaring Simulator" style="width:100%;height:calc(100vh - 170px);min-height:560px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;"></iframe>`;
 }
 function renderPick() {
@@ -223,6 +237,7 @@ function renderPick() {
     $app().innerHTML = `
         <div class="filters flows" role="tablist" aria-label="Call flow">${FLOWS.map(f => `<button class="${S.flow === f.k ? 'on' : ''}" role="tab" aria-selected="${S.flow === f.k}" onclick="S.flow='${f.k}';S.line='all';render()">${f.icon} ${f.label}</button>`).join('')}</div>
         ${flow.note ? `<p class="sim-muted" style="margin:6px 2px 10px;font-size:13px;">${Sim.esc(flow.note)}</p>` : ''}
+        ${(EMBEDS[flow.k] || []).map((e, i) => `<div class="sim-card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"><div><h3 style="margin:0 0 4px;">${e.icon} ${Sim.esc(e.title)}</h3><p style="margin:0;font-size:13.5px;">${Sim.esc(e.desc)}</p></div><button class="sim-btn orange" onclick="openEmbed('${flow.k}',${i})">Open it here</button></div>`).join('')}
         ${flow.embed ? `<div class="sim-card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"><div><h3 style="margin:0 0 4px;">🗓 Calendaring Simulator</h3><p style="margin:0;font-size:13.5px;">A real week full of conflicts: move, shorten or remove events under real rules, then check your plan.</p></div><button class="sim-btn orange" onclick="S.phase='embed';render()">Open it here</button></div>` : ''}
         ${lineBar}
         <div class="pick-grid">${list.map(c => `

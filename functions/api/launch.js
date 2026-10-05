@@ -26,6 +26,14 @@ export const SSO_TOOLS = {
     kb: 'https://lsh-knowledge-base.legalsupporthelp.workers.dev/'
 };
 const TICKET_TTL_MS = 5 * 60 * 1000;
+// Where inside a program the Call Simulator workspace lands (?to=): the program's own Live Roleplay, or the CMS Front Desk Drill.
+// Only these two are allowed, so a link can't send anyone anywhere else.
+const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1' } };
+function landing(to, isTool) {
+    const l = Object.prototype.hasOwnProperty.call(LANDINGS, to) ? LANDINGS[to] : null;
+    if (!l || (to === 'drill' && !isTool) || (to === 'roleplay' && isTool)) return { query: '', hash: '' };
+    return { query: l.query || '', hash: l.hash || '' };
+}
 
 // A trainee's ticket carries their name and batch. {r: 'a'} (an administrator) no longer signs anyone in: the platforms refuse it,
 // because administrators type the admin password on every platform. {r: 's'} is the Portal's own server-side tools only
@@ -84,7 +92,8 @@ async function launch({ request, env }) {
     // Administrators were signed in here with their admin password, so the program doesn't ask again.
     if (auth.session.userType === 'Admin') {
         // Administrators type the admin password on every platform: no ticket signs them in, they land on that platform's password prompt.
-        return Response.redirect(`${target}?admin=1`, 302);
+        const to = landing(params.get('to') || '', isTool);
+        return Response.redirect(`${target}?admin=1${to.query}${to.hash}`, 302);
     }
     if (auth.session.userType !== 'Trainee') return page(403, 'Not available', 'This account can\'t open programs.');
 
@@ -100,5 +109,6 @@ async function launch({ request, env }) {
     }
 
     const ticket = await makeTicket(secret, { first: user.first_name.trim(), last: user.last_name.trim(), batch: String(user.batch_id || '').trim() });
-    return Response.redirect(`${target}?ticket=${ticket}`, 302);
+    const to = landing(params.get('to') || '', isTool);
+    return Response.redirect(`${target}?ticket=${ticket}${to.query}${to.hash}`, 302);
 }
