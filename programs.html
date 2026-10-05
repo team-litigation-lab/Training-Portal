@@ -288,7 +288,7 @@
         if (session.userType !== 'Admin' && subheadEl) subheadEl.textContent = 'Every LSH training program in one place. Trainees log in once here, then open each program from this page: no separate sign-in inside it.';
         if (session.userType === 'Admin') {
             if (headingEl) headingEl.textContent = 'Training Index — Admin View';
-            if (subheadEl) subheadEl.textContent = 'Every program LSH runs. As an admin, all built programs are directly open to you — use the queue below to approve trainee requests.';
+            if (subheadEl) subheadEl.style.display = 'none';
         }
 
         try {
