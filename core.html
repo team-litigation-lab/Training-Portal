@@ -1010,6 +1010,13 @@
     <script src="/portal-nav.js"></script>
 <script src="app.js"></script>
     <script src="portal.js"></script>
+<script>
+// /core.html#registrations (the Training Directory's 📝 Registrations link) opens the Registrations tab straight away.
+(function () {
+    function open() { if (location.hash === '#registrations' && typeof showAdminDashTab === 'function' && document.getElementById('admin-dash-registrations')) { showAdminDashTab('registrations'); return true; } return false; }
+    let tries = 0; const t = setInterval(() => { if (open() || ++tries > 25) clearInterval(t); }, 300);
+})();
+</script>
 </body>
 
 </html>

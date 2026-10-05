@@ -244,6 +244,20 @@
         'MASS TORT', 'PROPERTY DAMAGE', 'REAL ESTATE LAW'
     ];
 
+    // The number of registrations waiting for approval, on the 📝 Registrations link (admins only).
+    async function showPendingRegistrations() {
+        try {
+            const res = await fetch('/api/users', { credentials: 'include' });
+            if (!res.ok) return;
+            const users = await res.json();
+            const n = (Array.isArray(users) ? users : []).filter(u => u.status === 'Pending' && u.userType === 'Trainee').length;
+            const b = document.getElementById('idx-reg-badge');
+            if (b && n > 0) { b.textContent = n; b.style.display = 'inline-block'; }
+        } catch (e) { /* no badge */ }
+    }
+    window.showPendingRegistrations = showPendingRegistrations;
+    setInterval(() => { if (document.getElementById('idx-reg-badge') && !document.getElementById('idx-reg-badge').dataset.done) { document.getElementById('idx-reg-badge').dataset.done = '1'; showPendingRegistrations(); } }, 800);
+
     let __topicsCache = [];
     let __accessCache = [];
 
@@ -258,6 +272,7 @@
             if (userEl) userEl.innerHTML = `
                 ${PortalNav.html('directory', { back: '/index.html', cls: 'idx-logout' })}
                 <span class="idx-user-name">${escapeHtml(session.fullName || session.username)}</span>
+                <a class="idx-logout" id="idx-reg-link" href="/core.html#registrations" title="Approve new trainee registrations">📝 Registrations <b id="idx-reg-badge" style="background:#f97316;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;display:none"></b></a>
                 <a class="idx-logout" href="/progress.html">📊 Progress &amp; Feedback</a>
                 <a class="idx-logout" href="/attendance.html">🕘 Attendance</a>
                 <a class="idx-logout" href="/referrals.html">🤝 Referrals</a>
