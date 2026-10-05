@@ -60,9 +60,10 @@ progress: Standard Training by lesson (Reception 4, Calendar Management 5, Intak
   `sim-chip`, `sim-table`; navy `#0f2148` + orange `#f97316`. `.sim-wrap` needs
   `width:100%` because the body is a flex container.
 - Navigation: every portal page uses `PortalNav.html(active, { back })` from `/portal-nav.js`
-  (Home · Training Directory · Simulators · Knowledge Base, plus **← Back**, which goes to the
-  previous portal page or to `back` when the page was opened fresh). The simulator top bar
-  already includes it. Portal pages open in the **same tab**; only the training programs
+  (Home · Training Directory · Orientation, plus **← Back**, which goes to the previous portal
+  page or to `back` when the page was opened fresh). The Simulators and the Knowledge Base aren't
+  in it; they open from the Home page and the Training Directory. Inside a course's frame it shows
+  only **🛠 Simulators** (back to the hub). The simulator top bar already includes it. Portal pages open in the **same tab**; only the training programs
   (separate sites, no way back) open in a new tab.
   **Every new page must load `/portal-nav.js`** (a page without its own Back button gets a
   floating one) and must be added to `PAGES` in `.github/scripts/smoke.cjs`: the Checks
