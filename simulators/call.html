@@ -141,7 +141,10 @@ const CALLERS = [
 ].concat(window.EXTRA_CALLERS || []);
 
 const START_PROGRAM = (() => { const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'CM' : p.startsWith('EA') ? 'EA' : p.startsWith('FT') ? 'FT' : p.startsWith('PD') ? 'PD' : 'All'; })();
-let S = { filter: START_PROGRAM, line: new URLSearchParams(location.search).get('line') || 'all', note: '', persona: null, phase: 'pick', transcript: [], startedAt: 0, voice: true, busy: false, call: null, timer: null, debrief: null };
+// ?random=1 (a course's "📞 Take a random call"): a random caller from the line, who stays unknown (name, case) until the debrief,
+// so the trainee gets their name, verifies them and finds the file in the CMS like on a real call.
+const RANDOM = new URLSearchParams(location.search).get('random') === '1';
+let S = { filter: START_PROGRAM, line: new URLSearchParams(location.search).get('line') || 'all', random: RANDOM, note: '', persona: null, phase: 'pick', transcript: [], startedAt: 0, voice: true, busy: false, call: null, timer: null, debrief: null };
 const $app = () => document.getElementById('app');
 
 function initials(n) { return n.split(' ').map(x => x[0]).join('').slice(0, 2); }
@@ -158,6 +161,20 @@ function cmsLink(url) {
         return u.toString();
     } catch (e) { return url; }
 }
+function randomPool() {
+    const inProgram = CALLERS.filter(c => S.filter === 'All' || c.program === S.filter || c.program === 'All');
+    const inLine = inProgram.filter(c => S.line === 'all' || (S.line === 'core' ? !c.line : c.line === S.line));
+    return inLine.length ? inLine : inProgram;
+}
+function randomCall() {
+    const pool = randomPool(), prev = S.persona && S.persona.id;
+    const options = pool.length > 1 ? pool.filter(c => c.id !== prev) : pool;
+    if (!options.length) { S.random = false; S.phase = 'pick'; return render(); }
+    S.random = true; pick(options[Math.floor(Math.random() * options.length)].id);
+}
+// Who the trainee sees on the phone and in the transcript: on a random call, nobody in particular until the debrief.
+const shownName = () => S.random && S.phase !== 'debrief' ? 'Caller' : S.persona.name;
+const shownRole = () => S.random && S.phase !== 'debrief' ? 'Incoming call · ' + (S.persona.line || 'main line') : S.persona.role;
 function render() {
     Sim.label(S.phase === 'call' ? 'Call Simulator — on a call' : 'Call Simulator');
     if (S.phase === 'pick') return renderPick();
@@ -176,7 +193,7 @@ function renderPick() {
         <div class="filters">${[['All', 'All callers'], ['FT', 'Foundational (CMS mock cases)'], ['CM', 'Case Management'], ['PD', 'Property Damage'], ['EA', 'Executive support (EA/PA)']].map(([k, l]) => `<button class="${S.filter === k ? 'on' : ''}" onclick="S.filter='${k}';S.line='all';render()">${l}</button>`).join('')}</div>
         ${lineBar}
         <div class="pick-grid">${list.map(c => `
-            <div class="sim-card pcard" onclick="pick('${c.id}')">
+            <div class="sim-card pcard" onclick="S.random=false;pick('${c.id}')">
                 <div class="top"><span class="av">${initials(c.name)}</span><div><h3>${Sim.esc(c.title)}</h3><div class="role">${Sim.esc(c.name)} · ${Sim.esc(c.role)}</div></div></div>
                 <p>${Sim.esc(c.blurb || c.you)}</p>
                 <div class="tags"><span class="p-${c.program}">${c.program === 'All' ? 'All programs' : c.program === 'CM' ? 'Case Management' : c.program === 'FT' ? 'Foundational' : c.program === 'PD' ? 'Property Damage' : 'EA / PA'}</span>${c.line ? `<span>${Sim.esc(c.line)}</span>` : ''}${c.dir === 'out' ? '<span class="dir">You call</span>' : ''}<span>${c.level}</span><span>${c.goals.length} goals</span></div>
@@ -185,6 +202,7 @@ function renderPick() {
 function pick(id) { stopCallMedia(); S.call = null; S.persona = CALLERS.find(c => c.id === id); S.phase = 'brief'; S.transcript = []; S.debrief = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function renderBrief() {
     const c = S.persona;
+    if (S.random) return renderRandomBrief();
     $app().innerHTML = `<div class="sim-card"><div class="brief">
         <div>
             <div class="sim-kicker">Your brief</div>
@@ -205,6 +223,28 @@ function renderBrief() {
             <ol>${c.goals.map(g => `<li>${Sim.esc(g)}</li>`).join('')}${c.note ? `<li>Documentation: ${Sim.esc(c.note.title)}</li>` : ''}</ol>
             ${c.tips ? `<div class="sim-kicker" style="margin-top:14px;">Tips for this line</div><ul>${c.tips.map(t => `<li>${Sim.esc(t)}</li>`).join('')}</ul>` : ''}
             <p class="sim-muted" style="font-size:12.5px;margin-top:12px;">Tip: use a headset. On Chrome or Edge just speak when it’s your turn (hands-free), or tap 🎙 Talk; you can always type instead.</p>
+        </div>
+    </div></div>`;
+}
+function renderRandomBrief() {
+    const c = S.persona, cms = c.caseDoc ? (() => { try { const u = new URL(c.caseDoc.url); u.searchParams.delete('mock'); return cmsLink(u.toString()); } catch (e) { return ''; } })() : '';
+    $app().innerHTML = `<div class="sim-card"><div class="brief">
+        <div>
+            <div class="sim-kicker">${Sim.esc(c.lineIcon || '📞')} ${Sim.esc(c.line || 'Random call')} · random call</div>
+            <h2>The phone is ringing</h2>
+            <p style="font-size:14.5px;line-height:1.6;margin:0;">A caller is on the line about one of the firm's cases. You don't know who it is yet: answer, get their name and verify them, then find their file in the CMS (the search bar above the case) and handle the call from it.</p>
+            <div class="facts"><b>When:</b> ${Sim.esc(c.facts)}</div>
+            ${cms ? `<p style="font-size:13.5px;margin:12px 0 0;"><a class="sim-btn primary" style="padding:8px 16px;" href="${Sim.esc(cms)}" target="_blank" rel="noopener">🗂 Open the CMS ↗</a></p>` : ''}
+            ${c.note ? `<p style="font-size:13px;margin:12px 0 0;"><b>📝 After the call:</b> you'll write the ${Sim.esc(c.note.title.toLowerCase())}. It's graded with the call.</p>` : ''}
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
+                <button class="sim-btn orange" onclick="startCall()">${c.dir === 'out' ? '📞 Place the call' : '📞 Answer the call'}</button>
+                <button class="sim-btn ghost" onclick="randomCall()">🔀 A different random call</button>
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;"><input type="checkbox" ${S.voice ? 'checked' : ''} onchange="S.voice=this.checked"> Caller speaks out loud</label>
+            </div>
+        </div>
+        <div>
+            ${c.tips ? `<div class="sim-kicker">Tips for this line</div><ul>${c.tips.map(t => `<li>${Sim.esc(t)}</li>`).join('')}</ul>` : ''}
+            <p class="sim-muted" style="font-size:12.5px;margin-top:12px;">What you're scored on, and who called about which case, is in your debrief after the call. Tip: use a headset; on Chrome or Edge just speak when it's your turn, or tap 🎙 Talk; you can always type instead.</p>
         </div>
     </div></div>`;
 }
@@ -258,15 +298,15 @@ function tick() { const t = document.getElementById('timer'); if (t) t.textConte
 function fmtSecs(s) { return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
 function statusText() {
     const k = S.call || {}, c = S.persona;
-    return ({ ringing: k.out ? `Calling ${c.name.split(' ')[0]}…` : 'Incoming call…', connected: 'Connected', caller: '🔊 ' + c.name.split(' ')[0] + ' is speaking…', thinking: c.name.split(' ')[0] + ' is responding…',
+    return ({ ringing: k.out ? `Calling ${shownName().split(' ')[0]}…` : 'Incoming call…', connected: 'Connected', caller: '🔊 ' + shownName().split(' ')[0] + ' is speaking…', thinking: shownName().split(' ')[0] + ' is responding…',
         yourturn: SR ? (k.handsFree ? 'Your turn — just speak' : 'Your turn — tap Talk or type') : 'Your turn — type your reply',
         listening: '🎙 Listening… pause when you’re done', ended: 'Call ended' })[k.status] || '';
 }
 function phoneHTML() {
     const c = S.persona, k = S.call || {};
     const btn = (cls, on, click, icon, label, title) => `<button type="button" class="cbtn ${cls} ${on ? 'on' : ''}" onclick="${click}" title="${title}"><span class="round">${icon}</span><span>${label}</span></button>`;
-    return `<div class="big ${k.status === 'caller' ? 'talking' : ''} ${k.status === 'ringing' ? 'ringing' : ''}" id="bigAv">${initials(c.name)}</div>
-        <div class="nm">${Sim.esc(c.name)}</div><div class="rl">${Sim.esc(c.role)}</div>
+    return `<div class="big ${k.status === 'caller' ? 'talking' : ''} ${k.status === 'ringing' ? 'ringing' : ''}" id="bigAv">${S.random ? '📞' : initials(c.name)}</div>
+        <div class="nm">${Sim.esc(shownName())}</div><div class="rl">${Sim.esc(shownRole())}</div>
         <div class="timer" id="timer">${S.startedAt ? fmtSecs(Math.floor((Date.now() - S.startedAt) / 1000)) : '00:00'}</div>
         <div class="state" id="cstate">${Sim.esc(statusText())}</div>
         <div class="ctrls">
@@ -295,7 +335,7 @@ function renderCall() {
 }
 function paintTranscript(typing) {
     const tx = document.getElementById('tx'); if (!tx) return;
-    tx.innerHTML = S.transcript.map(m => `<div class="bubble ${m.who}"><b>${m.who === 'you' ? 'You' : Sim.esc(S.persona.name)}</b>${Sim.esc(m.text)}</div>`).join('') + (typing ? `<div class="typing">${Sim.esc(S.persona.name)} is talking…</div>` : '');
+    tx.innerHTML = S.transcript.map(m => `<div class="bubble ${m.who}"><b>${m.who === 'you' ? 'You' : Sim.esc(shownName())}</b>${Sim.esc(m.text)}</div>`).join('') + (typing ? `<div class="typing">${Sim.esc(shownName())} is talking…</div>` : '');
     tx.scrollTop = tx.scrollHeight;
 }
 function setStatus(st) { if (S.call) { S.call.status = st; paintPhone(); } }
@@ -463,10 +503,10 @@ Return ONLY JSON:
 function renderDebrief() {
     const d = S.debrief || {}, c = S.persona;
     if (d.loading) { $app().innerHTML = `<div class="sim-card"><div class="sim-loading">Grading your call…</div></div>`; return; }
-    const again = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;"><button class="sim-btn orange" onclick="pick('${c.id}')">↻ Try this call again</button><button class="sim-btn ghost" onclick="S.phase='pick';render()">Choose another caller</button><a class="sim-btn ghost" href="/simulators.html">All simulators</a></div>`;
+    const again = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">${S.random ? `<button class="sim-btn orange" onclick="randomCall()">🔀 Next random call</button>` : ''}<button class="sim-btn ${S.random ? 'ghost' : 'orange'}" onclick="pick('${c.id}')">↻ Try this call again</button><button class="sim-btn ghost" onclick="S.phase='pick';render()">Choose another caller</button><a class="sim-btn ghost" href="/simulators.html">All simulators</a></div>`;
     if (d.error) { $app().innerHTML = `<div class="sim-card"><div class="sim-error">${Sim.esc(d.error)}</div>${again}</div>`; return; }
     $app().innerHTML = `<div class="sim-card">
-        <div class="deb-top"><div class="ring">${Math.round(d.score || 0)}</div><div><div class="sim-kicker">Call debrief · ${Math.floor(d.secs / 60)}m ${d.secs % 60}s</div><h2 style="margin:0 0 4px;font-size:21px;">${Sim.esc(c.title)}</h2><div class="sim-muted" style="font-size:14px;">${Sim.esc(d.verdict || '')}</div></div></div>
+        <div class="deb-top"><div class="ring">${Math.round(d.score || 0)}</div><div><div class="sim-kicker">Call debrief · ${Math.floor(d.secs / 60)}m ${d.secs % 60}s</div><h2 style="margin:0 0 4px;font-size:21px;">${Sim.esc(c.title)}</h2>${S.random ? `<div class="sim-muted" style="font-size:13px;">The caller: ${Sim.esc(c.name)} · ${Sim.esc(c.role)}${c.caseDoc ? ` · case ${Sim.esc(c.caseDoc.id)}` : ''}</div>` : ''}<div class="sim-muted" style="font-size:14px;">${Sim.esc(d.verdict || '')}</div></div></div>
         <div class="sim-kicker">Goals</div>
         <ul class="goals">${(d.goals || []).map(g => `<li><span class="ic ${g.met ? 'ok' : 'no'}">${g.met ? '✓' : '○'}</span><div>${Sim.esc(g.goal)}<small>${Sim.esc(g.note || '')}</small></div></li>`).join('')}</ul>
         <div class="cols2"><div><h4>What worked</h4><ul>${(d.strengths || []).map(x => `<li>${Sim.esc(x)}</li>`).join('')}</ul></div><div><h4>Not yet — next time</h4><ul>${(d.improve || []).map(x => `<li>${Sim.esc(x)}</li>`).join('')}</ul></div></div>
@@ -474,7 +514,7 @@ function renderDebrief() {
         <details style="margin-top:14px;"><summary style="cursor:pointer;font-weight:700;font-size:13px;">Full transcript</summary><div class="transcript" style="max-height:none;margin-top:10px;">${S.transcript.map(m => `<div class="bubble ${m.who}"><b>${m.who === 'you' ? 'You' : Sim.esc(c.name)}</b>${Sim.esc(m.text)}</div>`).join('')}</div></details>
         ${again}</div>`;
 }
-document.addEventListener('DOMContentLoaded', () => { document.getElementById('topbar').innerHTML = Sim.topbar('call'); if ('speechSynthesis' in window) speechSynthesis.getVoices(); render(); });
+document.addEventListener('DOMContentLoaded', () => { document.getElementById('topbar').innerHTML = Sim.topbar('call'); if ('speechSynthesis' in window) speechSynthesis.getVoices(); if (S.random) randomCall(); else render(); });
 window.addEventListener('pagehide', () => { if (S.phase === 'call') stopCallMedia(); });
 </script>
 </body>
