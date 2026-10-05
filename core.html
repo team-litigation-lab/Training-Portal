@@ -1011,10 +1011,19 @@
 <script src="app.js"></script>
     <script src="portal.js"></script>
 <script>
-// /core.html#registrations (the Training Directory's 📝 Registrations link) opens the Registrations tab straight away.
+// /core.html#master, #registrations and #users open Master Control (the admin screen, not the trainee workspace) on that tab:
+// the Training Directory's 📝 Registrations and Master Control links use them.
 (function () {
-    function open() { if (location.hash === '#registrations' && typeof showAdminDashTab === 'function' && document.getElementById('admin-dash-registrations')) { showAdminDashTab('registrations'); return true; } return false; }
-    let tries = 0; const t = setInterval(() => { if (open() || ++tries > 25) clearInterval(t); }, 300);
+    const want = (location.hash || '').replace('#', '');
+    const tabs = { master: 'overview', registrations: 'registrations', users: 'users' };
+    if (!tabs[want]) return;
+    function open() {
+        if (typeof openAdminDashboard !== 'function' || typeof showAdminDashTab !== 'function' || !document.getElementById('admin-dash-' + tabs[want])) return false;
+        openAdminDashboard();
+        showAdminDashTab(tabs[want]);
+        return true;
+    }
+    let tries = 0; const t = setInterval(() => { if (open() || ++tries > 30) clearInterval(t); }, 300);
 })();
 </script>
 </body>
