@@ -1,0 +1,1031 @@
+/* Google Calendar Simulator (simulators/gcal.html; data in simulators/gcal-data.js).
+   The Foundational Training's Calendar Management practice (Day 6): callers ask for appointments, and the
+   trainee puts them on the attorney's calendar in a Google Calendar look-alike, then checks the calendar.
+
+   • The calendar: Day, Week, Month and Schedule views, a mini month, My calendars / Other calendars, search,
+     drag to create, move or resize, a quick-create card, the full event page (title, date and time, all day,
+     time zone, repeat, Google Meet video conferencing, location, notifications, calendar and color, busy and
+     visibility, a description with formatting, guests and their permissions, Find a time), the event card
+     (join the mock Google Meet, edit, delete, email guests, duplicate, color), undo, keyboard shortcuts, and
+     settings (default length, weekends, a second time zone).
+   • The attorney's week (GCAL_ATTORNEY) repeats every week on the Attorney's Calendar. Changing one of its
+     appointments asks "This event" or "All events", as Google does (for this trainee only). An Admin can change
+     the week itself for everyone: Settings → Edit the weekly schedule (kept by /api/gcal-schedule).
+   • Calendar requests (the right-hand panel): a set of 7 from GCAL_REQUESTS (5 to book, 1 to move, 1 to
+     cancel), with real dates from "today" (Eastern; a weekend counts as the next Monday). A set is only
+     dealt if it can be done under the rules (solve()).
+   • Check my calendar (checkPlan): each request is marked against the attorney's rules (GCAL_RULES): the
+     Attorney's Calendar, the title, Eastern time, a free slot with 15-minute buffers and no lunch or blocks,
+     the caller's times, the length cap, phone/video/office, the description (name, callback, DOB, DOL,
+     reason), and an email reminder a day before; moves and cancellations too; changing appointments no one
+     asked about costs points. The score is saved with Sim.saveResult ('Google Calendar').
+   • Everything is kept in this browser (localStorage, one calendar per trainee name).
+   window.GCAL exposes the pure parts (solve, checkPlan, slotProblems…) for the test (.github/scripts/gcal.cjs). */
+(function () {
+Sim.module = 'calendaring';
+const ET = 'America/New_York';
+const HH = 48;                       // pixels per hour on the Day and Week grids
+const DAYN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY3 = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const TZS = [[ET, 'Eastern Time - New York'], ['America/Chicago', 'Central Time - Chicago'], ['America/Denver', 'Mountain Time - Denver'],
+    ['America/Los_Angeles', 'Pacific Time - Los Angeles'], ['Asia/Manila', 'Philippine Time - Manila'], ['UTC', 'Coordinated Universal Time']];
+const esc = (s) => Sim.esc(s);
+
+/* ---------- dates and times (dates are 'YYYY-MM-DD', times 'HH:MM', all on the firm's clock: Eastern) ---------- */
+const D = (s) => new Date(s + 'T00:00:00Z');
+const iso = (d) => d.toISOString().slice(0, 10);
+const addDays = (s, n) => { const d = D(s); d.setUTCDate(d.getUTCDate() + n); return iso(d); };
+const wd = (s) => D(s).getUTCDay();
+const mins = (t) => { const p = String(t || '0:0').split(':'); return (+p[0] || 0) * 60 + (+p[1] || 0); };
+const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+const weekStart = (s, monday) => addDays(s, -(monday ? (wd(s) + 6) % 7 : wd(s)));
+function zoneParts(ms, tz) {
+    const o = {};
+    new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+        .formatToParts(new Date(ms)).forEach(p => { o[p.type] = p.value; });
+    return { date: `${o.year}-${o.month}-${o.day}`, time: `${o.hour === '24' ? '00' : o.hour}:${o.minute}` };
+}
+const offsetMin = (tz, date) => { const ms = Date.parse(date + 'T12:00:00Z'); const p = zoneParts(ms, tz); return Math.round((Date.parse(`${p.date}T${p.time}:00Z`) - ms) / 60000); };
+// a wall time in one zone, as a wall time in another
+function shiftWall(date, time, from, to) {
+    if (from === to) return { date, time };
+    const ms = Date.parse(`${date}T${time}:00Z`) - offsetMin(from, date) * 60000;
+    return zoneParts(ms, to);
+}
+const gmt = (tz, date) => { const o = offsetMin(tz, date); const a = Math.abs(o); return `GMT${o < 0 ? '-' : '+'}${String(Math.floor(a / 60)).padStart(2, '0')}${a % 60 ? ':' + String(a % 60).padStart(2, '0') : ''}`; };
+const etNow = () => zoneParts(Date.now(), ET);
+// Google's way of writing times: 9am, 9:30am, 12pm
+function tl(m, ampm = true) { m = ((m % 1440) + 1440) % 1440; const h = Math.floor(m / 60), mm = m % 60; return (h % 12 || 12) + (mm ? ':' + String(mm).padStart(2, '0') : '') + (ampm ? (h < 12 ? 'am' : 'pm') : ''); }
+const span = (s, e) => `${tl(s, (s < 720) !== (e < 720 || e >= 1440))} – ${tl(e)}`;
+const hourLabel = (h) => `${h % 12 || 12} ${h < 12 || h === 24 ? 'AM' : 'PM'}`;
+const longDate = (s) => `${DAYN[wd(s)]}, ${MON[+s.slice(5, 7) - 1]} ${+s.slice(8)}`;
+const shortDate = (s) => `${DAYN[wd(s)].slice(0, 3)}, ${MON[+s.slice(5, 7) - 1].slice(0, 3)} ${+s.slice(8)}`;
+const ampm12 = (t) => { const m = mins(t); return `${m % 720 === 0 && m ? 12 : Math.floor(m / 60) % 12 || 12}:${String(m % 60).padStart(2, '0')} ${m < 720 ? 'AM' : 'PM'}`; };
+// The simulator's today: Eastern; a weekend counts as the next Monday (the calls come in on a work day).
+function simToday() { const t = etNow().date; return wd(t) === 6 ? addDays(t, 2) : wd(t) === 0 ? addDays(t, 1) : t; }
+
+/* ---------- text helpers for the check ---------- */
+const alnum = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const digits = (s) => String(s || '').replace(/\D/g, '');
+function plain(html) { const d = document.createElement('div'); d.innerHTML = String(html || '').replace(/<(br|\/p|\/div|\/li)[^>]*>/gi, '$&\n'); return d.textContent || ''; }
+const hasName = (t, name) => name.toLowerCase().split(/\s+/).filter(w => w.length > 1 && !/^\(|\)$/.test(w)).every(w => t.toLowerCase().includes(w));
+const MONS = MON.map(m => m.slice(0, 3).toLowerCase());
+// every date written in the text, as MM/DD/YYYY (03/22/1988, 3-22-88, March 22, 1988, Mar 22nd 1988)
+function datesIn(t) {
+    const out = [], s = String(t || '');
+    s.replace(/\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})\b/g, (m, a, b, y) => { y = y.length === 2 ? (+y > 30 ? '19' : '20') + y : y; out.push(`${a.padStart(2, '0')}/${b.padStart(2, '0')}/${y}`); return m; });
+    s.replace(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b/gi, (m, mo, d, y) => { out.push(`${String(MONS.indexOf(mo.toLowerCase()) + 1).padStart(2, '0')}/${d.padStart(2, '0')}/${y}`); return m; });
+    return out;
+}
+const hasDate = (t, mdY) => datesIn(t).includes(mdY);
+function sanitize(html) {
+    const t = document.createElement('template'); t.innerHTML = String(html || '');
+    const OK = { B: 1, STRONG: 1, I: 1, EM: 1, U: 1, BR: 1, P: 1, DIV: 1, UL: 1, OL: 1, LI: 1, A: 1 };
+    const walk = (n) => [...n.childNodes].forEach(c => {
+        if (c.nodeType === 3) return;
+        if (c.nodeType !== 1 || !OK[c.tagName]) { if (c.nodeType === 1 && !/^(SCRIPT|STYLE|IFRAME|OBJECT)$/.test(c.tagName)) { walk(c); c.replaceWith(...c.childNodes); } else c.remove(); return; }
+        const href = c.getAttribute && c.getAttribute('href');
+        [...c.attributes].forEach(a => c.removeAttribute(a.name));
+        if (c.tagName === 'A' && href && /^(https?:|mailto:)/i.test(href)) { c.setAttribute('href', href); c.setAttribute('target', '_blank'); c.setAttribute('rel', 'noopener'); }
+        walk(c);
+    });
+    walk(t.content);
+    return t.innerHTML;
+}
+const textToHtml = (s) => esc(s).replace(/\n/g, '<br>');
+
+/* ---------- calendars, colors, the attorney's week ---------- */
+// The attorney's week: as it came (GCAL_ATTORNEY), or as an Admin changed it for everyone (/api/gcal-schedule).
+let ROWS = GCAL_ATTORNEY.map(r => Object.assign({}, r));
+const rowById = (id) => ROWS.find(r => r.id === id);
+const calOf = (id) => GCAL_CALENDARS.find(c => c.id === id) || GCAL_CALENDARS[1];
+const seedColor = (r) => r.color || (r.type === 'Blocked Time' ? (/review/i.test(r.title) ? 'blueberry' : 'graphite') : r.type === 'Phone Call' ? 'tangerine' : r.type === 'Internal Meeting' ? 'basil' : '');
+const guessType = (t) => /block|lunch|daily case/i.test(t) ? 'Blocked Time' : /conference/i.test(t) ? 'Internal Meeting' : /preparation|strategy|settlement meeting|deposition/i.test(t) ? 'Client Meeting' : 'Phone Call';
+const colorOf = (e) => (e.color && GCAL_COLORS[e.color]) || calOf(e.cal).color;
+const isBlock = (e) => e.seed && e.type === 'Blocked Time';
+const isNewConsult = (e) => /^\s*(client consultation\W+new pi case|new intake consultation)/i.test(e.title || '');
+const nmins = (n) => (+n.v || 0) * ({ minutes: 1, hours: 60, days: 1440, weeks: 10080 }[n.u] || 1);
+const reqDef = (id) => GCAL_REQUESTS.find(r => r.id === id);
+
+// All events from `from` to `to` for a calendar state { events, ex, sx }: the attorney's week (with its changes),
+// the trainee's events (and their repeats), and the holidays.
+function instancesOf(st, from, to, rows) {
+    const lo = addDays(from, -10), hi = addDays(to, 10), out = [];
+    for (let d = lo; d <= hi; d = addDays(d, 1)) {
+        const w = wd(d);
+        (rows || ROWS).forEach(r => {
+            if (r.wd !== w) return;
+            const sx = st.sx[r.id]; if (sx && sx.del) return;
+            const iid = `s:${r.id}@${d}`, x = st.ex[iid]; if (x && x.del) return;
+            const e = { iid, sid: 's:' + r.id, row: r.id, seed: true, cal: 'attorney', title: r.title, type: r.type, date: d, start: r.start, end: r.end, allDay: false,
+                color: seedColor(r), location: r.location || '', meet: '', desc: textToHtml(r.notes || ''), guests: [], notifs: [], tz: ET, repeat: 'weekly', busy: true, vis: 'default', origDate: d };
+            if (sx) Object.assign(e, sx);
+            if (x) Object.assign(e, x);
+            out.push(e);
+        });
+    }
+    (st.events || []).forEach(ev => {
+        const rep = ev.repeat || 'none';
+        const dates = [];
+        if (rep === 'none') dates.push(ev.date);
+        else for (let d = ev.date < lo ? lo : ev.date; d <= hi; d = addDays(d, 1)) {
+            const w = wd(d);
+            if (rep === 'daily' || (rep === 'weekdays' && w >= 1 && w <= 5) || (rep === 'weekly' && w === wd(ev.date))) dates.push(d);
+        }
+        dates.forEach(d => {
+            const iid = `${ev.id}@${d}`, x = st.ex[iid]; if (x && x.del) return;
+            const e = Object.assign({}, ev, { iid, sid: ev.id, seed: false, date: d, origDate: d });
+            if (x) Object.assign(e, x);
+            out.push(e);
+        });
+    });
+    GCAL_HOLIDAYS.forEach(([d, t]) => { if (d >= lo && d <= hi) out.push({ iid: 'h@' + d, sid: 'h', cal: 'holidays', title: t, date: d, allDay: true, readOnly: true, start: '', end: '', desc: '', notifs: [], guests: [] }); });
+    return out.filter(e => e.date >= from && e.date <= to);
+}
+
+/* ---------- the attorney's rules (Day 6) ---------- */
+// What's wrong with this slot for this kind of request, given everything else on the calendar.
+function slotProblems(e, all, T) {
+    T = T || {};
+    if (e.allDay) return ['It’s an all-day event: give it a start and end time.'];
+    const out = new Set(), s = mins(e.start), en = mins(e.end), w = wd(e.date);
+    if (w === 0 || w === 6) out.add('It’s on a weekend.');
+    const outside = s < 8 * 60 || en > 17 * 60;
+    if (outside) out.add('It’s outside the attorney’s hours (8:00 AM – 5:00 PM; no new client consults after 5).');
+    all.filter(o => o.iid !== e.iid && o.date === e.date && !o.allDay && o.cal === 'attorney').forEach(o => {
+        const os = mins(o.start), oe = mins(o.end);
+        if (outside && o.title === 'No Schedule Block') return;
+        if (s < oe && os < en) out.add(isBlock(o) ? `It overlaps ${o.title} (${span(os, oe)}).` : `It’s double-booked with ${o.title} (${span(os, oe)}).`);
+        else if (!isBlock(o) && s < oe + 15 && os < en + 15) out.add(`There’s no 15-minute buffer next to ${o.title} (${span(os, oe)}).`);
+    });
+    if (T.consult && (s < 9 * 60 + 30 || en > 15 * 60)) out.add('Phone consults are only between 9:30 AM and 3:00 PM.');
+    if (T.newClient) {
+        if (w !== 2 && w !== 4) out.add('New client consults are only on Tuesdays and Thursdays.');
+        const n = all.filter(o => o.date === e.date && o.cal === 'attorney' && (o.iid === e.iid || isNewConsult(o))).length + (all.some(o => o.iid === e.iid) ? 0 : 1);
+        if (n > 3) out.add(`That makes ${n} new client consults that day (the attorney takes 3 at most).`);
+    }
+    if (T.followUp && s < 12 * 60) out.add('Follow-ups aren’t scheduled in the morning.');
+    return [...out];
+}
+function availText(q, R) {
+    if (R.sameDay) return `today, ${shortDate(q.dates[0])}, at 3 PM (ET)`;
+    const days = (q.dates || []).map(shortDate).join(' or ');
+    const any = mins(R.from) <= 8 * 60 && mins(R.to) >= 17 * 60;
+    return `${days}${any ? ', any time' : `, ${ampm12(R.from)} – ${ampm12(R.to)}`} (ET)`;
+}
+
+/* ---------- a set of requests, with dates ---------- */
+function nextBusinessDays(d, n) { const out = []; for (let x = addDays(d, 1); out.length < n; x = addDays(x, 1)) if (wd(x) >= 1 && wd(x) <= 5) out.push(x); return out; }
+function concretize(R, today) {
+    const q = { id: R.id, done: false };
+    let mon = weekStart(today, true);
+    if (R.kind === 'move' || R.kind === 'cancel') {
+        const row = rowById(R.seed); if (!row) return null;   // (an Admin took it off the schedule)
+        q.row = row.id;
+        for (let k = 0; k < 4; k++, mon = addDays(mon, 7)) {
+            const orig = addDays(mon, row.wd - 1);
+            const dates = R.kind === 'move' ? R.days.map(d => addDays(mon, d - 1)).filter(d => d > today) : [];
+            if (orig > today && (R.kind === 'cancel' || dates.length)) { q.orig = orig; q.dates = dates; break; }
+        }
+        return q;
+    }
+    if (R.sameDay) { q.dates = [today]; q.alt = nextBusinessDays(today, 2); return q; }
+    mon = addDays(mon, 7 * (R.when || 0));
+    for (let k = 0; k < 3; k++, mon = addDays(mon, 7)) {
+        const dates = R.days.map(d => addDays(mon, d - 1)).filter(d => d > today && wd(d) >= 1 && wd(d) <= 5);
+        if (dates.length) { q.dates = dates; break; }
+    }
+    return q;
+}
+// A plan that does every request under the rules, or null: a set is only dealt when it can be done.
+function solve(reqs, today, st) {
+    st = st || { events: [], ex: {}, sx: {} };
+    const base = instancesOf(st, today, addDays(today, 35)).filter(e => e.cal === 'attorney');
+    let cal = base.slice();
+    reqs.filter(q => reqDef(q.id).kind === 'cancel').forEach(q => { cal = cal.filter(e => !(e.row === q.row && e.date === q.orig)); });
+    const todo = reqs.filter(q => reqDef(q.id).kind !== 'cancel');
+    const plan = {};
+    const cands = (q, list) => {
+        const R = reqDef(q.id), T = GCAL_TYPES[R.type] || { max: 30 }, dur = Math.min(30, T.max), out = [];
+        const dates = R.sameDay ? q.alt : q.dates;
+        const lo = R.sameDay ? 8 * 60 : Math.max(8 * 60, mins(R.from)), hi = R.sameDay ? 17 * 60 : Math.min(17 * 60, mins(R.to));
+        (dates || []).forEach(d => {
+            for (let s = lo; s + dur <= hi; s += 15) {
+                const e = { iid: 'plan:' + q.id, cal: 'attorney', title: `${R.type} – ${R.name}`, date: d, start: hhmm(s), end: hhmm(s + dur), allDay: false };
+                if (!slotProblems(e, list, T).length) out.push(e);
+            }
+        });
+        return out;
+    };
+    const go = (i, list) => {
+        if (i === todo.length) return true;
+        const q = todo[i], R = reqDef(q.id);
+        const listQ = R.kind === 'move' ? list.filter(e => !(e.row === q.row && e.date === q.orig)) : list;
+        for (const e of cands(q, listQ)) { plan[q.id] = e; if (go(i + 1, listQ.concat(e))) return true; }
+        delete plan[q.id];
+        return false;
+    };
+    return go(0, cal) ? plan : null;
+}
+const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function dealRequests(today) {
+    const pool = (k) => GCAL_REQUESTS.filter(r => r.kind === k && (!r.seed || rowById(r.seed)));
+    for (let t = 0; t < 40; t++) {
+        const pick = shuffle(pool('book')).slice(0, 5).concat(shuffle(pool('move')).slice(0, 1), shuffle(pool('cancel')).slice(0, 1));
+        const reqs = pick.map(R => concretize(R, today));
+        if (reqs.every(q => q && (q.dates || q.orig)) && solve(reqs, today)) return reqs;
+    }
+    return GCAL_REQUESTS.filter(r => r.kind === 'book' && !r.newClient).slice(0, 5).map(R => concretize(R, today)).filter(q => q && q.dates);
+}
+
+/* ---------- Check my calendar ---------- */
+function gradeBookEvent(e, q, R, all, today) {
+    const items = []; let pts = 0;
+    const add = (ok, t, w) => { items.push({ ok, t }); if (ok) pts += w; };
+    const T = GCAL_TYPES[R.type] || { max: 30 };
+    add(e.cal === 'attorney', e.cal === 'attorney' ? 'On the Attorney’s Calendar.' : `It’s on the ${calOf(e.cal).name}, not the Attorney’s Calendar.`, 1);
+    const okTitle = alnum(e.title) === alnum(R.type + R.name);
+    add(okTitle, okTitle ? 'Title: the request type and the client’s name.' : `The title should be “${R.type} – ${R.name}” (it’s “${e.title}”).`, 1.5);
+    add((e.tz || ET) === ET, (e.tz || ET) === ET ? 'Time zone: Eastern.' : `The event’s time zone is ${(TZS.find(z => z[0] === e.tz) || [0, e.tz])[1]}; the calendar should be in Eastern (EST).`, 0.5);
+    const probs = slotProblems(e, all, T);
+    if (R.sameDay && e.date === today && !/approv/i.test(plain(e.desc))) probs.push('Same-day bookings need the attorney’s approval: book the next business day, or write in the description that it’s pending the attorney’s approval.');
+    add(!probs.length, probs.length ? probs.join(' ') : 'The slot follows the attorney’s rules (free, 15-minute buffers, hours).', 3);
+    const okDates = R.sameDay ? [today].concat(q.alt || []) : (q.dates || []);
+    const inWin = okDates.includes(e.date) && (R.sameDay || (mins(e.start) >= mins(R.from) && mins(e.end) <= mins(R.to)));
+    add(inWin, inWin ? 'A time the caller can do.' : `It isn’t a time the caller can do (${R.sameDay ? 'today or the next business day' : availText(q, R)}).`, 1);
+    const dur = mins(e.end) - mins(e.start);
+    add(!e.allDay && dur >= 15 && dur <= T.max, `Length: ${e.allDay ? 'all day' : dur + ' minutes'} (at most ${T.max} for a ${R.type}).`, 1);
+    const where = `${e.location || ''} ${plain(e.desc)}`;
+    let mt = '';
+    if (R.meeting === 'video') mt = e.meet ? '' : 'It’s a video call: add Google Meet video conferencing.';
+    else if (R.meeting === 'phone') mt = e.meet ? (T.consult ? 'Consultations are phone only: remove the Google Meet link.' : 'The caller wants a phone call: remove the Google Meet link.') : (/phone|call/i.test(where) ? '' : 'Say it’s a phone call (Location: Phone) and the number the attorney will call.');
+    else mt = e.meet ? 'It’s in person: remove the Google Meet link.' : (/400 commerce|office/i.test(e.location || '') ? '' : `It’s in person: put the office in Location (${GCAL_OFFICE}).`);
+    add(!mt, mt || ({ video: 'Video call: Google Meet added.', phone: 'Phone call.', office: 'In person, at the office.' })[R.meeting], 1);
+    const tx = plain(e.desc);
+    const need = [['the client’s name', hasName(tx, R.name)], ['the callback number', digits(tx).includes(digits(R.cb))], ['the DOB', hasDate(tx, R.dob)], ['the DOL', hasDate(tx, R.dol)]]
+        .concat((R.notesNeed || []).map(g => [`what it’s about (e.g. ${g[0]})`, g.some(k => tx.toLowerCase().includes(k.toLowerCase()))]));
+    const got = need.filter(n => n[1]).length;
+    pts += 1.5 * got / need.length;
+    items.push({ ok: got === need.length, t: got === need.length ? 'Description: name, callback number, DOB, DOL and the reason.' : `The description is missing ${need.filter(n => !n[1]).map(n => n[0]).join(', ')}.` });
+    const rem = (e.notifs || []).some(n => n.m === 'email' && nmins(n) === 1440);
+    add(rem, rem ? 'Email reminder a day before.' : 'Add an email notification 1 day before.', 0.5);
+    return { pts, max: 10, items, ev: e };
+}
+function checkPlan(st, reqs, today) {
+    const all = instancesOf(st, addDays(today, -7), addDays(today, 42));
+    const handled = new Set();
+    const out = reqs.map(q => {
+        const R = reqDef(q.id), row = q.row != null ? rowById(q.row) : null;
+        const head = R.kind === 'book' ? `${R.type} – ${R.name}` : `${R.kind === 'move' ? 'Move' : 'Cancel'}: ${row ? row.title : R.name}`;
+        if (R.kind !== 'book' && !row) return { id: q.id, head, pts: 0, max: 0, items: [{ ok: true, t: 'No longer on the schedule (an Admin changed it).' }] };
+        if (R.kind === 'book') {
+            const cands = all.filter(e => !e.seed && e.cal !== 'holidays' && hasName(e.title, R.name));
+            if (!cands.length) return { id: q.id, head, pts: 0, max: 10, items: [{ ok: false, t: 'It isn’t on the calendar.' }] };
+            const best = cands.map(e => gradeBookEvent(e, q, R, all, today)).sort((a, b) => b.pts - a.pts)[0];
+            return { id: q.id, head, pts: best.pts, max: 10, items: best.items, when: `${shortDate(best.ev.date)} · ${best.ev.allDay ? 'all day' : span(mins(best.ev.start), mins(best.ev.end))}` };
+        }
+        const iid = `s:${q.row}@${q.orig}`; handled.add(iid);
+        const inst = all.find(e => e.seed && e.row === q.row && e.origDate === q.orig);
+        const every = st.sx[q.row];
+        if (R.kind === 'cancel') {
+            if (every && every.del) return { id: q.id, head, pts: 5, max: 10, items: [{ ok: false, t: 'You deleted it from every week; only this one was cancelled.' }] };
+            if (!inst) return { id: q.id, head, pts: 10, max: 10, items: [{ ok: true, t: `Cancelled: ${shortDate(q.orig)}, ${span(mins(row.start), mins(row.end))}.` }] };
+            return { id: q.id, head, pts: 0, max: 10, items: [{ ok: false, t: inst.date !== q.orig || inst.start !== row.start ? 'It was moved, not cancelled.' : `It’s still on ${shortDate(q.orig)}.` }] };
+        }
+        const items = []; let pts = 0;
+        const still = inst && inst.date === q.orig && inst.start === row.start;
+        const target = (inst && !still) ? inst : all.find(e => !e.seed && hasName(e.title, R.name) && (q.dates || []).includes(e.date));
+        if (every) items.push({ ok: false, t: 'You changed it for every week; only this week’s was to move.' });
+        items.push({ ok: !still, t: still ? `It’s still on ${shortDate(q.orig)} at ${tl(mins(row.start))}.` : `Off ${shortDate(q.orig)}, ${tl(mins(row.start))}.` }); if (!still) pts += 3;
+        if (!target) items.push({ ok: false, t: `It isn’t on the new day (${availText(q, R)}).` });
+        else {
+            const T = GCAL_TYPES[R.type] || { max: 30 };
+            const inWin = (q.dates || []).includes(target.date) && mins(target.start) >= mins(R.from) && mins(target.end) <= mins(R.to);
+            items.push({ ok: inWin, t: inWin ? `Moved to ${shortDate(target.date)}, ${span(mins(target.start), mins(target.end))}: a time the caller can do.` : `Moved to ${shortDate(target.date)}, ${span(mins(target.start), mins(target.end))}; the caller asked for ${availText(q, R)}.` }); if (inWin) pts += 2;
+            const probs = slotProblems(target, all, T);
+            items.push({ ok: !probs.length, t: probs.length ? probs.join(' ') : 'The new slot follows the attorney’s rules.' }); if (!probs.length) pts += 4;
+            const dur = mins(target.end) - mins(target.start);
+            items.push({ ok: dur >= 15 && dur <= T.max, t: `Length: ${dur} minutes (at most ${T.max}).` }); if (dur >= 15 && dur <= T.max) pts += 1;
+        }
+        if (every) pts = Math.max(0, pts - 3);
+        return { id: q.id, head, pts, max: 10, items };
+    });
+    // the attorney's appointments no one asked about: changed or deleted
+    const extra = [];
+    Object.keys(st.ex).forEach(k => { const m = /^s:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(k); const r = m && rowById(m[1]); if (r && !handled.has(k)) extra.push(`${r.title} on ${shortDate(m[2])}`); });
+    Object.keys(st.sx).forEach(id => { const r = rowById(id); if (r && !reqs.some(q => q.row === id)) extra.push(`${r.title} (every week)`); });
+    const penalty = Math.min(25, extra.length * 5);
+    const got = out.reduce((a, r) => a + r.pts, 0), max = out.reduce((a, r) => a + r.max, 0);
+    const score = Math.max(0, Math.min(100, Math.round((max ? got / max * 100 : 100) - penalty)));
+    return { score, results: out, extra, penalty, right: out.filter(r => r.max && r.pts >= r.max - 0.01).length };
+}
+
+/* ---------- state (this browser, one calendar per trainee) ---------- */
+const KEY = () => 'lsh_gcal:' + String(Sim.who().name || 'guest').trim().toLowerCase();
+let S = null;
+const G = { pop: null, temp: null, drag: null, undo: null, q: '', menu: null, meet: null, ed: null };
+function fresh() {
+    const today = simToday();
+    return { v: 1, today, view: innerWidth < 640 ? 'day' : 'week', anchor: today, mini: today.slice(0, 7), side: innerWidth > 900, panel: innerWidth > 1100 ? 'requests' : '',
+        hidden: {}, set: { dur: 30, weekends: false, tz2: false }, events: [], ex: {}, sx: {}, reqs: dealRequests(today), result: null };
+}
+function load() { try { const s = JSON.parse(localStorage.getItem(KEY()) || 'null'); if (s && s.v === 1 && Array.isArray(s.reqs)) return s; } catch (e) { /* none */ } return null; }
+function save() { try { localStorage.setItem(KEY(), JSON.stringify(S)); } catch (e) { /* private mode */ } }
+// (an Admin editing the weekly schedule sees the schedule itself: no practice changes or own events)
+const stNow = () => G.admin ? { events: [], ex: {}, sx: {} } : S;
+const instances = (from, to, all) => instancesOf(stNow(), from, to).filter(e => all || !S.hidden[e.cal]);
+const findInst = (iid) => { const d = String(iid).split('@')[1] || S.anchor; return instancesOf(stNow(), addDays(d, -1), addDays(d, 1)).find(e => e.iid === iid) || instancesOf(stNow(), addDays(S.anchor, -60), addDays(S.anchor, 120)).find(e => e.iid === iid); };
+const uid = () => 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+function snapshot() { G.undo = JSON.stringify({ events: S.events, ex: S.ex, sx: S.sx, rows: G.admin ? ROWS : null }); }
+function undo() { if (!G.undo) return; const u = JSON.parse(G.undo); S.events = u.events; S.ex = u.ex; S.sx = u.sx; if (u.rows) { ROWS = u.rows; putRows(); } G.undo = null; save(); closeAll(); render(); snack('Undone'); }
+// An Admin's change to the weekly schedule, for everyone
+async function putRows() {
+    try {
+        const res = await fetch('/api/gcal-schedule', { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: ROWS }) });
+        const data = await res.json().catch(() => ({}));
+        if (!data.success) snack(data.error || 'The schedule wasn’t saved. Try again.');
+    } catch (e) { snack('The schedule wasn’t saved (no connection).'); }
+}
+function adminRowChange(id, fields) {
+    const r = rowById(id); if (!r) return;
+    if (fields.date) r.wd = wd(fields.date);
+    ['start', 'end', 'title', 'location', 'color'].forEach(k => { if (k in fields && fields[k] != null) r[k] = fields[k]; });
+    if ('desc' in fields) r.notes = plain(fields.desc).trim();
+    if (fields.allDay) { r.start = '00:00'; r.end = '23:59'; }
+}
+// Changes to an event: the trainee's own, one day of a repeating one, or the attorney's appointment (this one / all).
+const FIELDS = ['cal', 'title', 'date', 'start', 'end', 'allDay', 'tz', 'color', 'location', 'meet', 'desc', 'guests', 'notifs', 'busy', 'vis', 'perms', 'repeat'];
+function applyChange(inst, fields, scope) {
+    snapshot();
+    if (G.admin && inst.seed) { adminRowChange(inst.row, fields); putRows(); return; }
+    if (inst.seed) {
+        if (scope === 'all') { const f = Object.assign({}, fields); delete f.date; delete f.repeat; S.sx[inst.row] = Object.assign({}, S.sx[inst.row], f); }
+        else { const f = Object.assign({}, fields); delete f.repeat; S.ex[inst.iid] = Object.assign({}, S.ex[inst.iid], f); }
+    } else {
+        const ev = S.events.find(x => x.id === inst.sid); if (!ev) return;
+        if ((ev.repeat || 'none') === 'none' || scope === 'all') {
+            const f = Object.assign({}, fields);
+            if ((ev.repeat || 'none') !== 'none' && scope === 'all' && f.date) { const shift = (D(f.date) - D(inst.date)) / 86400000; f.date = addDays(ev.date, shift); }
+            Object.assign(ev, f);
+        } else { const f = Object.assign({}, fields); delete f.repeat; S.ex[inst.iid] = Object.assign({}, S.ex[inst.iid], f); }
+    }
+    save();
+}
+function removeInst(inst, scope) {
+    snapshot();
+    if (G.admin && inst.seed) { ROWS = ROWS.filter(r => r.id !== inst.row); putRows(); return; }
+    if (inst.seed) { if (scope === 'all') S.sx[inst.row] = { del: true }; else S.ex[inst.iid] = { del: true }; }
+    else {
+        const ev = S.events.find(x => x.id === inst.sid);
+        if (!ev) return;
+        if ((ev.repeat || 'none') === 'none' || scope === 'all') S.events = S.events.filter(x => x.id !== ev.id);
+        else S.ex[inst.iid] = { del: true };
+    }
+    save();
+}
+const repeating = (inst) => inst.seed || ((inst.repeat || 'none') !== 'none');
+// "This event / All events" for a repeating event (the attorney's appointments repeat every week)
+function askScope(inst, verb, then) {
+    if (!repeating(inst) || (G.admin && inst.seed)) return then(G.admin && inst.seed ? 'all' : 'one');
+    dialog(`${verb === 'delete' ? 'Delete' : 'Edit'} recurring event`, `<label><input type="radio" name="sc" value="one" checked> This event</label><label><input type="radio" name="sc" value="all"> All events</label>`,
+        (box) => then(box.querySelector('input[name=sc]:checked').value));
+}
+
+/* ---------- icons (Material) ---------- */
+const P = {
+    menu: 'M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z', left: 'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z', right: 'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z',
+    search: 'M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z',
+    help: 'M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z',
+    gear: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z',
+    close: 'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
+    edit: 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z',
+    del: 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z',
+    mail: 'M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z',
+    more: 'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z',
+    clock: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z',
+    place: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z',
+    notes: 'M14 17H4v2h10v-2zm6-8H4v2h16V9zM4 15h16v-2H4v2zM4 5v2h16V5H4z',
+    people: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
+    bell: 'M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z',
+    cal: 'M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z',
+    video: 'M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z',
+    copy: 'M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z',
+    check: 'M9 16.17 4.83 12l-1.42 1.42L9 19 21 7l-1.41-1.41z',
+    lock: 'M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z',
+    req: 'M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z',
+    book: 'M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z',
+    grade: 'M20 3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM10 17H5v-2h5v2zm0-4H5v-2h5v2zm0-4H5V7h5v2zm4.82 6L12 12.16l1.41-1.41 1.41 1.42L17.99 9l1.42 1.42L14.82 15z',
+    mic: 'M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z',
+    end: 'M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.956.956 0 0 1-.29-.7c0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85.996.996 0 0 1-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z',
+    present: 'M20 18c1.1 0 1.99-.9 1.99-2L22 6a2 2 0 0 0-2-2H4c-1.11 0-2 .89-2 2v10a2 2 0 0 0 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z',
+    hand: 'M21 7c0-1.38-1.12-2.5-2.5-2.5-.17 0-.34.02-.5.05V4c0-1.38-1.12-2.5-2.5-2.5-.23 0-.46.03-.67.09C14.46.66 13.56 0 12.5 0c-1.23 0-2.25.89-2.46 2.06C9.87 2.02 9.69 2 9.5 2 8.12 2 7 3.12 7 4.5v5.89c-.34-.31-.76-.54-1.22-.66L5.01 9.5c-.83-.23-1.7.09-2.19.83-.38.57-.4 1.31-.15 1.95l2.56 6.43C6.49 21.91 9.57 24 13.02 24 17.42 24 21 20.42 21 16.02V7z',
+    cc: 'M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2V13H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z'
+};
+const ic = (n, cls) => `<svg class="i ${cls || ''}" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]}"/></svg>`;
+const PLUS = '<svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><path fill="#34A853" d="M16 16v14h4V20z"/><path fill="#4285F4" d="M30 16H20l-4 4h14z"/><path fill="#FBBC05" d="M6 16v4h10l4-4z"/><path fill="#EA4335" d="M20 16V6h-4v14z"/></svg>';
+const $ = (s, el) => (el || document).querySelector(s);
+const gc = () => $('#gc');
+
+/* ---------- drawing ---------- */
+function render() {
+    const app = $('#app');
+    if (!$('#gc')) {
+        app.innerHTML = `<div class="gc" id="gc" tabindex="-1"><div class="gc-head" id="gc-head"></div>
+            <div class="gc-body"><aside class="gc-side" id="gc-side"></aside><main class="gc-main" id="gc-main"></main><aside class="gc-panel" id="gc-panel"></aside><nav class="gc-rail" id="gc-rail"></nav></div></div>`;
+        bind();
+    }
+    renderHead(); renderSide(); renderMain(); renderPanel(); renderRail();
+}
+function viewDays() {
+    if (S.view === 'day') return [S.anchor];
+    const narrow = ($('#gc-main') ? $('#gc-main').clientWidth : innerWidth) < 560;
+    if (narrow) { const s = S.anchor; return [s, addDays(s, 1), addDays(s, 2)]; }
+    const start = weekStart(S.anchor, !S.set.weekends);
+    return Array.from({ length: S.set.weekends ? 7 : 5 }, (_, i) => addDays(start, i));
+}
+function title() {
+    const m = (s) => MON[+s.slice(5, 7) - 1], y = (s) => s.slice(0, 4);
+    if (G.q) return `Search results`;
+    if (S.view === 'day') return `${m(S.anchor)} ${+S.anchor.slice(8)}, ${y(S.anchor)}`;
+    if (S.view === 'month' || S.view === 'agenda') return `${m(S.anchor)} ${y(S.anchor)}`;
+    const d = viewDays(), a = d[0], b = d[d.length - 1];
+    if (a.slice(0, 7) === b.slice(0, 7)) return `${m(a)} ${y(a)}`;
+    return y(a) === y(b) ? `${m(a).slice(0, 3)} – ${m(b).slice(0, 3)} ${y(b)}` : `${m(a).slice(0, 3)} ${y(a)} – ${m(b).slice(0, 3)} ${y(b)}`;
+}
+const VIEWS = [['day', 'Day', 'D'], ['week', 'Week', 'W'], ['month', 'Month', 'M'], ['agenda', 'Schedule', 'A']];
+function renderHead() {
+    const today = etNow().date;
+    $('#gc-head').innerHTML = `
+        <button class="ib" data-a="side" aria-label="Main menu" title="Main menu">${ic('menu')}</button>
+        <div class="gc-logo"><div class="cal"><i></i><b>${+today.slice(8)}</b></div><span>Calendar<small>LSH training simulator</small></span></div>
+        <button class="pill today" data-a="today" title="${esc(longDate(today))}">Today</button>
+        <button class="ib" data-a="prev" aria-label="Previous">${ic('left')}</button><button class="ib" data-a="next" aria-label="Next">${ic('right')}</button>
+        <div class="gc-title">${esc(title())}</div>
+        <div class="grow"></div>
+        <div class="gc-search ${G.searching ? 'on' : ''}" id="gc-search">${ic('search')}<input id="gc-q" placeholder="Search" value="${esc(G.q)}" aria-label="Search events"><button class="ib" data-a="search-x" aria-label="Clear search">${ic('close')}</button></div>
+        ${G.searching ? '' : `<button class="ib" data-a="search" aria-label="Search" title="Search">${ic('search')}</button>`}
+        <button class="ib gc-hide-sm" data-a="help" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">${ic('help')}</button>
+        <button class="ib gc-hide-sm" data-a="settings" aria-label="Settings" title="Settings">${ic('gear')}</button>
+        <div class="gc-view"><button class="pill" data-a="views" aria-haspopup="menu">${(VIEWS.find(v => v[0] === S.view) || VIEWS[1])[1]} ▾</button></div>`;
+}
+function miniHtml() {
+    const m = S.mini, first = m + '-01', start = weekStart(first, false), today = etNow().date;
+    let rows = '';
+    for (let r = 0; r < 6; r++) {
+        rows += '<tr>' + Array.from({ length: 7 }, (_, i) => { const d = addDays(start, r * 7 + i); const cls = d === today ? 't' : d === S.anchor ? 's' : d.slice(0, 7) !== m ? 'o' : ''; return `<td><button class="${cls}" data-a="goday" data-d="${d}" aria-label="${esc(longDate(d))}">${+d.slice(8)}</button></td>`; }).join('') + '</tr>';
+    }
+    return `<div class="mini"><div class="mh"><span>${MON[+m.slice(5) - 1]} ${m.slice(0, 4)}</span><span><button class="ib" data-a="mini-prev" aria-label="Previous month">${ic('left')}</button><button class="ib" data-a="mini-next" aria-label="Next month">${ic('right')}</button></span></div>
+        <table><tr>${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(x => `<th>${x}</th>`).join('')}</tr>${rows}</table></div>`;
+}
+function renderSide() {
+    const side = $('#gc-side'); side.classList.toggle('off', !S.side);
+    const box = (c) => `<label><input type="checkbox" data-cal="${c.id}" ${S.hidden[c.id] ? '' : 'checked'}><span class="box" style="border-color:${c.color};background:${S.hidden[c.id] ? '#fff' : c.color}">${S.hidden[c.id] ? '' : `<svg viewBox="0 0 24 24"><path d="${P.check}"/></svg>`}</span>${esc(c.name)}</label>`;
+    side.innerHTML = `<button class="gc-create" data-a="create">${PLUS}Create</button>${miniHtml()}
+        <div class="cals"><h4>My calendars</h4>${GCAL_CALENDARS.filter(c => !c.other).map(box).join('')}<h4>Other calendars</h4>${GCAL_CALENDARS.filter(c => c.other).map(box).join('')}</div>`;
+}
+function layoutDay(evs) {
+    evs = evs.slice().sort((a, b) => mins(a.start) - mins(b.start) || mins(b.end) - mins(a.end));
+    const out = []; let cluster = [], end = -1;
+    const flush = () => { const cols = []; cluster.forEach(e => { let c = cols.findIndex(x => x <= mins(e.start)); if (c < 0) { c = cols.length; cols.push(0); } cols[c] = mins(e.end); e._c = c; }); cluster.forEach(e => { e._n = cols.length; out.push(e); }); cluster = []; };
+    evs.forEach(e => { if (cluster.length && mins(e.start) >= end) { flush(); end = -1; } cluster.push(e); end = Math.max(end, mins(e.end)); });
+    flush();
+    return out;
+}
+function evHtml(e, extra) {
+    const s = mins(e.start), en = Math.max(mins(e.end), s + 15), h = Math.max((en - s) / 60 * HH - 2, 16), shortish = h < 34;
+    const left = e._n ? (e._c / e._n) * 100 : 0, width = e._n ? 100 / e._n : 100;
+    const lite = e.busy === false;
+    return `<div class="ev ${shortish ? 'short' : ''} ${lite ? 'lite' : ''} ${extra || ''}" data-iid="${esc(e.iid)}" role="button" tabindex="0" aria-label="${esc(e.title + ', ' + span(s, en))}"
+        style="top:${s / 60 * HH}px;height:${h}px;left:calc(${left}% + 1px);width:calc(${width}% - 4px);background:${colorOf(e)};border-left-color:${colorOf(e)}">
+        ${shortish ? `<b>${esc(e.title || '(No title)')}</b>, ${tl(s)}` : `<b>${esc(e.title || '(No title)')}</b><span>${span(s, en)}</span>${h > 70 && e.location ? `<span>${esc(e.location)}</span>` : ''}`}
+        ${e.readOnly ? '' : '<i class="rs" data-rs="1"></i>'}</div>`;
+}
+const chipHtml = (e, dot) => dot && !e.allDay
+    ? `<button class="chip dot" data-iid="${esc(e.iid)}"><i style="background:${colorOf(e)}"></i>${tl(mins(e.start))} <b style="font-weight:500;overflow:hidden;text-overflow:ellipsis">${esc(e.title || '(No title)')}</b></button>`
+    : `<button class="chip" data-iid="${esc(e.iid)}" style="background:${colorOf(e)}">${esc(e.title || '(No title)')}</button>`;
+function renderWeek(days) {
+    const main = $('#gc-main'), today = etNow().date, nowM = mins(etNow().time);
+    const evs = instances(days[0], days[days.length - 1]);
+    const tz2 = S.set.tz2, d0 = days[0];
+    const off2 = tz2 ? offsetMin('Asia/Manila', d0) - offsetMin(ET, d0) : 0;
+    let hours = '';
+    for (let h = 1; h < 24; h++) hours += `<span style="top:${h * HH}px">${tz2 ? `<em>${hourLabel(((h * 60 + off2) / 60 % 24 + 24) % 24 | 0)}</em>` : ''}${hourLabel(h)}</span>`;
+    let lines = ''; for (let h = 1; h < 24; h++) lines += `<div class="ln" style="top:${h * HH}px"></div>`;
+    const cols = days.map(d => {
+        const timed = layoutDay(evs.filter(e => e.date === d && !e.allDay));
+        const temp = G.temp && G.temp.date === d ? evHtml(Object.assign({ iid: 'temp', title: G.temp.title || '(No title)', cal: G.temp.cal || 'lsh', _n: 1, _c: 0 }, G.temp), 'temp') : '';
+        return `<div class="wk-col" data-d="${d}">${lines}${timed.map(e => evHtml(e)).join('')}${temp}${d === today ? `<div class="now" style="top:${nowM / 60 * HH}px"></div>` : ''}</div>`;
+    }).join('');
+    const allDay = days.map(d => `<div class="cell">${evs.filter(e => e.date === d && e.allDay).map(e => chipHtml(e)).join('')}</div>`).join('');
+    const scroll = $('#wk-scroll'), keep = scroll ? scroll.scrollTop : null;
+    main.innerHTML = `<div class="wk-head"><div class="wk-gut ${tz2 ? 'two' : ''}"><div class="tz">${tz2 ? gmt('Asia/Manila', d0) + '<br>' : ''}${gmt(ET, d0)}</div></div>${days.map(d => `<div class="wk-day ${d === today ? 'today' : ''}"><div class="dn">${DAY3[wd(d)]}</div><button class="dd" data-a="goday" data-d="${d}" aria-label="${esc(longDate(d))}">${+d.slice(8)}</button></div>`).join('')}</div>
+        <div class="wk-all"><div class="wk-gut ${tz2 ? 'two' : ''}"></div>${allDay}</div>
+        <div class="wk-scroll" id="wk-scroll"><div class="wk-grid" style="height:${24 * HH}px"><div class="wk-hours ${tz2 ? 'two' : ''}">${hours}</div>${cols}</div></div>`;
+    const sc = $('#wk-scroll'); sc.scrollTop = keep != null ? keep : 7 * HH;
+}
+function renderMonth() {
+    const main = $('#gc-main'), today = etNow().date, m = S.anchor.slice(0, 7), start = weekStart(m + '-01', false);
+    const evs = instances(start, addDays(start, 41));
+    let html = `<div class="mo"><div class="mo-h">${DAY3.map(d => `<div>${d}</div>`).join('')}</div>`;
+    for (let r = 0; r < 6; r++) {
+        html += '<div class="mo-r">' + Array.from({ length: 7 }, (_, i) => {
+            const d = addDays(start, r * 7 + i), list = evs.filter(e => e.date === d).sort((a, b) => (b.allDay - a.allDay) || mins(a.start) - mins(b.start));
+            const shown = list.slice(0, 3);
+            return `<div class="${d.slice(0, 7) !== m ? 'o' : ''} ${d === today ? 't' : ''}"><div class="n"><button data-a="goday" data-d="${d}" aria-label="${esc(longDate(d))}">${+d.slice(8) === 1 ? MON[+d.slice(5, 7) - 1].slice(0, 3) + ' 1' : +d.slice(8)}</button></div>
+                ${shown.map(e => chipHtml(e, true)).join('')}${list.length > 3 ? `<button class="more" data-a="goday" data-d="${d}">${list.length - 3} more</button>` : ''}</div>`;
+        }).join('') + '</div>';
+    }
+    main.innerHTML = html + '</div>';
+}
+function agendaHtml(list, emptyText) {
+    const today = etNow().date, byDay = {};
+    list.forEach(e => { (byDay[e.date] = byDay[e.date] || []).push(e); });
+    const days = Object.keys(byDay).sort();
+    if (!days.length) return `<div class="ag-empty">${esc(emptyText)}</div>`;
+    return days.map(d => `<div class="ag-d"><div class="dt ${d === today ? 'today' : ''}"><b>${+d.slice(8)}</b><span>${MON[+d.slice(5, 7) - 1].slice(0, 3).toUpperCase()}, ${DAY3[wd(d)]}</span></div><div>
+        ${byDay[d].sort((a, b) => (b.allDay - a.allDay) || mins(a.start) - mins(b.start)).map(e => `<div class="ag-e" data-iid="${esc(e.iid)}" role="button" tabindex="0"><i style="background:${colorOf(e)}"></i><span>${e.allDay ? 'All day' : span(mins(e.start), mins(e.end))}</span><b>${esc(e.title || '(No title)')}</b></div>`).join('')}</div></div>`).join('');
+}
+function renderMain() {
+    renderMainInner();
+    if (G.admin) $('#gc-main').insertAdjacentHTML('afterbegin', `<div class="adm" role="status"><b>Editing the attorney’s weekly schedule for everyone.</b> Add, change, move or delete appointments on the Attorney’s Calendar: every trainee gets the change.
+        <span style="margin-left:auto;display:flex;gap:6px"><button class="pill" data-a="admin-reset">Restore the original</button><button class="blue" data-a="admin-edit">Done</button></span></div>`);
+}
+function renderMainInner() {
+    const main = $('#gc-main'); main.classList.toggle('full', !S.side);
+    if (G.q) {
+        const q = G.q.toLowerCase();
+        const list = instances(addDays(S.today, -60), addDays(S.today, 120), true).filter(e => `${e.title} ${e.location || ''} ${plain(e.desc)}`.toLowerCase().includes(q));
+        main.innerHTML = `<div class="ag">${agendaHtml(list.slice(0, 200), 'No results')}</div>`;
+        return;
+    }
+    if (S.view === 'month') return renderMonth();
+    if (S.view === 'agenda') { main.innerHTML = `<div class="ag">${agendaHtml(instances(S.anchor, addDays(S.anchor, 30)), 'Nothing planned')}</div>`; return; }
+    renderWeek(viewDays());
+}
+function renderRail() {
+    const open = S.reqs.filter(q => !q.done).length;
+    $('#gc-rail').innerHTML = `<button class="ib ${S.panel === 'requests' ? 'on' : ''}" data-a="panel" data-p="requests" aria-label="Calendar requests" title="Calendar requests">${ic('req')}${open ? `<span class="badge">${open}</span>` : ''}</button>
+        <button class="ib ${S.panel === 'rules' ? 'on' : ''}" data-a="panel" data-p="rules" aria-label="The attorney's rules" title="The attorney's rules">${ic('book')}</button>
+        <button class="ib ${S.panel === 'result' ? 'on' : ''}" data-a="check" aria-label="Check my calendar" title="Check my calendar">${ic('grade')}</button>`;
+}
+function reqCard(q) {
+    const R = reqDef(q.id); if (!R) return '';
+    const row = q.row != null ? rowById(q.row) : null;
+    if (R.kind !== 'book' && !row) return '';
+    const kind = R.kind === 'book' ? '' : R.kind;
+    const what = R.kind === 'book' ? R.type : `${R.kind === 'move' ? 'Move' : 'Cancel'}: ${row.title}`;
+    const when = R.kind === 'cancel' ? `<b>Appointment:</b> ${esc(shortDate(q.orig))}, ${span(mins(row.start), mins(row.end))} (ET)`
+        : R.kind === 'move' ? `<b>Now:</b> ${esc(shortDate(q.orig))}, ${span(mins(row.start), mins(row.end))} · <b>Can do:</b> ${esc(availText(q, R))}`
+        : `<b>${R.sameDay ? 'Wants' : 'Can do'}:</b> ${esc(availText(q, R))}`;
+    return `<div class="rq ${q.done ? 'done' : ''}"><div class="top"><span class="av">${esc(R.name[0])}</span><div style="min-width:0"><div class="nm">${esc(R.name)}</div><div class="ty">${esc(what)}</div></div><span class="kind ${kind}">${R.kind === 'book' ? 'Book' : R.kind === 'move' ? 'Move' : 'Cancel'}</span></div>
+        <dl><dt>Callback</dt><dd>${esc(R.cb)}</dd><dt>DOB</dt><dd>${esc(R.dob)}</dd><dt>DOL</dt><dd>${esc(R.dol)}</dd><dt>Case</dt><dd>${R.caseNo ? `${esc(R.caseNo)} <span style="color:#70757a">(${esc(R.mc)})</span>` : 'New client: no file yet'}</dd><dt>Caller</dt><dd>${esc(R.mood)}</dd></dl>
+        <q>${esc(R.said)}</q><div class="av2">${when}</div>
+        <div class="acts"><button class="txt" data-a="req-go" data-id="${esc(q.id)}">Show on calendar</button><label><input type="checkbox" data-done="${esc(q.id)}" ${q.done ? 'checked' : ''}> Done</label></div></div>`;
+}
+function renderPanel() {
+    const panel = $('#gc-panel'); panel.classList.toggle('off', !S.panel);
+    if (!S.panel) { panel.innerHTML = ''; return; }
+    const head = (t) => `<div class="ph"><h3>${t}</h3><button class="ib" data-a="panel" data-p="" aria-label="Close panel">${ic('close')}</button></div>`;
+    if (S.panel === 'rules') {
+        panel.innerHTML = head('The attorney’s rules') + `<div class="pb rules"><p class="lead">Calendar Management (Day 6). Plot every appointment on the <b>Attorney’s Calendar</b>, in Eastern time.</p>
+            <h4>Get from every caller</h4><ul>${GCAL_RULES.collect.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+            <h4>Title</h4><ul><li>${esc(GCAL_RULES.title)}</li></ul>
+            <h4>Scheduling rules</h4><ul>${GCAL_RULES.scheduling.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+            <h4>Additional notes</h4><ul>${GCAL_RULES.notes.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+            <h4>Office</h4><ul><li>${esc(GCAL_OFFICE)} (in-person meetings)</li></ul></div>`;
+        return;
+    }
+    if (S.panel === 'result' && S.result) {
+        const r = S.result, col = r.score >= 85 ? '#188038' : r.score >= 70 ? '#e37400' : '#d93025';
+        panel.innerHTML = head('Your calendar, checked') + `<div class="pb"><div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.score}%</div>
+            <div class="lead" style="margin:0">${r.right} of ${r.results.length} requests fully right.${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}<br><span style="color:#70757a">Checked ${esc(Sim.fmtDate(r.at))}</span></div></div>
+            ${r.results.map(x => `<div class="res-r"><h5><span>${esc(x.head)}</span><span>${Math.round(x.pts * 10) / 10}/${x.max}</span></h5>${x.when ? `<div style="color:#70757a;margin-bottom:4px">${esc(x.when)}</div>` : ''}<ul>${x.items.map(i => `<li class="${i.ok ? 'ok' : 'no'}"><span>${esc(i.t)}</span></li>`).join('')}</ul></div>`).join('')}
+            ${r.extra.length ? `<div class="res-r"><h5><span>Changed without a request</span><span>−${r.penalty}</span></h5><ul>${r.extra.map(t => `<li class="no"><span>${esc(t)}</span></li>`).join('')}</ul></div>` : ''}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="blue" data-a="panel" data-p="requests">Back to the requests</button><button class="pill" data-a="new-set">New set</button></div></div>`;
+        return;
+    }
+    const open = S.reqs.filter(q => !q.done).length;
+    panel.innerHTML = head('Calendar requests') + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). These callers want appointments booked, moved or cancelled on the attorney’s calendar. ${open ? `${open} still open.` : 'All marked done.'}</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="new-set">New set</button></div>
+        ${S.reqs.map(reqCard).join('')}</div>`;
+}
+
+/* ---------- popovers: quick create, event card ---------- */
+function closeAll(keepTemp) {
+    ['.gc-pop', '.gc-menu'].forEach(s => document.querySelectorAll(s).forEach(n => n.remove()));
+    G.pop = null; G.menu = null;
+    if (!keepTemp && G.temp) { G.temp = null; if (S && $('#gc-main')) renderMain(); }
+}
+function place(el, rect) {
+    const box = gc().getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+    let left = rect ? rect.right - box.left + 8 : (box.width - w) / 2;
+    if (rect && left + w > box.width - 8) left = rect.left - box.left - w - 8;
+    if (left < 8) left = Math.max(8, (box.width - w) / 2);
+    let top = rect ? rect.top - box.top - 20 : 90;
+    top = Math.max(8, Math.min(top, box.height - h - 8));
+    el.style.left = left + 'px'; el.style.top = top + 'px';
+}
+function calSelect(id, cur) { return `<select id="${id}" class="fin" aria-label="Calendar">${GCAL_CALENDARS.filter(c => !c.readOnly).map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>`; }
+const meetCode = () => { const L = 'abcdefghijkmnopqrstuvwxyz', r = (n) => Array.from({ length: n }, () => L[Math.floor(Math.random() * L.length)]).join(''); return `${r(3)}-${r(4)}-${r(3)}`; };
+function openQuick(temp, rect) {
+    closeAll(true);
+    G.temp = temp; renderMain();
+    const el = document.createElement('div'); el.className = 'gc-pop'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'New event');
+    const when = temp.allDay ? longDate(temp.date) : `${longDate(temp.date)} · ${span(mins(temp.start), mins(temp.end))}`;
+    el.innerHTML = `<div class="tools"><button class="ib" data-a="pop-x" aria-label="Close">${ic('close')}</button></div>
+        <div class="row"><span></span><input class="qin" id="q-title" placeholder="Add title" aria-label="Title"></div>
+        <div class="row">${ic('clock')}<div class="sub">${esc(when)}<br><span style="font-size:12.5px">Time zone: Eastern · Does not repeat</span></div></div>
+        <div class="row">${ic('video')}<div id="q-meet"><button class="meetbtn" data-a="q-meet">Add Google Meet video conferencing</button></div></div>
+        <div class="row">${ic('place')}<input class="fin" id="q-loc" placeholder="Add location" aria-label="Location"></div>
+        <div class="row">${ic('notes')}<textarea class="fin" id="q-desc" rows="2" placeholder="Add description" aria-label="Description"></textarea></div>
+        <div class="row">${ic('cal')}${calSelect('q-cal', temp.cal || 'lsh')}</div>
+        <div class="foot"><button class="txt" data-a="q-more">More options</button><button class="blue" data-a="q-save">Save</button></div>`;
+    gc().appendChild(el); place(el, rect); G.pop = el;
+    setTimeout(() => { const t = $('#q-title'); if (t) t.focus(); }, 20);
+}
+function quickDraft() {
+    const t = G.temp;
+    return { title: ($('#q-title') || {}).value || '', date: t.date, start: t.start, end: t.end, allDay: !!t.allDay, tz: ET, repeat: 'none', cal: ($('#q-cal') || {}).value || 'lsh', color: '',
+        location: ($('#q-loc') || {}).value || '', meet: G.qmeet || '', desc: textToHtml(($('#q-desc') || {}).value || ''), guests: [], notifs: [{ m: 'popup', v: 30, u: 'minutes' }], busy: true, vis: 'default', perms: { modify: false, invite: true, see: true } };
+}
+function createEvent(draft) {
+    snapshot();
+    if (G.admin && draft.cal === 'attorney') {   // an Admin adding to the weekly schedule
+        const r = { id: ('r-' + uid()).toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40), wd: wd(draft.date), start: draft.allDay ? '00:00' : draft.start, end: draft.allDay ? '23:59' : draft.end,
+            type: guessType(draft.title || ''), title: draft.title || '(No title)', location: draft.location || '', notes: plain(draft.desc).trim(), color: draft.color || '' };
+        ROWS.push(r); putRows();
+        return r;
+    }
+    const ev = Object.assign({ id: uid() }, draft); delete ev.iid;
+    S.events.push(ev); save();
+    return ev;
+}
+function openDetail(iid, rect) {
+    closeAll();
+    const e = findInst(iid); if (!e) return;
+    const c = calOf(e.cal);
+    const notif = (e.notifs || []).map(n => `${n.v} ${n.v === 1 ? n.u.replace(/s$/, '') : n.u} before${n.m === 'email' ? ', as email' : ''}`);
+    const rep = e.seed ? `Weekly on ${DAYN[wd(e.origDate)]}` : e.repeat === 'weekly' ? `Weekly on ${DAYN[wd(e.date)]}` : e.repeat === 'daily' ? 'Daily' : e.repeat === 'weekdays' ? 'Every weekday (Monday to Friday)' : '';
+    const el = document.createElement('div'); el.className = 'gc-pop'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', e.title || 'Event');
+    el.innerHTML = `<div class="tools">${e.readOnly ? '' : `<button class="ib" data-a="d-edit" aria-label="Edit event" title="Edit event">${ic('edit')}</button><button class="ib" data-a="d-del" aria-label="Delete event" title="Delete event">${ic('del')}</button>`}
+            <button class="ib" data-a="d-mail" aria-label="Email guests" title="Email guests">${ic('mail')}</button>${e.readOnly ? '' : `<button class="ib" data-a="d-more" aria-label="Options" title="Options">${ic('more')}</button>`}<button class="ib" data-a="pop-x" aria-label="Close">${ic('close')}</button></div>
+        <div class="row"><span class="sq" style="background:${colorOf(e)}"></span><div><h2>${esc(e.title || '(No title)')}</h2><div class="sub">${esc(longDate(e.date))}${e.allDay ? '' : ' · ' + span(mins(e.start), mins(e.end))}${rep ? `<br>${esc(rep)}` : ''}</div></div></div>
+        ${e.meet ? `<div class="row">${ic('video')}<div><button class="join" data-a="join">${ic('video')}Join with Google Meet</button><div class="link">meet.google.com/${esc(e.meet)}</div><div class="link">Join by phone: (US) +1 555-010-${String(digits(e.meet).length + 4000).slice(-4)} · PIN ${(e.meet.charCodeAt(0) * 7919 % 900000 + 100000)}#</div></div></div>` : ''}
+        ${e.location ? `<div class="row">${ic('place')}<div class="sub">${esc(e.location)}</div></div>` : ''}
+        ${(e.guests || []).length ? `<div class="row">${ic('people')}<div class="sub">${e.guests.length} guest${e.guests.length === 1 ? '' : 's'}<br>${e.guests.map(esc).join('<br>')}</div></div>` : ''}
+        ${e.desc ? `<div class="row">${ic('notes')}<div class="desc">${sanitize(e.desc)}</div></div>` : ''}
+        ${notif.length ? `<div class="row">${ic('bell')}<div class="sub">${notif.map(esc).join('<br>')}</div></div>` : ''}
+        <div class="row">${ic('cal')}<div class="sub">${esc(c.name)}${e.seed ? '<br><span style="font-size:12.5px">The attorney’s standing appointment (every week)</span>' : ''}</div></div>
+        ${(e.tz || ET) !== ET ? `<div class="row">${ic('clock')}<div class="sub">Time zone: ${esc((TZS.find(z => z[0] === e.tz) || [0, e.tz])[1])}</div></div>` : ''}
+        <div style="height:12px"></div>`;
+    gc().appendChild(el); place(el, rect); G.pop = el; G.popIid = iid;
+}
+
+/* ---------- the event page ---------- */
+const TIMES = Array.from({ length: 96 }, (_, i) => hhmm(i * 15));
+function openEditor(draft, inst) {
+    closeAll(true);
+    const d = Object.assign({}, draft);
+    if (!d.allDay && (d.tz || ET) !== ET) { const a = shiftWall(d.date, d.start, ET, d.tz), b = shiftWall(d.date, d.end, ET, d.tz); d.date = a.date; d.start = a.time; d.end = b.time; }
+    d.notifs = (d.notifs || []).map(n => Object.assign({}, n)); d.guests = (d.guests || []).slice(); d.perms = Object.assign({ modify: false, invite: true, see: true }, d.perms);
+    G.ed = { d, inst, tab: 'details' };
+    const el = document.createElement('div'); el.className = 'gc-ed'; el.id = 'gc-ed'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Event details');
+    gc().appendChild(el);
+    drawEditor();
+    setTimeout(() => { const t = $('#ed-title'); if (t && !t.value) t.focus(); }, 30);
+}
+function edSync() {
+    const E = G.ed; if (!E || !$('#gc-ed')) return;
+    const d = E.d, v = (id) => { const n = $('#' + id); return n ? n.value : undefined; };
+    if (v('ed-title') != null) d.title = v('ed-title');
+    if (v('ed-date') != null) d.date = v('ed-date') || d.date;
+    if (v('ed-start') != null) d.start = v('ed-start');
+    if (v('ed-end') != null) d.end = v('ed-end');
+    if ($('#ed-allday')) d.allDay = $('#ed-allday').checked;
+    if (v('ed-tz') != null) d.tz = v('ed-tz');
+    if (v('ed-rep') != null) d.repeat = v('ed-rep');
+    if (v('ed-loc') != null) d.location = v('ed-loc');
+    if (v('ed-cal') != null) d.cal = v('ed-cal');
+    if (v('ed-color') != null) d.color = v('ed-color');
+    if (v('ed-busy') != null) d.busy = v('ed-busy') === 'busy';
+    if (v('ed-vis') != null) d.vis = v('ed-vis');
+    if ($('#ed-desc')) d.desc = sanitize($('#ed-desc').innerHTML);
+    document.querySelectorAll('[data-ntf]').forEach(row => { const i = +row.dataset.ntf; if (!d.notifs[i]) return; d.notifs[i] = { m: row.querySelector('.n-m').value, v: Math.max(0, Math.min(999, +row.querySelector('.n-v').value || 0)), u: row.querySelector('.n-u').value }; });
+    ['modify', 'invite', 'see'].forEach(k => { const n = $('#perm-' + k); if (n) d.perms[k] = n.checked; });
+}
+function drawEditor() {
+    const E = G.ed, d = E.d, el = $('#gc-ed');
+    const timeOpts = (cur, from) => TIMES.filter(t => from == null || mins(t) > mins(from)).map(t => `<option value="${t}" ${t === cur ? 'selected' : ''}>${tl(mins(t))}${from != null ? ` (${(mins(t) - mins(from)) % 60 === 0 ? (mins(t) - mins(from)) / 60 + ' hr' + (mins(t) - mins(from) > 60 ? 's' : '') : (mins(t) - mins(from) < 60 ? (mins(t) - mins(from)) + ' mins' : ((mins(t) - mins(from)) / 60).toFixed(2).replace(/0$/, '') + ' hrs')})` : ''}</option>`).join('');
+    const rep = [['none', 'Does not repeat'], ['daily', 'Daily'], ['weekly', `Weekly on ${DAYN[wd(d.date)]}`], ['weekdays', 'Every weekday (Monday to Friday)']];
+    const isSeed = E.inst && E.inst.seed;
+    const colorOpts = [['', 'Calendar color']].concat(Object.keys(GCAL_COLORS).map(k => [k, k[0].toUpperCase() + k.slice(1)]));
+    el.innerHTML = `<div class="ed-top"><button class="ib" data-a="ed-x" aria-label="Close">${ic('close')}</button><input id="ed-title" placeholder="Add title" value="${esc(d.title)}" aria-label="Title"><button class="blue" data-a="ed-save">Save</button></div>
+        <div class="ed-when"><input type="date" id="ed-date" value="${esc(d.date)}" aria-label="Date">
+            ${d.allDay ? '' : `<select id="ed-start" aria-label="Start time">${timeOpts(d.start)}</select><span>to</span><select id="ed-end" aria-label="End time">${timeOpts(d.end, d.start)}</select>`}
+            <label><input type="checkbox" id="ed-allday" ${d.allDay ? 'checked' : ''}> All day</label>
+            <select id="ed-tz" aria-label="Time zone">${TZS.map(z => `<option value="${z[0]}" ${z[0] === (d.tz || ET) ? 'selected' : ''}>(${gmt(z[0], d.date)}) ${esc(z[1])}</option>`).join('')}</select>
+            ${isSeed ? '<span style="color:#70757a;font-size:13px">Weekly (the attorney’s standing appointment)</span>' : `<select id="ed-rep" aria-label="Repeat">${rep.map(r => `<option value="${r[0]}" ${r[0] === (d.repeat || 'none') ? 'selected' : ''}>${esc(r[1])}</option>`).join('')}</select>`}</div>
+        <div class="ed-cols"><div>
+            <div class="ed-tabs"><button class="${E.tab === 'details' ? 'on' : ''}" data-a="ed-tab" data-t="details">Event details</button><button class="${E.tab === 'find' ? 'on' : ''}" data-a="ed-tab" data-t="find">Find a time</button></div>
+            <div class="ed-body">${E.tab === 'find' ? findHtml(d) : `
+                <div class="row">${ic('video')}<div>${d.meet ? `<div class="meetbox"><button class="join" data-a="join-ed">Join with Google Meet</button><span>meet.google.com/${esc(d.meet)}</span><button class="ib" data-a="ed-copy" aria-label="Copy the link" title="Copy">${ic('copy')}</button><button class="ib" data-a="ed-unmeet" aria-label="Remove conferencing" title="Remove conferencing">${ic('close')}</button></div>` : `<button class="meetbtn" data-a="ed-meet" style="background:#0b57d0;color:#fff;border-radius:4px;padding:9px 14px;font-weight:500">Add Google Meet video conferencing</button>`}</div></div>
+                <div class="row">${ic('place')}<input class="fld" id="ed-loc" placeholder="Add location" value="${esc(d.location || '')}" aria-label="Location"></div>
+                <div class="row">${ic('bell')}<div>${d.notifs.map((n, i) => `<div class="ntf" data-ntf="${i}"><select class="n-m" aria-label="Notification type"><option value="popup" ${n.m !== 'email' ? 'selected' : ''}>Notification</option><option value="email" ${n.m === 'email' ? 'selected' : ''}>Email</option></select>
+                    <input class="n-v" type="number" min="0" max="999" value="${+n.v || 0}" aria-label="How long before"><select class="n-u" aria-label="Unit">${['minutes', 'hours', 'days', 'weeks'].map(u => `<option ${u === n.u ? 'selected' : ''}>${u}</option>`).join('')}</select>
+                    <button class="ib" data-a="ed-unntf" data-i="${i}" aria-label="Remove notification">${ic('close')}</button></div>`).join('')}<button class="txt" data-a="ed-ntf">Add notification</button></div></div>
+                <div class="row">${ic('cal')}<div class="two">${calSelect('ed-cal', d.cal).replace('class="fin"', '')}<select id="ed-color" aria-label="Event color">${colorOpts.map(c => `<option value="${c[0]}" ${c[0] === (d.color || '') ? 'selected' : ''}>${c[1]}</option>`).join('')}</select></div></div>
+                <div class="row">${ic('lock')}<div class="two"><select id="ed-busy" aria-label="Show as"><option value="busy" ${d.busy !== false ? 'selected' : ''}>Busy</option><option value="free" ${d.busy === false ? 'selected' : ''}>Free</option></select><select id="ed-vis" aria-label="Visibility">${[['default', 'Default visibility'], ['public', 'Public'], ['private', 'Private']].map(v => `<option value="${v[0]}" ${v[0] === (d.vis || 'default') ? 'selected' : ''}>${v[1]}</option>`).join('')}</select></div></div>
+                <div class="row">${ic('notes')}<div class="rte"><div class="bar"><button data-cmd="bold" aria-label="Bold"><b>B</b></button><button data-cmd="italic" aria-label="Italic"><i>I</i></button><button data-cmd="underline" aria-label="Underline"><u>U</u></button><button data-cmd="insertOrderedList" aria-label="Numbered list">1.</button><button data-cmd="insertUnorderedList" aria-label="Bulleted list">•</button><button data-cmd="createLink" aria-label="Link">🔗</button><button data-cmd="removeFormat" aria-label="Remove formatting">T̸</button></div>
+                    <div class="area" id="ed-desc" contenteditable="true" data-ph="Add description: name, callback number, DOB, DOL and what it’s about" aria-label="Description">${sanitize(d.desc)}</div></div></div>`}
+            </div></div>
+            <div class="guests"><h4>Guests</h4><input class="fld" id="ed-guest" placeholder="Add guests (email), then Enter" aria-label="Add guests" style="width:100%;font:inherit;border:0;background:#f1f3f4;border-radius:4px;padding:9px 10px">
+                ${d.guests.map((g, i) => `<div class="g"><span class="gav">${esc(g[0].toUpperCase())}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(g)}</span><button class="ib" data-a="ed-ungu" data-i="${i}" aria-label="Remove guest">${ic('close')}</button></div>`).join('')}
+                <div class="perm"><b>Guest permissions</b><label><input type="checkbox" id="perm-modify" ${d.perms.modify ? 'checked' : ''}> Modify event</label><label><input type="checkbox" id="perm-invite" ${d.perms.invite ? 'checked' : ''}> Invite others</label><label><input type="checkbox" id="perm-see" ${d.perms.see ? 'checked' : ''}> See guest list</label></div></div></div>`;
+}
+function findHtml(d) {
+    // the attorney's day, with this event in it: see where it fits
+    const evs = instances(d.date, d.date, true).filter(e => e.cal === 'attorney' && !e.allDay && (!G.ed.inst || e.iid !== G.ed.inst.iid));
+    const me = d.allDay ? null : Object.assign({ iid: 'me', title: d.title || '(No title)', cal: d.cal, color: d.color, _n: 1, _c: 0 }, d);
+    let hours = '', lines = '';
+    for (let h = 1; h < 24; h++) { hours += `<span style="position:absolute;top:${h * HH}px;right:6px;font-size:10px;color:#70757a;transform:translateY(-50%)">${hourLabel(h)}</span>`; lines += `<div class="ln" style="top:${h * HH}px"></div>`; }
+    return `<p style="margin:0 0 8px;color:#444746;font-size:13px">${esc(longDate(d.date))} on the Attorney’s Calendar${me ? ` · this event: ${span(mins(d.start), mins(d.end))}` : ''}</p>
+        <div class="find" id="ed-find"><div style="position:relative;height:${24 * HH}px">${hours}</div><div class="wk-col" style="height:${24 * HH}px">${lines}${layoutDay(evs).map(e => evHtml(e)).join('')}${me ? evHtml(me, 'ghost') : ''}</div></div>`;
+}
+function saveEditor() {
+    edSync();
+    const E = G.ed, d = Object.assign({}, E.d);
+    if (!d.allDay && mins(d.end) <= mins(d.start)) { snack('The end time must be after the start time.'); return; }
+    if (!d.allDay && (d.tz || ET) !== ET) { const a = shiftWall(d.date, d.start, d.tz, ET), b = shiftWall(d.date, d.end, d.tz, ET); d.date = a.date; d.start = a.time; d.end = b.date > a.date ? '23:59' : b.time; }
+    if (d.allDay) { d.start = ''; d.end = ''; }
+    const fields = {}; FIELDS.forEach(k => { if (k in d) fields[k] = d[k]; });
+    const done = () => { G.ed = null; const n = $('#gc-ed'); if (n) n.remove(); G.temp = null; render(); snack('Event saved', true); };
+    if (E.inst) askScope(E.inst, 'edit', (scope) => { applyChange(E.inst, fields, scope); done(); });
+    else { createEvent(fields); done(); }
+}
+
+/* ---------- dialogs, menus, snackbar, the mock Google Meet ---------- */
+function dialog(title, body, ok, okLabel) {
+    const el = document.createElement('div'); el.className = 'gc-dlg';
+    el.innerHTML = `<div class="box" role="dialog" aria-label="${esc(title)}"><h3>${esc(title)}</h3>${body}<div class="acts"><button class="txt" data-x>Cancel</button><button class="txt" data-ok>${esc(okLabel || 'OK')}</button></div></div>`;
+    gc().appendChild(el);
+    el.querySelector('[data-x]').onclick = () => el.remove();
+    el.querySelector('[data-ok]').onclick = () => { el.remove(); ok(el); };
+    el.onclick = (e) => { if (e.target === el) el.remove(); };
+}
+function snack(text, canUndo) {
+    document.querySelectorAll('.gc-snack').forEach(n => n.remove());
+    const el = document.createElement('div'); el.className = 'gc-snack'; el.setAttribute('role', 'status');
+    el.innerHTML = `<span>${esc(text)}</span>${canUndo && G.undo ? '<button data-a="undo">Undo</button>' : ''}<button data-a="snack-x" aria-label="Dismiss">✕</button>`;
+    gc().appendChild(el);
+    clearTimeout(G.snackT); G.snackT = setTimeout(() => el.remove(), 6000);
+}
+function menu(anchor, items) {
+    closeAll(true);
+    const el = document.createElement('div'); el.className = 'gc-menu'; el.setAttribute('role', 'menu');
+    el.innerHTML = items;
+    gc().appendChild(el);
+    const box = gc().getBoundingClientRect(), r = anchor.getBoundingClientRect();
+    el.style.top = (r.bottom - box.top + 4) + 'px';
+    el.style.left = Math.max(8, Math.min(r.right - box.left - el.offsetWidth, box.width - el.offsetWidth - 8)) + 'px';
+    G.menu = el;
+}
+function openMeet(e) {
+    closeAll(true);
+    const me = Sim.who().name || 'You', init = (s) => String(s || '?').trim()[0].toUpperCase();
+    const R = GCAL_REQUESTS.find(r => hasName(e.title || '', r.name));
+    const el = document.createElement('div'); el.className = 'meet'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Google Meet');
+    G.meet = { e, stage: 'lobby', mic: true, cam: false, t0: 0 };
+    const draw = () => {
+        const M = G.meet; if (!M) return;
+        const tile = (name, color, sm) => `<div class="tile ${sm ? 'sm' : ''}"><div class="big" style="background:${color}">${esc(init(name))}</div><div class="nm">${esc(name)}</div></div>`;
+        const t = M.t0 ? Math.floor((Date.now() - M.t0) / 1000) : 0;
+        el.innerHTML = `<div class="mtop"><span>${esc(e.title || 'Meeting')}</span><button class="mb" data-m="x" aria-label="Close" style="width:40px;height:40px">${ic('close')}</button></div>
+            <div class="mmain">${M.stage === 'lobby' ? `${tile(me, '#5f6368')}<div class="ready"><h3>Ready to join?</h3><p>${R ? esc(R.name) + ' is waiting' : 'No one else is here'}</p><button class="jn" data-m="join">Join now</button></div>`
+                : M.stage === 'in' ? `${tile(me + ' (You)', '#5f6368', true)}${tile('Attorney', '#1a73e8', true)}${R ? tile(R.name, '#7cb342', true) : ''}`
+                : `<div class="ready"><h3>You left the meeting</h3><p>meet.google.com/${esc(e.meet)}</p><button class="jn" data-m="join">Rejoin</button> <button class="jn" data-m="x" style="background:none;color:#8ab4f8;border:1px solid #5f6368">Return to the calendar</button></div>`}</div>
+            ${M.stage !== 'left' ? `<div class="mbar"><button class="mb ${M.mic ? '' : 'off'}" data-m="mic" aria-label="${M.mic ? 'Turn off microphone' : 'Turn on microphone'}">${ic('mic')}</button><button class="mb ${M.cam ? '' : 'off'}" data-m="cam" aria-label="${M.cam ? 'Turn off camera' : 'Turn on camera'}">${ic('video')}</button>
+                ${M.stage === 'in' ? `<button class="mb" aria-label="Captions">${ic('cc')}</button><button class="mb" aria-label="Raise hand">${ic('hand')}</button><button class="mb" aria-label="Present now">${ic('present')}</button><button class="mb end" data-m="leave" aria-label="Leave call">${ic('end')}</button>` : ''}</div>` : ''}
+            ${M.stage === 'in' ? `<div class="clock">${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')} | ${esc(e.meet)}</div>` : ''}`;
+    };
+    el.onclick = (ev) => {
+        const b = ev.target.closest('[data-m]'); if (!b) return; const M = G.meet;
+        if (b.dataset.m === 'x') { clearInterval(M.tick); el.remove(); G.meet = null; return; }
+        if (b.dataset.m === 'join') { M.stage = 'in'; M.t0 = Date.now(); clearInterval(M.tick); M.tick = setInterval(draw, 1000); }
+        if (b.dataset.m === 'leave') { M.stage = 'left'; clearInterval(M.tick); }
+        if (b.dataset.m === 'mic') M.mic = !M.mic;
+        if (b.dataset.m === 'cam') M.cam = !M.cam;
+        draw();
+    };
+    gc().appendChild(el); draw();
+}
+function shortcuts() {
+    const rows = [['c', 'Create event'], ['t', 'Today'], ['j / n', 'Next period'], ['k / p', 'Previous period'], ['d', 'Day view'], ['w', 'Week view'], ['m', 'Month view'], ['a', 'Schedule view'], ['/', 'Search'], ['e', 'Edit the open event'], ['Delete', 'Delete the open event'], ['Esc', 'Close'], ['?', 'These shortcuts']];
+    dialog('Keyboard shortcuts', `<table style="width:100%;font-size:14px">${rows.map(r => `<tr><td style="padding:4px 0"><kbd style="background:#f1f3f4;border-radius:4px;padding:2px 8px">${esc(r[0])}</kbd></td><td>${esc(r[1])}</td></tr>`).join('')}</table>`, () => {}, 'Close');
+}
+function settings(anchor) {
+    menu(anchor, `<div style="padding:8px 16px;font-size:14px;width:260px">
+        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0">Default event length <select data-set="dur">${[15, 30, 45, 60].map(n => `<option value="${n}" ${S.set.dur === n ? 'selected' : ''}>${n} min</option>`).join('')}</select></label>
+        <label style="display:flex;gap:8px;align-items:center;padding:6px 0"><input type="checkbox" data-set="weekends" ${S.set.weekends ? 'checked' : ''}> Show weekends</label>
+        <label style="display:flex;gap:8px;align-items:center;padding:6px 0"><input type="checkbox" data-set="tz2" ${S.set.tz2 ? 'checked' : ''}> Show Manila time too</label>
+        <button class="txt" data-a="reset" style="margin-top:6px;padding:0">Start over (clear my calendar)</button>
+        ${Sim.isAdmin() ? `<button class="txt" data-a="admin-edit" style="margin-top:2px;padding:0">${G.admin ? 'Stop editing the weekly schedule' : '✎ Edit the weekly schedule (everyone)'}</button>` : ''}</div>`);
+}
+
+/* ---------- moving around ---------- */
+function step(dir) {
+    if (S.view === 'day') S.anchor = addDays(S.anchor, dir);
+    else if (S.view === 'month' || S.view === 'agenda') { const d = D(S.anchor.slice(0, 7) + '-01'); d.setUTCMonth(d.getUTCMonth() + dir); S.anchor = iso(d); }
+    else S.anchor = addDays(S.anchor, dir * (viewDays().length < 5 ? 3 : 7));
+    S.mini = S.anchor.slice(0, 7); save(); closeAll(); render();
+}
+function setView(v) { S.view = v; G.q = ''; G.searching = false; save(); closeAll(); render(); }
+function goDay(d) { S.anchor = d; S.view = 'day'; S.mini = d.slice(0, 7); G.q = ''; save(); closeAll(); render(); }
+function createAt(date, start) {
+    const st = start != null ? start : Math.max(9 * 60, Math.min(mins(etNow().time) + 30 - (mins(etNow().time) % 30), 16 * 60));
+    openEditor({ title: '', date: date || S.anchor, start: hhmm(st), end: hhmm(Math.min(st + S.set.dur, 1439)), allDay: false, tz: ET, repeat: 'none', cal: G.admin ? 'attorney' : 'lsh', color: '', location: '', meet: '', desc: '', guests: [], notifs: [{ m: 'popup', v: 30, u: 'minutes' }], busy: true, vis: 'default' }, null);
+}
+function doCheck() {
+    const r = checkPlan(S, S.reqs, S.today);
+    S.result = Object.assign(r, { at: new Date().toISOString() }); S.panel = 'result'; save(); closeAll(); render();
+    Sim.saveResult({ simulator: 'Google Calendar', scenario: `Calendar Management · ${S.reqs.length} requests`, score: r.score,
+        summary: `${r.right}/${r.results.length} requests fully right${r.penalty ? `; −${r.penalty} for unasked changes` : ''}`,
+        details: { results: r.results.map(x => ({ request: x.head, points: Math.round(x.pts * 10) / 10, max: x.max, missed: x.items.filter(i => !i.ok).map(i => i.t) })), extra: r.extra } });
+}
+
+/* ---------- events (one delegated handler each) ---------- */
+function bind() {
+    const root = gc();
+    root.addEventListener('click', (ev) => {
+        const t = ev.target;
+        const cal = t.closest('input[data-cal]'); if (cal) { S.hidden[cal.dataset.cal] = !cal.checked; save(); render(); return; }
+        const done = t.closest('input[data-done]'); if (done) { const q = S.reqs.find(x => x.id === done.dataset.done); if (q) { q.done = done.checked; save(); renderRail(); renderPanel(); } return; }
+        const cmd = t.closest('[data-cmd]');
+        if (cmd) { ev.preventDefault(); const area = $('#ed-desc'); if (area) area.focus(); if (cmd.dataset.cmd === 'createLink') { const u = prompt('Link address (https://…)'); if (u && /^https?:\/\//i.test(u)) document.execCommand('createLink', false, u); } else document.execCommand(cmd.dataset.cmd, false, null); return; }
+        const chip = t.closest('[data-iid]');
+        if (chip && !t.closest('.wk-col')) { openDetail(chip.dataset.iid, chip.getBoundingClientRect()); return; }
+        const a = t.closest('[data-a]'); if (!a) { if (G.menu && !t.closest('.gc-menu')) closeAll(true); return; }
+        const A = a.dataset.a;
+        const acts = {
+            side: () => { S.side = !S.side; save(); render(); },
+            today: () => { S.anchor = etNow().date; S.mini = S.anchor.slice(0, 7); G.q = ''; save(); closeAll(); render(); },
+            prev: () => step(-1), next: () => step(1),
+            'mini-prev': () => { const d = D(S.mini + '-01'); d.setUTCMonth(d.getUTCMonth() - 1); S.mini = iso(d).slice(0, 7); renderSide(); },
+            'mini-next': () => { const d = D(S.mini + '-01'); d.setUTCMonth(d.getUTCMonth() + 1); S.mini = iso(d).slice(0, 7); renderSide(); },
+            goday: () => { if (a.closest('.mini') && S.view !== 'day') { S.anchor = a.dataset.d; S.mini = S.anchor.slice(0, 7); save(); closeAll(); render(); } else goDay(a.dataset.d); },
+            views: () => menu(a, VIEWS.map(v => `<button data-a="view" data-v="${v[0]}" role="menuitem">${v[1]}<kbd>${v[2]}</kbd></button>`).join('')),
+            view: () => setView(a.dataset.v),
+            search: () => { G.searching = true; renderHead(); setTimeout(() => { const q = $('#gc-q'); if (q) q.focus(); }, 10); },
+            'search-x': () => { G.searching = false; G.q = ''; renderHead(); renderMain(); },
+            help: () => shortcuts(), settings: () => settings(a),
+            reset: () => dialog('Start over?', '<p style="margin:0;color:#444746">Your events and changes are cleared and a new set of requests comes in.</p>', () => { S = fresh(); save(); closeAll(); render(); }, 'Start over'),
+            create: () => createAt(S.view === 'day' ? S.anchor : null),
+            panel: () => { S.panel = a.dataset.p === S.panel ? '' : a.dataset.p; save(); renderPanel(); renderRail(); },
+            check: () => doCheck(),
+            'admin-edit': () => { if (!Sim.isAdmin()) return; G.admin = !G.admin; G.undo = null; closeAll(); render(); snack(G.admin ? 'Editing the weekly schedule for everyone' : 'Back to your practice calendar'); },
+            'admin-reset': () => dialog('Restore the original schedule?', '<p style="margin:0;color:#444746">The attorney’s week goes back to how it came, for everyone.</p>', async () => {
+                try { const res = await fetch('/api/gcal-schedule', { method: 'DELETE', credentials: 'include' }); const data = await res.json().catch(() => ({})); if (!data.success) { snack(data.error || 'Could not restore it.'); return; } } catch (e) { snack('Could not restore it (no connection).'); return; }
+                ROWS = GCAL_ATTORNEY.map(r => Object.assign({}, r)); G.undo = null; render(); snack('The original schedule is back');
+            }, 'Restore'),
+            'new-set': () => dialog('A new set of requests?', '<p style="margin:0;color:#444746">New callers come in. Your calendar is cleared so you start fresh.</p>', () => { S = fresh(); save(); closeAll(); render(); snack('New requests are in'); }, 'New set'),
+            'req-go': () => { const q = S.reqs.find(x => x.id === a.dataset.id); if (!q) return; const d = (q.orig || (q.dates || [])[0]); if (d) { S.anchor = d; S.mini = d.slice(0, 7); if (S.view === 'month' || S.view === 'agenda') S.view = 'week'; save(); closeAll(); render(); } },
+            undo: () => undo(), 'snack-x': () => document.querySelectorAll('.gc-snack').forEach(n => n.remove()),
+            'pop-x': () => closeAll(),
+            'q-meet': () => { G.qmeet = meetCode(); $('#q-meet').innerHTML = `<button class="join" data-a="noop">${ic('video')}Join with Google Meet</button><div class="link">meet.google.com/${esc(G.qmeet)}</div>`; },
+            'q-save': () => { const d = quickDraft(); G.qmeet = ''; createEvent(d); closeAll(); render(); snack('Event saved', true); },
+            'q-more': () => { const d = quickDraft(); G.qmeet = ''; openEditor(d, null); },
+            'd-edit': () => { const e = findInst(G.popIid); if (e) openEditor(e, e); },
+            'd-del': () => { const e = findInst(G.popIid); if (!e) return; closeAll(); askScope(e, 'delete', (scope) => { removeInst(e, scope); render(); snack('Event deleted', true); }); },
+            'd-mail': () => { const e = findInst(G.popIid); closeAll(); snack(e && (e.guests || []).length ? `Email to ${e.guests.length} guest${e.guests.length === 1 ? '' : 's'} drafted (practice: nothing is sent).` : 'This event has no guests to email.'); },
+            'd-more': () => { const iid = G.popIid; menu(a, `<button data-a="dup" data-iid2="${esc(iid)}" role="menuitem">Duplicate</button><div class="gc-colors">${Object.keys(GCAL_COLORS).map(k => `<button data-a="recolor" data-c="${k}" data-iid2="${esc(iid)}" style="background:${GCAL_COLORS[k]}" aria-label="${k}" title="${k}"></button>`).join('')}</div>`); },
+            dup: () => { const e = findInst(a.dataset.iid2); if (!e) return; const d = Object.assign({}, e, { title: e.title, cal: e.seed ? 'attorney' : e.cal, repeat: 'none' }); delete d.iid; openEditor(d, null); },
+            recolor: () => { const e = findInst(a.dataset.iid2); if (!e) return; closeAll(); askScope(e, 'edit', (scope) => { applyChange(e, { color: a.dataset.c }, scope); render(); snack('Color changed', true); }); },
+            join: () => { const e = findInst(G.popIid); if (e && e.meet) openMeet(e); },
+            noop: () => {},
+            'ed-x': () => { G.ed = null; const n = $('#gc-ed'); if (n) n.remove(); G.temp = null; renderMain(); },
+            'ed-save': () => saveEditor(),
+            'ed-tab': () => { edSync(); G.ed.tab = a.dataset.t; drawEditor(); },
+            'ed-meet': () => { edSync(); G.ed.d.meet = meetCode(); drawEditor(); },
+            'ed-unmeet': () => { edSync(); G.ed.d.meet = ''; drawEditor(); },
+            'ed-copy': () => { try { navigator.clipboard.writeText('https://meet.google.com/' + G.ed.d.meet); } catch (e) { /* no clipboard */ } snack('Copied the link (practice)'); },
+            'join-ed': () => { edSync(); openMeet(Object.assign({}, G.ed.d)); },
+            'ed-ntf': () => { edSync(); G.ed.d.notifs.push({ m: 'popup', v: 30, u: 'minutes' }); drawEditor(); },
+            'ed-unntf': () => { edSync(); G.ed.d.notifs.splice(+a.dataset.i, 1); drawEditor(); },
+            'ed-ungu': () => { edSync(); G.ed.d.guests.splice(+a.dataset.i, 1); drawEditor(); }
+        };
+        if (acts[A]) { ev.preventDefault(); acts[A](); }
+    });
+    root.addEventListener('change', (ev) => {
+        const t = ev.target;
+        if (t.dataset.set) { S.set[t.dataset.set] = t.type === 'checkbox' ? t.checked : +t.value; save(); renderMain(); return; }
+        if (G.ed && t.closest('#gc-ed') && ['ed-date', 'ed-start', 'ed-allday', 'ed-tz', 'ed-rep', 'ed-cal'].includes(t.id)) {
+            const d = G.ed.d, oldS = d.start, oldE = d.end, oldTz = d.tz;
+            edSync();
+            if (t.id === 'ed-start') { const len = mins(oldE) - mins(oldS); d.end = hhmm(Math.min(mins(d.start) + (len > 0 ? len : S.set.dur), 1439)); }
+            if (t.id === 'ed-allday' && !d.allDay && !d.start) { d.start = '09:00'; d.end = hhmm(9 * 60 + S.set.dur); }
+            void oldTz;
+            drawEditor();
+        }
+    });
+    root.addEventListener('input', (ev) => { if (ev.target.id === 'gc-q') { G.q = ev.target.value.trim(); renderMain(); const t = $('.gc-title'); if (t) t.textContent = title(); } });
+    root.addEventListener('keydown', (ev) => {
+        if (ev.target.id === 'q-title' && ev.key === 'Enter') { ev.preventDefault(); const d = quickDraft(); G.qmeet = ''; createEvent(d); closeAll(); render(); snack('Event saved', true); }
+        if (ev.target.id === 'ed-guest' && ev.key === 'Enter') {
+            ev.preventDefault(); const v = ev.target.value.trim();
+            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { edSync(); if (!G.ed.d.guests.includes(v)) G.ed.d.guests.push(v); drawEditor(); setTimeout(() => { const g = $('#ed-guest'); if (g) g.focus(); }, 10); }
+            else snack('Enter an email address, e.g. client@example.com');
+        }
+        if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches('.ev[data-iid], .ag-e[data-iid]')) { ev.preventDefault(); openDetail(ev.target.dataset.iid, ev.target.getBoundingClientRect()); }
+    });
+    root.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', (ev) => { if (G.pop && !ev.target.closest('.gc-pop') && !ev.target.closest('.wk-col') && !ev.target.closest('.gc-dlg') && !ev.target.closest('.gc-menu')) closeAll(); });
+    addEventListener('resize', () => { if (S.view === 'week') renderMain(); });
+}
+function onKey(ev) {
+    if (!S || !gc()) return;
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName) || ev.target.isContentEditable;
+    if (ev.key === 'Escape') { if (G.meet) return; if (document.querySelector('.gc-dlg')) { document.querySelector('.gc-dlg').remove(); return; } if (G.ed) { G.ed = null; $('#gc-ed').remove(); G.temp = null; renderMain(); return; } closeAll(); if (G.searching) { G.searching = false; G.q = ''; renderHead(); renderMain(); } return; }
+    if (typing || G.ed || G.meet || document.querySelector('.gc-dlg') || document.getElementById('sim-who')) return;
+    const k = ev.key;
+    const map = { c: () => createAt(S.view === 'day' ? S.anchor : null), t: () => { S.anchor = etNow().date; save(); closeAll(); render(); }, j: () => step(1), n: () => step(1), k: () => step(-1), p: () => step(-1),
+        d: () => setView('day'), w: () => setView('week'), m: () => setView('month'), a: () => setView('agenda'), '/': () => { G.searching = true; renderHead(); setTimeout(() => { const q = $('#gc-q'); if (q) q.focus(); }, 10); }, '?': () => shortcuts(),
+        e: () => { if (G.pop && G.popIid) { const e = findInst(G.popIid); if (e && !e.readOnly) openEditor(e, e); } },
+        Delete: () => { if (G.pop && G.popIid) { const e = findInst(G.popIid); if (e && !e.readOnly) { closeAll(); askScope(e, 'delete', (scope) => { removeInst(e, scope); render(); snack('Event deleted', true); }); } } } };
+    if (k === 'Backspace') map.Backspace = map.Delete;
+    if (map[k] && !ev.ctrlKey && !ev.metaKey && !ev.altKey) { ev.preventDefault(); map[k](); }
+}
+
+/* ---------- drag: create a range, move an event, change its length ---------- */
+const snap = (m, s) => Math.round(m / s) * s;
+const yMin = (col, y) => Math.max(0, Math.min(24 * 60, (y - col.getBoundingClientRect().top) / HH * 60));
+function onDown(ev) {
+    if (ev.button !== 0) return;
+    const col = ev.target.closest('.wk-col'); if (!col || col.closest('#ed-find')) return;
+    const evEl = ev.target.closest('.ev');
+    if (evEl && evEl.dataset.iid === 'temp') return;
+    if (evEl) {
+        const inst = findInst(evEl.dataset.iid); if (!inst) return;
+        const resize = !!ev.target.closest('[data-rs]');
+        G.drag = { kind: resize ? 'resize' : 'move', inst, el: evEl, x0: ev.clientX, y0: ev.clientY, off: yMin(col, ev.clientY) - mins(inst.start), moved: false, date: inst.date, start: mins(inst.start), end: mins(inst.end) };
+    } else {
+        closeAll();
+        const m = yMin(col, ev.clientY);
+        G.drag = { kind: 'new', col, date: col.dataset.d, a: m, b: m, x0: ev.clientX, y0: ev.clientY, moved: false };
+    }
+    ev.preventDefault();
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp, { once: true });
+}
+function onMove(ev) {
+    const g = G.drag; if (!g) return;
+    if (!g.moved && Math.abs(ev.clientX - g.x0) + Math.abs(ev.clientY - g.y0) < 5) return;
+    g.moved = true;
+    if (g.kind === 'new') {
+        g.b = yMin(g.col, ev.clientY);
+        const s = snap(Math.min(g.a, g.b), 15), e = Math.max(snap(Math.max(g.a, g.b), 15), s + 15);
+        G.temp = { date: g.date, start: hhmm(s), end: hhmm(Math.min(e, 1439)), cal: G.admin ? 'attorney' : 'lsh' };
+        renderMain(); return;
+    }
+    if (g.inst.readOnly) return;
+    const under = document.elementFromPoint(ev.clientX, ev.clientY), col = under && under.closest('.wk-col');
+    if (!col || col.closest('#ed-find')) return;
+    const len = g.end - g.start;
+    if (g.kind === 'move') { g.ndate = col.dataset.d; g.ns = Math.max(0, Math.min(1440 - len, snap(yMin(col, ev.clientY) - g.off, 15))); g.ne = g.ns + len; }
+    else { g.ndate = g.date; g.ns = g.start; g.ne = Math.max(g.start + 15, Math.min(1440, snap(yMin(col, ev.clientY), 15))); }
+    document.querySelectorAll('.ev.ghost').forEach(n => n.remove());
+    col.insertAdjacentHTML('beforeend', evHtml(Object.assign({}, g.inst, { iid: 'ghost', date: g.ndate, start: hhmm(g.ns), end: hhmm(Math.min(g.ne, 1439)), _n: 1, _c: 0 }), 'ghost'));
+}
+function onUp(ev) {
+    document.removeEventListener('pointermove', onMove);
+    const g = G.drag; G.drag = null; if (!g) return;
+    if (g.kind === 'new') {
+        if (!g.moved) { const s = Math.min(Math.floor(g.a / 30) * 30, 1440 - S.set.dur); G.temp = { date: g.date, start: hhmm(s), end: hhmm(Math.min(s + S.set.dur, 1439)), cal: G.admin ? 'attorney' : 'lsh' }; }
+        renderMain();
+        const el = document.querySelector('.ev.temp');
+        openQuick(G.temp, el ? el.getBoundingClientRect() : null);
+        return;
+    }
+    document.querySelectorAll('.ev.ghost').forEach(n => n.remove());
+    if (!g.moved || g.ndate == null) { openDetail(g.inst.iid, g.el.getBoundingClientRect()); return; }
+    if (g.ndate === g.date && g.ns === g.start && g.ne === g.end) return;
+    const fields = { date: g.ndate, start: hhmm(g.ns), end: hhmm(Math.min(g.ne, 1439)) };
+    askScope(g.inst, 'edit', (scope) => { applyChange(g.inst, scope === 'all' ? { start: fields.start, end: fields.end } : fields, scope); render(); snack('Event saved', true); });
+}
+
+/* ---------- start ---------- */
+window.GCAL = { solve, checkPlan, slotProblems, concretize, instancesOf, dealRequests, simToday, datesIn, addDays, weekStart, rows: () => ROWS, setRows: (r) => { ROWS = r; } };
+function start() {
+    if (!document.getElementById('app')) return;
+    const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal');
+    S = load() || fresh(); save();
+    render();
+    // the weekly schedule as an Admin set it (if they did)
+    fetch('/api/gcal-schedule', { credentials: 'include' }).then(r => r.json()).then(data => {
+        if (data && data.success && Array.isArray(data.rows) && data.rows.length && data.rows.every(r => r && r.id && r.title && /^\d\d:\d\d$/.test(r.start))) {
+            ROWS = data.rows; S.reqs = S.reqs.filter(q => q && (q.row == null || rowById(q.row))); render();
+        }
+    }).catch(() => { /* the schedule as it came */ });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
