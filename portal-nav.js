@@ -1,14 +1,17 @@
 /* LSH Training Portal — shared navigation.
-   Every portal page shows the same links (Home, Training Directory, Simulators,
-   Knowledge Base) plus a Back button. Portal pages open in the same tab; only the
-   training programs themselves (separate sites) open in a new tab. */
+   Every portal page shows the same links (Home, Training Directory, Orientation)
+   plus a Back button. The Simulators and the Knowledge Base aren't in the top bar:
+   they open from the Home page and the Training Directory. Portal pages open in the
+   same tab; only the training programs themselves (separate sites) open in a new tab. */
 const PortalNav = {
     LINKS: [
         ['home', '/index.html', 'Home'],
         ['directory', '/programs.html', 'Training Directory'],
-        ['sims', '/simulators.html', '🛠 Simulators'],
-        ['kb', '/api/launch?tool=kb', '📚 Knowledge Base'],
         ['orient', '/orientation.html', '🧭 Orientation']
+    ],
+    // Inside a course's frame, only the way back to the Simulators hub makes sense.
+    EMBEDDED_LINKS: [
+        ['sims', '/simulators.html', '🛠 Simulators']
     ],
     embedded() { try { return window.self !== window.top; } catch (e) { return true; } },
     // Back to the previous portal page; a page opened fresh (new tab, bookmark) goes to its parent instead.
@@ -22,8 +25,7 @@ const PortalNav = {
     html(active, opts) {
         opts = opts || {};
         const cls = opts.cls ? ` ${opts.cls}` : '';
-        // Inside a course's frame, only the simulator links make sense.
-        const links = PortalNav.embedded() ? PortalNav.LINKS.filter(l => l[0] === 'sims') : PortalNav.LINKS;
+        const links = PortalNav.embedded() ? PortalNav.EMBEDDED_LINKS : PortalNav.LINKS;
         const back = opts.back === false ? '' : `<a class="pn-back${cls}" onclick="PortalNav.back('${opts.back || '/index.html'}')" title="Go back">← Back</a>`;
         return back + links.map(([id, href, label]) => `<a class="${active === id ? 'on' : ''}${cls}" href="${href}"${active === id ? ' aria-current="page"' : ''}>${label}</a>`).join('');
     }

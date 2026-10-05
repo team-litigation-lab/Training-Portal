@@ -349,6 +349,9 @@
     // trainee's history) but hidden from the active Training Index. Purely
     // a display-level exclusion; nothing is deleted.
     const ARCHIVED_TOPICS = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];
+    // Reference cards that aren't on the index either (they were the whole "More Training &
+    // Resources" section, all Coming Soon). A program added later still shows up there.
+    const HIDDEN_TOPICS = ['HANDOUTS', 'TRAINING TOOLS AND RESOURCES', 'OTHER RESOURCES'];
 
     // TOPIC_SEQUENCE was only being used for gating logic below, never for
     // the actual card order — so the grid was still showing the database's
@@ -359,7 +362,7 @@
     function orderedTopics() {
         const seqIndex = key => { const i = TOPIC_SEQUENCE.indexOf(key); return i === -1 ? Infinity : i; };
         return __topicsCache
-            .filter(t => !ARCHIVED_TOPICS.includes(t.key))
+            .filter(t => !ARCHIVED_TOPICS.includes(t.key) && !HIDDEN_TOPICS.includes(t.key))
             .slice()
             .sort((a, b) => {
                 const pa = PINNED_PROGRAMS.indexOf(a.key), pb = PINNED_PROGRAMS.indexOf(b.key);
