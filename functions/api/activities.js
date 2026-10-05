@@ -1,16 +1,6 @@
-import { json, requireSession, logActivity } from '../_utils.js';
+import { json, requireSession, logActivity, parseJsonList } from '../_utils.js';
 
 const DAY_POOL = ['Day 1', 'Day 2', 'Day 3', 'Day 4'];
-
-function safeParseQuestions(raw) {
-    if (!raw) return [];
-    try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-        return [];
-    }
-}
 
 // Trainees get the question list so they can answer it — but never the
 // correctAnswer key, or objective questions would grade themselves in the
@@ -74,7 +64,7 @@ export async function onRequestGet({ request, env }) {
         const isAdmin = auth.session.userType === 'Admin';
 
         let activities = rows.map(a => {
-            const questions = safeParseQuestions(a.questions);
+            const questions = parseJsonList(a.questions);
             return {
                 ...a,
                 open_deadline: !!a.open_deadline,
@@ -175,7 +165,7 @@ export async function onRequestPost({ request, env }) {
                 clean.correctAnswer = q.correctAnswer !== undefined ? String(q.correctAnswer) : '';
             }
 
-            const questions = safeParseQuestions(activity.questions);
+            const questions = parseJsonList(activity.questions);
             questions.push(clean);
             await db.prepare("UPDATE activities SET questions = ? WHERE id = ?").bind(JSON.stringify(questions), id).run();
 
@@ -188,7 +178,7 @@ export async function onRequestPost({ request, env }) {
                 return json({ success: false, error: "Published or Closed activities can't be edited. Unpublish it first." }, 403);
             }
 
-            const questions = safeParseQuestions(activity.questions).filter(q => q.id !== body.questionId);
+            const questions = parseJsonList(activity.questions).filter(q => q.id !== body.questionId);
             await db.prepare("UPDATE activities SET questions = ? WHERE id = ?").bind(JSON.stringify(questions), id).run();
 
             return json({ success: true, questions });
@@ -199,7 +189,7 @@ export async function onRequestPost({ request, env }) {
             if (activity.status !== 'Draft' && activity.status !== 'Unpublished') {
                 return json({ success: false, error: "Only Draft or Unpublished activities can be published." }, 403);
             }
-            const questions = safeParseQuestions(activity.questions);
+            const questions = parseJsonList(activity.questions);
             if (questions.length === 0) {
                 return json({ success: false, error: "Add at least one item before publishing." }, 400);
             }

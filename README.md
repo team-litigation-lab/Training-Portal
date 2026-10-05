@@ -102,38 +102,11 @@ To change the content, edit `SLIDES` in `orientation.html`; the PDF is made from
 
 ## Knowledge Base
 
-**📚 Knowledge Base** (`/kb.html`; linked from the home page, the Training Directory and Master Control) is where LSH VAs find the firm's official SOPs and resources and share their own know-how, separate from the course lessons.
+**📚 Knowledge Base** is its own site ([LSH-Knowledge-Base](https://github.com/team-litigation-lab/LSH-Knowledge-Base), `https://lsh-knowledge-base.legalsupporthelp.workers.dev/`), the library of SOPs, videos and know-how for all LSH VAs. The Portal links to it from the home page, the Training Directory's menu, Orientation and Master Control, all through `/api/launch?tool=kb`.
 
-**Who can open it.** It's for the team only:
-- VAs enter the **team access code** with their name (and batch). The browser then stays signed in for 30 days.
-- Signed-in admins get in without the code.
-- An admin sets the code, and changes it, under **🛡 Review & settings → Team access code**. Changing the code signs everyone out. Until a code is set, VAs see "not open yet".
-- 10 wrong tries per connection per 10 minutes, then a wait.
-
-**What's in it.**
-- **Official SOPs and resources** (marked *Official*): Markdown pages in `kb-files/sops/`, each with its original PDF or Word file for download. `kb-files/` is only served to readers with access (`functions/kb-files/[[path]].js`), so a direct link doesn't work without the code.
-- **From the team**: tips, how-to guides, checklists, templates, lessons learned and questions written by VAs, with simple formatting (headings, lists, checklists, tables, links; `kb-md.js` escapes everything else, so a post can't run code on the page). Posts can link to a file, e.g. on Google Drive.
-- Readers can search everything, filter by source, category and type, and sort by most helpful or most viewed. They can mark things 👍 Helpful and add their own experience as a reply. The sidebar shows the top contributors.
-
-**Contributors and profiles.**
-- **👤 My Profile**: each contributor can add a photo (resized to a small square), role or job title, team, years of experience, areas of expertise (the Knowledge Base categories), skills and tools, a short "about me" and a LinkedIn link.
-- Profiles appear on their posts, in the **Top Contributors** sidebar and in the **👥 Contributors** directory (search by name, role or skill; filter by expertise). Each profile page lists their posts, helpful votes and what they were credited on.
-- Posts have a **Contributors** field to credit teammates who helped write them. SOP pages can list `contributors:` in their header. Credited names link to their profiles.
-- VAs sign in with only the team code and a name, so a VA's new profile or change waits for an admin, and the approved version stays visible until then. This way no one can change someone else's profile by signing in under their name. Admins' changes apply straight away. Admins can also edit or hide any profile.
-
-**Review.** Every VA post, reply and profile change waits for an admin. In **🛡 Review & settings** an admin can:
-- approve a post, or send it back with a note (the author sees it under **📂 My posts**, edits and resends it);
-- feature, hide, edit or delete posts;
-- approve or remove replies.
-
-Admins' own posts and replies are published straight away.
-
-**Adding official SOPs.**
-1. Put `your-sop.md` (and its original file) in `kb-files/sops/`. The page starts with a short header (title, category, type, summary, tags, owner, version, updated, file); see `kb-files/build_library.py` or the example `using-the-knowledge-base.md`.
-2. Run `python3 kb-files/build_library.py`. It checks every header and rebuilds `kb-files/library.json`, which holds the search text.
-3. Commit and push.
-
-**Data** (D1 `TRAINING_DB`, created on first use): `kb_articles`, `kb_comments`, `kb_profiles`, `kb_stats` (views, helpful), `kb_votes`, `kb_settings` (the code's hash and version), `kb_rate`. Code: `functions/_kb.js`, `functions/api/kb/`, `kb.html`, `kb.js`, `kb-md.js`.
+- **Trainees** open it from the Portal and are signed in with a short-lived signed ticket (their name and batch from their Portal account). There is no second sign-in and no access code. Any signed-in, approved trainee can open it (no program access to request).
+- **Admins** are sent to the site's **Admin Portal** tab and type the admin password there, like on every platform.
+- The old Portal page (`/kb.html`, `/kb`) redirects to the new site. Its posts, replies, votes and views were imported into the new site (same D1 tables); the old code was removed.
 
 ## 🕘 Attendance (admin)
 

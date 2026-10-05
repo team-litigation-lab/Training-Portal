@@ -1,4 +1,4 @@
-import { requireSession } from '../_utils.js';
+import { requireSession, b64url } from '../_utils.js';
 
 // Opens a training program for the signed-in trainee or administrator, with no second sign-in there.
 //
@@ -22,15 +22,10 @@ export const SSO_PROGRAMS = {
 };
 // Shared tools that aren't programs: any signed-in, approved person opens them (no program access to request).
 export const SSO_TOOLS = {
-    cms: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/'
+    cms: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/',
+    kb: 'https://lsh-knowledge-base.legalsupporthelp.workers.dev/'
 };
 const TICKET_TTL_MS = 5 * 60 * 1000;
-
-function b64url(bytes) {
-    let s = '';
-    new Uint8Array(bytes).forEach(b => { s += String.fromCharCode(b); });
-    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
 
 // A trainee's ticket carries their name and batch. {r: 'a'} (an administrator) no longer signs anyone in: the platforms refuse it,
 // because administrators type the admin password on every platform. {r: 's'} is the Portal's own server-side tools only

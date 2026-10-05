@@ -557,18 +557,6 @@
         }
     }
 
-    async function markTopicPassed(topicKey, traineeUsername) {
-        try {
-            const data = await postJson('/api/topics', { action: 'MARK_PASSED', topicKey, traineeUsername });
-            const topicName = (__topicsCache.find(t => t.key === topicKey) || {}).name || topicKey;
-            const nextName = data.unlockedNext ? (__topicsCache.find(t => t.key === data.unlockedNext) || {}).name : null;
-            showToast(nextName ? `Marked passed — ${nextName} is now unlocked.` : `${topicName} marked passed.`, 'success');
-            loadTrainingIndex();
-        } catch (e) {
-            showToast(e.message, 'error');
-        }
-    }
-
     // Client-side certificate PDF — generated on demand from data already
     // in hand (session + cached topic list), no extra request needed. Kept
     // deliberately simple: name, program, and the date it was passed.

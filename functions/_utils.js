@@ -427,3 +427,21 @@ Respond ONLY with a JSON object matching this exact shape, with no other text be
         return { ok: false, error: err.message };
     }
 }
+
+// A JSON array stored as text (a question list, a trainee's answers): anything else reads as an empty list.
+export function parseJsonList(raw) {
+    if (!raw) return [];
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+// base64url of bytes (tickets and signatures).
+export function b64url(bytes) {
+    let s = '';
+    new Uint8Array(bytes).forEach(b => { s += String.fromCharCode(b); });
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}

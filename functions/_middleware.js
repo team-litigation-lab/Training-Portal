@@ -1,11 +1,11 @@
 import { requireSession } from './_utils.js';
 
-// The Simulators and the Knowledge Base are for signed-in LSH people only. A Portal session is checked BEFORE
+// The Simulators are for signed-in LSH people only (the Knowledge Base is its own site, opened through /api/launch?tool=kb). A Portal session is checked BEFORE
 // any of their pages or files are sent, so a visitor without one gets a redirect to the Portal sign-in and nothing else.
-// (Their APIs check the session themselves: functions/_sim-guard.js and functions/_kb.js.)
+// (Their APIs check the session themselves: functions/_sim-guard.js.)
 // The admin pages: only a signed-in Admin gets them. Everyone else (a trainee, a visitor) is sent to the admin sign-in and receives none of the page.
 const ADMIN_PAGES = [/^\/(core|attendance|progress|referrals)(\.html)?\/?$/i];
-const PROTECTED = [/^\/simulators(\.html)?\/?$/i, /^\/simulators\//i, /^\/kb(\.html)?\/?$/i];
+const PROTECTED = [/^\/simulators(\.html)?\/?$/i, /^\/simulators\//i];
 
 export async function onRequest(context) {
     const { request, env, next } = context;

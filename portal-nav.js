@@ -7,7 +7,7 @@ const PortalNav = {
         ['home', '/index.html', 'Home'],
         ['directory', '/programs.html', 'Training Directory'],
         ['sims', '/simulators.html', '🛠 Simulators'],
-        ['kb', '/kb.html', '📚 Knowledge Base'],
+        ['kb', '/api/launch?tool=kb', '📚 Knowledge Base'],
         ['orient', '/orientation.html', '🧭 Orientation']
     ],
     embedded() { try { return window.self !== window.top; } catch (e) { return true; } },

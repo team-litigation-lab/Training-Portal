@@ -6,3 +6,11 @@
 /topics_seed.sql / 302
 /.github/* / 302
 /functions/* / 302
+
+# The Knowledge Base is its own site now: the old address opens it (signed in, no second sign-in).
+/kb.html /api/launch?tool=kb 302
+/kb /api/launch?tool=kb 302
+/kb-files/* /api/launch?tool=kb 302
+
+# An old bookmark to the retired trainee sign-in page.
+/bridge.html /programs.html 302
