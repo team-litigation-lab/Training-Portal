@@ -47,6 +47,9 @@ const VIEW_LABELS = {
 let __currentViewLabel = null;
 
 function switchView(viewId) {
+    // (one admin screen) a Training view closes the Master Control panel that was open beside the menu
+    const mc = document.getElementById('master-control-page');
+    if (mc && mc.classList.contains('open')) { mc.classList.remove('open'); document.querySelectorAll('.mc-nav-btn').forEach(b => b.classList.remove('active')); }
     const target = document.getElementById('view-' + viewId);
     const outgoing = document.querySelector('.portal-view-section:not(.hidden)');
     __currentViewLabel = VIEW_LABELS[viewId] || viewId;
@@ -138,10 +141,10 @@ function applySessionUI() {
     if (session.userType === 'Admin') {
         if (adminSidebar) adminSidebar.classList.remove('hidden');
         if (traineeSidebar) traineeSidebar.classList.add('hidden');
+        document.body.classList.add('admin-merged');
         const adminFooter = document.getElementById('session-footer-admin');
         if (adminFooter) adminFooter.innerHTML = `
             <div class="session-user-tag text-center text-xs text-slate-400 mb-2 font-mono">Signed in as: <b class="text-white">${session.fullName || session.username}</b></div>
-            <button class="w-full border border-emerald-600 text-emerald-400 py-2 rounded text-xs font-bold uppercase mb-2" onclick="openAdminDashboard()">⇄ Master Control</button>
             <button class="w-full border border-red-800 text-red-400 py-2 rounded text-xs font-bold uppercase" onclick="logoutSession()">Log Out</button>
         `;
         if (typeof switchView === 'function' && document.getElementById('view-admin-landing')) switchView('admin-landing');
@@ -307,12 +310,12 @@ function applyLockPermissionUI() {
 function exitMasterControl() {
     document.getElementById('master-control-page').classList.remove('open');
 }
-const MC_TABS = ['overview', 'registrations', 'users', 'monitoring', 'activity-logs', 'announce', 'access'];
+const MC_TABS = ['overview', 'registrations', 'users', 'program-access', 'monitoring', 'activity-logs', 'announce', 'access'];
 const MC_TAB_LABELS = {
     overview: 'Master Control — Overview', registrations: 'Master Control — Registrations',
     users: 'Master Control — Users', monitoring: 'Master Control — Monitoring',
     'activity-logs': 'Master Control — Activity Logs', announce: 'Master Control — Announcements & Alerts',
-    access: 'Master Control — Access Control'
+    access: 'Master Control — Access Control', 'program-access': 'Master Control — Program Access'
 };
 function showAdminDashTab(tab) {
     __currentViewLabel = MC_TAB_LABELS[tab] || ('Master Control — ' + tab);
@@ -322,8 +325,12 @@ function showAdminDashTab(tab) {
         t.classList.toggle('active', !!m && m[1] === tab);
     });
     document.querySelectorAll('.mc-pane').forEach(p => p.classList.remove('active'));
+    // the admin menu on the left names the open panel too
+    document.querySelectorAll('.view-nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.mc-nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-mc') === tab));
     const pane = document.getElementById('admin-dash-' + tab);
     if (pane) pane.classList.add('active');
+    if (tab === 'program-access') loadProgramAccess();
     if (tab === 'overview') loadOverviewStats();
     if (tab === 'registrations' || tab === 'users') loadUsersData();
     if (tab === 'activity-logs') renderActivityLogs();
@@ -403,6 +410,8 @@ function updateUserStats() {
 
     const badge = document.getElementById('reg-pending-badge');
     if (badge) badge.textContent = pending > 0 ? pending : '';
+    const sideBadge = document.getElementById('reg-pending-badge-side');
+    if (sideBadge) sideBadge.textContent = pending > 0 ? pending : '';
 
     const statPending = document.getElementById('admin-stat-pending');
     if (statPending) statPending.textContent = pending;
@@ -2699,3 +2708,59 @@ window.addEventListener('DOMContentLoaded', () => {
     // only the moment right after attemptLogin()'s redirect.
     if (getSession()) { startHeartbeat(); }
 });
+
+
+// ===== One admin screen: the menu opens Master Control's panels beside it =====
+function mcGo(tab) {
+    openAdminDashboard();
+    showAdminDashTab(tab);
+}
+
+// ===== Program Access: who can open which program, with Revoke / Grant (functions/api/topics.js) =====
+let __paTopics = [], __paAccess = [];
+async function loadProgramAccess() {
+    const box = document.getElementById('program-access-list');
+    if (box && !__paTopics.length) box.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Loading…</p>';
+    try {
+        const [tRes] = await Promise.all([fetch('/api/topics', { credentials: 'include' }), loadUsersData()]);
+        const data = await tRes.json();
+        if (!data.success) throw new Error(data.error || 'Could not load program access.');
+        __paTopics = data.topics || []; __paAccess = data.access || [];
+        renderProgramAccess();
+    } catch (e) {
+        if (box) box.innerHTML = '<p style="font-size:12px;color:#b91c1c;">' + escapeHtml(e.message) + '</p>';
+    }
+}
+const PA_HIDDEN = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];
+function renderProgramAccess() {
+    const box = document.getElementById('program-access-list');
+    if (!box) return;
+    const q = ((document.getElementById('pa-search') || {}).value || '').trim().toLowerCase();
+    const topics = __paTopics.filter(t => !PA_HIDDEN.includes(t.key));
+    const trainees = (__usersCache || []).filter(u => u.userType === 'Trainee' && (u.status === 'Approved' || u.status === 'Suspended'))
+        .filter(u => !q || (u.fullName || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q));
+    if (!trainees.length) { box.innerHTML = '<p style="font-size:12px;color:#94a3b8;">No trainees match.</p>'; return; }
+    const status = (u, key) => { const r = __paAccess.find(a => a.trainee_username === u.username && a.topic_key === key); return r ? r.status : ''; };
+    box.innerHTML = trainees.map(u => {
+        const rows = topics.map(t => {
+            const st = status(u, t.key);
+            if (!st) return '';
+            const open = st === 'Approved' || st === 'Passed';
+            const color = open ? '#166534' : (st === 'Pending' ? '#92400e' : '#991b1b');
+            const action = open
+                ? `<button class="btn-ghost" style="padding:5px 10px;font-size:10.5px;border-radius:6px;color:var(--classified-red);border-color:var(--classified-red);" onclick="paSet('${escapeHtml(u.username)}','${escapeHtml(t.key)}','DENY')">Revoke</button>`
+                : `<button class="btn-primary" style="padding:5px 10px;font-size:10.5px;border-radius:6px;" onclick="paSet('${escapeHtml(u.username)}','${escapeHtml(t.key)}','GRANT')">Grant</button>`;
+            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid #eef2f7;font-size:12px;"><span>${escapeHtml(t.name)} <b style="color:${color};font-size:10.5px;text-transform:uppercase;margin-left:6px;">${escapeHtml(st)}</b></span>${action}</div>`;
+        }).join('');
+        const grant = `<div style="display:flex;gap:6px;margin-top:8px;"><select id="pa-add-${u.id}" style="flex:1;padding:5px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;">${topics.filter(t => !['Approved', 'Passed'].includes(status(u, t.key))).map(t => `<option value="${escapeHtml(t.key)}">${escapeHtml(t.name)}</option>`).join('')}</select><button class="btn-primary" style="padding:5px 10px;font-size:10.5px;border-radius:6px;" onclick="paSet('${escapeHtml(u.username)}', document.getElementById('pa-add-${u.id}').value, 'GRANT')">Grant access</button></div>`;
+        return `<div class="admin-tile" style="text-align:left;margin-bottom:10px;"><div style="font-weight:800;font-size:13px;color:var(--navy);">${escapeHtml(u.fullName)} <span style="font-weight:600;color:#64748b;font-size:11px;">${escapeHtml(u.username)} · ${escapeHtml(u.batchId || '')}${u.status === 'Suspended' ? ' · SUSPENDED' : ''}</span></div>${rows || '<div style="font-size:11.5px;color:#94a3b8;margin-top:4px;">No program access yet.</div>'}${grant}</div>`;
+    }).join('');
+}
+async function paSet(username, topicKey, action) {
+    if (action === 'DENY' && !confirm('Revoke this trainee\'s access to ' + topicKey + '?')) return;
+    try {
+        await postJson('/api/topics', { action, topicKey, traineeUsername: username });
+        showToast(action === 'DENY' ? 'Access revoked.' : 'Access granted.', 'success');
+        loadProgramAccess();
+    } catch (e) { showToast(e.message, 'error'); }
+}

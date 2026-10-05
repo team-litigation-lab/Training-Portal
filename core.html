@@ -100,11 +100,30 @@
                     <div class="text-red-500 mono" style="font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; margin-top:4px;">Admin Control Portal</div>
                 </div>
             </div>
-            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-2">
+            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-2" id="admin-nav">
+                <div class="admin-nav-group">Training</div>
                 <button onclick="switchView('admin-landing')" class="side-nav-btn active view-nav-btn" id="nav-admin-landing"><span>🏠</span> Batch Statistics</button>
                 <button onclick="switchView('admin-activities')" class="side-nav-btn view-nav-btn" id="nav-admin-activities"><span>📋</span> Lesson Decks &amp; Activities</button>
                 <button onclick="switchView('admin-lectures')" class="side-nav-btn view-nav-btn" id="nav-admin-lectures"><span>🎬</span> Manage Lectures</button>
                 <button onclick="switchView('admin-grades')" class="side-nav-btn view-nav-btn" id="nav-admin-grades"><span>📊</span> Check &amp; Release Grades</button>
+                <div class="admin-nav-group">People &amp; Access</div>
+                <button onclick="mcGo('registrations')" class="side-nav-btn mc-nav-btn" data-mc="registrations"><span>📝</span> Registrations <span id="reg-pending-badge-side" class="admin-nav-badge"></span></button>
+                <button onclick="mcGo('users')" class="side-nav-btn mc-nav-btn" data-mc="users"><span>👥</span> Users &amp; Revoke Access</button>
+                <button onclick="mcGo('program-access')" class="side-nav-btn mc-nav-btn" data-mc="program-access"><span>🔑</span> Program Access</button>
+                <button onclick="mcGo('access')" class="side-nav-btn mc-nav-btn" data-mc="access"><span>🔒</span> Site Lock</button>
+                <div class="admin-nav-group">Monitoring</div>
+                <button onclick="mcGo('overview')" class="side-nav-btn mc-nav-btn" data-mc="overview"><span>🧭</span> Overview</button>
+                <button onclick="mcGo('monitoring')" class="side-nav-btn mc-nav-btn" data-mc="monitoring"><span>🟢</span> Who&rsquo;s Online</button>
+                <button onclick="mcGo('activity-logs')" class="side-nav-btn mc-nav-btn" data-mc="activity-logs"><span>🗂</span> Activity Logs</button>
+                <button onclick="mcGo('announce')" class="side-nav-btn mc-nav-btn" data-mc="announce"><span>📢</span> Broadcast &amp; Ping</button>
+                <div class="admin-nav-group">Reports &amp; Tools</div>
+                <a class="side-nav-btn" href="/progress.html" style="text-decoration:none"><span>📊</span> Progress &amp; Feedback</a>
+                <a class="side-nav-btn" href="/attendance.html" style="text-decoration:none"><span>🕘</span> Attendance</a>
+                <a class="side-nav-btn" href="/kb.html" style="text-decoration:none"><span>📚</span> Knowledge Base</a>
+                <a class="side-nav-btn" href="/referrals.html" style="text-decoration:none"><span>🤝</span> Referrals</a>
+                <a class="side-nav-btn" href="/api/import-registrations" style="text-decoration:none"><span>📥</span> Import Registrations</a>
+                <a class="side-nav-btn" href="/api/sso-check" style="text-decoration:none"><span>🔐</span> Sign-in Check</a>
+                <a class="side-nav-btn" href="/programs.html" style="text-decoration:none"><span>🎓</span> Training Directory</a>
             </div>
             <div id="session-footer-admin" style="margin:16px;"></div>
         </aside>
@@ -746,6 +765,13 @@
             </div>
 
             <!-- ACCESS CONTROL (Pause vs Lock) -->
+            <div class="mc-pane" id="admin-dash-program-access">
+                <div class="mc-section-title">🔑 Program Access</div>
+                <p style="font-size:11px;color:#64748b;margin-bottom:12px;">Who can open which program. <b>Revoke</b> closes a program for one trainee at once (their open session there ends at the next sign-in); <b>Grant</b> opens it again. To remove a whole account, use <b>Users &amp; Revoke Access</b>.</p>
+                <input type="text" id="pa-search" placeholder="Search by name or username" oninput="renderProgramAccess()" style="width:100%;max-width:360px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:12px;font-size:12px;">
+                <div id="program-access-list"></div>
+            </div>
+
             <div class="mc-pane" id="admin-dash-access">
                 <div class="mc-section-title">🔒 Site-Wide Access Control</div>
                 <div class="admin-tile">
@@ -1015,7 +1041,7 @@
 // the Training Directory's 📝 Registrations and Master Control links use them.
 (function () {
     const want = (location.hash || '').replace('#', '');
-    const tabs = { master: 'overview', registrations: 'registrations', users: 'users' };
+    const tabs = { master: 'overview', registrations: 'registrations', users: 'users', access: 'program-access' };
     if (!tabs[want]) return;
     function open() {
         if (typeof openAdminDashboard !== 'function' || typeof showAdminDashTab !== 'function' || !document.getElementById('admin-dash-' + tabs[want])) return false;
