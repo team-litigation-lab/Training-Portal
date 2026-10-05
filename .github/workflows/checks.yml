@@ -30,6 +30,8 @@ jobs:
         run: node .github/scripts/check-site.mjs
       - name: Batch IDs (B + MMDDYY, no trainee number)
         run: node .github/scripts/batch.mjs
+      - name: Front door (signed-in trainees and admins go straight to the Training Directory; only a signed-out browser sees a sign-in box)
+        run: node --no-warnings .github/scripts/front-door.mjs
       - name: Calendaring Simulators' saved work (trainee saves, admin-only feedback)
         run: node --no-warnings .github/scripts/calsim.mjs
       - name: AI gateway (one shared budget for every call flow; per-flow share, per-minute and per-person limits)
