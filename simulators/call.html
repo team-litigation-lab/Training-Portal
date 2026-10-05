@@ -140,11 +140,40 @@ const CALLERS = [
     opening: 'Hey! Rob Castillo, BrightLedger. I actually met Elias at the ABA TechShow — he told me to follow up. Can you give me his cell real quick?' }
 ].concat(window.EXTRA_CALLERS || []);
 
-const START_PROGRAM = (() => { const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'CM' : p.startsWith('EA') ? 'EA' : p.startsWith('FT') ? 'FT' : p.startsWith('PD') ? 'PD' : 'All'; })();
+/* ---------- the one workspace: pick a call flow ----------
+   Standard, CMS, Reception, Intake and Calendaring (plus Property Damage and EA/PA, and everything) are all here. Each flow is a
+   filter over the same callers; a call's flow also names it in the shared AI budget (the gateway's per-flow share). */
+const has = (c, re) => re.test((c.line || '') + ' ' + (c.title || '') + ' ' + (c.role || ''));
+const FLOWS = [
+    { k: 'standard', label: 'Standard', icon: '📘', note: 'The Standard Foundational Training mock calls', match: c => c.program === 'FT' },
+    { k: 'cms', label: 'CMS', icon: '🗂', note: 'Case Management: case-status, adjuster, provider and front-desk calls', match: c => c.program === 'CM' },
+    { k: 'reception', label: 'Reception', icon: '☎', note: 'Answering, routing and taking messages', match: c => has(c, /reception|front desk/i) },
+    { k: 'intake', label: 'Intake', icon: '📋', note: 'New-client intake calls', match: c => has(c, /intake/i) },
+    { k: 'calendaring', label: 'Calendaring', icon: '🗓', note: 'Scheduling calls, and the week-of-conflicts Calendaring simulator', match: c => has(c, /calendar/i), embed: '/simulators/calendar.html' },
+    { k: 'ea-pa', label: 'EA / PA', icon: '🧑‍💼', note: 'Executive and personal assistant calls: your executive, gatekeeping, vendors', match: c => c.program === 'EA' },
+    { k: 'pd', label: 'Property Damage', icon: '🚗', note: '', match: c => c.program === 'PD' },
+    { k: 'all', label: 'All calls', icon: '📞', note: '', match: () => true }
+];
+// the AI budget flow for a call: the line first (a reception call counts as Reception wherever it is), then the program
+const moduleFor = (c) => has(c, /calendar/i) ? 'calendaring' : has(c, /intake/i) ? 'intake' : has(c, /reception|front desk/i) ? 'reception'
+    : c.program === 'FT' ? 'standard' : c.program === 'CM' ? 'cms' : c.program === 'PD' ? 'pd' : c.program === 'EA' ? 'ea-pa' : 'portal';
+// The programs' own simulators, opened inside this workspace through the Portal's single sign-in (no second login). Their AI goes
+// through the same gateway and budget; their saved history stays with the program.
+const EMBEDS = {
+    standard: [{ icon: '🔥', title: 'Standard Live Roleplay', desc: 'The Standard program\u2019s on-demand roleplay: pick a category, a situation and how hard you want to be pushed.', src: '/api/launch?program=' + encodeURIComponent('STANDARD TRAINING') + '&to=roleplay', module: 'standard' }],
+    cms: [{ icon: '☎️', title: 'Front Desk Drill', desc: 'Scored incoming calls on the Training Library cases, by voice or text: find the file, verify the caller, handle or route the call.', src: '/api/launch?tool=cms&to=drill', module: 'cms' }],
+    'ea-pa': [{ icon: '🔥', title: 'EA / PA Live Roleplay', desc: 'The EA/PA program\u2019s on-demand roleplay: category, situation and difficulty, with your executive on the line.', src: '/api/launch?program=' + encodeURIComponent('EA  PA TRAINING-OUTSOURCED MANP') + '&to=roleplay', module: 'ea-pa' }]
+};
+const START_FLOW = (() => {
+    const q = new URLSearchParams(location.search), f = String(q.get('flow') || '').toLowerCase();
+    if (FLOWS.some(x => x.k === f)) return f;
+    const p = String(q.get('program') || Sim.who().program || '').toUpperCase();
+    return p.startsWith('CM') ? 'cms' : p.startsWith('EA') ? 'ea-pa' : p.startsWith('PD') ? 'pd' : p.startsWith('FT') ? 'standard' : 'all';
+})();
 // ?random=1 (a course's "📞 Take a random call"): a random caller from the line, who stays unknown (name, case) until the debrief,
 // so the trainee gets their name, verifies them and finds the file in the CMS like on a real call.
 const RANDOM = new URLSearchParams(location.search).get('random') === '1';
-let S = { filter: START_PROGRAM, line: new URLSearchParams(location.search).get('line') || 'all', random: RANDOM, note: '', persona: null, phase: 'pick', transcript: [], startedAt: 0, voice: true, busy: false, call: null, timer: null, debrief: null };
+let S = { flow: START_FLOW, random: RANDOM, line: new URLSearchParams(location.search).get('line') || 'all', note: '', persona: null, phase: 'pick', transcript: [], startedAt: 0, voice: true, busy: false, call: null, timer: null, debrief: null };
 const $app = () => document.getElementById('app');
 
 function initials(n) { return n.split(' ').map(x => x[0]).join('').slice(0, 2); }
@@ -162,7 +191,8 @@ function cmsLink(url) {
     } catch (e) { return url; }
 }
 function randomPool() {
-    const inProgram = CALLERS.filter(c => S.filter === 'All' || c.program === S.filter || c.program === 'All');
+    const flow = FLOWS.find(f => f.k === S.flow) || FLOWS[FLOWS.length - 1];
+    const inProgram = CALLERS.filter(c => flow.match(c));
     const inLine = inProgram.filter(c => S.line === 'all' || (S.line === 'core' ? !c.line : c.line === S.line));
     return inLine.length ? inLine : inProgram;
 }
@@ -177,20 +207,38 @@ const shownName = () => S.random && S.phase !== 'debrief' ? 'Caller' : S.persona
 const shownRole = () => S.random && S.phase !== 'debrief' ? 'Incoming call · ' + (S.persona.line || 'main line') : S.persona.role;
 function render() {
     Sim.label(S.phase === 'call' ? 'Call Simulator — on a call' : 'Call Simulator');
+    if (S.phase === 'embed') return renderEmbed();
     if (S.phase === 'pick') return renderPick();
     if (S.phase === 'brief') return renderBrief();
     if (S.phase === 'call') return renderCall();
     if (S.phase === 'note') return renderNote();
     if (S.phase === 'debrief') return renderDebrief();
 }
+function openEmbed(k, i) { const e = EMBEDS[k][i]; S.embed = e; Sim.module = e.module; S.phase = 'embed'; render(); }
+function renderEmbed() {
+    if (S.embed) {
+        const e = S.embed;
+        $app().innerHTML = `<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;"><button class="sim-btn ghost" onclick="S.embed=null;Sim.module='portal';S.phase='pick';render()">← Back to the calls</button><span class="sim-muted" style="font-size:13px;">${Sim.esc(e.title)}</span><a class="sim-btn ghost" style="margin-left:auto;" href="${Sim.esc(e.src)}" target="_blank" rel="noopener">Open in its own tab ↗</a></div>
+            <iframe src="${Sim.esc(e.src)}" title="${Sim.esc(e.title)}" allow="microphone; autoplay" style="width:100%;height:calc(100vh - 170px);min-height:600px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;"></iframe>`;
+        return;
+    }
+    const f = FLOWS.find(x => x.k === S.flow) || FLOWS[0];
+    Sim.module = 'calendaring';
+    $app().innerHTML = `<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;"><button class="sim-btn ghost" onclick="S.embed=null;Sim.module='portal';S.phase='pick';render()">← Back to the calls</button><span class="sim-muted" style="font-size:13px;">${Sim.esc(f.label)}: Calendaring Simulator</span></div>
+        <iframe src="${Sim.esc(f.embed)}" title="Calendaring Simulator" style="width:100%;height:calc(100vh - 170px);min-height:560px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;"></iframe>`;
+}
 function renderPick() {
-    const inProgram = CALLERS.filter(c => S.filter === 'All' || c.program === S.filter || c.program === 'All');
+    const flow = FLOWS.find(f => f.k === S.flow) || FLOWS[FLOWS.length - 1];
+    const inProgram = CALLERS.filter(c => flow.match(c));
     const lines = [...new Set(inProgram.filter(c => c.line).map(c => c.line))];
     if (S.line !== 'all' && S.line !== 'core' && !lines.includes(S.line)) S.line = 'all';
     const list = inProgram.filter(c => S.line === 'all' || (S.line === 'core' ? !c.line : c.line === S.line));
     const lineBar = lines.length ? `<div class="filters lines">${[['all', 'All calls'], ['core', 'Core callers']].concat(lines.map(l => [l, (CALLERS.find(c => c.line === l) || {}).lineIcon ? CALLERS.find(c => c.line === l).lineIcon + ' ' + l : l])).map(([k, l]) => `<button class="${S.line === k ? 'on' : ''}" onclick="S.line=${Sim.esc(JSON.stringify(k))};render()">${Sim.esc(l)}</button>`).join('')}</div>` : '';
     $app().innerHTML = `
-        <div class="filters">${[['All', 'All callers'], ['FT', 'Foundational (CMS mock cases)'], ['CM', 'Case Management'], ['PD', 'Property Damage'], ['EA', 'Executive support (EA/PA)']].map(([k, l]) => `<button class="${S.filter === k ? 'on' : ''}" onclick="S.filter='${k}';S.line='all';render()">${l}</button>`).join('')}</div>
+        <div class="filters flows" role="tablist" aria-label="Call flow">${FLOWS.map(f => `<button class="${S.flow === f.k ? 'on' : ''}" role="tab" aria-selected="${S.flow === f.k}" onclick="S.flow='${f.k}';S.line='all';render()">${f.icon} ${f.label}</button>`).join('')}</div>
+        ${flow.note ? `<p class="sim-muted" style="margin:6px 2px 10px;font-size:13px;">${Sim.esc(flow.note)}</p>` : ''}
+        ${(EMBEDS[flow.k] || []).map((e, i) => `<div class="sim-card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"><div><h3 style="margin:0 0 4px;">${e.icon} ${Sim.esc(e.title)}</h3><p style="margin:0;font-size:13.5px;">${Sim.esc(e.desc)}</p></div><button class="sim-btn orange" onclick="openEmbed('${flow.k}',${i})">Open it here</button></div>`).join('')}
+        ${flow.embed ? `<div class="sim-card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"><div><h3 style="margin:0 0 4px;">🗓 Calendaring Simulator</h3><p style="margin:0;font-size:13.5px;">A real week full of conflicts: move, shorten or remove events under real rules, then check your plan.</p></div><button class="sim-btn orange" onclick="S.phase='embed';render()">Open it here</button></div>` : ''}
         ${lineBar}
         <div class="pick-grid">${list.map(c => `
             <div class="sim-card pcard" onclick="S.random=false;pick('${c.id}')">
@@ -199,7 +247,7 @@ function renderPick() {
                 <div class="tags"><span class="p-${c.program}">${c.program === 'All' ? 'All programs' : c.program === 'CM' ? 'Case Management' : c.program === 'FT' ? 'Foundational' : c.program === 'PD' ? 'Property Damage' : 'EA / PA'}</span>${c.line ? `<span>${Sim.esc(c.line)}</span>` : ''}${c.dir === 'out' ? '<span class="dir">You call</span>' : ''}<span>${c.level}</span><span>${c.goals.length} goals</span></div>
             </div>`).join('')}</div>`;
 }
-function pick(id) { stopCallMedia(); S.call = null; S.persona = CALLERS.find(c => c.id === id); S.phase = 'brief'; S.transcript = []; S.debrief = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function pick(id) { stopCallMedia(); S.call = null; S.persona = CALLERS.find(c => c.id === id); Sim.module = moduleFor(S.persona); S.phase = 'brief'; S.transcript = []; S.debrief = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function renderBrief() {
     const c = S.persona;
     if (S.random) return renderRandomBrief();

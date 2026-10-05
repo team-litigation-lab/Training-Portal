@@ -30,6 +30,8 @@ jobs:
         run: node .github/scripts/check-site.mjs
       - name: Batch IDs (B + MMDDYY, no trainee number)
         run: node .github/scripts/batch.mjs
+      - name: AI gateway (one shared budget for every call flow; per-flow share, per-minute and per-person limits)
+        run: node --no-warnings .github/scripts/ai-gateway.mjs
       - name: Build the Pages Functions without deploying
         run: npx --yes wrangler@3 pages functions build --outdir "$RUNNER_TEMP/dist"
 

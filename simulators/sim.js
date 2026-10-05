@@ -75,8 +75,11 @@ const Sim = {
     },
     label(name) { try { __currentViewLabel = name; } catch (e) { /* app.js not loaded */ } },
     // Gemini through the portal's own signed-in endpoint.
-    async ai({ system, messages, json, maxTokens }) {
-        const res = await fetch('/api/sim-ai', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system, messages, json: !!json, maxTokens }) });
+    // `module` names the call flow (standard, cms, reception, intake, calendaring, pd, ea-pa): the AI gateway counts every flow
+    // against the one shared budget. A page sets Sim.module once; a call can pass its own.
+    module: 'portal',
+    async ai({ system, messages, json, maxTokens, module }) {
+        const res = await fetch('/api/sim-ai', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ module: module || Sim.module, system, messages, json: !!json, maxTokens }) });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.success) throw new Error(data.error || `Request failed (${res.status})`);
         if (!json) return data.text;
