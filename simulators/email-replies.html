@@ -68,7 +68,7 @@
 <script src="/portal-nav.js"></script>
 <script src="/portal.js"></script>
 <script src="/simulators/sim.js"></script>
-<script src="/simulators/call-pack-cm.js"></script>
+<script src="/simulators/cm-case.js"></script>
 <script>
 /* Scenarios live in /simulators/reply-packs/emails.json — the server sends only these. */
 const START_PROGRAM = (() => { const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'CM' : p.startsWith('EA') ? 'EA' : 'All'; })();

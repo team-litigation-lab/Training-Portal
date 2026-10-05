@@ -6,6 +6,9 @@ import { requireSession } from './_utils.js';
 // The admin pages: only a signed-in Admin gets them. Everyone else (a trainee, a visitor) is sent to the admin sign-in and receives none of the page.
 const ADMIN_PAGES = [/^\/(core|attendance|progress|referrals)(\.html)?\/?$/i];
 const PROTECTED = [/^\/simulators(\.html)?\/?$/i, /^\/simulators\//i];
+// The Call Simulator is the CMS's (its 📞 Call Simulator panel): a link to the Portal's opens that one, through the Portal's
+// sign-in (/api/launch?tool=cms&to=calls), with the link's flow, program, line and random call (api/launch.js callsQuery).
+const CALL_SIMULATOR = /^\/simulators\/call(\.html)?\/?$/i;
 
 export async function onRequest(context) {
     const { request, env, next } = context;
@@ -23,6 +26,10 @@ export async function onRequest(context) {
     }
     if (!PROTECTED.some((re) => re.test(path))) return next();
     const auth = await requireSession(request, env);
+    if (auth.ok && CALL_SIMULATOR.test(path)) {
+        const q = new URL(request.url).search.replace(/^\?/, '');
+        return new Response(null, { status: 302, headers: { Location: '/api/launch?tool=cms&to=calls' + (q ? '&' + q : ''), 'Cache-Control': 'no-store' } });
+    }
     if (auth.ok) {
         const res = await next();
         const out = new Response(res.body, res);
