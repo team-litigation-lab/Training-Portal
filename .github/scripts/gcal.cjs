@@ -271,6 +271,49 @@ const server = http.createServer(async (req, res) => {
     if (saved !== null || !(await page.locator('#gc-main .ev:has-text("Deposition Preparation: Gerald Anderson")').count())) fail('Restore the original should bring the schedule back for everyone');
     await page.close();
 
+    /* ---------- the clones: Case Management (Litigation Week) and EA / PA (Executive Week), gcal.html?track=cm|ea ---------- */
+    for (const track of ['cm', 'ea']) {
+        const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+        const tp = await ctx.newPage();
+        tp.on('pageerror', e => fail(`${track}: page error: ${e.message}`));
+        await tp.addInitScript(() => localStorage.setItem('LSH_SIM_WHO', JSON.stringify({ name: 'CI Trainee', batch: 'B100526', program: 'FT' })));
+        await tp.goto(base + '/simulators/gcal.html?program=FT&track=' + track, { waitUntil: 'load' });
+        await tp.waitForSelector('#gc-main .wk-col, #gc-main .ag', { timeout: 10000 }); await tp.waitForTimeout(400);
+        const r = await tp.evaluate(() => {
+            const probs = [], mon = GCAL.weekStart('2026-10-05', true);
+            GCAL_REQUESTS.filter(R => R.seed).forEach(R => { if (!GCAL_ATTORNEY.some(x => x.id === R.seed)) probs.push(`${R.id} points at a missing appointment`); });
+            for (let i = 0; i < 5; i++) {
+                const today = GCAL.addDays(mon, i);
+                GCAL_REQUESTS.forEach(R => { const q = GCAL.concretize(R, today); if (!q || !(q.dates || q.orig)) probs.push(`${R.id} has no date from ${today}`); else if (R.kind !== 'cancel' && !GCAL.solve([q], today)) probs.push(`${R.id} can't be done from ${today}`); });
+                for (let k = 0; k < 4; k++) { const set = GCAL.dealRequests(today), kinds = set.map(q => GCAL_REQUESTS.find(x => x.id === q.id).kind);
+                    if (set.length !== 7 || kinds.filter(x => x === 'book').length !== 5 || !kinds.includes('move') || !kinds.includes('cancel')) probs.push(`a dealt set from ${today}: ${kinds.join(',')}`);
+                    else if (!GCAL.solve(set, today)) probs.push(`a dealt set from ${today} can't be done`); }
+            }
+            const today = '2026-10-05', ids = GCAL_REQUESTS.filter(R => R.kind === 'book' && !R.sameDay).slice(0, 5).map(R => R.id).concat(GCAL_REQUESTS.filter(R => R.kind === 'move').slice(0, 1).map(R => R.id), GCAL_REQUESTS.filter(R => R.kind === 'cancel').slice(0, 1).map(R => R.id));
+            const reqs = ids.map(id => GCAL.concretize(GCAL_REQUESTS.find(R => R.id === id), today)), plan = GCAL.solve(reqs, today), st = { events: [], ex: {}, sx: {} };
+            if (!plan) return { probs: probs.concat(['no plan for the check']) };
+            reqs.forEach(q => { const R = GCAL_REQUESTS.find(x => x.id === q.id);
+                if (R.kind === 'cancel') { st.ex[`s:${q.row}@${q.orig}`] = { del: true }; return; }
+                const e = plan[q.id];
+                if (R.kind === 'move') { st.ex[`s:${q.row}@${q.orig}`] = { date: e.date, start: e.start, end: e.end }; return; }
+                st.events.push({ id: 'ev-' + q.id, cal: 'attorney', title: `${R.type} – ${R.name}`, date: e.date, start: e.start, end: e.end, allDay: false, tz: 'America/New_York', repeat: 'none',
+                    location: R.meeting === 'office' ? GCAL_OFFICE : R.meeting === 'phone' ? 'Phone' : '', meet: R.meeting === 'video' ? 'abc-defg-hij' : '',
+                    desc: `Name: ${R.name}<br>CB Number: ${R.cb}${R.dob ? `<br>DOB: ${R.dob}` : ''}${R.dol ? `<br>DOL: ${R.dol}` : ''}${R.org ? `<br>Company: ${R.org}` : ''}<br>Notes: ${R.notesNeed.map(g => g[0]).join(', ')}`, guests: [], notifs: [{ m: 'email', v: 1, u: 'days' }], busy: true }); });
+            const good = GCAL.checkPlan(st, reqs, today);
+            return { probs, rows: GCAL_ATTORNEY.length, good: good.score, missed: good.results.flatMap(x => x.items.filter(i => !i.ok).map(i => x.head + ': ' + i.t)),
+                text: document.body.innerText, title: document.title };
+        });
+        (r.probs || []).forEach(m => fail(`${track}: ${m}`));
+        if (r.good !== 100) fail(`${track}: a plan made the right way should score 100 (${r.good}): ${(r.missed || []).join(' | ')}`);
+        if (track === 'ea' && /ttorney/.test(r.text || '')) fail('ea: the executive\'s week should say executive, not attorney');
+        if (track === 'ea' && !/Executive’s Calendar/.test(r.text || '')) fail('ea: the calendar should be the Executive’s Calendar');
+        if (!/Litigation Week|Executive Week/.test(r.title || '')) fail(`${track}: the page title should name the track (${r.title})`);
+        await ctx.close();
+    }
+    // the clones keep their own weekly schedule: the API takes ?track=cm|ea and refuses anything else (handled by functions/api/gcal-schedule.js)
+    const sch = require('fs').readFileSync(path.join(ROOT, 'functions/api/gcal-schedule.js'), 'utf8');
+    if (!/gcal_schedule_tracks/.test(sch) || !/trackOf/.test(sch)) fail('the weekly schedule should be kept per track (gcal_schedule_tracks)');
+
     await browser.close(); server.close();
     if (failures.length) { console.log(`\n${failures.length} failure(s):`); failures.forEach((m, i) => console.log(`${i + 1}. ${m}`)); process.exit(1); }
     console.log('Google Calendar Simulator test passed (the week and its blocks; every request doable; the check right and wrong; create, edit, Meet, drag, delete and undo, move one week, views, search, rules, check and save; phone; an Admin\'s schedule for everyone).');
