@@ -458,16 +458,26 @@ function renderRegistrations() {
     `).join('');
 }
 
-// A trainee's Batch ID can be a cohort ("B300926": B + DDMMYY) or the long per-person form ("B30092026-LSHTRAINEE-004"): both belong
-// to the same cohort, so logins are grouped by the cohort and the newest batch comes first.
+// A Batch ID as it's shown: the batch only. Batch IDs given out before October 2026 carry a trainee number
+// ("B30092026-LSHTRAINEE-004"); that's left off and the date is shortened, as the CMS shows it ("B300926").
+// The stored value isn't changed: the programs know each trainee by it. New Batch IDs are B + MMDDYY ("B100526").
+function batchLabel(id) {
+    const v = String(id || '').trim();
+    const m = /^B(\d{2})(\d{2})(\d{2})?(\d{2})(?:-?LSH[A-Z]*-?\d+)?$/i.exec(v.replace(/\s+/g, ''));
+    return m ? 'B' + m[1] + m[2] + m[4] : v;
+}
+window.batchLabel = batchLabel;
+// Logins are grouped by batch, the newest batch first. A six-digit batch is read as MMDDYY, or as the older
+// DDMMYY when that's the only real date.
 function batchCohort(id) {
-    const v = String(id || '').trim().toUpperCase();
+    const v = batchLabel(id).toUpperCase();
     if (!v || v === 'UNASSIGNED') return { key: 'No Batch', sort: '0' };
-    let m = v.match(/^B(\d{2})(\d{2})(\d{4})(?:-.*)?$/);
-    if (m) return { key: 'B' + m[1] + m[2] + m[3].slice(2), sort: m[3] + m[2] + m[1] };
-    m = v.match(/^B(\d{2})(\d{2})(\d{2})$/);
-    if (m) return { key: v, sort: '20' + m[3] + m[2] + m[1] };
-    return { key: v, sort: '1' };
+    const m = v.match(/^B(\d{2})(\d{2})(\d{2})$/);
+    if (!m) return { key: v, sort: '1' };
+    const real = (mm, dd) => { const d = new Date(Date.UTC(2000 + +m[3], mm - 1, dd)); return mm >= 1 && mm <= 12 && dd >= 1 && d.getUTCMonth() === mm - 1; };
+    const legacy = /^B\d{8}/i.test(String(id || '').replace(/\s+/g, ''));   // the long form was always DDMMYYYY
+    const mmdd = !legacy && real(+m[1], +m[2]);
+    return { key: v, sort: '20' + m[3] + (mmdd ? m[1] + m[2] : m[2] + m[1]) };
 }
 function renderUsersList() {
     const container = document.getElementById('users-list');
@@ -480,7 +490,7 @@ function renderUsersList() {
     }
 
     const q = ((document.getElementById('users-search') || {}).value || '').trim().toLowerCase();
-    const match = u => !q || [u.fullName, u.username, u.email, u.batchId].some(v => String(v || '').toLowerCase().includes(q));
+    const match = u => !q || [u.fullName, u.username, u.email, u.batchId, batchLabel(u.batchId)].some(v => String(v || '').toLowerCase().includes(q));
     const byName = (a, b) => String(a.fullName).localeCompare(String(b.fullName));
 
     const admins = visible.filter(u => u.userType === 'Admin' && match(u)).sort(byName);
@@ -582,14 +592,14 @@ async function loadMonitoringData() {
         container.innerHTML = ['Admin', 'Trainee'].map(type => {
             const group = rows
                 .filter(r => r.user_type === type)
-                .sort((a, b) => String(a.batch_id).localeCompare(String(b.batch_id)));
+                .sort((a, b) => batchLabel(a.batch_id).localeCompare(batchLabel(b.batch_id)));
             if (group.length === 0) return '';
             return `
                 <div class="mc-section-title">${type}s Online</div>
                 ${group.map(r => `
                     <div onclick="this.querySelector('.monitor-detail').classList.toggle('hidden')" style="padding:8px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;font-size:12.5px;">
                         <span style="font-weight:700;color:var(--navy);">${escapeHtml(r.full_name || r.username)}</span>
-                        <span style="color:#94a3b8;"> &middot; ${escapeHtml(r.batch_id || '—')}</span>
+                        <span style="color:#94a3b8;"> &middot; ${escapeHtml(batchLabel(r.batch_id) || '—')}</span>
                         <div class="monitor-detail hidden" style="font-size:11px;color:#64748b;margin-top:4px;">Currently Viewing: ${escapeHtml(r.current_case || 'N/A')}</div>
                     </div>
                 `).join('')}
@@ -611,7 +621,7 @@ function renderUserRow(u) {
                     ${escapeHtml(u.fullName)}
                     <span style="font-weight:700;font-size:10px;color:${statusColor};border:1px solid ${statusColor};border-radius:4px;padding:1px 6px;margin-left:6px;">${escapeHtml(u.status)}</span>
                 </div>
-                <div style="font-size:11px;color:#64748b;margin-top:2px;">${escapeHtml(u.batchId)} &middot; ${escapeHtml(u.username)} &middot; ${escapeHtml(u.email || '')}</div>
+                <div style="font-size:11px;color:#64748b;margin-top:2px;">${escapeHtml(batchLabel(u.batchId))} &middot; ${escapeHtml(u.username)} &middot; ${escapeHtml(u.email || '')}</div>
             </div>
             <div style="display:flex;gap:8px;flex-shrink:0;">
                 ${canEditUser(u) ? `<button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="openEditUser(${u.id})">Edit</button>` : ''}
@@ -1717,12 +1727,12 @@ function renderTraineeProgress(trainee, batch) {
 
     setText('batch-progress-pct', batch.pct + '%');
     setWidth('batch-progress-bar', batch.pct);
-    setText('batch-progress-detail', `Batch ${batch.batchId || '\u2014'} \u00b7 ${batch.traineeCount} trainee${batch.traineeCount === 1 ? '' : 's'}`);
+    setText('batch-progress-detail', `Batch ${batchLabel(batch.batchId) || '\u2014'} \u00b7 ${batch.traineeCount} trainee${batch.traineeCount === 1 ? '' : 's'}`);
     setText('batch-progress-pct-card', batch.pct + '%'); // stat card mirror, same value
 
     const batchDisplay = document.getElementById('trainee-batch-display');
-    if (batchDisplay) batchDisplay.textContent = 'Batch ' + (batch.batchId || '\u2014');
-    setText('trainee-batch-display-hero', batch.batchId || '\u2014'); // hero banner mirror, same value
+    if (batchDisplay) batchDisplay.textContent = 'Batch ' + (batchLabel(batch.batchId) || '\u2014');
+    setText('trainee-batch-display-hero', batchLabel(batch.batchId) || '\u2014'); // hero banner mirror, same value
 }
 
 function renderAdminProgress(data) {
@@ -1747,7 +1757,7 @@ function renderAdminProgress(data) {
     body.innerHTML = data.trainees.map(t => `
         <tr>
             <td class="font-bold">${escapeHtml(t.fullName)}</td>
-            <td>${escapeHtml(t.batchId)}</td>
+            <td>${escapeHtml(batchLabel(t.batchId))}</td>
             <td class="font-mono">${t.pct}% <span class="text-slate-400">(${t.completed}/${t.total})</span></td>
             <td class="font-mono ${t.pendingChecks > 0 ? 'text-red-600 font-bold' : ''}">${t.pendingChecks}</td>
             <td class="font-mono font-bold ${t.avgScore !== null ? 'text-emerald-700' : 'text-slate-400'}">${t.avgScore !== null ? t.avgScore + '%' : '\u2014'}</td>
@@ -1782,7 +1792,7 @@ function renderLeaderboard(rows, bodyId, updatedId) {
             <tr>
                 <td class="font-mono font-bold ${r.rank <= 3 ? 'text-orange-600' : ''}">#${r.rank}</td>
                 <td class="font-bold">${escapeHtml(r.fullName)}</td>
-                <td>${escapeHtml(r.batchId)}</td>
+                <td>${escapeHtml(batchLabel(r.batchId))}</td>
                 <td class="font-mono">${r.activitiesCompleted}</td>
                 <td class="font-mono font-bold ${r.rating !== null ? 'text-emerald-700' : 'text-slate-400'}">${r.rating !== null ? r.rating + '%' : '\u2014'}</td>
             </tr>
@@ -2777,7 +2787,7 @@ function renderProgramAccess() {
             return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid #eef2f7;font-size:12px;"><span>${escapeHtml(t.name)} <b style="color:${color};font-size:10.5px;text-transform:uppercase;margin-left:6px;">${escapeHtml(st)}</b></span>${action}</div>`;
         }).join('');
         const grant = `<div style="display:flex;gap:6px;margin-top:8px;"><select id="pa-add-${u.id}" style="flex:1;padding:5px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;">${topics.filter(t => !['Approved', 'Passed'].includes(status(u, t.key))).map(t => `<option value="${escapeHtml(t.key)}">${escapeHtml(t.name)}</option>`).join('')}</select><button class="btn-primary" style="padding:5px 10px;font-size:10.5px;border-radius:6px;" onclick="paSet('${escapeHtml(u.username)}', document.getElementById('pa-add-${u.id}').value, 'GRANT')">Grant access</button></div>`;
-        return `<div class="admin-tile" style="text-align:left;margin-bottom:10px;"><div style="font-weight:800;font-size:13px;color:var(--navy);">${escapeHtml(u.fullName)} <span style="font-weight:600;color:#64748b;font-size:11px;">${escapeHtml(u.username)} · ${escapeHtml(u.batchId || '')}${u.status === 'Suspended' ? ' · SUSPENDED' : ''}</span></div>${rows || '<div style="font-size:11.5px;color:#94a3b8;margin-top:4px;">No program access yet.</div>'}${grant}</div>`;
+        return `<div class="admin-tile" style="text-align:left;margin-bottom:10px;"><div style="font-weight:800;font-size:13px;color:var(--navy);">${escapeHtml(u.fullName)} <span style="font-weight:600;color:#64748b;font-size:11px;">${escapeHtml(u.username)} · ${escapeHtml(batchLabel(u.batchId))}${u.status === 'Suspended' ? ' · SUSPENDED' : ''}</span></div>${rows || '<div style="font-size:11.5px;color:#94a3b8;margin-top:4px;">No program access yet.</div>'}${grant}</div>`;
     }).join('');
 }
 async function paSet(username, topicKey, action) {
@@ -2807,7 +2817,7 @@ function openEditUser(id) {
         <div style="font-size:11px;color:#64748b;">${escapeHtml(u.userType)} account</div>
         ${f('first', 'First name', u.first_name || '')}${f('last', 'Last name', u.last_name || '')}${f('email', 'Email', u.email || '', 'email')}
         ${f('username', 'Username', u.username, 'text', 'Changing it moves their grades, submissions and program access to the new username, and signs them out.')}
-        ${f('batch', 'Batch ID', u.batchId === 'UNASSIGNED' ? '' : u.batchId, 'text', 'Changing the Batch ID changes who the programs think this trainee is: a program that already has them under the old Batch ID will start a new record under the new one.')}
+        ${f('batch', 'Batch ID', u.batchId === 'UNASSIGNED' ? '' : batchLabel(u.batchId), 'text', 'Changing the Batch ID changes who the programs think this trainee is: a program that already has them under the old Batch ID will start a new record under the new one.')}
         ${f('password', 'New password (leave blank to keep)', '', 'password', 'At least 8 characters, letters and numbers. Signs them out.')}
         <div id="eu-error" style="color:#b91c1c;font-size:12px;font-weight:700;margin-top:10px;display:none;"></div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
@@ -2826,7 +2836,8 @@ async function saveEditUser(id) {
     if (v('email') !== (u.email || '')) payload.email = v('email');
     if (v('username') !== u.username) payload.username = v('username');
     const oldBatch = u.batchId === 'UNASSIGNED' ? '' : u.batchId;
-    if (v('batch').toUpperCase() !== String(oldBatch).toUpperCase()) payload.batchId = v('batch');
+    // (the box shows the batch without the old trainee number: left as it is, the stored Batch ID isn't touched)
+    if (v('batch').toUpperCase() !== String(oldBatch).toUpperCase() && v('batch').toUpperCase() !== batchLabel(oldBatch).toUpperCase()) payload.batchId = v('batch');
     if (document.getElementById('eu-password').value) payload.password = document.getElementById('eu-password').value;
     if (Object.keys(payload).length === 1) { document.getElementById('edit-user-overlay').remove(); return; }
     if (payload.batchId !== undefined && !confirm('Change this trainee\'s Batch ID?\n\nPrograms that already know them under the old Batch ID will treat them as a new trainee under the new one.')) return;

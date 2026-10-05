@@ -29,7 +29,7 @@ function submitRegistration() {
         suffix: document.getElementById('reg-suffix').value,
         email: document.getElementById('reg-email').value,
         userType: document.getElementById('reg-usertype').value,
-        // batchId intentionally omitted — the server generates a guaranteed-unique one on approval
+        // batchId intentionally omitted — the server gives the batch's (B + MMDDYY of the start date) on approval
         username: document.getElementById('reg-username').value,
         password: password
     };
@@ -712,7 +712,7 @@ function filterPingUserList() {
 
     const candidates = (__usersCache || []).filter(u => u.status === 'Approved');
     const matches = candidates.filter(u => {
-        const hay = [u.fullName, u.username, u.batchId, u.userType].filter(Boolean).join(' ').toLowerCase();
+        const hay = [u.fullName, u.username, u.batchId, batchLabel(u.batchId), u.userType].filter(Boolean).join(' ').toLowerCase();
         return !q || hay.includes(q);
     }).slice(0, 30);
 

@@ -257,21 +257,16 @@ export async function upgradePasswordHash(db, userId, plainPassword) {
 /* =====================================================================
    BATCH ID / CREDENTIAL HELPERS
    ===================================================================== */
+// A new account's Batch ID: B + MMDDYY of the batch's start date (an Admin's: the day the account was made), e.g.
+// B100526 for 5 October 2026. It's the batch's, shared by everyone in it: there's no trainee number any more (Batch
+// IDs given out before as B<DDMMYYYY>-LSH<TYPE>-<NNN> keep it in storage, since the programs know those trainees by
+// it; the pages show them without it, app.js batchLabel). db is no longer needed (the batch_id_counter table that
+// numbered them isn't used), kept for the callers.
 export async function nextBatchId(db, userType, referenceDate) {
     const d = referenceDate ? new Date(referenceDate) : new Date();
-    const dd = String(d.getUTCDate()).padStart(2, '0');
-    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const yyyy = d.getUTCFullYear();
-    const prefix = userType === 'Admin' ? 'LSHADMIN' : 'LSHTRAINEE';
-
-    const row = await db.prepare(
-        `UPDATE batch_id_counter SET value = value + 1 WHERE user_type = ? RETURNING value`
-    ).bind(userType).first();
-    if (!row || typeof row.value !== 'number') {
-        throw new Error(`batch_id_counter has no row for user_type=${userType} — run the migration in _utils.js before issuing Batch IDs.`);
-    }
-    const xxx = String(row.value).padStart(3, '0');
-    return `B${dd}${mm}${yyyy}-${prefix}-${xxx}`;
+    const when = isNaN(d) ? new Date() : d;
+    const p = (n) => String(n).padStart(2, '0');
+    return `B${p(when.getUTCMonth() + 1)}${p(when.getUTCDate())}${String(when.getUTCFullYear()).slice(-2)}`;
 }
 
 /* =====================================================================
