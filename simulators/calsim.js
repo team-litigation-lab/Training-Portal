@@ -156,6 +156,7 @@ function renderPage(){
   const s = scn();
   const tk = trackOf();
   const tabs = C.TRACKS.map(x => `<button class="cs-tab ${x.id === tk.id ? "active" : ""}" onclick="FTCalSim.open('${x.id}')">${x.icon} ${e(x.title)} <i>${e(x.where)}</i></button>`).join("")
+    + `<a class="cs-tab" href="/simulators/gcal.html${location.search.replace(/[?&](track|view)=[^&]*/g, "").replace(/^&/, "?")}">📞 Google Calendar Simulator <i>Callers’ appointments</i></a><a class="cs-tab" href="/simulators/calendar.html${location.search.replace(/[?&](track|view)=[^&]*/g, "").replace(/^&/, "?")}">🗓 Conflicts week <i>CM · EA/PA</i></a>`
     + `</div>` + (C.SCENARIOS.filter(x => x.track === tk.id).length > 1 ? `<div class="cs-tabs cs-weeks">` + C.SCENARIOS.map((x, i) => x.track === tk.id ? `<button class="cs-tab cs-wk ${i === S.scn ? "active" : ""}" onclick="FTCalSim.pick(${i})">${e(x.title)} <i>${e(x.level)}</i></button>` : "").join("") : "");
   if(!open()) return `<div class="cs-wrap"><h1>📅 Calendaring Simulators</h1><div class="card" style="padding:20px;">🔒 This simulator opens with Lesson ${LESSON}, Calendaring &amp; Appointment Setting.</div></div>`;
   return `<div class="cs-wrap"><div class="cs-top"><div><h1>📅 Calendaring Simulators</h1>
