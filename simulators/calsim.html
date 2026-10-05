@@ -55,6 +55,7 @@
         if (!r.ok || !d.success) throw new Error(d.error || 'Sign in on the Portal first.');
         me = d.me;
     } catch (e) {
+        document.getElementById('topbar').innerHTML = Sim.topbar('calsim');
         root.innerHTML = '<div style="padding:40px;text-align:center;">' + Sim.esc(e.message) + ' <a href="/trainee-login.html">Sign in</a></div>';
         return;
     }
