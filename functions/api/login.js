@@ -33,6 +33,10 @@ export async function onRequestPost({ request, env }) {
             return json({ success: false, error: 'Incorrect username or password.' }, 401);
         }
         user = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(username).first();
+        if (user && String(user.password || '').startsWith('unclaimed:')) {
+            // an account brought over from a program or the CMS (import-registrations.js): it has no password until its owner claims it
+            return json({ success: false, code: 'CLAIM_REQUIRED', error: 'Your registration was brought over from your training program. Use "Claim your account" below to choose your username and password.' }, 403);
+        }
         if (!user || !(await verifyPassword(password, user.password))) {
             return json({ success: false, error: 'Incorrect username or password.' }, 401);
         }
