@@ -193,12 +193,25 @@ export function isMaster(session) {
  */
 export function verifyMasterCredentials(env, username, password) {
     if (username !== MASTER_USERNAME) return false;
-    if (!env.MASTER_ADMIN_PASSWORD) {
+    const want = normalizePassword(env.MASTER_ADMIN_PASSWORD);
+    if (!want) {
         console.error('MASTER_ADMIN_PASSWORD is not configured — refusing master credential check.');
         return false;
     }
-    const a = new TextEncoder().encode(String(password)), b = new TextEncoder().encode(env.MASTER_ADMIN_PASSWORD);
-    return constantTimeEqual(a, b);
+    const given = normalizePassword(password);
+    return !!given && constantTimeEqual(new TextEncoder().encode(given), new TextEncoder().encode(want));
+}
+
+/**
+ * The admin password is compared as a person types it, on every LSH platform: without spaces or line breaks around it, quotes
+ * pasted around the whole password, invisible characters (zero-width spaces, soft hyphens) or curly quotes and long dashes. A
+ * secret pasted into Cloudflare with any of these works from a saved (autofilled) password but could never be typed.
+ */
+export function normalizePassword(v) {
+    const t = String(v == null ? '' : v).normalize('NFKC').replace(/[\u00AD\u180E\u200B-\u200F\u2028-\u202F\u205F-\u206F\uFEFF]/g, '')
+        .replace(/[\u2018\u2019\u201A\u201B\u2032]/g, "'").replace(/[\u201C\u201D\u201E\u201F\u2033]/g, '"').replace(/[\u2010-\u2015\u2212]/g, '-').trim();
+    const q = t.match(/^(["'`])([\s\S]*)\1$/);
+    return q ? q[2].trim() : t;
 }
 
 /**
