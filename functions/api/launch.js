@@ -26,13 +26,30 @@ export const SSO_TOOLS = {
     kb: 'https://lsh-knowledge-base.legalsupporthelp.workers.dev/'
 };
 const TICKET_TTL_MS = 5 * 60 * 1000;
-// Where inside a program the Call Simulator workspace lands (?to=): the program's own Live Roleplay, or the CMS Front Desk Drill.
-// Only these two are allowed, so a link can't send anyone anywhere else.
-const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1' } };
-function landing(to, isTool) {
+// Where inside a program or tool a link lands (?to=): a program's own Live Roleplay, the CMS Front Desk Drill, or the CMS
+// Call Simulator (to=calls: every platform's Call Simulator opens there, on the tab and line the link names, callsQuery).
+// Only these are allowed, so a link can't send anyone anywhere else.
+const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1', tool: 'cms' }, calls: { tool: 'cms' } };
+function landing(to, isTool, params) {
     const l = Object.prototype.hasOwnProperty.call(LANDINGS, to) ? LANDINGS[to] : null;
-    if (!l || (to === 'drill' && !isTool) || (to === 'roleplay' && isTool)) return { query: '', hash: '' };
+    if (!l || (l.tool && !isTool) || (!l.tool && isTool)) return { query: '', hash: '' };
+    if (to === 'calls') return { query: '&' + callsQuery(params), hash: '' };
     return { query: l.query || '', hash: l.hash || '' };
+}
+// The CMS Call Simulator's tab and line from a link (the Portal's /simulators/call.html, a course, a program):
+// ?flow= (standard, cms, reception, intake, calendaring, ea-pa, pd), ?program= (FT, CM, PD, EA), ?line= (a line's name),
+// and ?random=1 or ?mode=graded (a line's graded call: a random caller, unknown until the debrief).
+const CALL_FLOWS = ['standard', 'cms', 'reception', 'intake', 'calendaring', 'ea-pa', 'pd'];
+export function callsQuery(params) {
+    const q = new URLSearchParams({ calls: '1' });
+    const flow = String(params.get('flow') || '').trim().toLowerCase();
+    if (CALL_FLOWS.includes(flow)) q.set('flow', flow);
+    const program = String(params.get('program') || '').trim();
+    if (/^[A-Za-z][A-Za-z -]{0,30}$/.test(program)) q.set('program', program);
+    const line = String(params.get('line') || '').trim();
+    if (line && line.length <= 80 && !/^(all|core)$/i.test(line)) q.set('line', line);
+    if (params.get('random') === '1' || params.get('mode') === 'graded') q.set('mode', 'graded');
+    return q.toString();
 }
 
 // A trainee's ticket carries their name and batch. {r: 'a'} (an administrator) no longer signs anyone in: the platforms refuse it,
@@ -92,7 +109,7 @@ async function launch({ request, env }) {
     // Administrators were signed in here with their admin password, so the program doesn't ask again.
     if (auth.session.userType === 'Admin') {
         // Administrators type the admin password on every platform: no ticket signs them in, they land on that platform's password prompt.
-        const to = landing(params.get('to') || '', isTool);
+        const to = landing(params.get('to') || '', isTool, params);
         return Response.redirect(`${target}?admin=1${to.query}${to.hash}`, 302);
     }
     if (auth.session.userType !== 'Trainee') return page(403, 'Not available', 'This account can\'t open programs.');
@@ -109,6 +126,6 @@ async function launch({ request, env }) {
     }
 
     const ticket = await makeTicket(secret, { first: user.first_name.trim(), last: user.last_name.trim(), batch: String(user.batch_id || '').trim() });
-    const to = landing(params.get('to') || '', isTool);
+    const to = landing(params.get('to') || '', isTool, params);
     return Response.redirect(`${target}?ticket=${ticket}${to.query}${to.hash}`, 302);
 }
