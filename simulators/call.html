@@ -150,7 +150,8 @@ const FLOWS = [
     { k: 'reception', label: 'Reception', icon: '☎', note: 'Answering, routing and taking messages', match: c => has(c, /reception|front desk/i) },
     { k: 'intake', label: 'Intake', icon: '📋', note: 'New-client intake calls', match: c => has(c, /intake/i) },
     { k: 'calendaring', label: 'Calendaring', icon: '🗓', note: 'Scheduling calls, and the week-of-conflicts Calendaring simulator', match: c => has(c, /calendar/i), embed: '/simulators/calendar.html' },
-    { k: 'more', label: 'Property Damage & EA/PA', icon: '🧰', note: '', match: c => c.program === 'PD' || c.program === 'EA' },
+    { k: 'ea-pa', label: 'EA / PA', icon: '🧑‍💼', note: 'Executive and personal assistant calls: your executive, gatekeeping, vendors', match: c => c.program === 'EA' },
+    { k: 'pd', label: 'Property Damage', icon: '🚗', note: '', match: c => c.program === 'PD' },
     { k: 'all', label: 'All calls', icon: '📞', note: '', match: () => true }
 ];
 // the AI budget flow for a call: the line first (a reception call counts as Reception wherever it is), then the program
@@ -160,7 +161,7 @@ const START_FLOW = (() => {
     const q = new URLSearchParams(location.search), f = String(q.get('flow') || '').toLowerCase();
     if (FLOWS.some(x => x.k === f)) return f;
     const p = String(q.get('program') || Sim.who().program || '').toUpperCase();
-    return p.startsWith('CM') ? 'cms' : p.startsWith('EA') || p.startsWith('PD') ? 'more' : p.startsWith('FT') ? 'standard' : 'all';
+    return p.startsWith('CM') ? 'cms' : p.startsWith('EA') ? 'ea-pa' : p.startsWith('PD') ? 'pd' : p.startsWith('FT') ? 'standard' : 'all';
 })();
 let S = { flow: START_FLOW, line: new URLSearchParams(location.search).get('line') || 'all', note: '', persona: null, phase: 'pick', transcript: [], startedAt: 0, voice: true, busy: false, call: null, timer: null, debrief: null };
 const $app = () => document.getElementById('app');
