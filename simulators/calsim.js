@@ -374,6 +374,10 @@ window.addEventListener("message", ev => {
 
 /* ---------- admin: every trainee's submitted calendars, and the trainer's review ---------- */
 const A = {rows:null, loading:false, open:{}, closed:{}, view:{}};
+// ?track=standard|litigation|executive: each program's trainers open just their own track (Standard, Case Management, EA / PA)
+const FILT = (C.TRACKS.find(x => x.id === new URLSearchParams(location.search).get("track")) || {}).id || "";
+const inTrack = id => { const s = C.SCENARIOS.find(q => q.id === id); return !!s && (!FILT || s.track === FILT); };
+const subsOf = x => x.d.submissions.filter(z => inTrack(z.scn));
 async function loadAdmin(){
   A.loading = true;
   try{
@@ -385,29 +389,29 @@ async function loadAdmin(){
 }
 // One trainee's scores, per week: the automated review of their latest submission and the trainer's score for it.
 function scoresOf(x){
-  return C.SCENARIOS.map(s => {
+  return C.SCENARIOS.filter(s => inTrack(s.id)).map(s => {
     const last = x.d.submissions.filter(z => z.scn === s.id).pop(); if(!last) return "";
     const au = C.review(s, last.events).pct, r = x.d.reviews[subKey(last)];
     return `<span class="cs-pill">${e(s.short)}: 🤖 ${au}%${r ? ` · 👤 ${e(r.score)}/100` : ""}</span>`;
   }).join("");
 }
-const unreviewed = x => x.d.submissions.filter(z => !x.d.reviews[subKey(z)]).length;
+const unreviewed = x => subsOf(x).filter(z => !x.d.reviews[subKey(z)]).length;
 function renderAdminScores(){
   if(!A.rows && !A.loading) loadAdmin();
   if(!A.rows) return `<div class="card" style="padding:24px;">Loading the calendars…</div>`;
   const groups = {}; A.rows.forEach(x => { (groups[x.batch] = groups[x.batch] || []).push(x); });
   const keys = Object.keys(groups).sort((a, b) => (a === "") - (b === "") || b.localeCompare(a, undefined, {numeric:true}));
-  return `<div class="card cs-admin"><h3>📅 Calendar Scores</h3>
+  return `<div class="card cs-admin"><h3>📅 Calendar Scores${FILT ? ` · ${e(C.trackOf(FILT).title)} (${e(C.trackOf(FILT).where)})` : ""}</h3>
     <p class="cs-hint">Each trainee’s calendars, with scores per trainee. Open a submission to see exactly what they built, the automated review against the attorney’s rules, and add your own feedback: a score out of 100, an overall comment and a comment on each task. They see your feedback on their Calendar Scheduler page. Scores from the Portal’s Calendaring Simulator are saved on the Portal under program FT; any result it posts back shows here too.</p>
     ${A.rows.length ? keys.map(b => `<section class="fp-batch"><div class="fp-batch-hd" onclick="FTCalAdmin.batch(${e(JSON.stringify(b))})">${A.closed[b] ? "▸" : "▾"} <b>📁 ${e(b ? "Batch " + b : "No batch set")}</b> <span class="fp-muted">${groups[b].length} trainee${groups[b].length === 1 ? "" : "s"}</span></div>
-      ${A.closed[b] ? "" : groups[b].map(x => { const n = x.d.submissions.length, u = unreviewed(x); return `<div class="fp-arow"><div class="fp-arow-hd" onclick="FTCalAdmin.row('${e(x.id)}')">${A.open[x.id] ? "▾" : "▸"} <b>${e(x.name)}</b>
+      ${A.closed[b] ? "" : groups[b].map(x => { const n = subsOf(x).length, u = unreviewed(x); return `<div class="fp-arow"><div class="fp-arow-hd" onclick="FTCalAdmin.row('${e(x.id)}')">${A.open[x.id] ? "▾" : "▸"} <b>${e(x.name)}</b>
         ${n ? `<span class="cs-pill ok">📤 ${n} submitted</span>` : `<span class="cs-pill">Not submitted</span>`}${scoresOf(x)}${u ? `<span class="cs-pill warn">${u} to review</span>` : n ? `<span class="cs-pill ok">All reviewed</span>` : ""}</div>
         ${A.open[x.id] ? detailHTML(x) : ""}</div>`; }).join("")}</section>`).join("")
       : `<div class="fp-muted" style="margin:14px 0;">No trainee has used the Calendar Scheduler yet.</div>`}
     <div style="margin-top:12px;"><button class="btn btn-ghost btn-sm" onclick="FTCalAdmin.refresh()">Refresh</button></div></div>`;
 }
 function detailHTML(x){
-  const list = x.d.submissions.slice().reverse().map((z, i) => {
+  const list = subsOf(x).slice().reverse().map((z, i) => {
     const s = C.SCENARIOS.find(q => q.id === z.scn); if(!s) return "";
     const events = C.clean(z.events), k = subKey(z), key = x.id + "|" + k, shown = !!A.view[key], r = x.d.reviews[k], g = C.review(s, events);
     const tk = s.tasks.map(t => `<label class="cs-rv-t">${e(t.title)} <input type="text" maxlength="400" id="csrt_${e(key)}_${e(t.id)}" value="${r && r.tasks ? e(r.tasks[t.id] || "") : ""}" placeholder="Your comment on this task (optional)"></label>`).join("");
