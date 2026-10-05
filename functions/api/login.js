@@ -1,4 +1,4 @@
-import { json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME, verifyMasterCredentials } from '../_utils.js';
+import { json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME, verifyMasterCredentials, loginBlocked, loginFailed } from '../_utils.js';
 
 export async function onRequestPost({ request, env }) {
     const db = env.DB;
@@ -16,6 +16,12 @@ export async function onRequestPost({ request, env }) {
 
     let user;
     let dbUserType;
+    // Wrong passwords are counted per username and connection (see _utils.js): after 10 in 10 minutes, wait.
+    const attempted = String(body.username || '');
+    if (await loginBlocked(db, request, attempted)) {
+        return json({ success: false, error: 'Too many wrong passwords. Wait 10 minutes and try again, or ask your trainer.', code: 'TOO_MANY_TRIES' }, 429);
+    }
+    const wrong = async () => { await loginFailed(db, request, attempted); return json({ success: false, error: 'Incorrect username or password.' }, 401); };
 
     if (portalMode === 'Trainee') {
         // Trainees sign in here once, with their username and password, and open each
@@ -30,7 +36,7 @@ export async function onRequestPost({ request, env }) {
             if (verifyMasterCredentials(env, username, password)) {
                 return json({ success: false, error: 'This is an administrator account. Please use the Admin Login.', code: 'WRONG_PORTAL' }, 403);
             }
-            return json({ success: false, error: 'Incorrect username or password.' }, 401);
+            return await wrong();
         }
         user = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(username).first();
         if (user && String(user.password || '').startsWith('unclaimed:')) {
@@ -38,7 +44,7 @@ export async function onRequestPost({ request, env }) {
             return json({ success: false, code: 'CLAIM_REQUIRED', error: 'Your registration was brought over from your training program. Use "Claim your account" below to choose your username and password.' }, 403);
         }
         if (!user || !(await verifyPassword(password, user.password))) {
-            return json({ success: false, error: 'Incorrect username or password.' }, 401);
+            return await wrong();
         }
         if (isLegacyPlaintext(user.password)) {
             await upgradePasswordHash(db, user.id, password);
@@ -61,14 +67,14 @@ export async function onRequestPost({ request, env }) {
 
         if (username === MASTER_USERNAME) {
             if (!verifyMasterCredentials(env, username, password)) {
-                return json({ success: false, error: 'Incorrect username or password.' }, 401);
+                return await wrong();
             }
             user = { id: 'MASTER', username: MASTER_USERNAME, batch_id: 'MASTER-ADMIN', status: 'Approved' };
             dbUserType = 'Admin';
         } else {
             user = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(username).first();
             if (!user || !(await verifyPassword(password, user.password))) {
-                return json({ success: false, error: 'Incorrect username or password.' }, 401);
+                return await wrong();
             }
             if (isLegacyPlaintext(user.password)) {
                 await upgradePasswordHash(db, user.id, password);
