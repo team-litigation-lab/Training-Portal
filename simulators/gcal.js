@@ -121,7 +121,7 @@ const BOOK_MAX = CFG.exact ? 11 : 10;   // Standard Training scores a booking ou
 // texts go through WW(); anything the trainee typed or a caller said is never reworded. Standard and Case Management are unchanged.
 const WW = (t) => !CFG.who ? t : String(t).replace(/Attorney['’]s Calendar/g, CFG.who.cal).replace(/Attorney(['’]s)?/g, (m, p) => 'Executive' + (p || '')).replace(/attorney(['’]s)?/g, (m, p) => 'executive' + (p || ''));
 const TRK = GCAL_TRACK === 'standard' ? '' : GCAL_TRACK;
-const API_SCHEDULE = '/api/gcal-schedule' + (TRK ? '?track=' + TRK : '');
+const API_SCHEDULE = '/api/gcal-schedule' + (TRK ? '?track=' + TRK : '');   // (Standard Training: no query, as it always was)
 const rx = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // All events from `from` to `to` for a calendar state { events, ex, sx }: the attorney's week (with its changes),
@@ -339,7 +339,7 @@ function checkPlan(st, reqs, today) {
 }
 
 /* ---------- state (this browser, one calendar per trainee) ---------- */
-const KEY = () => 'lsh_gcal:' + (TRK ? TRK + ':' : '') + String(Sim.who().name || 'guest').trim().toLowerCase();
+const KEY = () => 'lsh_gcal' + (TRK ? '.' + TRK : '') + ':' + String(Sim.who().name || 'guest').trim().toLowerCase();
 let S = null;
 const G = { pop: null, temp: null, drag: null, undo: null, q: '', menu: null, meet: null, ed: null };
 function fresh() {
