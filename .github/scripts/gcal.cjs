@@ -300,14 +300,28 @@ const server = http.createServer(async (req, res) => {
                     location: R.meeting === 'office' ? GCAL_OFFICE : R.meeting === 'phone' ? 'Phone' : '', meet: R.meeting === 'video' ? 'abc-defg-hij' : '',
                     desc: `Name: ${R.name}<br>CB Number: ${R.cb}${R.dob ? `<br>DOB: ${R.dob}` : ''}${R.dol ? `<br>DOL: ${R.dol}` : ''}${R.org ? `<br>Company: ${R.org}` : ''}<br>Notes: ${R.notesNeed.map(g => g[0]).join(', ')}`, guests: [], notifs: [{ m: 'email', v: 1, u: 'days' }], busy: true }); });
             const good = GCAL.checkPlan(st, reqs, today);
-            return { probs, rows: GCAL_ATTORNEY.length, good: good.score, missed: good.results.flatMap(x => x.items.filter(i => !i.ok).map(i => x.head + ': ' + i.t)),
+            const wrong = JSON.parse(JSON.stringify(st)); wrong.events[0].cal = 'lsh';           // on the wrong calendar
+            const noRem = JSON.parse(JSON.stringify(st)); noRem.events[1].notifs = [];            // no email reminder
+            return { probs, rows: GCAL_ATTORNEY.length, wrongCal: GCAL.checkPlan(wrong, reqs, today).score, noRem: GCAL.checkPlan(noRem, reqs, today).score, good: good.score, missed: good.results.flatMap(x => x.items.filter(i => !i.ok).map(i => x.head + ': ' + i.t)),
                 text: document.body.innerText, title: document.title };
         });
         (r.probs || []).forEach(m => fail(`${track}: ${m}`));
         if (r.good !== 100) fail(`${track}: a plan made the right way should score 100 (${r.good}): ${(r.missed || []).join(' | ')}`);
+        if (!(r.wrongCal < 100) || !(r.noRem < 100)) fail(`${track}: a mistake should cost points (wrong calendar ${r.wrongCal}, no reminder ${r.noRem})`);
         if (track === 'ea' && /ttorney/.test(r.text || '')) fail('ea: the executive\'s week should say executive, not attorney');
         if (track === 'ea' && !/Executive’s Calendar/.test(r.text || '')) fail('ea: the calendar should be the Executive’s Calendar');
         if (!/Litigation Week|Executive Week/.test(r.title || '')) fail(`${track}: the page title should name the track (${r.title})`);
+        if (track === 'ea') {   // the executive's wording is only the page's own fixed text: what the trainee types is never reworded, and no DOB / DOL is asked
+            await tp.keyboard.press('c'); await tp.waitForSelector('#ed-title', { timeout: 5000 });
+            const ph = await tp.evaluate(() => document.getElementById('ed-desc').getAttribute('data-ph'));
+            if (/DOB|DOL/.test(ph)) fail(`ea: the description prompt should not ask for DOB / DOL (${ph})`);
+            await tp.fill('#ed-title', 'Attorney test: the attorney’s call'); await tp.fill('#ed-guest', 'attorney.smith@example.com'); await tp.press('#ed-guest', 'Enter');
+            const guest = await tp.locator('.guests .g span').nth(1).innerText();
+            if (guest !== 'attorney.smith@example.com') fail(`ea: a guest typed as attorney.smith@example.com is shown as ${guest}`);
+            await tp.click('[data-a="ed-save"]'); await tp.waitForTimeout(300);
+            const chip = await tp.locator('#gc-main .ev:has-text("test")').first().innerText();
+            if (!/Attorney test: the attorney’s call/.test(chip)) fail(`ea: the trainee's own title was reworded (${chip})`);
+        }
         await ctx.close();
     }
     // Standard Training must grade exactly as it always did: an abbreviated office address still counts as the office, and a new-client
@@ -327,6 +341,13 @@ const server = http.createServer(async (req, res) => {
     });
     if (reg.loc.some(n => n)) fail(`Standard Training: an abbreviated office address should still count as the office (${JSON.stringify(reg.loc)})`);
     if (!reg.cap) fail('Standard Training: the 4th new-client consult of a day should be flagged whatever the separator after "Client Consultation"');
+    // drag across the grid to create: Monday 11:15 to 11:30 should be 15 minutes (the end used to be measured from a column the redraw had removed)
+    const dmon = await sp.evaluate(() => GCAL.weekStart(GCAL.simToday(), true));
+    await sp.evaluate((d) => { const c = document.querySelector(`#gc-main .wk-col[data-d="${d}"]`); let p = c.parentElement; while (p) { if (/auto|scroll/.test(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight) { p.scrollTop = 9 * 48; break; } p = p.parentElement; } }, dmon);
+    const dbox = await sp.locator(`#gc-main .wk-col[data-d="${dmon}"]`).boundingBox(), dy = (h) => dbox.y + h * 48;
+    await sp.mouse.move(dbox.x + dbox.width / 2, dy(11.25) + 2); await sp.mouse.down(); await sp.mouse.move(dbox.x + dbox.width / 2, dy(11.5) - 2, { steps: 6 }); await sp.mouse.up(); await sp.waitForTimeout(300);
+    const dtxt = await sp.locator('.gc-pop').first().innerText().catch(() => '');
+    if (!/11:15\s*[–-]\s*11:30am/.test(dtxt)) fail(`dragging 11:15 to 11:30 on the grid should make a 15-minute event (${dtxt.split('\n')[0]})`);
     await sp.close();
     // the clones keep their own weekly schedule: the API takes ?track=cm|ea and refuses anything else (handled by functions/api/gcal-schedule.js)
     const sch = require('fs').readFileSync(path.join(ROOT, 'functions/api/gcal-schedule.js'), 'utf8');
