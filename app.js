@@ -316,7 +316,11 @@ const MC_TAB_LABELS = {
 };
 function showAdminDashTab(tab) {
     __currentViewLabel = MC_TAB_LABELS[tab] || ('Master Control — ' + tab);
-    document.querySelectorAll('.mc-tab').forEach((t, i) => t.classList.toggle('active', MC_TABS[i] === tab));
+    // Each tab button names its own tab (the row also holds plain links, so counting positions picked the wrong one).
+    document.querySelectorAll('.mc-tab').forEach((t) => {
+        const m = (t.getAttribute('onclick') || '').match(/showAdminDashTab\('([^']+)'\)/);
+        t.classList.toggle('active', !!m && m[1] === tab);
+    });
     document.querySelectorAll('.mc-pane').forEach(p => p.classList.remove('active'));
     const pane = document.getElementById('admin-dash-' + tab);
     if (pane) pane.classList.add('active');
