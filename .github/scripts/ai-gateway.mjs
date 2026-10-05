@@ -76,8 +76,16 @@ const outs = [];
 for (const m of ['standard', 'cms', 'reception', 'intake']) outs.push((await gw.runAi(db, envMin, { module: m, user: m, system: 's', messages: [{ role: 'user', text: 'x' }] })).status);
 check(outs.join() === '200,200,200,429', 'the per-minute limit is shared by all flows together');
 
+// live voice: a minted token counts as AI_LIVE_COST requests in the same ledger
+sql.exec(`DELETE FROM ai_usage_day`); sql.exec(`DELETE FROM ai_usage_minute`); sql.exec(`DELETE FROM ai_usage_user`);
+const realFetch = globalThis.fetch;
+globalThis.fetch = async (url, init) => url.includes('auth_tokens') ? new Response(JSON.stringify({ name: 'auth_tokens/abc' }), { status: 200 }) : realFetch(url, init);
+const live = await gw.runLiveToken(db, { ...env, AI_LIVE_COST: '10', AI_USER_10MIN: '999', AI_DAILY_CALLS: '4000', AI_MINUTE_CALLS: '1000' }, { module: 'reception', user: 'ann', setup: { generationConfig: {} }, model: 'gemini-3.8-live' });
+check(live.status === 200 && live.body.token === 'auth_tokens/abc', 'a live voice token is minted with the shared keys');
+check((await row('reception')).calls === 10, 'and counts as AI_LIVE_COST requests in the shared ledger');
+globalThis.fetch = realFetch;
 const sum = await gw.usageSummary(db, env);
-check(sum.total.calls >= 3 && Array.isArray(sum.today) && sum.limits.dailyCalls === 40, 'the admin summary lists each flow and the limits');
+check(sum.total.calls >= 1 && Array.isArray(sum.today) && sum.limits.dailyCalls === 40, 'the admin summary lists each flow and the limits');
 
 // the endpoint
 const ep = await load('functions/api/ai-gateway.js', [["import { json, requireSession } from '../_utils.js';", "const json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { 'Content-Type': 'application/json' } }); const requireSession = async () => ({ ok: false });"], ["from '../_ai-gateway.js'", `from '${pathToFileURL(path.join(tmp, '_ai-gateway.mjs')).href}'`]]);

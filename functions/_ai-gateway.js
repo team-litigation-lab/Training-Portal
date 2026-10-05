@@ -13,6 +13,7 @@
 //   AI_MODULE_SHARE   0.5     the most any ONE flow may take of the day's calls and tokens, so no flow starves the rest
 //                             (it applies once the day is past 10% used: a quiet day isn't held back)
 //   AI_USER_10MIN     150     requests per person per 10 minutes (one practice call is about 15 to 30)
+//   AI_LIVE_COST      25      what one live voice call counts for (requests; about 400 tokens each), since its audio goes straight to Google
 // Whoever is refused gets a 429 with a plain reason and the page retries or tells the trainee to wait.
 //
 // The ledger is three small tables created on first use: ai_usage_day (flow, day), ai_usage_user (person, day),
@@ -29,7 +30,8 @@ export function limits(env) {
         dailyCalls: num(env.AI_DAILY_CALLS, 4000),
         dailyTokens: num(env.AI_DAILY_TOKENS, 3000000),
         moduleShare: Math.min(1, num(env.AI_MODULE_SHARE, 0.5)),
-        user10: num(env.AI_USER_10MIN, 150)
+        user10: num(env.AI_USER_10MIN, 150),
+        liveCost: num(env.AI_LIVE_COST, 25)
     };
 }
 
@@ -46,28 +48,28 @@ export async function ensureAiTables(db) {
 }
 
 // Is this request allowed? → { ok: true } or { ok: false, reason, scope }. Counts the request when allowed.
-export async function admit(db, env, { module, user }) {
+export async function admit(db, env, { module, user, weight = 1 }) {
     const L = limits(env), d = day();
     try {
         await ensureAiTables(db);
         const rows = (await db.prepare(`SELECT module, calls, tokens FROM ai_usage_day WHERE day = ?`).bind(d).all()).results || [];
         const total = rows.reduce((a, r) => ({ calls: a.calls + r.calls, tokens: a.tokens + r.tokens }), { calls: 0, tokens: 0 });
         const mine = rows.find(r => r.module === module) || { calls: 0, tokens: 0 };
-        if (total.calls >= L.dailyCalls || total.tokens >= L.dailyTokens) return { ok: false, scope: 'daily', reason: 'The shared AI budget for today is used up. It resets tomorrow; ask an admin if you need more now.' };
+        if (total.calls + weight > L.dailyCalls || total.tokens >= L.dailyTokens) return { ok: false, scope: 'daily', reason: 'The shared AI budget for today is used up. It resets tomorrow; ask an admin if you need more now.' };
         // one flow may not take more than its share of the day, once the day is well under way
         const used = Math.max(total.calls / L.dailyCalls, total.tokens / L.dailyTokens);
         if (used >= 0.1 && (mine.calls / Math.max(1, total.calls) > L.moduleShare || mine.tokens / Math.max(1, total.tokens) > L.moduleShare) && rows.length > 1)
             return { ok: false, scope: 'module', reason: 'This call flow has used its share of today’s shared AI budget so the others keep theirs. Try again a little later.' };
         const mb = minuteBucket();
         const m = await db.prepare(`SELECT calls FROM ai_usage_minute WHERE bucket = ?`).bind(mb).first();
-        if (m && m.calls >= L.minuteCalls) return { ok: false, scope: 'minute', reason: 'The AI is busy right now. Wait a few seconds and try again.' };
+        if (m && m.calls + Math.min(weight, 5) > L.minuteCalls) return { ok: false, scope: 'minute', reason: 'The AI is busy right now. Wait a few seconds and try again.' };
         const ub = tenMinBucket(), who = clean(user, 80) || 'anonymous';
         const u = await db.prepare(`SELECT calls FROM ai_usage_user WHERE bucket = ? AND user = ?`).bind(ub, who).first();
-        if (u && u.calls >= L.user10) return { ok: false, scope: 'user', reason: 'You have made a lot of AI requests in a short time. Wait a few minutes and try again.' };
+        if (u && u.calls + Math.min(weight, 5) > L.user10) return { ok: false, scope: 'user', reason: 'You have made a lot of AI requests in a short time. Wait a few minutes and try again.' };
         await db.batch([
-            db.prepare(`INSERT INTO ai_usage_day (day, module, calls) VALUES (?, ?, 1) ON CONFLICT(day, module) DO UPDATE SET calls = calls + 1`).bind(d, module),
-            db.prepare(`INSERT INTO ai_usage_minute (bucket, calls) VALUES (?, 1) ON CONFLICT(bucket) DO UPDATE SET calls = calls + 1`).bind(mb),
-            db.prepare(`INSERT INTO ai_usage_user (bucket, user, calls) VALUES (?, ?, 1) ON CONFLICT(bucket, user) DO UPDATE SET calls = calls + 1`).bind(ub, who)
+            db.prepare(`INSERT INTO ai_usage_day (day, module, calls) VALUES (?, ?, ?) ON CONFLICT(day, module) DO UPDATE SET calls = calls + excluded.calls`).bind(d, module, weight),
+            db.prepare(`INSERT INTO ai_usage_minute (bucket, calls) VALUES (?, ?) ON CONFLICT(bucket) DO UPDATE SET calls = calls + excluded.calls`).bind(mb, Math.min(weight, 5)),
+            db.prepare(`INSERT INTO ai_usage_user (bucket, user, calls) VALUES (?, ?, ?) ON CONFLICT(bucket, user) DO UPDATE SET calls = calls + excluded.calls`).bind(ub, who, Math.min(weight, 5))
         ]);
         if (Math.random() < 0.03) await db.batch([
             db.prepare(`DELETE FROM ai_usage_minute WHERE bucket < ?`).bind(mb - 5),
@@ -194,4 +196,33 @@ export async function runAi(db, env, { module, user, system, messages, json, max
     const r = await generate(env, { system, messages, json, maxTokens });
     await record(db, { module, tokens: r.tokens || 0, error: !r.ok });
     return r.ok ? { status: 200, body: { success: true, text: r.text, model: r.model, tokens: r.tokens, module } } : { status: r.status || 502, body: { success: false, error: r.error } };
+}
+
+// A live voice call (Gemini Live): the caller builds the session setup (its script and voice), this mints the single-use token
+// with the shared keys and counts the call against the shared budget (AI_LIVE_COST). The browser then talks to Google directly.
+export async function runLiveToken(db, env, { module, user, setup, model, maxMinutes = 6 }) {
+    module = normModule(module);
+    const L = limits(env);
+    const gate = await admit(db, env, { module, user, weight: L.liveCost });
+    if (!gate.ok) { await record(db, { module, refused: true }); return { status: 429, body: { success: false, error: gate.reason, scope: gate.scope } }; }
+    const names = keyNames(env), now = Date.now();
+    const order = names.filter(n => (rest.get(n) || 0) <= now), pool = order.length ? order : names;
+    if (!pool.length) { await record(db, { module, error: true }); return { status: 500, body: { success: false, error: 'No Gemini key is set on the Portal (GEMINI_API_KEY).' } }; }
+    const start = turn++ % pool.length;
+    let last = { status: 502, error: 'No response.' };
+    for (const name of pool.slice(start).concat(pool.slice(0, start))) {
+        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/auth_tokens', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': String(env[name]).trim() },
+            body: JSON.stringify({ uses: 1, expireTime: new Date(now + (maxMinutes + 2) * 60000).toISOString(), newSessionExpireTime: new Date(now + 2 * 60000).toISOString(),
+                bidiGenerateContentSetup: Object.assign({}, setup, { model: 'models/' + String(model).replace(/^models\//, '') }) })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.name) { await record(db, { module, tokens: L.liveCost * 400 }); return { status: 200, body: { success: true, token: data.name, module } }; }
+        last = { status: res.status, error: (data.error && data.error.message) || `Gemini error ${res.status}` };
+        if (res.status === 429) rest.set(name, Date.now() + 60000);
+        else if (res.status === 400 && /API key/i.test(last.error)) rest.set(name, Date.now() + 600000);
+        else if (![500, 503].includes(res.status)) break;
+    }
+    await record(db, { module, error: true });
+    return { status: last.status === 429 ? 429 : 502, body: { success: false, error: last.status === 429 ? 'The line is busy (all keys are at their limit). Try again in a minute.' : last.error } };
 }
