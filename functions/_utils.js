@@ -197,7 +197,8 @@ export function verifyMasterCredentials(env, username, password) {
         console.error('MASTER_ADMIN_PASSWORD is not configured — refusing master credential check.');
         return false;
     }
-    return password === env.MASTER_ADMIN_PASSWORD;
+    const a = new TextEncoder().encode(String(password)), b = new TextEncoder().encode(env.MASTER_ADMIN_PASSWORD);
+    return constantTimeEqual(a, b);
 }
 
 /**
@@ -252,6 +253,35 @@ export async function upgradePasswordHash(db, userId, plainPassword) {
     } catch (e) {
         console.error('password upgrade failed', e);
     }
+}
+
+/* =====================================================================
+   SIGN-IN THROTTLE
+   Ten wrong passwords for one username from one connection in 10 minutes, then a wait. Per username AND connection,
+   so a whole office signing in from one address is never held up by one person's typos.
+   ===================================================================== */
+const LOGIN_FAIL_LIMIT = 10;
+const loginKey = (request, username) => String(username || '').toLowerCase().slice(0, 80) + '|' + (request.headers.get('CF-Connecting-IP') || 'local');
+const loginBucket = () => Math.floor(Date.now() / 600000);
+async function ensureLoginTable(db) {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS login_failures (k TEXT NOT NULL, bucket INTEGER NOT NULL, hits INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (k, bucket))`).run();
+}
+export async function loginBlocked(db, request, username) {
+    try {
+        await ensureLoginTable(db);
+        const row = await db.prepare(`SELECT COALESCE(SUM(hits), 0) AS n FROM login_failures WHERE k = ? AND bucket >= ?`).bind(loginKey(request, username), loginBucket() - 1).first();
+        return !!(row && row.n >= LOGIN_FAIL_LIMIT);
+    } catch (e) {
+        return false;   // never lock people out because the counter failed
+    }
+}
+export async function loginFailed(db, request, username) {
+    try {
+        await ensureLoginTable(db);
+        const b = loginBucket();
+        await db.prepare(`INSERT INTO login_failures (k, bucket, hits) VALUES (?, ?, 1) ON CONFLICT(k, bucket) DO UPDATE SET hits = hits + 1`).bind(loginKey(request, username), b).run();
+        if (Math.random() < 0.05) await db.prepare(`DELETE FROM login_failures WHERE bucket < ?`).bind(b - 2).run();
+    } catch (e) { /* best effort */ }
 }
 
 /* =====================================================================
@@ -426,4 +456,20 @@ Respond ONLY with a JSON object matching this exact shape, with no other text be
         console.error('generateAiReview failed:', err);
         return { ok: false, error: err.message };
     }
+}
+
+// A JSON array stored as text (a question list, a trainee's answers): anything else reads as an empty list.
+export function parseJsonList(raw) {
+    if (!raw) return [];
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+// base64url of bytes (tickets and signatures).
+export function b64url(bytes) {
+    return toBase64Url(new Uint8Array(bytes));
 }

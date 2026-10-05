@@ -38,6 +38,9 @@ export async function onRequestPost({ request, env }) {
 
     await tombstoneUser(db, user, session.username);
     await db.prepare(`DELETE FROM users WHERE id = ?`).bind(userId).run();
+    // Leave nothing behind that still looks like a live account: the presence row and the program access (their submissions and results stay as records).
+    try { await db.prepare(`DELETE FROM heartbeats WHERE username = ?`).bind(user.username).run(); } catch (e) { /* none */ }
+    try { if (env.TRAINING_DB) await env.TRAINING_DB.prepare(`DELETE FROM trainee_topic_access WHERE trainee_username = ?`).bind(user.username).run(); } catch (e) { /* none */ }
     await logActivity(db, session.username, session.batchId, 'revoke-user', { userId, username: user.username });
 
     return json({ success: true });

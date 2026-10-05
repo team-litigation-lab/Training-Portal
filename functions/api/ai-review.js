@@ -1,24 +1,4 @@
-import { json, requireSession, generateAiReview } from '../_utils.js';
-
-function safeParseQuestions(raw) {
-    if (!raw) return [];
-    try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-        return [];
-    }
-}
-
-function safeParseAnswers(raw) {
-    if (!raw) return [];
-    try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-        return [];
-    }
-}
+import { json, requireSession, generateAiReview, parseJsonList } from '../_utils.js';
 
 // Admin-triggered (re)generation of a submission's AI review — the same
 // underlying generateAiReview() that submissions.js fires automatically
@@ -39,8 +19,8 @@ export async function onRequestPost({ request, env }) {
         if (!sub) return json({ success: false, error: 'Submission not found.' }, 404);
 
         const activity = await env.TRAINING_DB.prepare(`SELECT * FROM activities WHERE id = ?`).bind(sub.activity_id).first();
-        const questions = activity ? safeParseQuestions(activity.questions) : [];
-        const answers = safeParseAnswers(sub.answers);
+        const questions = activity ? parseJsonList(activity.questions) : [];
+        const answers = parseJsonList(sub.answers);
 
         const result = await generateAiReview(env, {
             submissionId: sub.id,

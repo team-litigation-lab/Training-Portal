@@ -1,3 +1,5 @@
+import { b64url } from '../_utils.js';
+
 // POST /api/verify-ticket { ticket }  → { ok:true, admin:true } | { ok:true, first, last, batch } | { ok:false, code }
 //
 // For sites that open from the Portal but don't hold the shared sign-in secret themselves (the CMS): they send the ticket
@@ -7,11 +9,6 @@ const MAX_AHEAD_MS = 10 * 60 * 1000;
 const enc = new TextEncoder();
 const reply = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 
-function b64url(bytes) {
-    let s = '';
-    new Uint8Array(bytes).forEach(b => { s += String.fromCharCode(b); });
-    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
 function same(a, b) {
     if (a.length !== b.length) return false;
     let d = 0;

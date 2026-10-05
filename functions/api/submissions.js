@@ -1,24 +1,4 @@
-import { json, requireSession, logActivity, generateAiReview } from '../_utils.js';
-
-function safeParseQuestions(raw) {
-    if (!raw) return [];
-    try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-        return [];
-    }
-}
-
-function safeParseAnswers(raw) {
-    if (!raw) return [];
-    try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-        return [];
-    }
-}
+import { json, requireSession, logActivity, generateAiReview, parseJsonList } from '../_utils.js';
 
 // Grades every objective question (mcq / truefalse / short) against the
 // answer key. Essay questions always need a human, so their presence means
@@ -62,7 +42,7 @@ export async function onRequestGet({ request, env }) {
         const { results } = await env.TRAINING_DB.prepare(query).bind(...binds).all();
         const submissions = (results || []).map(s => ({
             ...s,
-            answers: safeParseAnswers(s.answers),
+            answers: parseJsonList(s.answers),
             // ai_review is stored as a JSON string (see generateAiReview in
             // _utils.js) — null/undefined here just means it hasn't been
             // generated yet (still pending, generation failed, or the
@@ -114,7 +94,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
                 return json({ success: false, error: "The deadline for this activity has passed." }, 403);
             }
 
-            const questions = safeParseQuestions(activityRow.questions);
+            const questions = parseJsonList(activityRow.questions);
             const answersJson = JSON.stringify(Array.isArray(answers) ? answers : []);
 
             let res;

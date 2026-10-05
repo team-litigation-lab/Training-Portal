@@ -536,9 +536,9 @@ function applySiteStateUI(state) {
 }
 
 // Login (trainee/admin) and Registration react to a site-wide Lock
-// differently from the rest of the app — the landing page and bridge.html
-// are deliberately excluded (they're pure navigation, nothing to restrict)
-// and aren't expected to define AUTH_PAGE_TYPE at all, so this silently
+// differently from the rest of the app — the landing page
+// is deliberately excluded (it is pure navigation, nothing to restrict)
+// and isn't expected to define AUTH_PAGE_TYPE at all, so this silently
 // does nothing there.
 //
 //   - trainee-login / registration: the actual form fields are replaced

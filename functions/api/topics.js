@@ -7,6 +7,11 @@ import { json, requireSession, logActivity, getSiteState } from '../_utils.js';
 // mirroring the same request → admin-approval shape registration already
 // uses elsewhere in this app.
 
+// Access rows are only ever made for trainings that exist.
+async function topicExists(db, key) {
+    return !!(await db.prepare(`SELECT 1 AS ok FROM topics WHERE key = ?`).bind(String(key)).first());
+}
+
 export async function onRequestGet({ request, env }) {
     const db = env.TRAINING_DB;
     // Never cache this — topic list and access status change as admins
@@ -69,6 +74,7 @@ export async function onRequestPost({ request, env }) {
         if (action === 'REQUEST_ACCESS') {
             if (auth.session.userType !== 'Trainee') return json({ success: false, error: 'Only trainees can request topic access.' }, 403);
             if (!topicKey) return json({ success: false, error: 'topicKey is required.' }, 400);
+            if (!(await topicExists(db, topicKey))) return json({ success: false, error: 'Unknown training.' }, 404);
 
             await db.prepare(
                 `INSERT INTO trainee_topic_access (trainee_username, topic_key, status, requested_at)
@@ -85,6 +91,8 @@ export async function onRequestPost({ request, env }) {
             if (auth.session.userType !== 'Admin') return json({ success: false, error: 'Only admins can grant or decide topic access.' }, 403);
             const { traineeUsername } = body;
             if (!topicKey || !traineeUsername) return json({ success: false, error: 'topicKey and traineeUsername are required.' }, 400);
+            if (!(await topicExists(db, topicKey))) return json({ success: false, error: 'Unknown training.' }, 404);
+            if (!(await env.DB.prepare(`SELECT 1 AS ok FROM users WHERE username = ?`).bind(traineeUsername).first())) return json({ success: false, error: 'That trainee has no account.' }, 404);
 
             const status = action === 'DENY' ? 'Denied' : 'Approved';
             await db.prepare(
@@ -101,6 +109,8 @@ export async function onRequestPost({ request, env }) {
             if (auth.session.userType !== 'Admin') return json({ success: false, error: 'Only admins can mark a training as passed.' }, 403);
             const { traineeUsername } = body;
             if (!topicKey || !traineeUsername) return json({ success: false, error: 'topicKey and traineeUsername are required.' }, 400);
+            if (!(await topicExists(db, topicKey))) return json({ success: false, error: 'Unknown training.' }, 404);
+            if (!(await env.DB.prepare(`SELECT 1 AS ok FROM users WHERE username = ?`).bind(traineeUsername).first())) return json({ success: false, error: 'That trainee has no account.' }, 404);
 
             await db.prepare(
                 `INSERT INTO trainee_topic_access (trainee_username, topic_key, status, requested_at, decided_at, decided_by)
