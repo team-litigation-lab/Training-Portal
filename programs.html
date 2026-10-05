@@ -330,12 +330,8 @@
 
         const topicName = key => (__topicsCache.find(t => t.key === key) || {}).name || key;
         const pending = __accessCache.filter(a => a.status === 'Pending');
-        // "In Progress" = Approved but not yet Passed — these are the ones
-        // an admin can move forward once the trainee has actually completed
-        // the training, which is what triggers the next topic's auto-unlock.
-        const inProgress = __accessCache.filter(a => a.status === 'Approved');
-
-        if (!pending.length && !inProgress.length) { wrap.innerHTML = ''; return; }
+        // (Marking a program as passed lives in the admin screen now: Program Access.)
+        if (!pending.length) { wrap.innerHTML = ''; return; }
 
         let html = '';
         if (pending.length) {
@@ -348,21 +344,6 @@
                             <span class="queue-actions">
                                 <button class="queue-btn approve" onclick="decideTopicAccess('${escapeHtml(a.topic_key)}','${escapeHtml(a.trainee_username)}','APPROVE')">Approve</button>
                                 <button class="queue-btn deny" onclick="decideTopicAccess('${escapeHtml(a.topic_key)}','${escapeHtml(a.trainee_username)}','DENY')">Deny</button>
-                            </span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-        if (inProgress.length) {
-            html += `
-                <div class="queue-card" style="background:#eff6ff; border-color:#bfdbfe; margin-top:${pending.length ? '12px' : '0'};">
-                    <h3 style="color:#1e40af;">In Progress — Mark Passed to Unlock the Next Training (${inProgress.length})</h3>
-                    ${inProgress.map(a => `
-                        <div class="queue-row" style="border-top-color:#bfdbfe;">
-                            <span><b>${escapeHtml(a.trainee_username)}</b> &mdash; ${escapeHtml(topicName(a.topic_key))}</span>
-                            <span class="queue-actions">
-                                <button class="queue-btn approve" onclick="markTopicPassed('${escapeHtml(a.topic_key)}','${escapeHtml(a.trainee_username)}')">Mark Passed</button>
                             </span>
                         </div>
                     `).join('')}

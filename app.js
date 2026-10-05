@@ -2768,8 +2768,11 @@ function renderProgramAccess() {
             if (!st) return '';
             const open = st === 'Approved' || st === 'Passed';
             const color = open ? '#166534' : (st === 'Pending' ? '#92400e' : '#991b1b');
+            const passBtn = st === 'Approved'
+                ? `<button class="btn-primary" style="padding:5px 10px;font-size:10.5px;border-radius:6px;margin-right:6px;" onclick="paSet('${escapeHtml(u.username)}','${escapeHtml(t.key)}','MARK_PASSED')">Mark Passed</button>`
+                : '';
             const action = open
-                ? `<button class="btn-ghost" style="padding:5px 10px;font-size:10.5px;border-radius:6px;color:var(--classified-red);border-color:var(--classified-red);" onclick="paSet('${escapeHtml(u.username)}','${escapeHtml(t.key)}','DENY')">Revoke</button>`
+                ? passBtn + `<button class="btn-ghost" style="padding:5px 10px;font-size:10.5px;border-radius:6px;color:var(--classified-red);border-color:var(--classified-red);" onclick="paSet('${escapeHtml(u.username)}','${escapeHtml(t.key)}','DENY')">Revoke</button>`
                 : `<button class="btn-primary" style="padding:5px 10px;font-size:10.5px;border-radius:6px;" onclick="paSet('${escapeHtml(u.username)}','${escapeHtml(t.key)}','GRANT')">Grant</button>`;
             return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid #eef2f7;font-size:12px;"><span>${escapeHtml(t.name)} <b style="color:${color};font-size:10.5px;text-transform:uppercase;margin-left:6px;">${escapeHtml(st)}</b></span>${action}</div>`;
         }).join('');
@@ -2781,7 +2784,7 @@ async function paSet(username, topicKey, action) {
     if (action === 'DENY' && !confirm('Revoke this trainee\'s access to ' + topicKey + '?')) return;
     try {
         await postJson('/api/topics', { action, topicKey, traineeUsername: username });
-        showToast(action === 'DENY' ? 'Access revoked.' : 'Access granted.', 'success');
+        showToast(action === 'DENY' ? 'Access revoked.' : action === 'MARK_PASSED' ? 'Marked as passed.' : 'Access granted.', 'success');
         loadProgramAccess();
     } catch (e) { showToast(e.message, 'error'); }
 }
