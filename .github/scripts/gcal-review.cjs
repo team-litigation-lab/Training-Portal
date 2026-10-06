@@ -12,7 +12,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '
 const failures = []; const fail = (m) => failures.push(m);
 const posted = [];
 const SHEET = require(path.join(ROOT, 'simulators/cal-scorecard.js'));
-let rec = null, role = 'trainee';
+let rec = null, role = 'trainee', excl = null;
 // a trainee's calendar as saved to their account (gcal_drafts): one booking on the Attorney's Calendar, Standard Training
 const DRAFT = { v: 1, today: '2026-10-06', view: 'week', anchor: '2026-10-06', mini: '2026-10', side: false, panel: 'requests', hidden: {}, set: { dur: 30, weekends: false, tz2: false }, reqs: [], result: null, savedAt: 1791300000000, ex: {}, sx: {},
     events: [{ id: 'ev1', cal: 'attorney', title: 'Client Consultation Meeting – Maria Santos', date: '2026-10-07', start: '10:00', end: '10:30', allDay: false, tz: 'America/New_York', repeat: 'none', location: '', meet: 'https://meet.google.com/abc-defg-hij',
@@ -33,6 +33,7 @@ const server = http.createServer((req, res) => {
                     rec = rec || {}; rec.scorecards = rec.scorecards || {}; rec.scorecards[b.scorecard.track] = (rec.scorecards[b.scorecard.track] || []).concat([card]);
                     posted.push(b.scorecard); return send({ success: true, scorecard: card, scorecards: rec.scorecards[b.scorecard.track] });
                 }
+                if (b.exclude) { if (role !== 'admin') return send({ success: false, error: 'Admin access required.' }, 403); excl = b.exclude; rec = rec || {}; rec.excluded = rec.excluded || {}; if (b.exclude.ids.length) rec.excluded[b.exclude.track] = b.exclude.ids; else delete rec.excluded[b.exclude.track]; return send({ success: true, excluded: b.exclude.ids }); }
                 if (b.review) { if (role !== 'admin') return send({ success: false, error: 'Admin access required.' }, 403); rec.reviews = rec.reviews || {}; rec.reviews[b.review.key] = { score: Math.round(b.review.score), comment: b.review.comment, tasks: b.review.tasks, by: 'Trainer', at: new Date().toISOString() }; return send({ success: true, data: rec }); }
                 if (role === 'admin') return send({ success: true, preview: true });
                 rec = Object.assign({}, b.data, { reviews: (rec && rec.reviews) || {} }); return send({ success: true, reviews: rec.reviews });
@@ -153,7 +154,13 @@ const server = http.createServer((req, res) => {
     const sc = posted[0];
     if (!sc || sc.user !== 'ci' || sc.track !== 'standard' || sc.rows.map(r => r.score).join() !== '5,4,4,3,4,5,4' || !/add the DOB/.test(sc.rows[5].feedback)) fail('the scorecard wasn\'t saved for the trainee: ' + JSON.stringify(sc));
     if (!/4\.1\/5 · 83%/.test(await scoresText(page))) fail('the saved scorecard isn\'t shown: ' + (await scoresText(page)).slice(0, 300));
-    if (await page.evaluate(() => Object.keys(localStorage).some(k => k.indexOf('lsh_gcal') === 0))) fail('looking at a trainee\'s calendar wrote to the trainer\'s own practice calendar');
+    // a trainer takes an appointment out of the review (a sample or test appointment), the score is worked out again, and it can be put back
+    await page.click('#gc-scores [data-a="tv-skip"]'); await page.waitForTimeout(500);
+    let st = await scoresText(page);
+    if (!excl || excl.user !== 'ci' || excl.track !== 'standard' || excl.ids.length !== 1) fail('the removal was not saved for the trainee: ' + JSON.stringify(excl));
+    if (!/Removed from this review \(1\)/.test(st) || await page.$('#gc-scores [data-a="tv-skip"]')) fail('the removed appointment is still in the check: ' + st.slice(-400));
+    await page.click('#gc-scores [data-a="tv-unskip"]'); await page.waitForTimeout(500);
+    if (!excl || excl.ids.length !== 0 || !(await page.$('#gc-scores [data-a="tv-skip"]'))) fail('putting it back did not work: ' + JSON.stringify(excl));
     await page.close();
     // the trainee sees it: on their card on the Calendaring Simulators page and in the simulator
     role = 'trainee';

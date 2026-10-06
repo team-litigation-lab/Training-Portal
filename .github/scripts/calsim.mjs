@@ -45,4 +45,14 @@ r=await call('POST',{scorecard:{user:'cal',track:'cm',rows}});ck(r.st===200,'a t
 __setSession({username:'ann',userType:'Trainee',fullName:'Ann Lee',batchId:'B1'});
 r=await call('POST',{data:{v:2,drafts:{},submissions:[],scorecards:{standard:[{average:5,pct:100}]}}});r=await call('GET');
 ck(r.j.data.scorecards.standard.length===1&&r.j.data.scorecards.standard[0].pct===83,'the trainee\'s saves keep the trainer\'s scorecards (and can\'t write their own)');
+// appointments a trainer takes out of a trainee's review: only a trainer, kept through the trainee's saves, put back with an empty list
+r=await call('POST',{exclude:{user:'ann',track:'standard',ids:['e1@2026-10-06']}});ck(r.st===403,'a trainee cannot take an appointment out of their review');
+__setSession({username:'boss',userType:'Admin',fullName:'Trainer Bo',batchId:'MASTER'});
+r=await call('POST',{exclude:{user:'ann',track:'nope',ids:['x']}});ck(r.st===400,'an unknown simulator is refused when removing from a review');
+r=await call('POST',{exclude:{user:'ann',track:'standard',ids:['e1@2026-10-06','e1@2026-10-06','  ',7]}});ck(r.st===200&&r.j.excluded.join()==='e1@2026-10-06,7','a trainer removes appointments from a review (cleaned, no repeats)');
+r=await call('GET',null,'?user=ann');ck(r.j.data.excluded.standard.length===2&&r.j.data.scorecards.standard.length===1,'the removal is kept in the trainee\'s record beside the scorecards');
+__setSession({username:'ann',userType:'Trainee',fullName:'Ann Lee',batchId:'B1'});
+r=await call('POST',{data:{v:2,drafts:{},submissions:[],excluded:{standard:[]}}});r=await call('GET');ck(r.j.data.excluded.standard.length===2,'the trainee\'s saves keep what the trainer removed (and can\'t write their own)');
+__setSession({username:'boss',userType:'Admin',fullName:'Trainer Bo',batchId:'MASTER'});
+r=await call('POST',{exclude:{user:'ann',track:'standard',ids:[]}});r=await call('GET',null,'?user=ann');ck(r.j.data.excluded.standard===undefined,'putting everything back clears it');
 console.log(fails.length?'FAILED':'all passed');process.exit(fails.length?1:0);

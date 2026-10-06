@@ -13,6 +13,8 @@ import { json, requireSession } from '../_utils.js';
 //   POST /api/calsim { scorecard: { user, track, rows: [{ score 0-5, feedback }], calendarAt } }   (admins) the trainer's
 //        CALENDAR MANAGEMENT MOCK CALL scorecard on the trainee's calendar (simulators/cal-scorecard.js), kept under
 //        scorecards[track], newest last (the last 20). Like the reviews, a save from the trainee never changes them.
+//   POST /api/calsim { exclude: { user, track, ids: [appointment ids] } }   (admins) appointments the trainer took out of this trainee's review and score
+//        on a simulator (a sample or test appointment that isn't a caller's request), kept under excluded[track]; the trainee's saves never change them.
 const MAX_BYTES = 400000;
 // The scorecard's metrics, in the sheet's order (simulators/cal-scorecard.js has the same list; the checks keep them equal).
 export const SCORECARD_TITLE = 'CALENDAR MANAGEMENT MOCK CALL';
@@ -96,6 +98,20 @@ export async function onRequestPost({ request, env }) {
         return json({ success: true, scorecard: card, scorecards: d.scorecards[track] });
     }
 
+    if (body.exclude) {
+        if (!admin) return json({ success: false, error: 'Admin access required.' }, 403);
+        const c = body.exclude, user = clean(c.user, 80), track = SCORECARD_TRACKS.includes(c.track) ? c.track : '';
+        if (!user || !track || !Array.isArray(c.ids)) return json({ success: false, error: 'A trainee, a simulator and the appointments are required.' }, 400);
+        const ids = [...new Set(c.ids.map(x => clean(x, 120)).filter(Boolean))].slice(0, 60);
+        const row = await db.prepare(`SELECT data FROM calsim_records WHERE username = ?`).bind(user).first();
+        const d = (row && parse(row.data)) || { v: 2, drafts: {}, autos: [], submissions: [], reviews: {}, external: [] };
+        d.excluded = d.excluded && typeof d.excluded === 'object' ? d.excluded : {};
+        if (ids.length) d.excluded[track] = ids; else delete d.excluded[track];
+        await db.prepare(`INSERT INTO calsim_records (username, data, updated_at) VALUES (?, ?, ?) ON CONFLICT(username) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`)
+            .bind(user, JSON.stringify(d), new Date().toISOString()).run();
+        return json({ success: true, excluded: d.excluded[track] || [] });
+    }
+
     if (!body.data || typeof body.data !== 'object') return json({ success: false, error: 'data is required.' }, 400);
     if (admin) return json({ success: true, preview: true });   // a trainer's preview saves nothing
     const text = JSON.stringify(body.data);
@@ -105,6 +121,7 @@ export async function onRequestPost({ request, env }) {
     const next = body.data;
     next.reviews = (old && old.reviews) || {};   // the trainer's feedback is theirs: a save from the trainee never changes it
     next.scorecards = (old && old.scorecards) || {};   // (and their scorecards)
+    next.excluded = (old && old.excluded) || {};       // (and what they took out of the review)
     await db.prepare(`INSERT INTO calsim_records (username, data, updated_at) VALUES (?, ?, ?) ON CONFLICT(username) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`)
         .bind(s.username, JSON.stringify(next), new Date().toISOString()).run();
     return json({ success: true, reviews: next.reviews, scorecards: next.scorecards });
