@@ -216,6 +216,27 @@ async function calsimSummary(db, usersDb) {
                 p.weeks.push({ label, at: g.at || null, auto: g.result && num(g.result.score) ? g.result.score : null, score: rev && num(rev.score) ? rev.score : null, comment: rev ? str(rev.comment, 400) : '' });
             }
         }
+        // 📤 Submit for evaluation (gcal_reviews, functions/api/gcal-reviews.js): the latest per trainee and track, with the trainer's
+        // score and notes once the report is final; it takes the place of an older submission of the same track above.
+        try {
+            const GTR = { standard: ['ft', 'Google Calendar · Standard Training'], cm: ['cm', 'Google Calendar · Litigation Week'], ea: ['eapa', 'Google Calendar · Executive Week'] };
+            const { results: ev } = await db.prepare(`SELECT username, name, track, submitted_at, check_score, trainer, status FROM gcal_reviews ORDER BY id ASC LIMIT 5000`).all();
+            const last = {};
+            for (const r of ev || []) if (GTR[r.track]) last[r.username + '|' + r.track] = r;
+            for (const r of Object.values(last)) {
+                const u = await usersDb.prepare(`SELECT first_name, last_name FROM users WHERE username = ?`).bind(r.username).first();
+                const key = nameKey(u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : (r.name || r.username));
+                if (!key) continue;
+                const [program, label] = GTR[r.track];
+                let t = null; try { t = JSON.parse(r.trainer || 'null'); } catch (e) { t = null; }
+                const fin = r.status === 'final';
+                const p = (byName[key] || (byName[key] = {}))[program] || (byName[key][program] = { weeks: [] });
+                const old = p.weeks.findIndex(w => w.label === label);
+                if (old >= 0 && String(p.weeks[old].at || '') > String(r.submitted_at)) continue;
+                if (old >= 0) p.weeks.splice(old, 1);
+                p.weeks.push({ label, at: r.submitted_at, auto: num(r.check_score) ? r.check_score : null, score: fin && t && num(t.score) ? t.score : null, comment: fin && t ? str(t.notes, 400) : '' });
+            }
+        } catch (e) { /* no evaluations yet */ }
         return byName;
     } catch (e) { return {}; }   // no calendars saved yet
 }

@@ -1,5 +1,5 @@
-// Submit to the trainer and the trainer's review, inside the Google Calendar look (simulators/gcal.js, calsim.html's list of submissions):
-// a trainee checks and submits their calendar (kept in their /api/calsim record), a trainer opens it read only, scores it and comments,
+// The trainer's review inside the Google Calendar look (simulators/gcal.js ?review=, calsim.html's list of submissions) of the submissions
+// made with 📤 Submit to my trainer (kept in the trainee's /api/calsim record): a trainer opens one read only, scores it and comments,
 // the trainee sees the feedback, and the trainer's list shows it.
 // Usage: node .github/scripts/gcal-review.cjs   (from the repository root; needs `npm i playwright`)
 const { chromium } = require('playwright');
@@ -42,18 +42,16 @@ const server = http.createServer((req, res) => {
         return page;
     };
     const panelText = (p) => p.evaluate(() => (document.querySelector('#gc-panel') || {}).innerText || '');
-    // 1. a trainee checks and submits (Litigation Week)
+    // 1. a submission made with 📤 Submit to my trainer (before 📤 Submit for evaluation, functions/api/gcal-reviews.js, took its place):
+    //    kept in the trainee's /api/calsim record; the trainee sees it, and the page's one Submit button is 📤 Submit for evaluation
+    rec = { v: 2, drafts: {}, autos: [], submissions: [], reviews: {}, external: [], gsubs: [{ track: 'cm', at: '2026-10-06T12:00:00.000Z',
+        result: { score: 40, right: 1, penalty: 0, extra: [], at: '2026-10-06T12:00:00.000Z', results: [{ head: 'Book – Ci Client', when: 'Wed, Oct 7 · 2 – 2:30pm', pts: 5, max: 10, items: [{ ok: true, t: 'On the Attorney’s Calendar.' }, { ok: false, t: 'Add an email notification 1 day before.' }] }] },
+        snap: { events: [], ex: {}, sx: {}, reqs: [], today: '2026-10-06', rows: [] } }] };
+    const sub = rec.gsubs[0];
     role = 'trainee';
     let page = await open('/simulators/gcal.html?track=cm');
-    await page.click('#gc-rail [data-a="check"]'); await page.waitForTimeout(400);
-    await page.click('#gc-panel [data-a="gsubmit"]'); await page.waitForTimeout(300);
-    const ok = await page.$('.gc-dlg [data-ok]'); if (!ok) fail('the submit dialog did not open'); else { await ok.click(); await page.waitForTimeout(1500); }
-    if (!rec || !Array.isArray(rec.gsubs) || rec.gsubs.length !== 1) fail('submitting did not keep a Google Calendar submission');
-    const sub = rec && rec.gsubs && rec.gsubs[0];
-    if (sub) {
-        if (sub.track !== 'cm' || !sub.result || !sub.result.results.length || !sub.snap || !Array.isArray(sub.snap.rows) || !sub.snap.rows.length || !Array.isArray(sub.snap.reqs)) fail('the submission is incomplete: ' + JSON.stringify(sub).slice(0, 160));
-    }
-    if (!/waiting for your trainer/i.test(await panelText(page)) && !/Submitted/.test(await panelText(page))) fail('the trainee does not see their submission: ' + (await panelText(page)).slice(0, 100));
+    if (!/Submitted/.test(await panelText(page))) fail('the trainee does not see their earlier submission: ' + (await panelText(page)).slice(0, 100));
+    if (await page.$('[data-a="gsubmit"]') || !(await page.$('#gc-rail [data-a="submit-eval"]'))) fail('the one Submit button should be 📤 Submit for evaluation');
     await page.close();
     // 2. a trainer opens it, read only, and gives feedback
     role = 'admin';

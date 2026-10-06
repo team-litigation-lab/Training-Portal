@@ -63,7 +63,8 @@ async function gsList(only) {
     const E = (t) => Sim.esc(t), todo = rows.filter(x => !x.rv).length;
     box.innerHTML = `<div style="max-width:1180px;margin:0 auto;padding:10px 16px"><div class="card" style="padding:16px 18px;background:#fff;border:1px solid #e5e7eb;border-radius:14px">
         <h3 style="margin:0 0 4px;font-family:inherit">📅 Google Calendar Simulator submissions${only ? ' · ' + E(NAMES[only] || only) : ''}</h3>
-        <p style="margin:0 0 10px;color:#64748b;font-size:13px">Open a submission to see the calendar the trainee built, the automated check, and add your score and feedback. ${rows.length ? `${rows.length} submitted${todo ? `, ${todo} to review` : ', all reviewed'}.` : ''}</p>
+        <p style="margin:0 0 10px;font-size:13.5px"><a class="sim-btn orange" style="text-decoration:none" href="/simulators/gcal-review.html${only ? '?track=' + E(only) : ''}">🖥 Trainee evaluations →</a> <span style="color:#64748b">New submissions (📤 Submit for evaluation) are there: the trainee’s calendar, the automated check, the AI review, your feedback and the final report.</span></p>
+        <p style="margin:0 0 10px;color:#64748b;font-size:13px">Earlier submissions: open one to see the calendar the trainee built, the automated check, and add your score and feedback. ${rows.length ? `${rows.length} submitted${todo ? `, ${todo} to review` : ', all reviewed'}.` : ''}</p>
         ${rows.length ? `<div style="display:grid;gap:6px">${rows.map(x => `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px;font-size:13.5px">
             <b style="min-width:150px">${E(x.r.name)}</b><span style="color:#64748b">${E(x.r.batch || 'No batch')}</span><span>${E(NAMES[x.g.track] || x.g.track)}</span>
             <span style="color:#64748b">${E(new Date(x.g.at).toLocaleString())}</span><span>🤖 ${E(x.g.result && x.g.result.score)}%</span>
