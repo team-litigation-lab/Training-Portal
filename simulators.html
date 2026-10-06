@@ -77,7 +77,7 @@
                 <div class="row" style="margin-top:0;"><span class="icon">${s.icon}</span><span class="sim-chip ${CHIP[s.status][0]}">${CHIP[s.status][1]}</span></div>
                 <h3>${Sim.esc(s.title)}</h3>
                 <p>${Sim.esc(s.desc)}</p>
-                ${s.links ? `<div class="hub-links">${s.links.map(l => `<a class="sim-btn ghost" href="${l[1]}">${Sim.esc(l[0])}</a>`).join('')}</div>` : ''}
+                ${s.links ? `<div class="hub-links">${(s.id === 'calsim' ? s.links.concat([Sim.isAdmin() ? ['🖥 Trainee Evaluations (trainer review and feedback)', '/simulators/gcal-review.html'] : ['📋 My Evaluations: my calendars and my reports', '/simulators/my-evaluations.html']]) : s.links).map(l => `<a class="sim-btn ghost" href="${l[1]}">${Sim.esc(l[0])}</a>`).join('')}</div>` : ''}
                 <div class="row"><span class="uses">${Sim.esc(s.uses)}</span>
                     ${s.href ? `<a class="sim-btn primary" href="${s.href}">Open →</a>` : `<button class="sim-btn ghost" disabled>Not yet</button>`}</div>
             </div>`).join('');
@@ -106,7 +106,8 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', () => { renderHub(); renderResults(); });
+    // A new tab has the signed cookie but no copy of who in its own storage: ask first, so an admin gets the admin hub and results, and the heartbeat runs.
+    document.addEventListener('DOMContentLoaded', async () => { await Sim.restore(); renderHub(); renderResults(); });
 </script>
 </body>
 </html>

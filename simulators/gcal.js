@@ -422,17 +422,20 @@ function fresh() {
     return { v: 1, today, view: innerWidth < 640 ? 'day' : 'week', anchor: today, mini: today.slice(0, 7), side: innerWidth > 900, panel: innerWidth > 1100 ? 'requests' : '',
         hidden: {}, set: { dur: 30, weekends: false, tz2: false }, events: [], ex: {}, sx: {}, reqs: OPEN ? [] : dealRequests(today), result: null };
 }
-function load() { try { const s = JSON.parse(localStorage.getItem(KEY()) || 'null'); if (s && s.v === 1 && Array.isArray(s.reqs)) { if (OPEN) s.reqs = []; return s; } } catch (e) { /* none */ } return null; }
+function load() { try { const s = JSON.parse(localStorage.getItem(KEY()) || 'null'); if (s && s.v === 1 && Array.isArray(s.reqs)) { if (OPEN) { s.reqs = []; s.today = simToday(); } return s; } } catch (e) { /* none */ } return null; }   // (Standard Training has no dealt set: its today follows the calendar)
+// What counts as the calendar's content (a view or a panel opening is not: it is kept in this browser but never sent as a newer copy)
+const sigNow = () => S ? JSON.stringify([S.events, S.ex, S.sx, (S.reqs || []).map(q => [q.id, q.done]), S.set, S.hidden]) : '';
 function save(local) {
     if (RV) return;   // a trainer reviewing a trainee's calendar (?review=) saves nothing
-    if (!local && S) S.savedAt = Date.now();
+    const changed = sigNow() !== CLOUD.sig;
+    if (!local && S && changed) S.savedAt = Date.now();
     try { localStorage.setItem(KEY(), JSON.stringify(S)); } catch (e) { /* private mode */ }
-    if (!local) cloudQueue();
+    if (!local && changed) cloudQueue();
 }
 /* ---------- 💾 saved to the trainee's Portal account (/api/gcal-reviews?draft=…), so their work isn't lost ----------
    Every change is kept in this browser at once and sent to their account 3 seconds after the last one (and when the page
    closes). On opening, the newer of the two comes back: their calendar follows them to another browser or computer. */
-const CLOUD = { state: '', at: 0, timer: null, busy: false, again: false };
+const CLOUD = { state: '', at: 0, timer: null, busy: false, again: false, base: null, sig: '' };   // base: the updatedAt of the copy on their account this one was made from; sig: what was last in sync
 const cloudOn = () => !Sim.isAdmin();
 function cloudQueue() { if (!cloudOn()) return; clearTimeout(CLOUD.timer); CLOUD.state = CLOUD.state === 'off' ? 'off' : 'pending'; paintCloud(); CLOUD.timer = setTimeout(cloudSave, 3000); }
 async function cloudSave(keep) {
@@ -441,37 +444,39 @@ async function cloudSave(keep) {
     if (CLOUD.busy) { CLOUD.again = true; return; }
     CLOUD.busy = true; CLOUD.state = 'saving'; paintCloud();
     try {
-        const res = await fetch(EV_API, { method: 'POST', credentials: 'include', keepalive: !!keep, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'draft', track: GCAL_TRACK || 'standard', data: S }) });
+        const res = await Sim.fetchRetry(EV_API, { method: 'POST', credentials: 'include', keepalive: !!keep, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'draft', track: GCAL_TRACK || 'standard', data: S, base: CLOUD.base }) });
         const d = await res.json().catch(() => ({}));
         if (res.status === 401) CLOUD.state = 'off';
-        else if (res.ok && d.success) { CLOUD.state = 'saved'; CLOUD.at = Date.now(); }
+        else if (res.status === 409 && d.code === 'DRAFT_NEWER') { CLOUD.state = 'newer'; CLOUD.again = false; snack('A newer copy of this calendar is saved to your account (another tab or device). Yours wasn’t sent.'); }
+        else if (res.ok && d.success) { CLOUD.state = 'saved'; CLOUD.at = Date.now(); CLOUD.base = d.updatedAt || CLOUD.base; CLOUD.sig = sigNow(); }
         else CLOUD.state = 'error';
     } catch (e) { CLOUD.state = 'error'; }
     CLOUD.busy = false; paintCloud();
     if (CLOUD.again) { CLOUD.again = false; cloudSave(); }
 }
-async function cloudLoad() {
+async function cloudLoad(force) {
     if (!cloudOn()) return;
     try {
-        const res = await fetch(EV_API + '?draft=' + encodeURIComponent(GCAL_TRACK || 'standard'), { credentials: 'include' });
+        const res = await Sim.fetchRetry(EV_API + '?draft=' + encodeURIComponent(GCAL_TRACK || 'standard'), { credentials: 'include' });
         if (res.status === 401) { CLOUD.state = 'off'; paintCloud(); return; }
         const d = await res.json().catch(() => ({}));
         const c = d && d.success && d.data;
-        if (c && c.v === 1 && Array.isArray(c.events) && (c.savedAt || 0) > ((S && S.savedAt) || 0)) {
-            if (OPEN) c.reqs = []; else if (!Array.isArray(c.reqs)) c.reqs = S.reqs;
-            S = c; save(true); CLOUD.state = 'saved'; CLOUD.at = c.savedAt; closeAll(); render(); snack('Your saved calendar is back');
+        if (d && d.success) CLOUD.base = d.updatedAt || null;
+        if (c && c.v === 1 && Array.isArray(c.events) && (force || (c.savedAt || 0) > ((S && S.savedAt) || 0))) {
+            if (OPEN) { c.reqs = []; c.today = simToday(); } else if (!Array.isArray(c.reqs)) c.reqs = S.reqs;
+            S = c; CLOUD.sig = sigNow(); save(true); CLOUD.state = 'saved'; CLOUD.at = c.savedAt; closeAll(); render(); snack(force ? 'The newer copy is open' : 'Your saved calendar is back');
         } else if (S && S.savedAt && (!c || (c.savedAt || 0) < S.savedAt)) cloudSave();   // this browser has newer work: send it
-        else { CLOUD.state = c ? 'saved' : ''; CLOUD.at = c ? c.savedAt : 0; paintCloud(); }
+        else { CLOUD.state = c ? 'saved' : ''; CLOUD.at = c ? c.savedAt : 0; if (c) CLOUD.sig = sigNow(); paintCloud(); }
     } catch (e) { CLOUD.state = 'error'; paintCloud(); }
 }
 function cloudText() {
     const t = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     return ({ pending: 'Unsaved changes…', saving: 'Saving…', saved: CLOUD.at ? `✓ Saved to your account ${t(CLOUD.at)}` : '✓ Saved to your account',
-        error: '⚠ Not saved to your account yet (kept in this browser). Try 💾 Save again.', off: 'Sign in to the LSH Training Portal to save your calendar to your account (it’s kept in this browser for now).' })[CLOUD.state] || 'Your calendar saves to your account as you work.';
+        error: '⚠ Not saved to your account yet (kept in this browser). Try 💾 Save again.', newer: '⚠ A newer copy of this calendar is saved to your account (another tab or device). Your changes here are kept in this browser, not sent.', off: 'Sign in to the LSH Training Portal to save your calendar to your account (it’s kept in this browser for now).' })[CLOUD.state] || 'Your calendar saves to your account as you work.';
 }
 function cloudHtml() {
     if (!cloudOn() || RV) return '';   // (a trainer looking at a trainee's calendar saves nothing)
-    return `<div class="cloud ${CLOUD.state}" id="gc-cloud"><span>${esc(cloudText())}</span><button class="txt" data-a="cloud-save" style="padding:0 8px;height:28px">💾 Save</button></div>`;
+    return `<div class="cloud ${CLOUD.state}" id="gc-cloud"><span>${esc(cloudText())}</span>${CLOUD.state === 'newer' ? '<button class="txt" data-a="cloud-newer" style="padding:0 8px;height:28px">Open the newer copy</button>' : '<button class="txt" data-a="cloud-save" style="padding:0 8px;height:28px">💾 Save</button>'}</div>`;
 }
 function paintCloud() { const n = document.getElementById('gc-cloud'); if (n) n.outerHTML = cloudHtml(); }
 window.addEventListener('pagehide', () => { if (CLOUD.state === 'pending' || CLOUD.state === 'error') cloudSave(true); });
@@ -485,7 +490,7 @@ function undo() { if (!G.undo) return; const u = JSON.parse(G.undo); S.events = 
 // An Admin's change to the weekly schedule, for everyone
 async function putRows() {
     try {
-        const res = await fetch(API_SCHEDULE, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: ROWS }) });
+        const res = await Sim.fetchRetry(API_SCHEDULE, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: ROWS }) });
         const data = await res.json().catch(() => ({}));
         if (!data.success) snack(data.error || 'The schedule wasn’t saved. Try again.');
     } catch (e) { snack('The schedule wasn’t saved (no connection).'); }
@@ -575,7 +580,8 @@ function render() {
     const app = $('#app');
     if (!$('#gc')) {
         app.innerHTML = `<div class="gc" id="gc" tabindex="-1"><div class="gc-head" id="gc-head"></div>
-            <div class="gc-body"><aside class="gc-side" id="gc-side"></aside><main class="gc-main" id="gc-main"></main><aside class="gc-panel" id="gc-panel"></aside></div><nav class="gc-rail" id="gc-rail" aria-label="Calendar tools"></nav></div>`;
+            <div class="gc-body"><aside class="gc-side" id="gc-side"></aside><main class="gc-main" id="gc-main"></main><aside class="gc-panel" id="gc-panel"></aside></div><nav class="gc-rail" id="gc-rail" aria-label="Calendar tools"></nav></div>
+            <section class="gc-scores" id="gc-scores" aria-label="Scores"></section>`;
         bind();
     }
     renderHead(); renderSide(); renderMain(); renderPanel(); renderRail();
@@ -715,7 +721,8 @@ function renderRail() {
             ${b(S.panel === 'requests', 'data-a="panel" data-p="requests"', 'req', OPEN ? 'Your appointments' : 'Calendar requests', !OPEN && open)}
             ${b(S.panel === 'rules', 'data-a="panel" data-p="rules"', 'book', WW("The attorney's rules"))}
             ${b(S.panel === 'result' || (S.result && S.panel === 'requests'), 'data-a="check"', 'grade', 'Check my calendar')}
-            ${b(S.panel === 'evals', 'data-a="evals"', 'notes', Sim.isAdmin() ? 'Trainee evaluations' : 'My evaluations', EV.ready)}</div>
+            ${Sim.isAdmin() ? `<a class="rb" id="gc-evals-link" href="${REVIEW_PAGE}" title="Trainee Evaluations: the submissions with their AI review, and your trainees' calendars">${ic('notes')}<span>Trainee evaluations</span></a>`   // (a trainer goes to the Trainee Evaluations page: a plain link, in this tab, like every Portal page)
+                : b(S.panel === 'evals', 'data-a="evals"', 'notes', 'My evaluations', EV.ready)}</div>
         <div class="rb-group rb-end">${cloudHtml()}${Sim.isAdmin() || RV ? '' : '<button class="blue" data-a="submit-eval">📤 Submit for evaluation</button>'}</div>`;
 }
 function reqCard(q) {
@@ -732,8 +739,9 @@ function reqCard(q) {
         <q>${esc(R.said)}</q><div class="av2">${when}</div>
         <div class="acts"><button class="txt" data-a="req-go" data-id="${esc(q.id)}">Show on calendar</button><label><input type="checkbox" data-done="${esc(q.id)}" ${q.done ? 'checked' : ''}> Done</label></div></div>`;
 }
-function renderPanel() {
-    const panel = $('#gc-panel'); panel.classList.toggle('off', !S.panel); panel.classList.toggle('tv', !!(RV && RV.live && S.panel && S.panel !== 'rules' && S.panel !== 'evals'));
+function renderPanel() { renderSidePanel(); renderScores(); }
+function renderSidePanel() {
+    const panel = $('#gc-panel'); panel.classList.toggle('off', !S.panel);
     if (!S.panel) { panel.innerHTML = ''; return; }
     const head = (t) => `<div class="ph"><h3>${t}</h3><button class="ib" data-a="panel" data-p="" aria-label="Close panel">${ic('close')}</button></div>`;
     if (S.panel === 'rules') {
@@ -746,20 +754,20 @@ function renderPanel() {
         return;
     }
     if (S.panel === 'evals') { panel.innerHTML = head('My evaluations') + `<div class="pb">${evalsHtml()}</div>`; return; }
-    if (S.panel === 'result' && RV && RV.sub) { reviewPanel(panel, head); return; }
-    if (RV && RV.live) { livePanel(panel, head); return; }
     if (OPEN) {
         const r = checkOpen(S, S.today);
         panel.innerHTML = head('Your appointments') + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). Take a <b>Calendar Management mock call</b>, then book what the caller asks for on the <b>Attorney’s Calendar</b>, under the attorney’s rules (📖 in the bar below) and the caller’s preferences. Put the caller’s name, callback number, DOB, DOL and what it’s about in the description.</p>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="submit-eval" title="Send your appointments to your trainer for an AI and trainer review">📤 Submit for evaluation</button></div>
+            ${RV ? '' : '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="submit-eval" title="Send your appointments to your trainer for an AI and trainer review">📤 Submit for evaluation</button></div>'}
             ${r.results.length ? r.results.map(x => `<div class="rq"><b>${esc(x.head)}</b><div class="av2">${esc(x.when)}</div><div class="acts"><button class="txt" data-a="appt-go" data-d="${esc(x.date)}">Show on calendar</button></div></div>`).join('')
-                : '<p class="lead" style="color:#70757a">No appointments yet. Drag on the calendar or click <b>Create</b> to book one.</p>'}${myScorecardBox()}${S.result ? checkSection(S.result) : ''}</div>`;
+                : `<p class="lead" style="color:#70757a">${RV ? 'No appointments on this calendar.' : 'No appointments yet. Drag on the calendar or click <b>Create</b> to book one.'}</p>`}
+            <p class="lead" style="margin-top:10px"><a href="#gc-scores" data-a="to-scores">📊 ${RV ? 'The scores' : 'Your scores'} are below the calendar ↓</a></p></div>`;
         return;
     }
     const open = S.reqs.filter(q => !q.done).length;
     panel.innerHTML = head('Calendar requests' + (TRK ? ' · ' + esc(CFG.label) : '')) + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). These callers want appointments booked, moved or cancelled on the ${WW('attorney’s')} calendar. ${open ? `${open} still open.` : 'All marked done.'}</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="submit-eval" title="Send these appointments to your trainer for an AI and trainer review">📤 Submit for evaluation</button><button class="pill" data-a="new-set">New set</button></div>
-        ${myScorecardBox()}${mySubBox()}${S.reqs.map(reqCard).join('')}${S.result ? checkSection(S.result) : ''}</div>`;
+        ${RV ? '' : '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="submit-eval" title="Send these appointments to your trainer for an AI and trainer review">📤 Submit for evaluation</button><button class="pill" data-a="new-set">New set</button></div>'}
+        <p class="lead"><a href="#gc-scores" data-a="to-scores">📊 ${RV ? 'The scores' : 'Your scores'} are below the calendar ↓</a></p>
+        ${S.reqs.map(reqCard).join('')}</div>`;
 }
 
 /* ---------- popovers: quick create, event card ---------- */
@@ -981,7 +989,7 @@ function settings(anchor) {
         <label style="display:flex;gap:8px;align-items:center;padding:6px 0"><input type="checkbox" data-set="tz2" ${S.set.tz2 ? 'checked' : ''}> Show Manila time too</label>
         <button class="txt" data-a="reset" style="margin-top:6px;padding:0">Start over (clear my calendar)</button>
         ${Sim.isAdmin() ? `<button class="txt" data-a="admin-edit" style="margin-top:2px;padding:0">${G.admin ? 'Stop editing the weekly schedule' : '✎ Edit the weekly schedule (everyone)'}</button>
-        <a class="txt" href="${REVIEW_PAGE}" target="_blank" rel="noopener" style="display:block;margin-top:2px;padding:0;line-height:36px;text-decoration:none">🖥 Trainee evaluations (live review)</a>` : ''}</div>`);
+        <a class="txt" href="${REVIEW_PAGE}" style="display:block;margin-top:2px;padding:0;line-height:36px;text-decoration:none">🖥 Trainee evaluations (live review)</a>` : ''}</div>`);
 }
 
 /* ---------- moving around ---------- */
@@ -1001,8 +1009,8 @@ function createAt(date, start) {
 function doCheck() {
     if (RV) return;
     const r = checkNow();
-    S.result = Object.assign(r, { at: new Date().toISOString() }); S.panel = 'requests'; save(); closeAll(); render();
-    setTimeout(() => { const c = $('#gc-check'); if (c && c.scrollIntoView) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
+    S.result = Object.assign(r, { at: new Date().toISOString() }); save(); closeAll(); render();
+    setTimeout(toScores, 60);
     Sim.saveResult({ simulator: 'Google Calendar', scenario: OPEN ? `${CFG.scenario} · ${r.results.length} appointments` : `${CFG.scenario} · ${S.reqs.length} requests`, score: r.score,
         summary: `${r.right}/${r.results.length} ${OPEN ? 'appointments' : 'requests'} fully right${r.penalty ? `; −${r.penalty} for unasked changes` : ''}`,
         details: { results: r.results.map(x => ({ request: x.head, points: Math.round(x.pts * 10) / 10, max: x.max, missed: x.items.filter(i => !i.ok).map(i => i.t) })), extra: r.extra } });
@@ -1023,12 +1031,12 @@ const slimResult = (r) => ({ score: r.score, right: r.right, penalty: r.penalty 
 const resRows = (r) => r.results.map(x => `<div class="res-r"><h5><span>${esc(x.head)}</span><span>${Math.round(x.pts * 10) / 10}/${x.max}</span></h5>${x.when ? `<div style="color:#70757a;margin-bottom:4px">${esc(x.when)}</div>` : ''}<ul>${x.items.map(i => `<li class="${i.ok ? 'ok' : 'no'}"><span>${esc(i.t)}</span></li>`).join('')}</ul></div>`).join('')
     + (r.extra && r.extra.length ? `<div class="res-r"><h5><span>Changed without a request</span><span>−${r.penalty}</span></h5><ul>${r.extra.map(t => `<li class="no"><span>${esc(t)}</span></li>`).join('')}</ul></div>` : '');
 async function recFetch(user) {
-    const r = await fetch('/api/calsim' + (user ? '?user=' + encodeURIComponent(user) : ''), { credentials: 'include' }), j = await r.json().catch(() => ({}));
+    const r = await Sim.fetchRetry('/api/calsim' + (user ? '?user=' + encodeURIComponent(user) : ''), { credentials: 'include' }), j = await r.json().catch(() => ({}));
     if (!r.ok || !j.success) throw new Error(j.error || 'Sign in on the Portal first.');
     return j;
 }
 async function recPost(body) {
-    const r = await fetch('/api/calsim', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), j = await r.json().catch(() => ({}));
+    const r = await Sim.fetchRetry('/api/calsim', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), j = await r.json().catch(() => ({}));
     if (!r.ok || j.success === false) throw new Error(j.error || 'Couldn’t save. Check your connection.');
     return j;
 }
@@ -1040,16 +1048,17 @@ function mySubBox() {
     const per = rv && rv.tasks ? last.result.results.map((x, i) => rv.tasks['r' + i] ? `<li><b>${esc(x.head)}:</b> ${esc(rv.tasks['r' + i])}</li>` : '').join('') : '';
     return `<div class="rq"><div class="nm">📤 Submitted ${esc(new Date(last.at).toLocaleString())} · 🤖 ${last.result.score}%</div>${rv ? `<div class="av2"><b>👤 Your trainer: ${esc(rv.score)}/100</b>${rv.comment ? '<br>' + esc(rv.comment) : ''}${per ? '<ul>' + per + '</ul>' : ''}</div>` : '<div class="av2">Waiting for your trainer’s feedback.</div>'}</div>`;
 }
-function reviewPanel(panel, head) {
+// A review of a submission (?review=): the automated check and the trainer's feedback form, below the calendar.
+function reviewScoresHTML() {
     const r = RV.sub.result, rv = RV.review || {}, col = r.score >= 85 ? '#188038' : r.score >= 70 ? '#e37400' : '#d93025';
-    panel.innerHTML = head('Review · ' + esc(CFG.label)) + `<div class="pb"><p class="lead" style="margin:0 0 8px"><b>${esc(RV.name)}</b>${RV.batch ? ' · ' + esc(RV.batch) : ''}<br><span style="color:#70757a">Submitted ${esc(new Date(RV.sub.at).toLocaleString())}. The calendar is on the left, read only.</span></p>
-        <div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.score}%</div><div class="lead" style="margin:0">Automated check: ${r.right} of ${r.results.length} requests fully right.${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}</div></div>
-        ${resRows(r)}
-        <div class="res-r"><h5><span>👤 Your feedback</span><span>${rv.score != null ? 'given' : 'to review'}</span></h5>
+    return `<h2>📊 Review · ${esc(CFG.label)}</h2><p class="lead" style="margin:0 0 12px"><b>${esc(RV.name)}</b>${RV.batch ? ' · ' + esc(RV.batch) : ''} · Submitted ${esc(new Date(RV.sub.at).toLocaleString())}. The calendar is above, read only.</p>
+        <div class="sc-grid"><div><div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.score}%</div><div class="lead" style="margin:0">Automated check: ${r.right} of ${r.results.length} requests fully right.${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}</div></div>
+        ${resRows(r)}</div>
+        <div><div class="res-r"><h5><span>👤 Your feedback</span><span>${rv.score != null ? 'given' : 'to review'}</span></h5>
             <p style="margin:0 0 6px"><label>Score (0–100)<br><input type="number" min="0" max="100" id="rv-score" value="${rv.score != null ? esc(rv.score) : ''}" style="width:90px;font:inherit;padding:6px 8px;border:1px solid #dadce0;border-radius:6px"></label></p>
-            <p style="margin:0 0 6px"><label>Overall comment to the trainee<br><textarea id="rv-comment" rows="3" style="width:100%;font:inherit;padding:6px 8px;border:1px solid #dadce0;border-radius:6px">${esc(rv.comment || '')}</textarea></label></p>
-            ${r.results.map((x, i) => `<p style="margin:0 0 6px"><label>${esc(x.head)}<br><input id="rv-t${i}" maxlength="400" value="${esc((rv.tasks || {})['r' + i] || '')}" placeholder="Comment on this request (optional)" style="width:100%;font:inherit;padding:6px 8px;border:1px solid #dadce0;border-radius:6px"></label></p>`).join('')}
-            <button class="blue" data-a="rv-save">${rv.score != null ? 'Update feedback' : 'Save feedback'}</button></div></div>`;
+            <p style="margin:0 0 6px"><label>Overall comment to the trainee<br><textarea id="rv-comment" rows="3" style="width:100%;box-sizing:border-box;font:inherit;padding:6px 8px;border:1px solid #dadce0;border-radius:6px">${esc(rv.comment || '')}</textarea></label></p>
+            ${r.results.map((x, i) => `<p style="margin:0 0 6px"><label>${esc(x.head)}<br><input id="rv-t${i}" maxlength="400" value="${esc((rv.tasks || {})['r' + i] || '')}" placeholder="Comment on this request (optional)" style="width:100%;box-sizing:border-box;font:inherit;padding:6px 8px;border:1px solid #dadce0;border-radius:6px"></label></p>`).join('')}
+            <button class="blue" data-a="rv-save">${rv.score != null ? 'Update feedback' : 'Save feedback'}</button></div></div></div>`;
 }
 async function saveReview() {
     const sc = Number(($('#rv-score') || {}).value), raw = ($('#rv-score') || {}).value;
@@ -1085,7 +1094,7 @@ async function liveStart(again) {
     if (!again) { S = fresh(); S.panel = 'result'; render(); }
     try {
         const [dr, j] = await Promise.all([
-            fetch(EV_API + '?draft=' + encodeURIComponent(GCAL_TRACK || 'standard') + '&user=' + encodeURIComponent(RV.user), { credentials: 'include' }).then(r => r.json()),
+            Sim.fetchRetry(EV_API + '?draft=' + encodeURIComponent(GCAL_TRACK || 'standard') + '&user=' + encodeURIComponent(RV.user), { credentials: 'include' }).then(r => r.json()),
             recFetch(RV.user)]);
         if (!j.me || !j.me.admin) throw new Error('Viewing a trainee’s calendar is for trainers.');
         if (!dr || !dr.success) throw new Error((dr && dr.error) || 'Their calendar couldn’t be loaded.');
@@ -1093,7 +1102,7 @@ async function liveStart(again) {
         RV.cards = ((j.data && j.data.scorecards) || {})[GT] || [];
         RV.savedAt = dr.updatedAt || null;
         try {   // the weekly schedule as an Admin set it, before the check
-            const sch = await (await fetch(API_SCHEDULE, { credentials: 'include' })).json();
+            const sch = await (await Sim.fetchRetry(API_SCHEDULE, { credentials: 'include' })).json();
             if (sch && sch.success && Array.isArray(sch.rows) && sch.rows.length && sch.rows.every(r => r && r.id && r.title && /^\d\d:\d\d$/.test(r.start))) ROWS = sch.rows;
         } catch (e) { /* the schedule as it came */ }
         const c = dr.data, keep = S ? { view: S.view, anchor: S.anchor, mini: S.mini } : {};
@@ -1106,17 +1115,31 @@ async function liveStart(again) {
         if (again) snack('Their calendar is up to date');
     } catch (e) { $('#app').innerHTML = `<div class="sim-card" style="margin:20px"><p>${esc(e.message)}</p></div>`; }
 }
-function livePanel(panel, head) {
+// A trainer's view of a trainee's calendar (?trainee=): their scorecard to fill in and the automated check, below the calendar.
+function liveScoresHTML() {
     const C = window.CalScorecard, last = RV.cards[RV.cards.length - 1], when = (t) => t ? new Date(t.replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(t) ? '' : 'Z')).toLocaleString() : '';
-    panel.innerHTML = head('Trainee’s calendar · ' + esc(CFG.label)) + `<div class="pb"><p class="lead" style="margin:0 0 10px"><b>${esc(RV.name)}</b>${RV.batch ? ' · ' + esc(RV.batch) : ''}<br>
-            <span style="color:#70757a">${RV.empty ? 'Nothing saved to their account on this simulator yet.' : `Their calendar as they last saved it${RV.savedAt ? ', ' + esc(when(RV.savedAt)) : ''}. It’s on the left, read only.`}</span>
-            <button class="txt" data-a="tv-refresh" style="padding:0 6px">🔄 Refresh</button></p>
-        <div class="res-r" id="tv-card"><h5><span>📋 Your scorecard</span><span>${last ? `${esc(C ? String(last.average) : '')}/5 · ${esc(last.pct)}%` : 'to score'}</span></h5>
+    return `<h2>📊 Scores · ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>
+        <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on this simulator yet.' : `Their calendar as they last saved it${RV.savedAt ? ', ' + esc(when(RV.savedAt)) : ''}. It’s above, read only.`}
+            <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>
+        <div class="sc-grid wide"><div class="res-r" id="tv-card"><h5><span>📋 Your scorecard</span><span>${last ? `${esc(last.average)}/5 · ${esc(last.pct)}%` : 'to score'}</span></h5>
             ${last ? `<p style="margin:0 0 6px;color:#70757a">Last saved ${esc(when(last.at))}${last.by ? ' by ' + esc(last.by) : ''}${RV.cards.length > 1 ? ` · ${RV.cards.length} scorecards` : ''}. Saving again keeps the earlier ones.</p>` : '<p style="margin:0 0 6px;color:#70757a">Score each metric 0 to 5 and add your feedback; the weighted average works itself out.</p>'}
             ${C ? C.formHTML(last) : '<p>The scorecard didn’t load. Refresh the page.</p>'}
-            <div style="margin-top:8px"><button class="blue" data-a="tv-save">💾 Save scorecard</button></div></div>
-        ${RV.cards.length > 1 ? `<div class="res-r"><h5><span>Earlier scorecards</span><span></span></h5><ul>${RV.cards.slice(0, -1).reverse().map(x => `<li><span>${esc(when(x.at))} · ${esc(x.by || '')} · ${esc(x.average)}/5 (${esc(x.pct)}%)</span></li>`).join('')}</ul></div>` : ''}
-        ${S.result ? checkSection(S.result).replace('Your calendar, checked', 'Their calendar, checked (automated)') : ''}</div>`;
+            <div style="margin-top:8px"><button class="blue" data-a="tv-save">💾 Save scorecard</button></div>
+            ${RV.cards.length > 1 ? `<div style="margin-top:10px"><b>Earlier scorecards</b><ul>${RV.cards.slice(0, -1).reverse().map(x => `<li><span>${esc(when(x.at))} · ${esc(x.by || '')} · ${esc(x.average)}/5 (${esc(x.pct)}%)</span></li>`).join('')}</ul></div>` : ''}</div>
+        <div>${S.result ? checkSection(S.result).replace('Your calendar, checked', 'Their calendar, checked (automated)') : ''}</div></div>`;
+}
+// 📊 The scores, in a section of their own below the calendar (not in the side panel): the automated check (Check my
+// calendar), the trainer's scorecard and what was submitted with its feedback. A trainer looking at a trainee's calendar
+// (?trainee=) gets the scorecard to fill in there, and a review (?review=) the feedback form.
+function renderScores() {
+    const box = $('#gc-scores'); if (!box || !S) return;
+    if (RV && RV.sub) { box.innerHTML = reviewScoresHTML(); return; }
+    if (RV && RV.live) { box.innerHTML = liveScoresHTML(); return; }
+    if (RV) { box.innerHTML = ''; return; }   // (a review still loading)
+    const side = myScorecardBox() + mySubBox();
+    const check = S.result ? checkSection(S.result)
+        : `<div id="gc-check"><h3 class="sc-h">Your calendar, checked</h3><p class="lead">Click <b>Check my calendar</b> (in the bar above) to check ${OPEN ? 'your appointments' : 'what the callers asked for'} against the ${WW('attorney’s')} rules. Your score shows here.</p></div>`;
+    box.innerHTML = `<h2>📊 Your scores</h2><div class="sc-grid${side ? '' : ' one'}"><div>${check}</div>${side ? `<div>${side}</div>` : ''}</div>`;
 }
 async function saveScorecard() {
     const C = window.CalScorecard; if (!C) return;
@@ -1125,7 +1148,7 @@ async function saveScorecard() {
     try {
         const out = await recPost({ scorecard: { user: RV.user, track: GT, rows: got.rows, calendarAt: RV.savedAt || '' } });
         RV.cards = out.scorecards || RV.cards.concat([out.scorecard]);
-        snack('Scorecard saved: ' + out.scorecard.average + '/5 (' + out.scorecard.pct + '%)'); renderPanel();
+        snack('Scorecard saved: ' + out.scorecard.average + '/5 (' + out.scorecard.pct + '%)'); renderScores();
     } catch (e) { snack(e.message); }
 }
 // A trainee's own: their trainer's latest scorecard on this simulator.
@@ -1166,16 +1189,28 @@ function evalPayload() {
         automatedCheck: { score: r.score, requestsFullyRight: `${r.right} of ${r.results.length}`, changedWithoutARequest: r.extra, attorneyAppointmentsChanged: r.changed || [],
             results: r.results.map(x => ({ request: x.head, points: `${Math.round(x.pts * 10) / 10}/${x.max}`, when: x.when || '', met: x.items.filter(i => i.ok).map(i => i.t), missed: x.items.filter(i => !i.ok).map(i => i.t) })) } } };
 }
+// The server keeps a submitted calendar up to 200000 characters; a Standard Training week with many appointments can pass that, so the parts that are
+// only for the trainer's picture and the long texts are trimmed in steps (the automated check and the appointments' fields the AI judges stay).
+function trimPayload(p) {
+    const size = () => JSON.stringify(p).length, cal = p.calendar, LIMIT = 150000;
+    if (size() <= LIMIT) return p;
+    if (cal.week && cal.week.events) cal.week.events = cal.week.events.slice(0, 120);
+    if (size() > LIMIT) cal.appointments.forEach(a => { a.description = String(a.description || '').slice(0, 500); a.guests = (a.guests || []).slice(0, 5); });
+    if (size() > LIMIT && cal.week) cal.week.events = cal.week.events.slice(0, 40);
+    if (size() > LIMIT) cal.appointments.forEach(a => { a.description = String(a.description || '').slice(0, 150); });
+    if (size() > LIMIT) cal.appointments = cal.appointments.slice(0, 150);
+    return p;
+}
 async function submitEval() {
     if (Sim.isAdmin()) { snack('Trainers review submissions in Trainee evaluations (in Settings).'); return; }
     if (EV.busy) return;
-    const p = evalPayload();
+    const p = trimPayload(evalPayload());
     if (!p.calendar.appointments.length && !p.calendar.automatedCheck.results.some(x => x.met.length) && !(p.calendar.automatedCheck.attorneyAppointmentsChanged || []).length) { snack('Book the appointments first, then submit them.'); return; }
     dialog('Submit for evaluation?', `<p style="margin:0;color:#444746">${OPEN ? `Your ${p.calendar.appointments.length} appointment${p.calendar.appointments.length === 1 ? '' : 's'}` : `Your appointments for these ${S.reqs.length} requests`} go to your trainer. An AI review is written for them, your trainer goes through it with you and adds their own feedback, and then the final report shows under <b>My evaluations</b>.</p>`, async () => {
         EV.busy = true;
         save(true); cloudSave();
         try {
-            const res = await fetch(EV_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ action: 'submit' }, p)) });
+            const res = await Sim.fetchRetry(EV_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ action: 'submit' }, p)) });
             const d = await res.json().catch(() => ({}));
             if (res.status === 401) { snack('Sign in to the LSH Training Portal to submit.'); return; }
             if (!res.ok || !d.success) { snack(d.error || 'Could not submit. Try again.'); return; }
@@ -1187,7 +1222,7 @@ async function submitEval() {
 async function loadEvals() {
     clearTimeout(EV.timer);
     try {
-        const res = await fetch(EV_API, { credentials: 'include' }); const d = await res.json().catch(() => ({}));
+        const res = await Sim.fetchRetry(EV_API, { credentials: 'include' }); const d = await res.json().catch(() => ({}));
         if (d.success) { EV.list = d.reviews || []; EV.ready = EV.list.filter(r => r.status === 'final' && !seenFinal(r.id)).length; }
     } catch (e) { /* offline: try again on the next look */ }
     if (S && S.panel === 'evals') renderPanel();
@@ -1200,61 +1235,32 @@ const seenFinal = (id) => { try { return (JSON.parse(localStorage.getItem(SEEN) 
 const markSeen = (id) => { try { const a = JSON.parse(localStorage.getItem(SEEN) || '[]'); if (!a.includes(id)) { a.push(id); localStorage.setItem(SEEN, JSON.stringify(a.slice(-200))); } } catch (e) { /* storage blocked */ } };
 const evWhen = (t) => { try { return new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return t; } };
 const list = (items, cls) => (items || []).length ? `<ul class="ev-l ${cls}">${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="ev-none">None.</p>';
-function reportHtml(r) {
-    const ai = r.ai || {}, t = r.trainer || {};
-    return `<div class="ev-rep">
-        <div class="ev-meta">${esc(evWhen(r.submittedAt))} · automated check ${r.checkScore == null ? '—' : r.checkScore + '%'}${t.score != null ? ` · <b>trainer's score ${t.score}/100</b>` : ''}<br>Finalized by ${esc(r.finalizedBy || 'your trainer')}, ${esc(evWhen(r.finalizedAt))}</div>
-        ${ai.summary ? `<p class="ev-sum">${esc(ai.summary)}</p>` : ''}
-        ${ai.error ? `<p class="ev-none">The AI review couldn't be written for this one; your trainer's feedback is below.</p>` : `
-        <h4>✅ Done correctly</h4>${list(ai.correct, 'ok')}
-        <h4>🛠 Needs improvement</h4>${list(ai.improve, 'mid')}
-        <h4>⚠️ Requirements missed</h4>${list(ai.missed, 'no')}`}
-        <h4>👤 Your trainer's feedback</h4>${t.notes ? `<p class="ev-notes">${textToHtml(t.notes)}</p>` : ''}${(t.points || []).length ? list(t.points, 'tr') : (t.notes ? '' : '<p class="ev-none">No written comments.</p>')}
-    </div>`;
-}
+const reportHtml = (r) => EvalReport.html(r);
 function evalsHtml() {
     if (EV.open != null) {
         const r = EV.list.find(x => x.id === EV.open);
         if (!r || r.status !== 'final') { EV.open = null; return evalsHtml(); }
         markSeen(r.id); EV.ready = EV.list.filter(x => x.status === 'final' && !seenFinal(x.id)).length;
-        return `<button class="txt" data-a="eval-back" style="padding:0;margin-bottom:6px">← All evaluations</button><h4 style="margin:4px 0 8px">Final feedback report</h4>${reportHtml(r)}
+        return `<button class="txt" data-a="eval-back" style="padding:0;margin-bottom:6px">← All evaluations</button><h4 style="margin:4px 0 8px">Final feedback report · ${esc(trackName(r))}</h4>${reportHtml(r)}
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="blue" data-a="eval-pdf" data-id="${r.id}">⬇ Download PDF</button></div>`;
     }
-    if (!EV.list.length) return `<p class="lead">Nothing submitted yet. When your appointments are on the calendar, click <b>📤 Submit for evaluation</b> on the requests. Your trainer goes through the AI review with you, adds their own feedback, and the final report shows here to keep and download.</p>`;
-    return `<p class="lead">Your submitted calendars. Each report shows here once your trainer has finalized it.</p>` + EV.list.map(r => {
+    const all = `<p style="margin:0 0 8px"><a href="/simulators/my-evaluations.html" target="_blank" rel="noopener">📋 Open My Evaluations (all my calendars and reports)</a></p>`;
+    if (!EV.list.length) return all + `<p class="lead">Nothing submitted yet. When your appointments are on the calendar, click <b>📤 Submit for evaluation</b> on the requests. Your trainer goes through the AI review with you, adds their own feedback, and the final report shows here to keep and download.</p>`;
+    return all + `<p class="lead">Your submitted calendars. Each report shows here once your trainer has sent it.</p>` + EV.list.map(r => {
         const st = r.status === 'final' ? `<button class="blue" data-a="eval-open" data-id="${r.id}">View report</button>`
             : `<span class="ev-st">${r.aiStatus === 'pending' ? '🤖 AI review being written…' : '👤 With your trainer for review'}</span>`;
-        return `<div class="res-r"><h5><span>${esc(evWhen(r.submittedAt))}</span><span>${r.checkScore == null ? '' : r.checkScore + '%'}</span></h5><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${st}${r.status === 'final' && !seenFinal(r.id) ? '<span class="ev-new">New</span>' : ''}</div></div>`;
+        return `<div class="res-r"><h5><span>${esc(evWhen(r.submittedAt))} · ${esc(trackName(r))}</span><span>${r.checkScore == null ? '' : r.checkScore + '%'}</span></h5><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${st}${r.status === 'final' && !seenFinal(r.id) ? '<span class="ev-new">New</span>' : ''}</div></div>`;
     }).join('');
 }
-function reportPdf(r) {
-    const J = window.jspdf && window.jspdf.jsPDF; if (!J) { snack('The PDF maker didn\'t load: reload the page and try again.'); return; }
-    const doc = new J({ unit: 'pt', format: 'letter' }), W = 612, M = 54; let y = 60;
-    const ai = r.ai || {}, t = r.trainer || {};
-    const ascii = (x) => String(x == null ? '' : x).replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/[\u2013\u2014]/g, '-').replace(/\u2026/g, '...').replace(/[^\x20-\x7e\n]/g, '');
-    const page = (need) => { if (y + need > 740) { doc.addPage(); y = 60; } };
-    const text = (s, size, bold, color) => { doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(size); doc.setTextColor(...(color || [31, 31, 31]));
-        doc.splitTextToSize(ascii(s), W - 2 * M).forEach(l => { page(size + 4); doc.text(l, M, y); y += size + 4; }); };
-    const bullets = (items) => { if (!(items || []).length) { text('None.', 10.5, false, [112, 117, 122]); return; }
-        items.forEach(x => { doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); const ls = doc.splitTextToSize(ascii(x), W - 2 * M - 14); page(ls.length * 14.5); doc.setTextColor(31, 31, 31); doc.text('-', M, y); ls.forEach(l => { doc.text(l, M + 14, y); y += 14.5; }); y += 2; }); };
-    const h = (s) => { y += 8; page(30); text(s, 13, true, [11, 87, 208]); y += 2; };
-    text('LSH Training Portal - Calendar Evaluation', 18, true, [20, 33, 61]);
-    text(`${CFG.label || 'Standard Training'} - Google Calendar Simulator`, 11, false, [68, 71, 70]); y += 6;
-    text(`Trainee: ${r.name || ''}${r.batch ? ' (' + r.batch + ')' : ''}`, 10.5);
-    text(`Submitted: ${evWhen(r.submittedAt)}   Finalized: ${evWhen(r.finalizedAt)} by ${r.finalizedBy || 'the trainer'}`, 10.5);
-    text(`Automated check: ${r.checkScore == null ? '-' : r.checkScore + '%'}${t.score != null ? `   Trainer's score: ${t.score}/100` : ''}`, 10.5);
-    if (ai.summary) { h('Summary'); text(ai.summary, 10.5); }
-    if (!ai.error) { h('Done correctly'); bullets(ai.correct); h('Needs improvement'); bullets(ai.improve); h('Requirements missed'); bullets(ai.missed); }
-    h("Trainer's feedback"); if (t.notes) text(t.notes, 10.5); bullets(t.points || []);
-    const c = r.calendar && r.calendar.automatedCheck;
-    if (c && (c.results || []).length) { h('Automated check, request by request'); c.results.forEach(x => { text(`${x.request}  (${x.points})${x.when ? ' - ' + x.when : ''}`, 10.5, true); bullets((x.missed || []).length ? x.missed.map(m => 'Missed: ' + m) : ['Everything checked was right.']); }); }
-    doc.save(`Calendar_Evaluation_${ascii(r.name || 'trainee').replace(/\s+/g, '_')}_${String(r.finalizedAt || r.submittedAt).slice(0, 10)}.pdf`);
-}
+const TRACK_NAMES = { standard: 'Standard Training', cm: 'Litigation Week · Case Management', ea: 'Executive Week · EA / PA' };
+const trackName = (r) => TRACK_NAMES[r && r.track] || CFG.label || 'Standard Training';
+const reportPdf = (r) => EvalReport.pdf(r, trackName(r), snack);
 
 /* ---------- events (one delegated handler each) ---------- */
+const toScores = () => { const c = $('#gc-scores'); if (c && c.scrollIntoView) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
 function bind() {
-    const root = gc();
-    root.addEventListener('click', (ev) => {
+    const root = gc(), scores = $('#gc-scores');
+    const onClick = (ev) => {
         const t = ev.target;
         const cal = t.closest('input[data-cal]'); if (cal) { S.hidden[cal.dataset.cal] = !cal.checked; save(); render(); return; }
         const done = t.closest('input[data-done]'); if (done) { const q = S.reqs.find(x => x.id === done.dataset.done); if (q) { q.done = done.checked; save(); renderRail(); renderPanel(); } return; }
@@ -1279,16 +1285,17 @@ function bind() {
             reset: () => dialog('Start over?', '<p style="margin:0;color:#444746">Your events and changes are cleared and a new set of requests comes in.</p>', () => { S = fresh(); save(); closeAll(); render(); }, 'Start over'),
             create: () => createAt(S.view === 'day' ? S.anchor : null),
             panel: () => { S.panel = a.dataset.p === S.panel ? '' : a.dataset.p; save(); renderPanel(); renderRail(); },
-            check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true),
-            evals: () => { if (Sim.isAdmin()) { window.open(REVIEW_PAGE, '_blank', 'noopener'); return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
+            check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true), 'to-scores': () => { ev.preventDefault(); toScores(); },
+            evals: () => { if (Sim.isAdmin()) { location.href = REVIEW_PAGE; return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
             'submit-eval': () => submitEval(),
             'cloud-save': () => { save(true); cloudSave(); },
+            'cloud-newer': () => { if (confirm('Open the newer copy saved to your account? The changes you made in this tab since then are replaced.')) cloudLoad(true); },
             'eval-open': () => { EV.open = +a.dataset.id; renderPanel(); },
             'eval-back': () => { EV.open = null; renderPanel(); },
             'eval-pdf': () => { const r = EV.list.find(x => x.id === +a.dataset.id); if (r) reportPdf(r); },
             'admin-edit': () => { if (!Sim.isAdmin()) return; G.admin = !G.admin; G.undo = null; closeAll(); render(); snack(G.admin ? 'Editing the weekly schedule for everyone' : 'Back to your practice calendar'); },
             'admin-reset': () => dialog('Restore the original schedule?', '<p style="margin:0;color:#444746">' + WW('The attorney’s week goes back to how it came, for everyone.') + '</p>', async () => {
-                try { const res = await fetch(API_SCHEDULE, { method: 'DELETE', credentials: 'include' }); const data = await res.json().catch(() => ({})); if (!data.success) { snack(data.error || 'Could not restore it.'); return; } } catch (e) { snack('Could not restore it (no connection).'); return; }
+                try { const res = await Sim.fetchRetry(API_SCHEDULE, { method: 'DELETE', credentials: 'include' }); const data = await res.json().catch(() => ({})); if (!data.success) { snack(data.error || 'Could not restore it.'); return; } } catch (e) { snack('Could not restore it (no connection).'); return; }
                 ROWS = GCAL_ATTORNEY.map(r => Object.assign({}, r)); G.undo = null; render(); snack('The original schedule is back');
             }, 'Restore'),
             'new-set': () => dialog('A new set of requests?', '<p style="margin:0;color:#444746">New callers come in. Your calendar is cleared so you start fresh.</p>', () => { S = fresh(); save(); closeAll(); render(); snack('New requests are in'); }, 'New set'),
@@ -1319,7 +1326,9 @@ function bind() {
             'ed-ungu': () => { edSync(); G.ed.d.guests.splice(+a.dataset.i, 1); drawEditor(); }
         };
         if (acts[A]) { ev.preventDefault(); acts[A](); }
-    });
+    };
+    root.addEventListener('click', onClick);
+    if (scores) scores.addEventListener('click', onClick);   // (the scores below the calendar: Save, Refresh)
     root.addEventListener('change', (ev) => {
         const t = ev.target;
         if (t.dataset.set) { S.set[t.dataset.set] = t.type === 'checkbox' ? t.checked : +t.value; save(); renderMain(); return; }
@@ -1421,9 +1430,10 @@ function onUp(ev) {
 }
 
 /* ---------- start ---------- */
-window.GCAL = { solve, checkPlan, checkOpen, slotProblems, concretize, instancesOf, dealRequests, simToday, datesIn, addDays, weekStart, rows: () => ROWS, setRows: (r) => { ROWS = r; } };
-function start() {
+window.GCAL = { solve, checkPlan, checkOpen, slotProblems, concretize, instancesOf, dealRequests, simToday, trimPayload, datesIn, addDays, weekStart, rows: () => ROWS, setRows: (r) => { ROWS = r; } };
+async function start() {
     if (!document.getElementById('app')) return;
+    await Sim.restore();   // opened in a new tab: the cookie says who is signed in (an admin must not be treated as a trainee), and the heartbeat starts
     const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal');
     if (TRK) document.title = 'Google Calendar Simulator · ' + CFG.label + ' — LSH Training Portal';
     if (TRK) { const eb = document.querySelector('.eyebrow'); if (eb) eb.textContent = 'Simulator · ' + CFG.scenario; }
@@ -1435,7 +1445,7 @@ function start() {
     mineStart();
     if (!Sim.isAdmin()) { loadEvals(); cloudLoad(); }   // My evaluations (a badge when a final report is waiting); the calendar saved to their account
     // the weekly schedule as an Admin set it (if they did)
-    fetch(API_SCHEDULE, { credentials: 'include' }).then(r => r.json()).then(data => {
+    Sim.fetchRetry(API_SCHEDULE, { credentials: 'include' }).then(r => r.json()).then(data => {
         if (data && data.success && Array.isArray(data.rows) && data.rows.length && data.rows.every(r => r && r.id && r.title && /^\d\d:\d\d$/.test(r.start))) {
             ROWS = data.rows; S.reqs = S.reqs.filter(q => q && (q.row == null || rowById(q.row))); render();
         }

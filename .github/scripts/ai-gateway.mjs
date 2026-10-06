@@ -86,6 +86,22 @@ const live = await gw.runLiveToken(db, { ...env, AI_LIVE_COST: '10', AI_USER_10M
 check(live.status === 200 && live.body.token === 'auth_tokens/abc', 'a live voice token is minted with the shared keys');
 check((await row('reception')).calls === 10, 'and counts as AI_LIVE_COST requests in the shared ledger');
 globalThis.fetch = realFetch;
+
+// a caller with a deadline (an AbortSignal): the hung call is stopped and answered 504, instead of walking on through every key and model
+let hung = 0;
+globalThis.fetch = (url, init) => new Promise((res, rej) => { hung++; init.signal.addEventListener('abort', () => rej(new DOMException('aborted', 'AbortError'))); });
+const open = { ...env, AI_USER_10MIN: '999', AI_DAILY_CALLS: '4000', AI_MINUTE_CALLS: '1000' };
+const ac = new AbortController(); setTimeout(() => ac.abort(), 30);
+r = await gw.runAi(db, open, { module: 'calendaring', user: 'sig', system: 's', messages: [{ role: 'user', text: 'x' }], signal: ac.signal });
+check(r.status === 504 && !r.body.success && hung === 1, 'a call past its deadline is stopped (504) without trying the other models and keys');
+hung = 0; r = await gw.runAi(db, open, { module: 'calendaring', user: 'sig', system: 's', messages: [{ role: 'user', text: 'x' }], signal: AbortSignal.abort() });
+check(r.status === 504 && hung === 0, 'a deadline that has already passed makes no request at all');
+hung = 0; const ac2 = new AbortController(); setTimeout(() => ac2.abort(), 30);
+r = await gw.runAi(db, { ...open, AI_RELAY_SECRET: 'relay-key' }, { module: 'calendaring', user: 'sig', system: 's', messages: [{ role: 'user', text: 'x' }], signal: ac2.signal });
+check(r.status === 504 && hung === 1, 'the same through the US relay: the Gemini fallback isn\'t started once the deadline has passed');
+globalThis.fetch = realFetch;
+r = await gw.runAi(db, open, { module: 'calendaring', user: 'sig', system: 's', messages: [{ role: 'user', text: 'x' }] });
+check(r.status !== 504, 'callers without a deadline are unchanged');
 const sum = await gw.usageSummary(db, env);
 check(sum.total.calls >= 1 && Array.isArray(sum.today) && sum.limits.dailyCalls === 40, 'the admin summary lists each flow and the limits');
 
