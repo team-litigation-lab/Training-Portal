@@ -291,7 +291,7 @@ function paintRow(prev) {
         <h3>📅 The trainee’s calendar</h3><div id="rv-wk">${part(weekHtml, r.calendar && r.calendar.week)}</div>
         ${part(checkHtml, r.calendar)}
         ${part(calHtml, r.calendar)}
-        <h3>✨ AI review</h3><div id="rv-ai">${part(aiHtml, r)}</div>
+        <h3>✨ Review and Feedback</h3><div id="rv-ai">${part(aiHtml, r)}</div>
         <div id="rv-trainer">${part(trainerHtml, r)}</div></div>`;
     const f = document.activeElement; if (!f || f === document.body || $('#rv-list').contains(f)) $('#rv-title').focus({ preventScroll: true });   // opened from the keyboard: on to the review
 }
