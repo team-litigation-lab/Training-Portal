@@ -1,6 +1,7 @@
 import { b64url } from '../_utils.js';
 
-// POST /api/verify-ticket { ticket }  → { ok:true, admin:true } | { ok:true, first, last, batch } | { ok:false, code }
+// POST /api/verify-ticket { ticket }  → { ok:true, admin:true, name } | { ok:true, first, last, batch } | { ok:false, code }
+// (name: the administrator's, on the tickets made for Ring Channel; '' on others)
 //
 // For sites that open from the Portal but don't hold the shared sign-in secret themselves (the CMS): they send the ticket
 // they were handed back here, and trust only this answer. The ticket is signed with PORTAL_SSO_SECRET (see launch.js), so
@@ -27,7 +28,7 @@ export async function verifyTicket(secret, ticket) {
     const exp = Number(t && t.exp);
     if (!exp || Date.now() > exp || exp - Date.now() > MAX_AHEAD_MS) return { ok: false, code: 'expired' };
     if (t.r === 's') return { ok: true, system: true };
-    if (t.r === 'a') return { ok: true, admin: true };
+    if (t.r === 'a') return { ok: true, admin: true, name: String(t.n || '').slice(0, 60) };
     const first = String(t.first || '').trim(), last = String(t.last || '').trim(), batch = String(t.b || '').trim();
     if (!first || !last) return { ok: false, code: 'format' };
     return { ok: true, first, last, batch };

@@ -21,13 +21,17 @@ export const SSO_PROGRAMS = {
     'MEDSUM AND DEMAND': 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/'
 };
 // Shared tools that aren't programs: any signed-in, approved person opens them (no program access to request).
-// ringchannel is LSH Ring Channel (the lshringchannel repo), the VOIP phone for trainer-led mock calls: it takes the trainee's
-// ticket at /api/auth/portal (checking it with PORTAL_SSO_SECRET, or here at /api/verify-ticket), and admins type its trainer passphrase.
+// ringchannel is LSH Ring Channel (the lshringchannel repo), the VOIP phone for trainer-led mock calls. It has no sign-in of its own:
+// a trainee's ticket opens their phone, and an administrator's opens the console as a trainer (ADMIN_TICKET_TOOLS). It checks
+// tickets at its /api/auth/portal (with PORTAL_SSO_SECRET, or here at /api/verify-ticket), and each one works only once there.
 export const SSO_TOOLS = {
     cms: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/',
     kb: 'https://lsh-knowledge-base.legalsupporthelp.workers.dev/',
     ringchannel: 'https://lshringchannel.legalsupporthelp.workers.dev/'
 };
+// The tools an administrator opens signed in, as themselves (a ticket { r: 'a', n: their name }): Ring Channel only.
+// Everywhere else administrators type the admin password, as below.
+export const ADMIN_TICKET_TOOLS = ['ringchannel'];
 const TICKET_TTL_MS = 5 * 60 * 1000;
 // Where inside a program or tool a link lands (?to=): a program's own Live Roleplay, the CMS Front Desk Drill, or the CMS
 // Call Simulator (to=calls: every platform's Call Simulator opens there, on the tab and line the link names, callsQuery).
@@ -60,7 +64,7 @@ export function callsQuery(params) {
 // (Sign-in check, registration import): never given to a person.
 export async function makeTicket(secret, who, now = Date.now()) {
     const enc = new TextEncoder();
-    const body = who.system ? { r: 's', exp: now + TICKET_TTL_MS } : who.admin ? { r: 'a', exp: now + TICKET_TTL_MS } : { first: who.first, last: who.last, b: who.batch, exp: now + TICKET_TTL_MS };
+    const body = who.system ? { r: 's', exp: now + TICKET_TTL_MS } : who.admin ? Object.assign({ r: 'a', exp: now + TICKET_TTL_MS }, who.name ? { n: String(who.name).slice(0, 60) } : {}) : { first: who.first, last: who.last, b: who.batch, exp: now + TICKET_TTL_MS };
     const payload = b64url(enc.encode(JSON.stringify(body)));
     const key = await crypto.subtle.importKey('raw', enc.encode('portal-sso:' + secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     return payload + '.' + b64url(await crypto.subtle.sign('HMAC', key, enc.encode(payload)));
@@ -111,7 +115,12 @@ async function launch({ request, env }) {
 
     // Administrators were signed in here with their admin password, so the program doesn't ask again.
     if (auth.session.userType === 'Admin') {
-        // Administrators type the admin password on every platform: no ticket signs them in, they land on that platform's password prompt.
+        // Ring Channel has no sign-in of its own: an administrator opens its console as themselves.
+        if (isTool && ADMIN_TICKET_TOOLS.includes(tool)) {
+            const ticket = await makeTicket(secret, { admin: true, name: String(auth.session.fullName || auth.session.username || 'Trainer').trim() });
+            return Response.redirect(`${target}?ticket=${ticket}`, 302);
+        }
+        // Administrators type the admin password on every other platform: no ticket signs them in, they land on that platform's password prompt.
         const to = landing(params.get('to') || '', isTool, params);
         return Response.redirect(`${target}?admin=1${to.query}${to.hash}`, 302);
     }
