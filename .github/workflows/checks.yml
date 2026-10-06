@@ -86,7 +86,7 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/gcal-review-page.cjs
-      - name: My Evaluations (the trainee's own section: drafts with a way back in, submitted status, the sent report and its PDF)
+      - name: My Evaluations (the trainee's own section - drafts with a way back in, submitted status, the sent report and its PDF)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/my-evaluations.cjs
