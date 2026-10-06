@@ -14,9 +14,10 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gr-')); fs.writeFileSync(path
 const m = await import(pathToFileURL(path.join(tmp, 'gcal-reviews.mjs')).href);
 const sql = new DatabaseSync(':memory:');
 const mk = (q) => { let a = []; const o = { bind: (...x) => { a = x; return o; }, run: async () => { const r = sql.prepare(q).run(...a); return { meta: { last_row_id: Number(r.lastInsertRowid), changes: r.changes } }; }, first: async () => sql.prepare(q).get(...a) || null, all: async () => ({ results: sql.prepare(q).all(...a) }) }; return o; };
-const env = { TRAINING_DB: { prepare: mk } };
-let seen = null, fail = false;
-globalThis.__ai = async (db, e, o) => { seen = o; return fail ? { status: 502, body: { success: false, error: 'Gemini down' } }
+const env = { TRAINING_DB: { prepare: mk }, AI_REVIEW_RETRY_MS: '1' };
+let seen = null, fail = false, tries = 0, busy = 0;   // busy: how many more times the keys answer "at their limit"
+globalThis.__ai = async (db, e, o) => { seen = o; tries++; if (busy > 0) { busy--; return { status: 429, body: { success: false, error: 'AI generation limit reached. Try again in a minute.' } }; }
+    return fail ? { status: 502, body: { success: false, error: 'Gemini down' } }
     : { status: 200, body: { success: true, text: '```json\n' + JSON.stringify({ summary: 'Mostly right.', correct: ['Booked Maria on the Attorney’s Calendar'], improve: ['Add the DOB'], missed: ['No email reminder'] }) + '\n```' } }; };
 const call = async (meth, body, qs = '') => { const req = new Request('https://p/api/gcal-reviews' + qs, { method: meth, body: body ? JSON.stringify(body) : undefined });
     const r = await (meth === 'GET' ? m.onRequestGet : m.onRequestPost)({ request: req, env }); return { st: r.status, j: await r.json() }; };
@@ -53,6 +54,11 @@ __setSession(ann); fail = true;
 r = await call('POST', { action: 'submit', calendar: cal }); r = await call('GET'); ck(r.j.reviews[0].aiStatus === 'error', 'a failed AI review is marked, not lost');
 __setSession(bo); fail = false;
 r = await call('POST', { action: 'retry', id: 2 }); r = await call('GET', null, '?id=2'); ck(r.j.review.aiStatus === 'done' && r.j.review.ai.summary === 'Mostly right.', 'the trainer runs the AI review again');
+tries = 0; busy = 2;
+r = await call('POST', { action: 'retry', id: 2 }); r = await call('GET', null, '?id=2'); ck(r.j.review.aiStatus === 'done' && tries === 3, `with every key at its limit for a moment, the AI review tries again by itself (${tries} tries)`);
+tries = 0; fail = true;
+r = await call('POST', { action: 'retry', id: 2 }); r = await call('GET', null, '?id=2'); ck(r.j.review.aiStatus === 'error' && tries === 3, `a review that keeps failing stops after 3 tries and is marked (${tries})`);
+fail = false; tries = 0;
 r = await call('POST', { action: 'reopen', id: 1 }); r = await call('GET', null, '?id=1'); ck(r.j.review.status === 'submitted', 'the trainer can reopen a final report');
 __setSession(ann);
 r = await call('POST', { action: 'submit', calendar: { blob: 'x'.repeat(70000) } }); ck(r.st === 400, 'a calendar too large is refused');

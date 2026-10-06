@@ -61,7 +61,16 @@ Write to the trainee, plainly and kindly, naming the appointment each point is a
     const prompt = `The trainer's rules, guidelines and notes for this review:\n${(rules && rules.text) || '(none set: use the attorney\'s rules)'}\n\n<calendar>\n${JSON.stringify(cal).slice(0, MAX_CAL)}\n</calendar>`;
     let ai, status;
     try {
-        const r = await runAi(db, env, { module: 'calendaring', user: row.username, system, messages: [{ role: 'user', text: prompt }], json: true, maxTokens: 1400 });
+        // The gateway already tries every key and model (a key out of credits or at its limit hands over to the next). If they
+        // are all at their limit, or the minute's budget is full, it tries again shortly: twice more, while there's time left
+        // in this request's background work (about 30 s).
+        const t0 = Date.now(), pause = Number.isFinite(Number(env.AI_REVIEW_RETRY_MS)) && env.AI_REVIEW_RETRY_MS !== '' && env.AI_REVIEW_RETRY_MS != null ? Number(env.AI_REVIEW_RETRY_MS) : 4000;
+        let r;
+        for (let i = 0; i < 3; i++) {
+            r = await runAi(db, env, { module: 'calendaring', user: row.username, system, messages: [{ role: 'user', text: prompt }], json: true, maxTokens: 1400 });
+            if (r.status === 200 || ![429, 500, 502, 503, 504].includes(r.status) || (r.body && r.body.scope === 'daily') || Date.now() - t0 > 12000) break;
+            await new Promise(res => setTimeout(res, pause * (i + 1)));
+        }
         if (r.status !== 200) throw new Error(r.body.error || 'The AI review failed.');
         let t = String(r.body.text || '').trim().replace(/^```json\s*/i, '').replace(/```\s*$/, '');
         const s = t.search(/[\[{]/); if (s > 0) t = t.slice(s);
