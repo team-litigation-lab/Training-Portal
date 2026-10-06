@@ -265,6 +265,27 @@
     .meet .mb.off { background: #ea4335; } .meet .mb.end { width: 64px; border-radius: 24px; background: #ea4335; }
     .meet .mb svg { width: 22px; height: 22px; fill: currentColor; }
     .meet .clock { position: absolute; left: 18px; bottom: 26px; font-size: 14px; color: #e8eaed; }
+    /* The simulator fits one screen (laptops and up): the page is as tall as the window, the intro stays small and
+       the calendar takes the height that's left. From 1400px wide the intro sits in a column on the LEFT of the
+       calendar; between 1100 and 1400px it stays on top, trimmed, so the week still shows five days. */
+    @media (min-width: 1100px) {
+        .sim-wrap { max-width: none; height: calc(100vh - 62px); display: flex; flex-direction: column; gap: 14px; padding: 16px 20px; }
+        .sim-hero { flex: none; margin: 0; padding: 16px 22px; }
+        .sim-hero .eyebrow { font-size: 10px; letter-spacing: .06em; padding: 4px 9px; margin-bottom: 8px; }
+        .sim-hero h1 { font-size: 22px; margin-bottom: 6px; }
+        .sim-hero p { font-size: 13px; line-height: 1.5; max-width: none; }
+        #app { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+        .gc { flex: 1 1 auto; height: auto; min-height: max(440px, 62vh); }
+        /* 📊 the scores (after Check my calendar) sit below the calendar, past the first screen: the page scrolls to them */
+        #app > .gc-scores { flex: none; margin-bottom: 16px; }
+    }
+    @media (min-width: 1400px) {
+        .sim-wrap { flex-direction: row; align-items: stretch; gap: 18px; padding: 16px; }
+        .sim-hero { flex: 0 0 264px; width: 264px; padding: 22px 18px; }
+        .sim-hero h1 { font-size: 24px; margin-bottom: 8px; }
+        .sim-hero p { font-size: 13.5px; line-height: 1.55; }
+        .gc-panel { width: 300px; }
+    }
     @media (max-width: 1100px) { .gc-panel { position: absolute; right: 0; top: 0; bottom: 0; z-index: 30; box-shadow: -4px 0 12px rgba(0,0,0,.12); } .ed-cols { grid-template-columns: minmax(0, 1fr); } }
     @media (max-width: 900px) { .gc-side { position: absolute; left: 0; top: 0; bottom: 0; z-index: 30; background: #fff; box-shadow: 4px 0 12px rgba(0,0,0,.12); } .gc-logo span, .gc-logo small { display: none; } }
     @media (max-width: 640px) {
