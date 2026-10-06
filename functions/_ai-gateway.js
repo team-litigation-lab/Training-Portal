@@ -130,9 +130,9 @@ export const _resetKeys = () => rest.clear();   // (the checks)
 const MODELS = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash'];
 let turn = Math.floor(Math.random() * 1000);
 
-async function viaRelay(env, { system, messages, json, maxTokens }) {
+async function viaRelay(env, { system, messages, json, maxTokens, signal }) {
     const r = await fetch(env.AI_RELAY_URL || 'https://ea-pa-training.legalsupporthelp.workers.dev/api/ai-relay', {
-        method: 'POST',
+        method: 'POST', signal,
         headers: { 'Content-Type': 'application/json', 'X-Relay-Key': env.AI_RELAY_SECRET },
         body: JSON.stringify({
             feature: json ? 'grading' : 'chat', system: String(system || ''), json: !!json, temperature: json ? 0.3 : 0.8,
@@ -147,17 +147,20 @@ async function viaRelay(env, { system, messages, json, maxTokens }) {
 }
 
 // One model call through the shared keys: → { ok, text, model, tokens, status, error }
-export async function generate(env, { system, messages, json, maxTokens }) {
+// `signal` (optional, an AbortSignal) is for a caller with a deadline, such as work that runs after the response is sent: when it
+// fires the relay and Gemini fetches stop and the answer is { ok: false, status: 504 } instead of walking on through the other keys and models.
+export async function generate(env, { system, messages, json, maxTokens, signal }) {
     const chars = String(system || '').length + messages.reduce((a, m) => a + String(m.text || '').length, 0);
     const names = keyNames(env);
+    const slow = () => ({ ok: false, status: 504, error: 'The AI took too long to answer.', tokens: 0 });
     let relayError = '';
     if (env.AI_RELAY_SECRET) {
         try {
-            const r = await viaRelay(env, { system, messages, json, maxTokens });
+            const r = await viaRelay(env, { system, messages, json, maxTokens, signal });
             if (r.ok) return { ok: true, text: r.text, model: r.model, tokens: r.tokens || Math.ceil((chars + r.text.length) / 4), via: 'relay' };
             if (r.status === 429 && !names.length) return { ok: false, status: 429, error: 'AI generation limit reached. Try again in a minute.', tokens: 0 };
             relayError = r.status === 429 ? 'the relay is at its limit' : (r.error || `relay error ${r.status}`);   // (the keys here take over)
-        } catch (e) { relayError = String(e && e.message || e); }
+        } catch (e) { if (signal && signal.aborted) return slow(); relayError = String(e && e.message || e); }
         console.error('ai-gateway: relay failed, calling Gemini directly:', relayError);
     }
     if (!names.length) return { ok: false, status: 500, tokens: 0, error: relayError ? 'The AI service is unavailable right now. Try again in a minute.' : 'No Gemini key is set on the Portal (GEMINI_API_KEY).' };
@@ -176,15 +179,16 @@ export async function generate(env, { system, messages, json, maxTokens }) {
     // Each model is tried on every key before the next model, so the preferred model's quota is used across all keys first.
     for (const model of MODELS) {
         for (const name of ring.filter(n => everyResting || !resting(n, model))) {
+            if (signal && signal.aborted) return slow();
             const p = JSON.parse(JSON.stringify(payload));
             p.generationConfig.thinkingConfig = { thinkingLevel: 'low' };
             const send = (b) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': String(env[name]).trim() }, body: JSON.stringify(b) });
+                method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': String(env[name]).trim() }, body: JSON.stringify(b) });
             let res, data;
             try {
                 res = await send(p); data = await res.json().catch(() => ({}));
                 if (res.status === 400 && /thinking/i.test(errOf(data))) { delete p.generationConfig.thinkingConfig; res = await send(p); data = await res.json().catch(() => ({})); }
-            } catch (e) { last = other = { status: 502, error: 'Gemini unreachable: ' + (e && e.message || e) }; continue; }   // next key
+            } catch (e) { if (signal && signal.aborted) return slow(); last = other = { status: 502, error: 'Gemini unreachable: ' + (e && e.message || e) }; continue; }   // next key
             if (res.ok) {
                 const cand = (data.candidates || [])[0] || {};
                 const text = ((cand.content && cand.content.parts) || []).filter(x => !x.thought).map(x => x.text || '').join('');
@@ -219,14 +223,14 @@ export async function generate(env, { system, messages, json, maxTokens }) {
 }
 
 // The whole path for one request: budget → model → ledger. → { status, body }
-export async function runAi(db, env, { module, user, system, messages, json, maxTokens }) {
+export async function runAi(db, env, { module, user, system, messages, json, maxTokens, signal }) {
     module = normModule(module);
     const gate = await admit(db, env, { module, user, review: !!json });
     if (!gate.ok) {
         await record(db, { module, refused: true });
         return { status: 429, body: { success: false, error: gate.reason, scope: gate.scope } };
     }
-    const r = await generate(env, { system, messages, json, maxTokens });
+    const r = await generate(env, { system, messages, json, maxTokens, signal });
     await record(db, { module, tokens: r.tokens || 0, error: !r.ok });
     return r.ok ? { status: 200, body: { success: true, text: r.text, model: r.model, tokens: r.tokens, module } } : { status: r.status || 502, body: { success: false, error: r.error } };
 }

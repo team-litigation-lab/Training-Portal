@@ -189,7 +189,7 @@ async function simulatorSummary(db) {
 const CAL_WEEKS = { rivera: ['ft', 'Standard · Week 1'], chen: ['ft', 'Standard · Week 2'], litigation: ['cm', 'Litigation Week'], executive: ['eapa', 'Executive Week'] };
 async function calsimSummary(db, usersDb) {
     try {
-        const { results } = await db.prepare(`SELECT username, data FROM calsim_records LIMIT 1000`).all();
+        const { results } = await db.prepare(`SELECT username, data FROM calsim_records ORDER BY updated_at DESC LIMIT 1000`).all();
         const byName = {};
         for (const r of results || []) {
             let d; try { d = JSON.parse(r.data); } catch (e) { continue; }
@@ -220,9 +220,11 @@ async function calsimSummary(db, usersDb) {
         // score and notes once the report is final; it takes the place of an older submission of the same track above.
         try {
             const GTR = { standard: ['ft', 'Google Calendar · Standard Training'], cm: ['cm', 'Google Calendar · Litigation Week'], ea: ['eapa', 'Google Calendar · Executive Week'] };
-            const { results: ev } = await db.prepare(`SELECT username, name, track, submitted_at, check_score, trainer, status FROM gcal_reviews ORDER BY id ASC LIMIT 5000`).all();
+            // the newest row of each trainee and track, chosen in SQL (a LIMIT on the whole table would cut off the newest ones as it grows)
+            const { results: ev } = await db.prepare(`SELECT username, name, track, submitted_at, check_score, trainer, status FROM gcal_reviews
+                WHERE id IN (SELECT MAX(id) FROM gcal_reviews GROUP BY username, track) ORDER BY id DESC LIMIT 5000`).all();
             const last = {};
-            for (const r of ev || []) if (GTR[r.track]) last[r.username + '|' + r.track] = r;
+            for (const r of ev || []) if (GTR[r.track] && !last[r.username + '|' + r.track]) last[r.username + '|' + r.track] = r;   // (newest first: the first one stays)
             for (const r of Object.values(last)) {
                 const u = await usersDb.prepare(`SELECT first_name, last_name FROM users WHERE username = ?`).bind(r.username).first();
                 const key = nameKey(u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : (r.name || r.username));
