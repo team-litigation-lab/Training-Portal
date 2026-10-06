@@ -108,6 +108,19 @@ To change the content, edit `SLIDES` in `orientation.html`; the PDF is made from
 - **Admins** are sent to the site's **Admin Portal** tab and type the admin password there, like on every platform.
 - The old Portal page (`/kb.html`, `/kb`) redirects to the new site. Its posts, replies, votes and views were imported into the new site (same D1 tables); the old code was removed.
 
+## ☎ LSH Ring Channel
+
+**☎ LSH Ring Channel** is its own site ([lshringchannel](https://github.com/team-litigation-lab/lshringchannel), `https://lshringchannel.legalsupporthelp.workers.dev/`): the training phone (VOIP in the browser) for trainer-led Reception, Calendar and Intake mock calls.
+- The trainer dials the trainee's desk extension and plays the caller.
+- Calls are recorded and graded on the program's Mock Calls Metrics.
+- Trainees can also practice with an AI caller.
+
+The Portal links to it from the Training Directory's banners, the home page's Simulators, the 🛠 Simulators hub and Master Control's menu, all through `/api/launch?tool=ringchannel`.
+
+- **Trainees** open it from the Portal and are signed in with the short-lived signed ticket (their name and batch). There is no second sign-in and no PIN. Any signed-in, approved trainee can open it (no program access to request).
+  - Ring Channel checks the ticket with `PORTAL_SSO_SECRET` if it has the secret; otherwise it asks this Portal's `/api/verify-ticket`, like the CMS.
+- **Admins** land on its trainer sign-in and type the trainer passphrase, like on every platform.
+
 ## 🕘 Attendance (admin)
 
 **Admin → 🕘 Attendance** (`/attendance.html`; linked from Master Control and the Directory's admin bar) is every program's attendance, batch by batch. It shows and edits the same records as each course's own **Admin → 🕘 Attendance** tab (`js/attendance.js`, the same file in every course), so trainers can take attendance in either place.
