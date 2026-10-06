@@ -301,7 +301,8 @@ document.addEventListener('change', (ev) => {
     if (ev.target.id === 'rv-rt') loadRules(ev.target.value);
 });
 window.addEventListener('beforeunload', (ev) => { if (R.dirty) { saveTrainer(); ev.preventDefault(); ev.returnValue = ''; } });
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!Sim.isAdmin()) await Sim.restore();   // opened in a new tab (noopener): the cookie says who is signed in, this tab has no copy yet
     document.getElementById('topbar').innerHTML = Sim.topbar('gcal');
     if (!Sim.isAdmin()) { $('#app').innerHTML = '<div class="rv-card" style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px">This page is for trainers. Sign in to the Portal as an admin to review your trainees’ calendars.</div>'; return; }
     page(); loadList();

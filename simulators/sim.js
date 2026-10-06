@@ -26,6 +26,21 @@ const Sim = {
     esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); },
     session() { try { return (typeof getSession === 'function' ? getSession() : JSON.parse(sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1') || 'null')) || {}; } catch (e) { return {}; } },
     isAdmin() { return Sim.session().userType === 'Admin'; },
+    // A page opened in a new tab (a link that opens with noopener, a bookmark, the trainer's live review) has the signed cookie but no copy of
+    // the person in the tab's own storage, so isAdmin() reads false for a signed-in admin. Ask /api/me once, as programs.html does, and
+    // keep the answer for the tab (an admin only: a trainee's session is never kept on the simulators). Resolves to the session.
+    async restore() {
+        if (Sim.session().userType) return Sim.session();
+        try {
+            const r = await fetch('/api/me', { credentials: 'include', cache: 'no-store' });
+            const d = r.ok ? await r.json().catch(() => null) : null;
+            if (d && d.success && d.user && d.user.userType === 'Admin') {
+                if (typeof setSession === 'function') setSession(d.user); else sessionStorage.setItem('LSH_SESSION_V1', JSON.stringify(d.user));
+                if (typeof startHeartbeat === 'function') startHeartbeat();
+            }
+        } catch (e) { /* signed out, or offline: the page shows what it shows without a session */ }
+        return Sim.session();
+    },
     // Who is practicing (no account on the portal): { name, batch, program }.
     who() { try { return JSON.parse(localStorage.getItem('LSH_SIM_WHO') || '{}') || {}; } catch (e) { return {}; } },
     setWho(w) { try { localStorage.setItem('LSH_SIM_WHO', JSON.stringify(Object.assign(Sim.who(), w))); } catch (e) {} },

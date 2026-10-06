@@ -78,6 +78,10 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/gcal-review.cjs
+      - name: Trainee Evaluations page in a new tab (a signed-in admin sees the review; trainees and signed-out visitors get the trainers-only note)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/gcal-review-page.cjs
       - name: Orientation (the admin track for admins only; each track downloads as a PDF with the deploy stamp)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
