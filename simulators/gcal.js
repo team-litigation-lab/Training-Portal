@@ -1018,18 +1018,18 @@ function doCheck() {
 }
 
 // The automated check of the trainee's calendar: at the bottom of the requests panel, under the request cards.
-function checkSection(r) {
+function checkSection(r, rm) {
     const col = r.score >= 85 ? '#188038' : r.score >= 70 ? '#e37400' : '#d93025';
     return `<div id="gc-check" style="margin-top:14px;padding-top:12px;border-top:1px solid #dadce0"><h3 style="margin:0 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5f6368;font-weight:500">Your calendar, checked</h3>
         <div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.score}%</div>
             <div class="lead" style="margin:0">${r.right} of ${r.results.length} ${r.open ? `appointment${r.results.length === 1 ? '' : 's'}` : 'requests'} fully right.${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}<br><span style="color:#70757a">Checked ${esc(Sim.fmtDate(r.at))}</span></div></div>
         ${r.open && !r.results.length ? '<p class="lead">There are no appointments on the calendar to check yet.</p>' : ''}
-        ${resRows(r)}
+        ${resRows(r, rm)}
         ${(r.changed || []).length ? `<div class="res-r"><h5><span>The attorney’s appointments you changed</span><span></span></h5><ul>${r.changed.map(t => `<li class="chg"><span>${esc(t)}</span></li>`).join('')}</ul><div style="color:#70757a;margin-top:4px">Only when a caller asked for it: your trainer checks these.</div></div>` : ''}</div>`;
 }
 const slimResult = (r) => ({ score: r.score, right: r.right, penalty: r.penalty || 0, extra: r.extra || [], at: r.at,
     results: r.results.map(x => ({ head: x.head, when: x.when || '', pts: Math.round(x.pts * 10) / 10, max: x.max, items: x.items.map(i => ({ ok: !!i.ok, t: i.t })) })) });
-const resRows = (r) => r.results.map(x => `<div class="res-r"><h5><span>${esc(x.head)}</span><span>${Math.round(x.pts * 10) / 10}/${x.max}</span></h5>${x.when ? `<div style="color:#70757a;margin-bottom:4px">${esc(x.when)}</div>` : ''}<ul>${x.items.map(i => `<li class="${i.ok ? 'ok' : 'no'}"><span>${esc(i.t)}</span></li>`).join('')}</ul></div>`).join('')
+const resRows = (r, rm) => r.results.map(x => `<div class="res-r"><h5><span>${esc(x.head)}</span><span>${Math.round(x.pts * 10) / 10}/${x.max}${rm && x.id ? ` <button class="txt" data-a="tv-skip" data-id="${esc(x.id)}" title="Take this appointment out of this review and its score">✕ Remove</button>` : ''}</span></h5>${x.when ? `<div style="color:#70757a;margin-bottom:4px">${esc(x.when)}</div>` : ''}<ul>${x.items.map(i => `<li class="${i.ok ? 'ok' : 'no'}"><span>${esc(i.t)}</span></li>`).join('')}</ul></div>`).join('')
     + (r.extra && r.extra.length ? `<div class="res-r"><h5><span>Changed without a request</span><span>−${r.penalty}</span></h5><ul>${r.extra.map(t => `<li class="no"><span>${esc(t)}</span></li>`).join('')}</ul></div>` : '');
 async function recFetch(user) {
     const r = await Sim.fetchRetry('/api/calsim' + (user ? '?user=' + encodeURIComponent(user) : ''), { credentials: 'include' }), j = await r.json().catch(() => ({}));
@@ -1101,6 +1101,7 @@ async function liveStart(again) {
         if (!dr || !dr.success) throw new Error((dr && dr.error) || 'Their calendar couldn’t be loaded.');
         RV.name = (dr.person && dr.person.name) || (j.person && j.person.name) || RV.user; RV.batch = (dr.person && dr.person.batch) || (j.person && j.person.batch) || '';
         RV.cards = ((j.data && j.data.scorecards) || {})[GT] || [];
+        RV.skip = new Set(((j.data && j.data.excluded) || {})[GT] || []);
         RV.savedAt = dr.updatedAt || null;
         try {   // the weekly schedule as an Admin set it, before the check
             const sch = await (await Sim.fetchRetry(API_SCHEDULE, { credentials: 'include' })).json();
@@ -1127,7 +1128,23 @@ function liveScoresHTML() {
             ${C ? C.formHTML(last) : '<p>The scorecard didn’t load. Refresh the page.</p>'}
             <div style="margin-top:8px"><button class="blue" data-a="tv-save">💾 Save scorecard</button></div>
             ${RV.cards.length > 1 ? `<div style="margin-top:10px"><b>Earlier scorecards</b><ul>${RV.cards.slice(0, -1).reverse().map(x => `<li><span>${esc(when(x.at))} · ${esc(x.by || '')} · ${esc(x.average)}/5 (${esc(x.pct)}%)</span></li>`).join('')}</ul></div>` : ''}</div>
-        <div>${S.result ? checkSection(S.result).replace('Your calendar, checked', 'Their calendar, checked (automated)') : ''}</div></div>`;
+        <div>${S.result ? liveCheckHTML() : ''}</div></div>`;
+}
+// The trainer's view of the automated check: without the appointments they took out of the review (a sample or test appointment that isn't a caller's
+// request), the score worked out again from the rest; each removed one can be put back. Kept in the trainee's record (excluded[track]), never changed by their saves.
+function liveCheckHTML() {
+    const r0 = S.result, skip = RV.skip || new Set(), kept = r0.results.filter(x => !skip.has(x.id)), gone = r0.results.filter(x => skip.has(x.id));
+    const got = kept.reduce((a, x) => a + x.pts, 0), max = kept.reduce((a, x) => a + x.max, 0);
+    const r = Object.assign({}, r0, { results: kept, right: kept.filter(x => x.pts >= x.max - 0.01).length,
+        score: r0.open ? (max ? Math.round(got / max * 100) : 0) : Math.max(0, Math.min(100, Math.round((max ? got / max * 100 : 100) - (r0.penalty || 0)))) });
+    return checkSection(r, true).replace('Your calendar, checked', 'Their calendar, checked (automated)')
+        + (gone.length ? `<div class="res-r" id="tv-removed"><h5><span>Removed from this review (${gone.length})</span><span></span></h5><ul>${gone.map(x => `<li><span>${esc(x.head)}</span> <button class="txt" data-a="tv-unskip" data-id="${esc(x.id)}">↩ Put back</button></li>`).join('')}</ul></div>` : '');
+}
+async function skipItem(id, on) {
+    const was = new Set(RV.skip || []), next = new Set(was); if (on) next.add(id); else next.delete(id);
+    RV.skip = next; renderScores();
+    try { await recPost({ exclude: { user: RV.user, track: GT, ids: [...next] } }); snack(on ? 'Removed from this review. It stays removed until you put it back.' : 'Put back in the review.', true); }
+    catch (e) { RV.skip = was; renderScores(); snack(e.message); }
 }
 // 📊 The scores, in a section of their own below the calendar (not in the side panel): the automated check (Check my
 // calendar), the trainer's scorecard and what was submitted with its feedback. A trainer looking at a trainee's calendar
@@ -1286,7 +1303,7 @@ function bind() {
             reset: () => dialog('Start over?', '<p style="margin:0;color:#444746">Your events and changes are cleared and a new set of requests comes in.</p>', () => { S = fresh(); save(); closeAll(); render(); }, 'Start over'),
             create: () => createAt(S.view === 'day' ? S.anchor : null),
             panel: () => { S.panel = a.dataset.p === S.panel ? '' : a.dataset.p; save(); renderPanel(); renderRail(); },
-            check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true), 'to-scores': () => { ev.preventDefault(); toScores(); },
+            check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true), 'tv-skip': () => skipItem(a.dataset.id, true), 'tv-unskip': () => skipItem(a.dataset.id, false), 'to-scores': () => { ev.preventDefault(); toScores(); },
             evals: () => { if (Sim.isAdmin()) { location.href = REVIEW_PAGE; return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
             'submit-eval': () => submitEval(),
             'cloud-save': () => { save(true); cloudSave(); },
