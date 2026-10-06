@@ -94,6 +94,10 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/trainees-on-evaluations.cjs
+      - name: The trainee's side (a newer saved copy is never overwritten, today, big calendars, track names, PDF accents, the cards, a trainee's calendar in a new tab)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/gcal-trainee-side.cjs
       - name: Orientation (the admin track for admins only; each track downloads as a PDF with the deploy stamp)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules

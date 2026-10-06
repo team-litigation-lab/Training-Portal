@@ -122,11 +122,18 @@ async function gsList(only) {
     // and the trainer's score on it.
     const lastCheck = (track) => { try { const s = JSON.parse(localStorage.getItem('lsh_gcal' + (track === 'standard' ? '' : '.' + track) + ':' + String(me.name || '').trim().toLowerCase()) || 'null');
         return s && s.result && typeof s.result.score === 'number' ? s.result : null; } catch (e) { return null; } };
+    // 📤 Submit for evaluation (functions/api/gcal-reviews.js): each track's latest evaluation, its state and, once the trainer has sent the final report, their score
+    let evals = [];
+    if (!me.admin) { try { const d = await (await Sim.fetchRetry('/api/gcal-reviews', { credentials: 'include' })).json(); evals = (d && d.success && Array.isArray(d.reviews)) ? d.reviews : []; } catch (e) { evals = []; } }
+    const evalLine = (track) => { const r = evals.filter(x => x.track === track).sort((a, b) => String(b.submittedAt).localeCompare(String(a.submittedAt)))[0]; if (!r) return '';
+        const st = r.status === 'final' ? '✅ final report sent' + (r.trainer && r.trainer.score != null ? ` · 👤 trainer <b>${Sim.esc(r.trainer.score)}/100</b>` : '') : (r.aiStatus === 'pending' ? '🤖 AI review being written' : '👤 with your trainer');
+        return `📋 Evaluation: submitted ${Sim.esc(new Date(r.submittedAt).toLocaleDateString())}${r.checkScore != null ? ` · check ${Sim.esc(r.checkScore)}%` : ''} · ${st} · <a href="/simulators/my-evaluations.html">My Evaluations →</a>`; };
     const reviewHTML = (track) => {
         if (me.admin) return '';
         const a = lastCheck(track), subs = (rec && Array.isArray(rec.gsubs) ? rec.gsubs : []).filter(x => x && x.track === track), last = subs[subs.length - 1];
         const fb = last && rec.reviews ? rec.reviews['g:' + track + '|' + last.at] : null, lines = [];
         if (a) lines.push(`🤖 Automated review: <b>${Sim.esc(a.score)}%</b>${Array.isArray(a.results) && a.right != null ? ` · ${Sim.esc(a.right)} of ${a.results.length} right` : ''}${a.at ? ` · ${Sim.esc(String(a.at).slice(0, 10))}` : ''}`);
+        const ev = evalLine(track); if (ev) lines.push(ev);
         if (last) lines.push(`📤 Submitted${subs.length > 1 ? ` ${subs.length} times` : ''}${last.result && last.result.score != null ? ` · its review ${Sim.esc(last.result.score)}%` : ''}${fb && fb.score != null ? ` · 👤 trainer <b>${Sim.esc(fb.score)}/100</b>` : ''}`);
         const cards = rec && rec.scorecards && Array.isArray(rec.scorecards[track]) ? rec.scorecards[track] : [], sc = cards[cards.length - 1];
         const scLine = sc && window.CalScorecard ? `<details class="cs-scorecard" style="margin-top:4px"><summary style="cursor:pointer">📋 Trainer’s scorecard: <b>${Sim.esc(sc.average)}/5 (${Sim.esc(sc.pct)}%)</b> · ${Sim.esc(String(sc.at).slice(0, 10))}</summary><div style="margin-top:6px">${CalScorecard.sheetHTML(sc)}</div></details>` : '';

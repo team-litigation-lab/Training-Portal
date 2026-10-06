@@ -57,7 +57,7 @@ const seenFinal = (id) => { try { return JSON.parse(localStorage.getItem(SEEN) |
 const markSeen = (id) => { try { const a = JSON.parse(localStorage.getItem(SEEN) || '[]'); if (!a.includes(id)) { a.push(id); localStorage.setItem(SEEN, JSON.stringify(a.slice(-200))); } } catch (e) { /* storage blocked */ } };
 const M = { list: null, drafts: {}, open: null, err: '', signedOut: false, timer: null };
 async function get(q) {
-    const res = await fetch(API + q, { credentials: 'include', cache: 'no-store' });
+    const res = await Sim.fetchRetry(API + q, { credentials: 'include', cache: 'no-store' });
     const d = await res.json().catch(() => ({}));
     if (res.status === 401) { const e = new Error('Sign in to the LSH Training Portal to see your evaluations.'); e.signedOut = true; throw e; }
     if (!res.ok || d.success === false) throw new Error(d.error || ('Request failed (' + res.status + ')'));
@@ -104,7 +104,7 @@ function paint() {
     if (!M.list) return;
     const r = M.open != null ? M.list.find(x => x.id === M.open && x.status === 'final') : null;
     if (M.open != null && !r) M.open = null;
-    app.innerHTML = `<style>${EvalReport.css}</style>` + (r ? report(r) : inProgress() + submitted()) + (M.err ? `<p class="me-sub">⚠ ${esc(M.err)}</p>` : '');
+    app.innerHTML = `<style>${EvalReport.css}</style>` + (M.err ? `<div class="me-note" role="alert" style="border-color:#fecaca;background:#fef2f2;color:#991b1b;margin-bottom:14px">⚠ ${esc(M.err)} ${M.signedOut ? '<a href="/trainee-login.html">Sign in again</a>' : '<button class="btn btn-ghost" data-a="retry">Try again</button>'} <span class="me-sub">What is shown below is from the last time it loaded.</span></div>` : '') + (r ? report(r) : inProgress() + submitted());
 }
 document.addEventListener('click', (ev) => {
     const a = ev.target.closest('[data-a]'); if (!a) return;

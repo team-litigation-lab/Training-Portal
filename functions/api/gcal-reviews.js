@@ -238,6 +238,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     try { b = await request.json(); } catch (e) { return json({ success: false, error: 'Invalid request body.' }, 400); }
     const later = (p) => { if (typeof waitUntil === 'function') waitUntil(p); else return p; };
     if (b.action === 'submit') {
+        if (admin) return json({ success: false, error: 'Trainers review submissions: only a trainee submits a calendar.' }, 403);
         const raw = isObj(b.calendar) ? JSON.stringify(b.calendar) : '';
         if (!raw || raw.length > MAX_CAL) return json({ success: false, error: raw ? 'That calendar is too large to submit.' : 'Nothing to submit.' }, 400);
         const track = TRACKS.includes(b.track) ? b.track : 'standard';

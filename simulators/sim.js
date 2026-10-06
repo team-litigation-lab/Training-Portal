@@ -38,14 +38,16 @@ const Sim = {
         return fetch(url, opts);
     },
     // Who is practicing: { name, batch, program }, typed in this browser (not taken from the account; see claim()).
-    who() { try { return JSON.parse(localStorage.getItem('LSH_SIM_WHO') || '{}') || {}; } catch (e) { return {}; } },
-    setWho(w) { try { localStorage.setItem('LSH_SIM_WHO', JSON.stringify(Object.assign(Sim.who(), w))); } catch (e) {} },
+    whoRaw() { try { return JSON.parse(localStorage.getItem('LSH_SIM_WHO') || '{}') || {}; } catch (e) { return {}; } },
+    // A trainee signed in to the Portal is who they are signed in as: no "Who's practicing?" box, and their name and batch come from the account.
+    who() { const w = Sim.whoRaw(), s = Sim.session(); if (!w.name && s && s.userType === 'Trainee' && (s.fullName || s.username)) return Object.assign({}, w, { name: String(s.fullName || s.username).slice(0, 80), batch: w.batch || String(s.batchId || '').slice(0, 40) }); return w; },
+    setWho(w) { try { localStorage.setItem('LSH_SIM_WHO', JSON.stringify(Object.assign(Sim.whoRaw(), w))); } catch (e) {} },
     // A program can pass who is practicing: /simulators/email.html?program=CM&name=Jane%20Doe&batch=B-2026-014
     fromQuery() {
         try {
             const q = new URLSearchParams(location.search);
             if (q.get('name') || q.get('batch') || q.get('program')) {
-                const cur = Sim.who();
+                const cur = Sim.whoRaw();
                 ['name', 'batch', 'program'].forEach(k => { if (q.get(k)) cur[k] = q.get(k).slice(0, k === 'name' ? 80 : 40); });
                 localStorage.setItem('LSH_SIM_WHO', JSON.stringify(cur));
             }
@@ -87,7 +89,7 @@ const Sim = {
     },
     // First visit (not an admin, no name yet): ask once so results can be saved for the trainer.
     askWho(force) {
-        if (Sim.isAdmin()) return;
+        if (Sim.isAdmin() || Sim.session().userType === 'Trainee') return;   // (signed in to the Portal: who they are is known)
         const w = Sim.who();
         if (!force && (w.name || w.skipped)) return;
         const old = document.getElementById('sim-who'); if (old) old.remove();

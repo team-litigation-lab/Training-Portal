@@ -422,17 +422,20 @@ function fresh() {
     return { v: 1, today, view: innerWidth < 640 ? 'day' : 'week', anchor: today, mini: today.slice(0, 7), side: innerWidth > 900, panel: innerWidth > 1100 ? 'requests' : '',
         hidden: {}, set: { dur: 30, weekends: false, tz2: false }, events: [], ex: {}, sx: {}, reqs: OPEN ? [] : dealRequests(today), result: null };
 }
-function load() { try { const s = JSON.parse(localStorage.getItem(KEY()) || 'null'); if (s && s.v === 1 && Array.isArray(s.reqs)) { if (OPEN) s.reqs = []; return s; } } catch (e) { /* none */ } return null; }
+function load() { try { const s = JSON.parse(localStorage.getItem(KEY()) || 'null'); if (s && s.v === 1 && Array.isArray(s.reqs)) { if (OPEN) { s.reqs = []; s.today = simToday(); } return s; } } catch (e) { /* none */ } return null; }   // (Standard Training has no dealt set: its today follows the calendar)
+// What counts as the calendar's content (a view or a panel opening is not: it is kept in this browser but never sent as a newer copy)
+const sigNow = () => S ? JSON.stringify([S.events, S.ex, S.sx, (S.reqs || []).map(q => [q.id, q.done]), S.set, S.hidden]) : '';
 function save(local) {
     if (RV) return;   // a trainer reviewing a trainee's calendar (?review=) saves nothing
-    if (!local && S) S.savedAt = Date.now();
+    const changed = sigNow() !== CLOUD.sig;
+    if (!local && S && changed) S.savedAt = Date.now();
     try { localStorage.setItem(KEY(), JSON.stringify(S)); } catch (e) { /* private mode */ }
-    if (!local) cloudQueue();
+    if (!local && changed) cloudQueue();
 }
 /* ---------- 💾 saved to the trainee's Portal account (/api/gcal-reviews?draft=…), so their work isn't lost ----------
    Every change is kept in this browser at once and sent to their account 3 seconds after the last one (and when the page
    closes). On opening, the newer of the two comes back: their calendar follows them to another browser or computer. */
-const CLOUD = { state: '', at: 0, timer: null, busy: false, again: false };
+const CLOUD = { state: '', at: 0, timer: null, busy: false, again: false, base: null, sig: '' };   // base: the updatedAt of the copy on their account this one was made from; sig: what was last in sync
 const cloudOn = () => !Sim.isAdmin();
 function cloudQueue() { if (!cloudOn()) return; clearTimeout(CLOUD.timer); CLOUD.state = CLOUD.state === 'off' ? 'off' : 'pending'; paintCloud(); CLOUD.timer = setTimeout(cloudSave, 3000); }
 async function cloudSave(keep) {
@@ -441,37 +444,39 @@ async function cloudSave(keep) {
     if (CLOUD.busy) { CLOUD.again = true; return; }
     CLOUD.busy = true; CLOUD.state = 'saving'; paintCloud();
     try {
-        const res = await fetch(EV_API, { method: 'POST', credentials: 'include', keepalive: !!keep, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'draft', track: GCAL_TRACK || 'standard', data: S }) });
+        const res = await Sim.fetchRetry(EV_API, { method: 'POST', credentials: 'include', keepalive: !!keep, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'draft', track: GCAL_TRACK || 'standard', data: S, base: CLOUD.base }) });
         const d = await res.json().catch(() => ({}));
         if (res.status === 401) CLOUD.state = 'off';
-        else if (res.ok && d.success) { CLOUD.state = 'saved'; CLOUD.at = Date.now(); }
+        else if (res.status === 409 && d.code === 'DRAFT_NEWER') { CLOUD.state = 'newer'; CLOUD.again = false; snack('A newer copy of this calendar is saved to your account (another tab or device). Yours wasn’t sent.'); }
+        else if (res.ok && d.success) { CLOUD.state = 'saved'; CLOUD.at = Date.now(); CLOUD.base = d.updatedAt || CLOUD.base; CLOUD.sig = sigNow(); }
         else CLOUD.state = 'error';
     } catch (e) { CLOUD.state = 'error'; }
     CLOUD.busy = false; paintCloud();
     if (CLOUD.again) { CLOUD.again = false; cloudSave(); }
 }
-async function cloudLoad() {
+async function cloudLoad(force) {
     if (!cloudOn()) return;
     try {
-        const res = await fetch(EV_API + '?draft=' + encodeURIComponent(GCAL_TRACK || 'standard'), { credentials: 'include' });
+        const res = await Sim.fetchRetry(EV_API + '?draft=' + encodeURIComponent(GCAL_TRACK || 'standard'), { credentials: 'include' });
         if (res.status === 401) { CLOUD.state = 'off'; paintCloud(); return; }
         const d = await res.json().catch(() => ({}));
         const c = d && d.success && d.data;
-        if (c && c.v === 1 && Array.isArray(c.events) && (c.savedAt || 0) > ((S && S.savedAt) || 0)) {
-            if (OPEN) c.reqs = []; else if (!Array.isArray(c.reqs)) c.reqs = S.reqs;
-            S = c; save(true); CLOUD.state = 'saved'; CLOUD.at = c.savedAt; closeAll(); render(); snack('Your saved calendar is back');
+        if (d && d.success) CLOUD.base = d.updatedAt || null;
+        if (c && c.v === 1 && Array.isArray(c.events) && (force || (c.savedAt || 0) > ((S && S.savedAt) || 0))) {
+            if (OPEN) { c.reqs = []; c.today = simToday(); } else if (!Array.isArray(c.reqs)) c.reqs = S.reqs;
+            S = c; CLOUD.sig = sigNow(); save(true); CLOUD.state = 'saved'; CLOUD.at = c.savedAt; closeAll(); render(); snack(force ? 'The newer copy is open' : 'Your saved calendar is back');
         } else if (S && S.savedAt && (!c || (c.savedAt || 0) < S.savedAt)) cloudSave();   // this browser has newer work: send it
-        else { CLOUD.state = c ? 'saved' : ''; CLOUD.at = c ? c.savedAt : 0; paintCloud(); }
+        else { CLOUD.state = c ? 'saved' : ''; CLOUD.at = c ? c.savedAt : 0; if (c) CLOUD.sig = sigNow(); paintCloud(); }
     } catch (e) { CLOUD.state = 'error'; paintCloud(); }
 }
 function cloudText() {
     const t = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     return ({ pending: 'Unsaved changes…', saving: 'Saving…', saved: CLOUD.at ? `✓ Saved to your account ${t(CLOUD.at)}` : '✓ Saved to your account',
-        error: '⚠ Not saved to your account yet (kept in this browser). Try 💾 Save again.', off: 'Sign in to the LSH Training Portal to save your calendar to your account (it’s kept in this browser for now).' })[CLOUD.state] || 'Your calendar saves to your account as you work.';
+        error: '⚠ Not saved to your account yet (kept in this browser). Try 💾 Save again.', newer: '⚠ A newer copy of this calendar is saved to your account (another tab or device). Your changes here are kept in this browser, not sent.', off: 'Sign in to the LSH Training Portal to save your calendar to your account (it’s kept in this browser for now).' })[CLOUD.state] || 'Your calendar saves to your account as you work.';
 }
 function cloudHtml() {
     if (!cloudOn() || RV) return '';   // (a trainer looking at a trainee's calendar saves nothing)
-    return `<div class="cloud ${CLOUD.state}" id="gc-cloud"><span>${esc(cloudText())}</span><button class="txt" data-a="cloud-save" style="padding:0 8px;height:28px">💾 Save</button></div>`;
+    return `<div class="cloud ${CLOUD.state}" id="gc-cloud"><span>${esc(cloudText())}</span>${CLOUD.state === 'newer' ? '<button class="txt" data-a="cloud-newer" style="padding:0 8px;height:28px">Open the newer copy</button>' : '<button class="txt" data-a="cloud-save" style="padding:0 8px;height:28px">💾 Save</button>'}</div>`;
 }
 function paintCloud() { const n = document.getElementById('gc-cloud'); if (n) n.outerHTML = cloudHtml(); }
 window.addEventListener('pagehide', () => { if (CLOUD.state === 'pending' || CLOUD.state === 'error') cloudSave(true); });
@@ -485,7 +490,7 @@ function undo() { if (!G.undo) return; const u = JSON.parse(G.undo); S.events = 
 // An Admin's change to the weekly schedule, for everyone
 async function putRows() {
     try {
-        const res = await fetch(API_SCHEDULE, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: ROWS }) });
+        const res = await Sim.fetchRetry(API_SCHEDULE, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: ROWS }) });
         const data = await res.json().catch(() => ({}));
         if (!data.success) snack(data.error || 'The schedule wasn’t saved. Try again.');
     } catch (e) { snack('The schedule wasn’t saved (no connection).'); }
@@ -1023,12 +1028,12 @@ const slimResult = (r) => ({ score: r.score, right: r.right, penalty: r.penalty 
 const resRows = (r) => r.results.map(x => `<div class="res-r"><h5><span>${esc(x.head)}</span><span>${Math.round(x.pts * 10) / 10}/${x.max}</span></h5>${x.when ? `<div style="color:#70757a;margin-bottom:4px">${esc(x.when)}</div>` : ''}<ul>${x.items.map(i => `<li class="${i.ok ? 'ok' : 'no'}"><span>${esc(i.t)}</span></li>`).join('')}</ul></div>`).join('')
     + (r.extra && r.extra.length ? `<div class="res-r"><h5><span>Changed without a request</span><span>−${r.penalty}</span></h5><ul>${r.extra.map(t => `<li class="no"><span>${esc(t)}</span></li>`).join('')}</ul></div>` : '');
 async function recFetch(user) {
-    const r = await fetch('/api/calsim' + (user ? '?user=' + encodeURIComponent(user) : ''), { credentials: 'include' }), j = await r.json().catch(() => ({}));
+    const r = await Sim.fetchRetry('/api/calsim' + (user ? '?user=' + encodeURIComponent(user) : ''), { credentials: 'include' }), j = await r.json().catch(() => ({}));
     if (!r.ok || !j.success) throw new Error(j.error || 'Sign in on the Portal first.');
     return j;
 }
 async function recPost(body) {
-    const r = await fetch('/api/calsim', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), j = await r.json().catch(() => ({}));
+    const r = await Sim.fetchRetry('/api/calsim', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), j = await r.json().catch(() => ({}));
     if (!r.ok || j.success === false) throw new Error(j.error || 'Couldn’t save. Check your connection.');
     return j;
 }
@@ -1085,7 +1090,7 @@ async function liveStart(again) {
     if (!again) { S = fresh(); S.panel = 'result'; render(); }
     try {
         const [dr, j] = await Promise.all([
-            fetch(EV_API + '?draft=' + encodeURIComponent(GCAL_TRACK || 'standard') + '&user=' + encodeURIComponent(RV.user), { credentials: 'include' }).then(r => r.json()),
+            Sim.fetchRetry(EV_API + '?draft=' + encodeURIComponent(GCAL_TRACK || 'standard') + '&user=' + encodeURIComponent(RV.user), { credentials: 'include' }).then(r => r.json()),
             recFetch(RV.user)]);
         if (!j.me || !j.me.admin) throw new Error('Viewing a trainee’s calendar is for trainers.');
         if (!dr || !dr.success) throw new Error((dr && dr.error) || 'Their calendar couldn’t be loaded.');
@@ -1093,7 +1098,7 @@ async function liveStart(again) {
         RV.cards = ((j.data && j.data.scorecards) || {})[GT] || [];
         RV.savedAt = dr.updatedAt || null;
         try {   // the weekly schedule as an Admin set it, before the check
-            const sch = await (await fetch(API_SCHEDULE, { credentials: 'include' })).json();
+            const sch = await (await Sim.fetchRetry(API_SCHEDULE, { credentials: 'include' })).json();
             if (sch && sch.success && Array.isArray(sch.rows) && sch.rows.length && sch.rows.every(r => r && r.id && r.title && /^\d\d:\d\d$/.test(r.start))) ROWS = sch.rows;
         } catch (e) { /* the schedule as it came */ }
         const c = dr.data, keep = S ? { view: S.view, anchor: S.anchor, mini: S.mini } : {};
@@ -1166,16 +1171,28 @@ function evalPayload() {
         automatedCheck: { score: r.score, requestsFullyRight: `${r.right} of ${r.results.length}`, changedWithoutARequest: r.extra, attorneyAppointmentsChanged: r.changed || [],
             results: r.results.map(x => ({ request: x.head, points: `${Math.round(x.pts * 10) / 10}/${x.max}`, when: x.when || '', met: x.items.filter(i => i.ok).map(i => i.t), missed: x.items.filter(i => !i.ok).map(i => i.t) })) } } };
 }
+// The server keeps a submitted calendar up to 200000 characters; a Standard Training week with many appointments can pass that, so the parts that are
+// only for the trainer's picture and the long texts are trimmed in steps (the automated check and the appointments' fields the AI judges stay).
+function trimPayload(p) {
+    const size = () => JSON.stringify(p).length, cal = p.calendar, LIMIT = 150000;
+    if (size() <= LIMIT) return p;
+    if (cal.week && cal.week.events) cal.week.events = cal.week.events.slice(0, 120);
+    if (size() > LIMIT) cal.appointments.forEach(a => { a.description = String(a.description || '').slice(0, 500); a.guests = (a.guests || []).slice(0, 5); });
+    if (size() > LIMIT && cal.week) cal.week.events = cal.week.events.slice(0, 40);
+    if (size() > LIMIT) cal.appointments.forEach(a => { a.description = String(a.description || '').slice(0, 150); });
+    if (size() > LIMIT) cal.appointments = cal.appointments.slice(0, 150);
+    return p;
+}
 async function submitEval() {
     if (Sim.isAdmin()) { snack('Trainers review submissions in Trainee evaluations (in Settings).'); return; }
     if (EV.busy) return;
-    const p = evalPayload();
+    const p = trimPayload(evalPayload());
     if (!p.calendar.appointments.length && !p.calendar.automatedCheck.results.some(x => x.met.length) && !(p.calendar.automatedCheck.attorneyAppointmentsChanged || []).length) { snack('Book the appointments first, then submit them.'); return; }
     dialog('Submit for evaluation?', `<p style="margin:0;color:#444746">${OPEN ? `Your ${p.calendar.appointments.length} appointment${p.calendar.appointments.length === 1 ? '' : 's'}` : `Your appointments for these ${S.reqs.length} requests`} go to your trainer. An AI review is written for them, your trainer goes through it with you and adds their own feedback, and then the final report shows under <b>My evaluations</b>.</p>`, async () => {
         EV.busy = true;
         save(true); cloudSave();
         try {
-            const res = await fetch(EV_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ action: 'submit' }, p)) });
+            const res = await Sim.fetchRetry(EV_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ action: 'submit' }, p)) });
             const d = await res.json().catch(() => ({}));
             if (res.status === 401) { snack('Sign in to the LSH Training Portal to submit.'); return; }
             if (!res.ok || !d.success) { snack(d.error || 'Could not submit. Try again.'); return; }
@@ -1187,7 +1204,7 @@ async function submitEval() {
 async function loadEvals() {
     clearTimeout(EV.timer);
     try {
-        const res = await fetch(EV_API, { credentials: 'include' }); const d = await res.json().catch(() => ({}));
+        const res = await Sim.fetchRetry(EV_API, { credentials: 'include' }); const d = await res.json().catch(() => ({}));
         if (d.success) { EV.list = d.reviews || []; EV.ready = EV.list.filter(r => r.status === 'final' && !seenFinal(r.id)).length; }
     } catch (e) { /* offline: try again on the next look */ }
     if (S && S.panel === 'evals') renderPanel();
@@ -1206,7 +1223,7 @@ function evalsHtml() {
         const r = EV.list.find(x => x.id === EV.open);
         if (!r || r.status !== 'final') { EV.open = null; return evalsHtml(); }
         markSeen(r.id); EV.ready = EV.list.filter(x => x.status === 'final' && !seenFinal(x.id)).length;
-        return `<button class="txt" data-a="eval-back" style="padding:0;margin-bottom:6px">← All evaluations</button><h4 style="margin:4px 0 8px">Final feedback report</h4>${reportHtml(r)}
+        return `<button class="txt" data-a="eval-back" style="padding:0;margin-bottom:6px">← All evaluations</button><h4 style="margin:4px 0 8px">Final feedback report · ${esc(trackName(r))}</h4>${reportHtml(r)}
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="blue" data-a="eval-pdf" data-id="${r.id}">⬇ Download PDF</button></div>`;
     }
     const all = `<p style="margin:0 0 8px"><a href="/simulators/my-evaluations.html" target="_blank" rel="noopener">📋 Open My Evaluations (all my calendars and reports)</a></p>`;
@@ -1214,10 +1231,12 @@ function evalsHtml() {
     return all + `<p class="lead">Your submitted calendars. Each report shows here once your trainer has sent it.</p>` + EV.list.map(r => {
         const st = r.status === 'final' ? `<button class="blue" data-a="eval-open" data-id="${r.id}">View report</button>`
             : `<span class="ev-st">${r.aiStatus === 'pending' ? '🤖 AI review being written…' : '👤 With your trainer for review'}</span>`;
-        return `<div class="res-r"><h5><span>${esc(evWhen(r.submittedAt))}</span><span>${r.checkScore == null ? '' : r.checkScore + '%'}</span></h5><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${st}${r.status === 'final' && !seenFinal(r.id) ? '<span class="ev-new">New</span>' : ''}</div></div>`;
+        return `<div class="res-r"><h5><span>${esc(evWhen(r.submittedAt))} · ${esc(trackName(r))}</span><span>${r.checkScore == null ? '' : r.checkScore + '%'}</span></h5><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${st}${r.status === 'final' && !seenFinal(r.id) ? '<span class="ev-new">New</span>' : ''}</div></div>`;
     }).join('');
 }
-const reportPdf = (r) => EvalReport.pdf(r, CFG.label || 'Standard Training', snack);
+const TRACK_NAMES = { standard: 'Standard Training', cm: 'Litigation Week · Case Management', ea: 'Executive Week · EA / PA' };
+const trackName = (r) => TRACK_NAMES[r && r.track] || CFG.label || 'Standard Training';
+const reportPdf = (r) => EvalReport.pdf(r, trackName(r), snack);
 
 /* ---------- events (one delegated handler each) ---------- */
 function bind() {
@@ -1251,12 +1270,13 @@ function bind() {
             evals: () => { if (Sim.isAdmin()) { window.open(REVIEW_PAGE, '_blank', 'noopener'); return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
             'submit-eval': () => submitEval(),
             'cloud-save': () => { save(true); cloudSave(); },
+            'cloud-newer': () => { if (confirm('Open the newer copy saved to your account? The changes you made in this tab since then are replaced.')) cloudLoad(true); },
             'eval-open': () => { EV.open = +a.dataset.id; renderPanel(); },
             'eval-back': () => { EV.open = null; renderPanel(); },
             'eval-pdf': () => { const r = EV.list.find(x => x.id === +a.dataset.id); if (r) reportPdf(r); },
             'admin-edit': () => { if (!Sim.isAdmin()) return; G.admin = !G.admin; G.undo = null; closeAll(); render(); snack(G.admin ? 'Editing the weekly schedule for everyone' : 'Back to your practice calendar'); },
             'admin-reset': () => dialog('Restore the original schedule?', '<p style="margin:0;color:#444746">' + WW('The attorney’s week goes back to how it came, for everyone.') + '</p>', async () => {
-                try { const res = await fetch(API_SCHEDULE, { method: 'DELETE', credentials: 'include' }); const data = await res.json().catch(() => ({})); if (!data.success) { snack(data.error || 'Could not restore it.'); return; } } catch (e) { snack('Could not restore it (no connection).'); return; }
+                try { const res = await Sim.fetchRetry(API_SCHEDULE, { method: 'DELETE', credentials: 'include' }); const data = await res.json().catch(() => ({})); if (!data.success) { snack(data.error || 'Could not restore it.'); return; } } catch (e) { snack('Could not restore it (no connection).'); return; }
                 ROWS = GCAL_ATTORNEY.map(r => Object.assign({}, r)); G.undo = null; render(); snack('The original schedule is back');
             }, 'Restore'),
             'new-set': () => dialog('A new set of requests?', '<p style="margin:0;color:#444746">New callers come in. Your calendar is cleared so you start fresh.</p>', () => { S = fresh(); save(); closeAll(); render(); snack('New requests are in'); }, 'New set'),
@@ -1389,9 +1409,10 @@ function onUp(ev) {
 }
 
 /* ---------- start ---------- */
-window.GCAL = { solve, checkPlan, checkOpen, slotProblems, concretize, instancesOf, dealRequests, simToday, datesIn, addDays, weekStart, rows: () => ROWS, setRows: (r) => { ROWS = r; } };
-function start() {
+window.GCAL = { solve, checkPlan, checkOpen, slotProblems, concretize, instancesOf, dealRequests, simToday, trimPayload, datesIn, addDays, weekStart, rows: () => ROWS, setRows: (r) => { ROWS = r; } };
+async function start() {
     if (!document.getElementById('app')) return;
+    await Sim.restore();   // opened in a new tab: the cookie says who is signed in (an admin must not be treated as a trainee), and the heartbeat starts
     const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal');
     if (TRK) document.title = 'Google Calendar Simulator · ' + CFG.label + ' — LSH Training Portal';
     if (TRK) { const eb = document.querySelector('.eyebrow'); if (eb) eb.textContent = 'Simulator · ' + CFG.scenario; }
@@ -1403,7 +1424,7 @@ function start() {
     mineStart();
     if (!Sim.isAdmin()) { loadEvals(); cloudLoad(); }   // My evaluations (a badge when a final report is waiting); the calendar saved to their account
     // the weekly schedule as an Admin set it (if they did)
-    fetch(API_SCHEDULE, { credentials: 'include' }).then(r => r.json()).then(data => {
+    Sim.fetchRetry(API_SCHEDULE, { credentials: 'include' }).then(r => r.json()).then(data => {
         if (data && data.success && Array.isArray(data.rows) && data.rows.length && data.rows.every(r => r && r.id && r.title && /^\d\d:\d\d$/.test(r.start))) {
             ROWS = data.rows; S.reqs = S.reqs.filter(q => q && (q.row == null || rowById(q.row))); render();
         }

@@ -25,7 +25,8 @@ const EvalReport = (function () {
         if (!J) { (onError || alert)('The PDF maker didn\'t load: reload the page and try again.'); return; }
         const doc = new J({ unit: 'pt', format: 'letter' }), W = 612, M = 54; let y = 60;
         const ai = r.ai || {}, t = r.trainer || {};
-        const ascii = (x) => String(x == null ? '' : x).replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...').replace(/[^\x20-\x7e\n]/g, '');
+        // jsPDF's standard fonts draw Latin-1: accented letters stay; typographic quotes and dashes are straightened; a thin or non-breaking space (the times' AM/PM) is a space; the rest can't be drawn
+        const ascii = (x) => String(x == null ? '' : x).replace(/[\u00a0\u2009\u202f]/g, ' ').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...').replace(/[^\x20-\x7e\xa1-\xff\n]/g, '');
         const page = (need) => { if (y + need > 740) { doc.addPage(); y = 60; } };
         const line = (s, size, bold, color) => { doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(size); doc.setTextColor(...(color || [31, 31, 31]));
             doc.splitTextToSize(ascii(s), W - 2 * M).forEach(l => { page(size + 4); doc.text(l, M, y); y += size + 4; }); };
