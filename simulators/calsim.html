@@ -40,7 +40,6 @@
 <script src="/portal-nav.js"></script>
 <script src="/portal.js"></script>
 <script src="/simulators/sim.js"></script>
-<script src="/simulators/trainees-calendars.js"></script>
 <script>Sim.module = 'calendaring';</script>
 <script src="/simulators/calsim-core.js"></script>
 <script src="/simulators/cal-scorecard.js"></script>
@@ -153,10 +152,8 @@ async function gsList(only) {
         <div class="card cs-calls" style="padding:18px;display:flex;flex-direction:column;gap:10px">${kicker('Calendaring & Appointment Setting Training')}
             <h3 style="margin:0;color:#0b1633;font-size:19px">Calendar Management Mock Calls</h3><p style="margin:0;color:#475569;font-size:14px;flex:1">In the CMS Call Simulator: a caller phones in about one of the firm’s cases. Get their name, verify them, find their file in the CMS and handle the call. Who called, and about which case, is in your debrief.</p>
             <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="sim-btn orange" style="text-decoration:none" href="${Sim.esc(callHref(true))}">🎯 Take a graded call</a><a class="sim-btn ghost" style="text-decoration:none" href="${Sim.esc(callHref(false))}">📞 Practice a caller</a></div></div></div>
-        ${me.admin ? '<div id="cs-trainees" style="margin-top:22px"></div><p style="margin:14px 0 0;color:#64748b;font-size:13.5px">Your trainees’ scores from these simulators are also under <a href="/simulators.html#results">Recent results</a> on the Simulators page.</p>' : ''}</div>`;
-    if (me.admin) TraineesCalendars.load('#cs-trainees');
+        ${me.admin ? '<p style="margin:14px 0 0;color:#64748b;font-size:13.5px">Your trainees’ calendars, to view and score, are under <a href="/simulators/gcal-review.html">📋 Trainee Evaluations</a>; their scores from these simulators are under <a href="/simulators.html#results">Recent results</a> on the Simulators page.</p>' : ''}</div>`;
 })();
-// (the 👥 Your trainees’ calendars list is simulators/trainees-calendars.js, shared with Trainee Evaluations)
 </script>
 </body>
 </html>
