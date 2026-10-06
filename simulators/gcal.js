@@ -419,7 +419,7 @@ let S = null;
 const G = { pop: null, temp: null, drag: null, undo: null, q: '', menu: null, meet: null, ed: null };
 function fresh() {
     const today = simToday();
-    return { v: 1, today, view: innerWidth < 640 ? 'day' : 'week', anchor: today, mini: today.slice(0, 7), side: innerWidth > 900, panel: innerWidth > 1100 ? 'requests' : '',
+    return { v: 1, today, view: innerWidth < 640 ? 'day' : 'week', anchor: today, mini: today.slice(0, 7), side: innerWidth > 900, panel: innerWidth > 1100 && !OPEN ? 'requests' : '',
         hidden: {}, set: { dur: 30, weekends: false, tz2: false }, events: [], ex: {}, sx: {}, reqs: OPEN ? [] : dealRequests(today), result: null };
 }
 function load() { try { const s = JSON.parse(localStorage.getItem(KEY()) || 'null'); if (s && s.v === 1 && Array.isArray(s.reqs)) { if (OPEN) { s.reqs = []; s.today = simToday(); } return s; } } catch (e) { /* none */ } return null; }   // (Standard Training has no dealt set: its today follows the calendar)
@@ -579,12 +579,24 @@ const gc = () => $('#gc');
 function render() {
     const app = $('#app');
     if (!$('#gc')) {
+        const old = document.querySelector('.sim-hero > #gc-scores'); if (old) old.remove();
         app.innerHTML = `<div class="gc" id="gc" tabindex="-1"><div class="gc-head" id="gc-head"></div>
             <div class="gc-body"><aside class="gc-side" id="gc-side"></aside><main class="gc-main" id="gc-main"></main><aside class="gc-panel" id="gc-panel"></aside></div><nav class="gc-rail" id="gc-rail" aria-label="Calendar tools"></nav></div>
             <section class="gc-scores" id="gc-scores" aria-label="Scores"></section>`;
-        bind();
+        bind(); placeScores();
+        if (WIDE && !WIDE.bound) { WIDE.bound = true; (WIDE.addEventListener ? WIDE.addEventListener('change', placeScores) : WIDE.addListener(placeScores)); }
     }
     renderHead(); renderSide(); renderMain(); renderPanel(); renderRail();
+}
+// 📊 A trainee's scores sit at the bottom of the blue card on the left when the card is a column (1400px and wider);
+// otherwise, and a trainer's scorecard or review form (too wide for the card), below the calendar.
+const WIDE = window.matchMedia ? matchMedia('(min-width: 1400px)') : null;
+function placeScores() {
+    const sc = $('#gc-scores'), hero = document.querySelector('.sim-hero'), app = $('#app'); if (!sc || !app) return;
+    const inHero = !RV && !!hero && !!WIDE && WIDE.matches;
+    if (inHero && sc.parentNode !== hero) hero.appendChild(sc);
+    else if (!inHero && sc.parentNode !== app) app.appendChild(sc);
+    sc.classList.toggle('in-hero', inHero);
 }
 function viewDays() {
     if (S.view === 'day') return [S.anchor];
@@ -712,13 +724,13 @@ function renderMainInner() {
     if (S.view === 'agenda') { main.innerHTML = `<div class="ag">${agendaHtml(instances(S.anchor, addDays(S.anchor, 30)), 'Nothing planned')}</div>`; return; }
     renderWeek(viewDays());
 }
-// The tools, in a bar along the bottom of the calendar: the requests (Standard Training: your appointments), the rules,
+// The tools, in a bar along the bottom of the calendar: the callers' requests (not on Standard Training), the rules,
 // Check my calendar, My evaluations; then the save status, 💾 Save and 📤 Submit for evaluation.
 function renderRail() {
     const open = S.reqs.filter(q => !q.done).length;
     const b = (on, attrs, icon, label, badge) => `<button class="rb ${on ? 'on' : ''}" ${attrs}>${ic(icon)}<span>${label}</span>${badge ? `<span class="badge">${badge}</span>` : ''}</button>`;
     $('#gc-rail').innerHTML = `<div class="rb-group">
-            ${b(S.panel === 'requests', 'data-a="panel" data-p="requests"', 'req', OPEN ? 'Your appointments' : 'Calendar requests', !OPEN && open)}
+            ${OPEN ? '' : b(S.panel === 'requests', 'data-a="panel" data-p="requests"', 'req', 'Calendar requests', open)}
             ${b(S.panel === 'rules', 'data-a="panel" data-p="rules"', 'book', WW("The attorney's rules"))}
             ${b(S.panel === 'result' || (S.result && S.panel === 'requests'), 'data-a="check"', 'grade', 'Check my calendar')}
             ${Sim.isAdmin() ? `<a class="rb" id="gc-evals-link" href="${REVIEW_PAGE}" title="Trainee Evaluations: the submissions with their AI review, and your trainees' calendars">${ic('notes')}<span>Trainee evaluations</span></a>`   // (a trainer goes to the Trainee Evaluations page: a plain link, in this tab, like every Portal page)
@@ -741,8 +753,10 @@ function reqCard(q) {
 }
 function renderPanel() { renderSidePanel(); renderScores(); }
 function renderSidePanel() {
-    const panel = $('#gc-panel'); panel.classList.toggle('off', !S.panel);
-    if (!S.panel) { panel.innerHTML = ''; return; }
+    // (Standard Training has no requests panel: its appointments are on the calendar, the scores in 📊 Your scores)
+    const P = OPEN && S.panel !== 'rules' && S.panel !== 'evals' ? '' : S.panel;
+    const panel = $('#gc-panel'); panel.classList.toggle('off', !P);
+    if (!P) { panel.innerHTML = ''; return; }
     const head = (t) => `<div class="ph"><h3>${t}</h3><button class="ib" data-a="panel" data-p="" aria-label="Close panel">${ic('close')}</button></div>`;
     if (S.panel === 'rules') {
         panel.innerHTML = head(WW('The attorney’s rules')) + `<div class="pb rules"><p class="lead">${esc(CFG.lead)} Plot every appointment on the <b>${WW('Attorney’s Calendar')}</b>, in Eastern time.</p>
@@ -754,19 +768,10 @@ function renderSidePanel() {
         return;
     }
     if (S.panel === 'evals') { panel.innerHTML = head('My evaluations') + `<div class="pb">${evalsHtml()}</div>`; return; }
-    if (OPEN) {
-        const r = checkOpen(S, S.today);
-        panel.innerHTML = head('Your appointments') + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). Take a <b>Calendar Management mock call</b>, then book what the caller asks for on the <b>Attorney’s Calendar</b>, under the attorney’s rules (📖 in the bar below) and the caller’s preferences. Put the caller’s name, callback number, DOB, DOL and what it’s about in the description.</p>
-            ${RV ? '' : '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="submit-eval" title="Send your appointments to your trainer for an AI and trainer review">📤 Submit for evaluation</button></div>'}
-            ${r.results.length ? r.results.map(x => `<div class="rq"><b>${esc(x.head)}</b><div class="av2">${esc(x.when)}</div><div class="acts"><button class="txt" data-a="appt-go" data-d="${esc(x.date)}">Show on calendar</button></div></div>`).join('')
-                : `<p class="lead" style="color:#70757a">${RV ? 'No appointments on this calendar.' : 'No appointments yet. Drag on the calendar or click <b>Create</b> to book one.'}</p>`}
-            <p class="lead" style="margin-top:10px"><a href="#gc-scores" data-a="to-scores">📊 ${RV ? 'The scores' : 'Your scores'} are below the calendar ↓</a></p></div>`;
-        return;
-    }
     const open = S.reqs.filter(q => !q.done).length;
     panel.innerHTML = head('Calendar requests' + (TRK ? ' · ' + esc(CFG.label) : '')) + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). These callers want appointments booked, moved or cancelled on the ${WW('attorney’s')} calendar. ${open ? `${open} still open.` : 'All marked done.'}</p>
         ${RV ? '' : '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="submit-eval" title="Send these appointments to your trainer for an AI and trainer review">📤 Submit for evaluation</button><button class="pill" data-a="new-set">New set</button></div>'}
-        <p class="lead"><a href="#gc-scores" data-a="to-scores">📊 ${RV ? 'The scores' : 'Your scores'} are below the calendar ↓</a></p>
+        <p class="lead"><a href="#gc-scores" data-a="to-scores">${RV ? '📊 The scores are below the calendar ↓' : '📊 See your scores'}</a></p>
         ${S.reqs.map(reqCard).join('')}</div>`;
 }
 
@@ -1023,8 +1028,7 @@ function checkSection(r) {
         <div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.score}%</div>
             <div class="lead" style="margin:0">${r.right} of ${r.results.length} ${r.open ? `appointment${r.results.length === 1 ? '' : 's'}` : 'requests'} fully right.${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}<br><span style="color:#70757a">Checked ${esc(Sim.fmtDate(r.at))}</span></div></div>
         ${r.open && !r.results.length ? '<p class="lead">There are no appointments on the calendar to check yet.</p>' : ''}
-        ${resRows(r)}
-        ${(r.changed || []).length ? `<div class="res-r"><h5><span>The attorney’s appointments you changed</span><span></span></h5><ul>${r.changed.map(t => `<li class="chg"><span>${esc(t)}</span></li>`).join('')}</ul><div style="color:#70757a;margin-top:4px">Only when a caller asked for it: your trainer checks these.</div></div>` : ''}</div>`;
+        ${resRows(r)}</div>`;
 }
 const slimResult = (r) => ({ score: r.score, right: r.right, penalty: r.penalty || 0, extra: r.extra || [], at: r.at,
     results: r.results.map(x => ({ head: x.head, when: x.when || '', pts: Math.round(x.pts * 10) / 10, max: x.max, items: x.items.map(i => ({ ok: !!i.ok, t: i.t })) })) });
@@ -1128,9 +1132,10 @@ function liveScoresHTML() {
             ${RV.cards.length > 1 ? `<div style="margin-top:10px"><b>Earlier scorecards</b><ul>${RV.cards.slice(0, -1).reverse().map(x => `<li><span>${esc(when(x.at))} · ${esc(x.by || '')} · ${esc(x.average)}/5 (${esc(x.pct)}%)</span></li>`).join('')}</ul></div>` : ''}</div>
         <div>${S.result ? checkSection(S.result).replace('Your calendar, checked', 'Their calendar, checked (automated)') : ''}</div></div>`;
 }
-// 📊 The scores, in a section of their own below the calendar (not in the side panel): the automated check (Check my
-// calendar), the trainer's scorecard and what was submitted with its feedback. A trainer looking at a trainee's calendar
-// (?trainee=) gets the scorecard to fill in there, and a review (?review=) the feedback form.
+// 📊 The scores, in a section of their own (not in the side panel; a trainee's at the bottom of the blue card on a wide
+// screen, placeScores): the automated check (Check my calendar), the trainer's scorecard and what was submitted with its
+// feedback. A trainer looking at a trainee's calendar (?trainee=) gets the scorecard to fill in there, and a review
+// (?review=) the feedback form, both below the calendar.
 function renderScores() {
     const box = $('#gc-scores'); if (!box || !S) return;
     if (RV && RV.sub) { box.innerHTML = reviewScoresHTML(); return; }
@@ -1138,7 +1143,7 @@ function renderScores() {
     if (RV) { box.innerHTML = ''; return; }   // (a review still loading)
     const side = myScorecardBox() + mySubBox();
     const check = S.result ? checkSection(S.result)
-        : `<div id="gc-check"><h3 class="sc-h">Your calendar, checked</h3><p class="lead">Click <b>Check my calendar</b> (in the bar above) to check ${OPEN ? 'your appointments' : 'what the callers asked for'} against the ${WW('attorney’s')} rules. Your score shows here.</p></div>`;
+        : `<div id="gc-check"><h3 class="sc-h">Your calendar, checked</h3><p class="lead">Click <b>Check my calendar</b> (in the bar under the calendar) to check ${OPEN ? 'your appointments' : 'what the callers asked for'} against the ${WW('attorney’s')} rules. Your score shows here.</p></div>`;
     box.innerHTML = `<h2>📊 Your scores</h2><div class="sc-grid${side ? '' : ' one'}"><div>${check}</div>${side ? `<div>${side}</div>` : ''}</div>`;
 }
 async function saveScorecard() {
@@ -1299,7 +1304,6 @@ function bind() {
                 ROWS = GCAL_ATTORNEY.map(r => Object.assign({}, r)); G.undo = null; render(); snack('The original schedule is back');
             }, 'Restore'),
             'new-set': () => dialog('A new set of requests?', '<p style="margin:0;color:#444746">New callers come in. Your calendar is cleared so you start fresh.</p>', () => { S = fresh(); save(); closeAll(); render(); snack('New requests are in'); }, 'New set'),
-            'appt-go': () => { const d = a.dataset.d; if (/^\d{4}-\d{2}-\d{2}$/.test(d)) { S.anchor = d; S.mini = d.slice(0, 7); if (S.view === 'month' || S.view === 'agenda') S.view = 'week'; save(); closeAll(); render(); } },
             'req-go': () => { const q = S.reqs.find(x => x.id === a.dataset.id); if (!q) return; const d = (q.orig || (q.dates || [])[0]); if (d) { S.anchor = d; S.mini = d.slice(0, 7); if (S.view === 'month' || S.view === 'agenda') S.view = 'week'; save(); closeAll(); render(); } },
             undo: () => undo(), 'snack-x': () => document.querySelectorAll('.gc-snack').forEach(n => n.remove()),
             'pop-x': () => closeAll(),
@@ -1328,7 +1332,7 @@ function bind() {
         if (acts[A]) { ev.preventDefault(); acts[A](); }
     };
     root.addEventListener('click', onClick);
-    if (scores) scores.addEventListener('click', onClick);   // (the scores below the calendar: Save, Refresh)
+    if (scores) scores.addEventListener('click', onClick);   // (the scores, wherever they sit: Save, Refresh)
     root.addEventListener('change', (ev) => {
         const t = ev.target;
         if (t.dataset.set) { S.set[t.dataset.set] = t.type === 'checkbox' ? t.checked : +t.value; save(); renderMain(); return; }

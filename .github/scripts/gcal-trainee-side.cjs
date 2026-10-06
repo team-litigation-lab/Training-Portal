@@ -53,8 +53,8 @@ const server = http.createServer((req, res) => {
     who = 'trainee'; serverDraft = null; draftPosts = []; newer = false;
     const old = { v: 1, today: '2020-01-01', view: 'week', anchor: '2020-01-01', mini: '2020-01', side: true, panel: 'requests', hidden: {}, set: { dur: 30, weekends: false, tz2: false }, events: [], ex: {}, sx: {}, reqs: [], result: null, savedAt: 1 };
     let page = await open('/simulators/gcal.html', `try { localStorage.setItem('lsh_gcal:ci trainee', ${JSON.stringify(JSON.stringify(old))}); } catch (e) {}`);
-    const td = await page.evaluate(() => ({ today: window.GCAL.simToday(), text: (document.querySelector('#gc-panel') || {}).innerText || '' }));
-    if (/2020/.test(td.text) || !td.text) fail('Standard Training still says today is the day the calendar was made: ' + td.text.slice(0, 160));
+    const td = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lsh_gcal:ci trainee') || '{}'); return { today: window.GCAL.simToday(), saved: s.today || '' }; });
+    if (/2020/.test(td.saved) || td.saved !== td.today) fail('Standard Training still has today as the day the calendar was made: ' + JSON.stringify(td));
     // 2. opening a panel is not a change: nothing is sent
     await sleep(3600);   // (a calendar newer than the saved one is sent once when the page opens: let that finish)
     const before = draftPosts.length;
