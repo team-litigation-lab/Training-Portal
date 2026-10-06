@@ -21,6 +21,9 @@ import { runAi } from '../_ai-gateway.js';
 //   POST { action:'retry', id }                                 (admins) run the AI review again
 //   POST { action:'rules', track, text }                        (admins) save the trainer's rules for a track
 //   GET  /api/gcal-reviews?draft=<track>      my saved calendar for the track (so work isn't lost: another browser, a cleared one)
+//   GET  /api/gcal-reviews?draft=<track>&user=<username>   (admins) a trainee's calendar as they last saved it, with who they are
+//        (the trainer's view of it in the simulator, read only: gcal.html?trainee=<username>)
+//   GET  /api/gcal-reviews?drafts=1           (admins) whose calendars are saved: username, name, batch, track and when, newest first
 //   POST { action:'draft', track, data }                        save my calendar (the simulator saves on its own after each change)
 const TRACKS = ['standard', 'cm', 'ea'];
 const MAX_CAL = 60000, MAX_NOTES = 6000, MAX_RULES = 8000, MAX_DRAFT = 300000;
@@ -34,6 +37,13 @@ async function ensure(db) {
         finalized_at TEXT, finalized_by TEXT, updated_at TEXT NOT NULL)`).run();
     await db.prepare(`CREATE TABLE IF NOT EXISTS gcal_drafts (username TEXT NOT NULL, track TEXT NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (username, track))`).run();
     await db.prepare(`CREATE TABLE IF NOT EXISTS gcal_review_rules (track TEXT PRIMARY KEY, text TEXT NOT NULL, updated_by TEXT, updated_at TEXT NOT NULL)`).run();
+}
+// Who a username is (the Portal's users table), for the trainer's lists.
+async function person(env, username) {
+    try {
+        const u = env.DB ? await env.DB.prepare(`SELECT first_name, last_name, batch_id FROM users WHERE username = ?`).bind(username).first() : null;
+        return { name: u ? [u.first_name, u.last_name].filter(Boolean).join(' ') || username : username, batch: (u && u.batch_id) || '' };
+    } catch (e) { return { name: username, batch: '' }; }
 }
 function view(r, full) {
     const out = { id: r.id, username: r.username, name: r.name, batch: r.batch, track: r.track, submittedAt: r.submitted_at, checkScore: r.check_score,
@@ -84,8 +94,18 @@ export async function onRequestGet({ request, env }) {
     const q = new URL(request.url).searchParams;
     if (q.get('draft') != null) {
         const track = TRACKS.includes(q.get('draft')) ? q.get('draft') : 'standard';
-        const r = await db.prepare(`SELECT data, updated_at FROM gcal_drafts WHERE username = ? AND track = ?`).bind(s.username, track).first();
-        return json({ success: true, track, data: r ? parse(r.data) : null, updatedAt: r ? r.updated_at : null });
+        const other = q.get('user') ? clean(q.get('user'), 80) : '';
+        if (other && !admin) return json({ success: false, error: 'Admin access required.' }, 403);
+        const who = other || s.username;
+        const r = await db.prepare(`SELECT data, updated_at FROM gcal_drafts WHERE username = ? AND track = ?`).bind(who, track).first();
+        return json(Object.assign({ success: true, track, data: r ? parse(r.data) : null, updatedAt: r ? r.updated_at : null }, other ? { person: await person(env, who) } : {}));
+    }
+    if (q.get('drafts') === '1') {
+        if (!admin) return json({ success: false, error: 'Admin access required.' }, 403);
+        const { results } = await db.prepare(`SELECT username, track, updated_at FROM gcal_drafts ORDER BY updated_at DESC LIMIT 600`).all();
+        const people = {};
+        for (const r of results || []) if (!people[r.username]) people[r.username] = await person(env, r.username);
+        return json({ success: true, drafts: (results || []).map(r => ({ username: r.username, track: r.track, updatedAt: r.updated_at, name: people[r.username].name, batch: people[r.username].batch })) });
     }
     if (q.get('rules') != null) {
         if (!admin) return json({ success: false, error: 'Admin access required.' }, 403);
