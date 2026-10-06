@@ -1,7 +1,7 @@
 /* LSH Training Portal — 👥 Your trainees' calendars (trainers): everyone who has a calendar saved on a Google Calendar Simulator, with
    👁 View & score on each track: their calendar in the Google Calendar look, read only, with the automated check and the CALENDAR MANAGEMENT
    MOCK CALL scorecard (gcal.html?trainee=<username>), and the last scorecard given.
-   Shared by the Calendaring Simulators page (calsim.html) and the Trainee Evaluations page (gcal-review.html).
+   On the Trainee Evaluations page (gcal-review.html); the Calendaring Simulators page (calsim.html) points trainers there.
      TraineesCalendars.load(box, { extra })   draws it into the element (or selector) `box`.
         extra(person, trackId) → HTML added to a trainee's cell for that track (the Trainee Evaluations page adds the submission and its review there)
      TraineesCalendars.repaint()               draws the rows again (after `extra` has new things to show), keeping the search */

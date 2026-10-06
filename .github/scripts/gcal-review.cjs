@@ -1,6 +1,7 @@
 // The trainer's review inside the Google Calendar look (simulators/gcal.js ?review=, calsim.html's list of submissions) of the submissions
 // made with 📤 Submit to my trainer (kept in the trainee's /api/calsim record): a trainer opens one read only, scores it and comments,
-// the trainee sees the feedback, and the trainer's list shows it. And 👥 Your trainees' calendars: a trainer opens a trainee's
+// the trainee sees the feedback, and the trainer's list shows it. And 👁 View & score (from 👥 Your trainees' calendars on Trainee
+// Evaluations; the Calendaring Simulators page only points there): a trainer opens a trainee's
 // calendar as they last saved it (gcal.html?trainee=), read only, with the automated check, scores it on the CALENDAR
 // MANAGEMENT MOCK CALL scorecard (simulators/cal-scorecard.js), and the trainee sees the scorecard on their card and in the simulator.
 // Usage: node .github/scripts/gcal-review.cjs   (from the repository root; needs `npm i playwright`)
@@ -123,14 +124,15 @@ const server = http.createServer((req, res) => {
     const rev = await page.$$eval('#cs-root .cs-review', els => els.map(e => e.innerText.replace(/\s+/g, ' ').trim()));
     if (rev.length !== 3 || !/Automated review: 90% · 4 of 5 right · 2026-10-06/.test(rev[0]) || !/Submitted · its review 40% · 👤 trainer 77\/100/.test(rev[1]) || !/No automated review yet/.test(rev[2])) fail('the trainee\'s cards should show each track\'s automated review: ' + JSON.stringify(rev));
     await page.close();
-    // 7. 👥 Your trainees' calendars (a trainer): each trainee with a calendar saved, 👁 View & score on each track they have
+    // 7. 👥 Your trainees' calendars are on Trainee Evaluations (trainees-on-evaluations.cjs), not on the Calendaring Simulators page:
+    // a trainer's page has no table there, only a line pointing to Trainee Evaluations
     role = 'admin';
     page = await open('/simulators/calsim.html');
-    await page.waitForSelector('.cs-ttable', { timeout: 5000 }).catch(() => fail('the trainer\'s page has no list of the trainees\' calendars'));
-    const tl = await page.evaluate(() => ({ rows: [...document.querySelectorAll('.cs-ttable tbody tr')].map(tr => tr.innerText.replace(/\s+/g, ' ').trim()), links: [...document.querySelectorAll('.cs-ttable a.cs-view')].map(a => a.getAttribute('href')) }));
-    if (tl.rows.length !== 2 || !/^Ci Trainee B1/.test(tl.rows[0]) || !/Zed Other/.test(tl.rows[1]) || JSON.stringify(tl.links) !== JSON.stringify(['/simulators/gcal.html?trainee=ci', '/simulators/gcal.html?track=cm&trainee=zed'])) fail('the trainees\' calendars list is wrong: ' + JSON.stringify(tl));
-    await page.fill('#cs-tfind', 'b2');
-    if (JSON.stringify(await page.$$eval('.cs-ttable tbody tr', trs => trs.map(t => t.style.display))) !== '["none",""]') fail('finding a trainee by batch doesn\'t narrow the list');
+    await page.waitForSelector('#cs-evals', { timeout: 5000 }).catch(() => fail('the trainer\'s Calendaring Simulators page did not load'));
+    const tl = await page.evaluate(() => ({ table: !!document.querySelector('.cs-ttable, #cs-trainees'), heads: [...document.querySelectorAll('#cs-root h2')].map(h => h.textContent.trim()),
+        note: [...document.querySelectorAll('#cs-root p a[href="/simulators/gcal-review.html"]')].map(a => a.closest('p').innerText.replace(/\s+/g, ' ').trim()) }));
+    if (tl.table || tl.heads.some(h => /trainees/i.test(h))) fail('the Calendaring Simulators page still has the trainees\' calendars table: ' + JSON.stringify(tl));
+    if (tl.note.length !== 1 || !/Your trainees’ calendars, to view and score, are under 📋 Trainee Evaluations/.test(tl.note[0])) fail('the trainer\'s page doesn\'t point to Trainee Evaluations for the trainees\' calendars: ' + JSON.stringify(tl.note));
     await page.close();
     // the trainee's calendar, read only, with the automated check and the scorecard to fill in
     page = await open('/simulators/gcal.html?trainee=ci');
@@ -167,7 +169,7 @@ const server = http.createServer((req, res) => {
     if (!/📋 Trainer’s scorecard: 4\.1\/5 \(83%\)/.test(mine[0] || '') || /scorecard/.test(mine[1] || '')) fail('the trainee\'s card doesn\'t show the trainer\'s scorecard: ' + JSON.stringify(mine));
     await page.click('.cs-scorecard summary');
     if (!/Calendar Creation & Attorney Reminder Setup\s*5\s*Meet link and the reminder are on: add the DOB\./.test(await page.innerText('.cs-scorecard')) || !/WEIGHTED AVERAGE\s*4\.1\s*out of 5 · 83%/.test(await page.innerText('.cs-scorecard'))) fail('the scorecard on the trainee\'s card doesn\'t open to the sheet: ' + (await page.innerText('.cs-scorecard')).slice(0, 600));
-    if (await page.$('#cs-trainees')) fail('a trainee sees the trainees\' calendars list');
+    if (await page.$('.cs-ttable, #cs-root a[href="/simulators/gcal-review.html"]')) fail('a trainee sees the trainees\' calendars list or the way to Trainee Evaluations');
     await page.close();
     page = await open('/simulators/gcal.html');
     if (!/Your trainer’s scorecard · 4\.1\/5 \(83%\)/.test(await scoresText(page)) || /scorecard/i.test(await panelText(page)) || !(await below(page))) fail('the trainee doesn\'t see the scorecard below the calendar: ' + (await scoresText(page)).slice(0, 300));
@@ -178,5 +180,5 @@ const server = http.createServer((req, res) => {
     await page.close();
     await browser.close(); server.close();
     if (failures.length) { console.error('Google Calendar submit and review test FAILED:\n- ' + failures.join('\n- ')); process.exit(1); }
-    console.log('Google Calendar submit and review test passed (submit keeps the calendar and check; the trainer opens it read only and gives feedback; the trainee sees it; the trainer’s list links to it; the Calendaring Simulators page with the mock calls; the trainees’ calendars, read only, scored on the scorecard, which the trainee sees).');
+    console.log('Google Calendar submit and review test passed (submit keeps the calendar and check; the trainer opens it read only and gives feedback; the trainee sees it; the trainer’s list links to it; the Calendaring Simulators page with the mock calls, pointing trainers to Trainee Evaluations for the trainees’ calendars; a trainee’s calendar, read only, scored on the scorecard, which the trainee sees).');
 })();
