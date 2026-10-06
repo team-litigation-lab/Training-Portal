@@ -42,6 +42,8 @@ jobs:
         run: node --no-warnings .github/scripts/ai-gateway.mjs
       - name: The Call Simulator opens the CMS's (signed in, on the link's tab and line)
         run: node --no-warnings .github/scripts/calls-route.mjs
+      - name: LSH Ring Channel opens from the Portal (signed in; admins to its trainer sign-in; linked on the Portal)
+        run: node --no-warnings .github/scripts/ringchannel.mjs
       - name: Graded calls from the CMS count in the trainee's course (the Portal's results and each course's store)
         run: node --no-warnings .github/scripts/call-results.mjs
       - name: Build the Pages Functions without deploying

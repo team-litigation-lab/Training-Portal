@@ -21,9 +21,12 @@ export const SSO_PROGRAMS = {
     'MEDSUM AND DEMAND': 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/'
 };
 // Shared tools that aren't programs: any signed-in, approved person opens them (no program access to request).
+// ringchannel is LSH Ring Channel (the lshringchannel repo), the VOIP phone for trainer-led mock calls: it takes the trainee's
+// ticket at /api/auth/portal (checking it with PORTAL_SSO_SECRET, or here at /api/verify-ticket), and admins type its trainer passphrase.
 export const SSO_TOOLS = {
     cms: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/',
-    kb: 'https://lsh-knowledge-base.legalsupporthelp.workers.dev/'
+    kb: 'https://lsh-knowledge-base.legalsupporthelp.workers.dev/',
+    ringchannel: 'https://lshringchannel.legalsupporthelp.workers.dev/'
 };
 const TICKET_TTL_MS = 5 * 60 * 1000;
 // Where inside a program or tool a link lands (?to=): a program's own Live Roleplay, the CMS Front Desk Drill, or the CMS
