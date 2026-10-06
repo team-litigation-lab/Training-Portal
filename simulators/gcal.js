@@ -593,7 +593,7 @@ function renderRail() {
     const open = S.reqs.filter(q => !q.done).length;
     $('#gc-rail').innerHTML = `<button class="ib ${S.panel === 'requests' ? 'on' : ''}" data-a="panel" data-p="requests" aria-label="Calendar requests" title="Calendar requests">${ic('req')}${open ? `<span class="badge">${open}</span>` : ''}</button>
         <button class="ib ${S.panel === 'rules' ? 'on' : ''}" data-a="panel" data-p="rules" aria-label="${WW("The attorney's rules")}" title="${WW("The attorney's rules")}">${ic('book')}</button>
-        <button class="ib ${S.panel === 'result' ? 'on' : ''}" data-a="check" aria-label="Check my calendar" title="Check my calendar">${ic('grade')}</button>`;
+        <button class="ib ${S.panel === 'result' || (S.result && S.panel === 'requests') ? 'on' : ''}" data-a="check" aria-label="Check my calendar" title="Check my calendar">${ic('grade')}</button>`;
 }
 function reqCard(q) {
     const R = reqDef(q.id); if (!R) return '';
@@ -623,19 +623,10 @@ function renderPanel() {
         return;
     }
     if (S.panel === 'result' && RV && RV.sub) { reviewPanel(panel, head); return; }
-    if (S.panel === 'result' && S.result) {
-        const r = S.result, col = r.score >= 85 ? '#188038' : r.score >= 70 ? '#e37400' : '#d93025';
-        panel.innerHTML = head('Your calendar, checked') + `<div class="pb"><div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.score}%</div>
-            <div class="lead" style="margin:0">${r.right} of ${r.results.length} requests fully right.${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}<br><span style="color:#70757a">Checked ${esc(Sim.fmtDate(r.at))}</span></div></div>
-            ${r.results.map(x => `<div class="res-r"><h5><span>${esc(x.head)}</span><span>${Math.round(x.pts * 10) / 10}/${x.max}</span></h5>${x.when ? `<div style="color:#70757a;margin-bottom:4px">${esc(x.when)}</div>` : ''}<ul>${x.items.map(i => `<li class="${i.ok ? 'ok' : 'no'}"><span>${esc(i.t)}</span></li>`).join('')}</ul></div>`).join('')}
-            ${r.extra.length ? `<div class="res-r"><h5><span>Changed without a request</span><span>−${r.penalty}</span></h5><ul>${r.extra.map(t => `<li class="no"><span>${esc(t)}</span></li>`).join('')}</ul></div>` : ''}
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="blue" data-a="panel" data-p="requests">Back to the requests</button><button class="pill" data-a="gsubmit">📤 Submit to my trainer</button><button class="pill" data-a="new-set">New set</button></div></div>`;
-        return;
-    }
     const open = S.reqs.filter(q => !q.done).length;
     panel.innerHTML = head('Calendar requests' + (TRK ? ' · ' + esc(CFG.label) : '')) + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). These callers want appointments booked, moved or cancelled on the ${WW('attorney’s')} calendar. ${open ? `${open} still open.` : 'All marked done.'}</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="gsubmit">📤 Submit to my trainer</button><button class="pill" data-a="new-set">New set</button></div>
-        ${mySubBox()}${S.reqs.map(reqCard).join('')}</div>`;
+        ${mySubBox()}${S.reqs.map(reqCard).join('')}${S.result ? checkSection(S.result) : ''}</div>`;
 }
 
 /* ---------- popovers: quick create, event card ---------- */
@@ -876,12 +867,21 @@ function createAt(date, start) {
 function doCheck() {
     if (RV) return;
     const r = checkPlan(S, S.reqs, S.today);
-    S.result = Object.assign(r, { at: new Date().toISOString() }); S.panel = 'result'; save(); closeAll(); render();
+    S.result = Object.assign(r, { at: new Date().toISOString() }); S.panel = 'requests'; save(); closeAll(); render();
+    setTimeout(() => { const c = $('#gc-check'); if (c && c.scrollIntoView) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
     Sim.saveResult({ simulator: 'Google Calendar', scenario: `${CFG.scenario} · ${S.reqs.length} requests`, score: r.score,
         summary: `${r.right}/${r.results.length} requests fully right${r.penalty ? `; −${r.penalty} for unasked changes` : ''}`,
         details: { results: r.results.map(x => ({ request: x.head, points: Math.round(x.pts * 10) / 10, max: x.max, missed: x.items.filter(i => !i.ok).map(i => i.t) })), extra: r.extra } });
 }
 
+// The automated check of the trainee's calendar: at the bottom of the requests panel, under the request cards.
+function checkSection(r) {
+    const col = r.score >= 85 ? '#188038' : r.score >= 70 ? '#e37400' : '#d93025';
+    return `<div id="gc-check" style="margin-top:14px;padding-top:12px;border-top:1px solid #dadce0"><h3 style="margin:0 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5f6368;font-weight:500">Your calendar, checked</h3>
+        <div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.score}%</div>
+            <div class="lead" style="margin:0">${r.right} of ${r.results.length} requests fully right.${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}<br><span style="color:#70757a">Checked ${esc(Sim.fmtDate(r.at))}</span></div></div>
+        ${resRows(r)}</div>`;
+}
 const slimResult = (r) => ({ score: r.score, right: r.right, penalty: r.penalty || 0, extra: r.extra || [], at: r.at,
     results: r.results.map(x => ({ head: x.head, when: x.when || '', pts: Math.round(x.pts * 10) / 10, max: x.max, items: x.items.map(i => ({ ok: !!i.ok, t: i.t })) })) });
 const resRows = (r) => r.results.map(x => `<div class="res-r"><h5><span>${esc(x.head)}</span><span>${Math.round(x.pts * 10) / 10}/${x.max}</span></h5>${x.when ? `<div style="color:#70757a;margin-bottom:4px">${esc(x.when)}</div>` : ''}<ul>${x.items.map(i => `<li class="${i.ok ? 'ok' : 'no'}"><span>${esc(i.t)}</span></li>`).join('')}</ul></div>`).join('')
