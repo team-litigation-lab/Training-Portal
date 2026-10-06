@@ -193,17 +193,27 @@ async function calsimSummary(db, usersDb) {
         const byName = {};
         for (const r of results || []) {
             let d; try { d = JSON.parse(r.data); } catch (e) { continue; }
-            if (!d || !Array.isArray(d.submissions)) continue;
+            if (!d || (!Array.isArray(d.submissions) && !Array.isArray(d.gsubs))) continue;
             const u = await usersDb.prepare(`SELECT first_name, last_name FROM users WHERE username = ?`).bind(r.username).first();
             const key = nameKey(u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : r.username);
             if (!key) continue;
             const latest = {};
-            d.submissions.forEach(z => { if (CAL_WEEKS[z.scn]) latest[z.scn] = z; });
+            (Array.isArray(d.submissions) ? d.submissions : []).forEach(z => { if (CAL_WEEKS[z.scn]) latest[z.scn] = z; });
             for (const [scn, z] of Object.entries(latest)) {
                 const [program, label] = CAL_WEEKS[scn];
                 const rev = (d.reviews || {})[scn + '|' + z.at] || null;
                 const p = (byName[key] || (byName[key] = {}))[program] || (byName[key][program] = { weeks: [] });
                 p.weeks.push({ label, at: z.at || null, auto: z.auto && num(z.auto.pct) ? z.auto.pct : null, score: rev && num(rev.score) ? rev.score : null, comment: rev ? str(rev.comment, 400) : '' });
+            }
+            // Google Calendar Simulator submissions (standard → ft, cm → cm, ea → eapa): the latest per track, with the trainer's score
+            const GSUB = { standard: ['ft', 'Google Calendar · Standard Training'], cm: ['cm', 'Google Calendar · Litigation Week'], ea: ['eapa', 'Google Calendar · Executive Week'] };
+            const lastG = {};
+            (Array.isArray(d.gsubs) ? d.gsubs : []).forEach(g => { if (g && GSUB[g.track]) lastG[g.track] = g; });
+            for (const [track, g] of Object.entries(lastG)) {
+                const [program, label] = GSUB[track];
+                const rev = (d.reviews || {})['g:' + track + '|' + g.at] || null;
+                const p = (byName[key] || (byName[key] = {}))[program] || (byName[key][program] = { weeks: [] });
+                p.weeks.push({ label, at: g.at || null, auto: g.result && num(g.result.score) ? g.result.score : null, score: rev && num(rev.score) ? rev.score : null, comment: rev ? str(rev.comment, 400) : '' });
             }
         }
         return byName;
