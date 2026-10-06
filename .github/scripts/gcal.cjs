@@ -121,6 +121,10 @@ const server = http.createServer(async (req, res) => {
         b0.date = GCAL.addDays(GCAL.weekStart(first.date, true), 16); b0.start = '12:15'; b0.end = '13:15';   // a Wednesday two weeks on: out of the caller's days
         const r1 = GCAL.checkPlan(bad, reqs, today).results[0];
         out.bad = { pts: r1.pts, missed: r1.items.filter(i => !i.ok).map(i => i.t) };
+        // Standard Training's own check (no requests: the bookings come from the mock calls): every appointment against the rules
+        const og = GCAL.checkOpen(st, today), ob = GCAL.checkOpen(bad, today);
+        out.open = { score: og.score, n: og.results.length, changed: og.changed.length, missed: og.results.flatMap(r => r.items.filter(i => !i.ok).map(i => r.head + ': ' + i.t)),
+            bad: ob.results.find(r => r.id.startsWith(b0.id)).items.filter(i => !i.ok).map(i => i.t) };
         // a move made a cancellation; the cancellation done for every week; an appointment nobody asked about moved
         const odd = JSON.parse(JSON.stringify(st));
         const mv = reqs.find(q => q.id === 'move-charles'), cn = reqs.find(q => q.id === 'cancel-bell');
@@ -136,6 +140,10 @@ const server = http.createServer(async (req, res) => {
     for (const re of [/not the Attorney’s Calendar/, /title should be/, /time zone/i, /Lunch Break/, /Tuesdays and Thursdays/, /isn’t a time the caller can do/, /Length/, /phone only|remove the Google Meet/, /description is missing/, /email notification/])
         if (!re.test(miss)) fail(`a booking with mistakes should be marked for ${re}: ${miss}`);
     if (grading.bad.pts > 1.5) fail(`a booking with every mistake should score almost nothing (${grading.bad.pts})`);
+    const om = grading.open.bad.join(' | ');
+    if (grading.open.score !== 100 || grading.open.n !== 5 || grading.open.changed !== 2) fail(`Standard Training's check: the right bookings should score 100 (5 appointments, the move and cancel listed): ${JSON.stringify(grading.open).slice(0, 500)}`);
+    for (const [re, what] of [[/not the Attorney’s Calendar/, 'calendar'], [/title should start with the request type/, 'title'], [/time zone/, 'time zone'], [/description is missing/, 'description'], [/email notification 1 day before/, 'reminder']])
+        if (!re.test(om)) fail(`Standard Training's check should flag the ${what}: ${om}`);
     if (!grading.odd.move || grading.odd.move.pts > 3 || !grading.odd.cancel || grading.odd.cancel.pts !== 5 || grading.odd.penalty !== 5 || !/Gerald Anderson/.test(grading.odd.extra.join()))
         fail(`a move made a deletion, a cancellation for every week, and an unasked change: ${JSON.stringify(grading.odd).slice(0, 400)}`);
 
@@ -148,8 +156,9 @@ const server = http.createServer(async (req, res) => {
     await shot(page, 'gcal-1-week');
     const grid = await page.evaluate(() => [...document.querySelectorAll('#gc-main .ev b')].map(b => b.textContent));
     for (const t of ['Deposition Preparation: Gerald Anderson', 'Lunch Break', 'Daily Case and Email Review', 'Document Signing: Aretha Franklin']) if (!grid.includes(t)) fail(`the week grid is missing ${t}`);
+    // Standard Training has no calendar requests: the trainee books from the Calendar Management mock calls
     const panel = await page.textContent('#gc-panel');
-    if (!/Calendar requests/.test(panel) || (await page.locator('#gc-panel .rq').count()) !== 7) fail('the requests panel should list the 7 requests');
+    if (!/Your appointments/.test(panel) || /Calendar requests/.test(panel) || (await page.locator('#gc-panel .rq').count()) !== 0 || st.reqs.length) fail('Standard Training should show Your appointments, with no calendar requests');
     // quick create: click Wednesday 1:00 PM in this week (a free slot)
     const wed = await page.evaluate((m) => GCAL.addDays(m, 2), mon);
     const colBox = await page.locator(`#gc-main .wk-col[data-d="${wed}"]`).boundingBox();

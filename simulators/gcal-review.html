@@ -181,16 +181,19 @@ function weekHtml(w) {
 function checkHtml(c) {
     const a = c && c.automatedCheck; if (!a) return '';
     const ck = a.results || [];
-    return `<h3>🤖 Automated feedback <span class="rv-sub" style="font-weight:400">· ${esc(a.score)}% · ${esc(a.requestsFullyRight || '')} requests fully right</span></h3>
+    const unit = (c.requests || []).length ? 'requests' : 'appointments';
+    return `<h3>🤖 Automated feedback <span class="rv-sub" style="font-weight:400">· ${esc(a.score)}% · ${esc(a.requestsFullyRight || '')} ${unit} fully right</span></h3>
+        ${!(c.requests || []).length ? '<p class="rv-sub" style="margin:0 0 6px">Booked from the trainee’s mock calls: each appointment is checked against the attorney’s rules. Whether it matches what the caller asked is yours and the AI’s to judge.</p>' : ''}
         ${ck.map(x => `<div style="margin:6px 0"><b style="font-size:13px">${esc(x.request)}</b> <span class="rv-sub">${esc(x.points)}${x.when ? ' · ' + esc(x.when) : ''}</span>
             <ul class="rv-l" style="font-size:12.5px">${(x.met || []).map(t => `<li class="rv-met">✓ ${esc(t)}</li>`).join('')}${(x.missed || []).map(t => `<li class="rv-miss">✗ ${esc(t)}</li>`).join('')}</ul></div>`).join('')}
-        ${(a.changedWithoutARequest || []).length ? `<p class="rv-miss" style="font-size:12.5px">Changed without a request: ${esc(a.changedWithoutARequest.join('; '))}</p>` : ''}`;
+        ${(a.changedWithoutARequest || []).length ? `<p class="rv-miss" style="font-size:12.5px">Changed without a request: ${esc(a.changedWithoutARequest.join('; '))}</p>` : ''}
+        ${(a.attorneyAppointmentsChanged || []).length ? `<p style="font-size:12.5px"><b>The attorney’s appointments they changed</b> (right only if a caller asked): ${esc(a.attorneyAppointmentsChanged.join('; '))}</p>` : ''}`;
 }
 function calHtml(c) {
     if (!c) return '';
     const ap = c.appointments || [];
     return `<details><summary>📅 The appointments in detail (${ap.length})</summary>${ap.length ? `<table><tr><th>Title</th><th>When</th><th>Where / Meet</th><th>Description</th></tr>${ap.map(e => `<tr><td>${esc(e.title)}<div class="rv-sub">${esc(e.calendar)}</div></td><td>${esc(e.day)} ${esc(e.date)}<br>${esc(e.time)}<div class="rv-sub">${esc(e.timeZone)}</div></td><td>${esc(e.location || '')}${e.googleMeet ? '<br>Google Meet' : ''}</td><td>${esc(e.description || '')}${(e.notifications || []).length ? `<div class="rv-sub">🔔 ${esc(e.notifications.join(', '))}</div>` : ''}</td></tr>`).join('')}</table>` : '<p class="rv-none">No appointments of their own.</p>'}</details>
-        <details><summary>📞 What the callers asked</summary>${(c.requests || []).map(q => `<div style="margin:6px 0;font-size:13px"><b>${esc(q.kind === 'book' ? (q.type || 'Book') : q.kind === 'move' ? 'Move' : 'Cancel')} – ${esc(q.caller)}</b>${q.canDo ? ` <span class="rv-sub">(${esc(q.canDo)})</span>` : ''}<br>“${esc(q.callerSaid)}”</div>`).join('')}</details>`;
+        ${(c.requests || []).length ? `<details><summary>📞 What the callers asked</summary>${(c.requests || []).map(q => `<div style="margin:6px 0;font-size:13px"><b>${esc(q.kind === 'book' ? (q.type || 'Book') : q.kind === 'move' ? 'Move' : 'Cancel')} – ${esc(q.caller)}</b>${q.canDo ? ` <span class="rv-sub">(${esc(q.canDo)})</span>` : ''}<br>“${esc(q.callerSaid)}”</div>`).join('')}</details>` : ''}`;
 }
 function trainerHtml(r) {
     const t = r.trainer || { notes: '', points: [], score: null }, fin = r.status === 'final';

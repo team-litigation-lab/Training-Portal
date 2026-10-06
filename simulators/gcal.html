@@ -129,10 +129,13 @@
     .ag-e b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .ag-empty { padding: 30px 20px; color: var(--mute); text-align: center; }
     /* right rail and its panel */
-    .gc-rail { width: 56px; flex: none; border-left: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; padding-top: 8px; gap: 6px; }
-    .gc-rail .ib.on { background: var(--sel); color: #001d35; }
-    .gc-rail .ib { position: relative; }
-    .gc-rail .badge { position: absolute; top: 2px; right: 0; background: #d93025; color: #fff; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 3px; }
+    /* the tools bar along the bottom of the calendar (gcal.js renderRail) */
+    .gc-rail { flex: none; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 8px 12px; background: #fff; }
+    .gc-rail .rb-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; } .gc-rail .rb-end { margin-left: auto; }
+    .gc-rail .rb { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px 0 10px; border-radius: 18px; font-weight: 500; font-size: 14px; color: var(--ink2); }
+    .gc-rail .rb:hover { background: var(--hover); } .gc-rail .rb.on { background: var(--sel); color: #001d35; }
+    .gc-rail .cloud { margin: 0; }
+    .gc-rail .badge { position: absolute; top: -2px; right: -2px; background: #d93025; color: #fff; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 3px; }
     .gc-panel { width: 340px; flex: none; border-left: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; background: #fff; }
     .gc-panel.off { display: none; }
     .gc-panel .ph { display: flex; align-items: center; justify-content: space-between; padding: 10px 6px 6px 16px; }
@@ -158,6 +161,9 @@
     .res-r { border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-bottom: 8px; font-size: 12.5px; }
     .res-r h5 { margin: 0 0 6px; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; }
     .res-r ul { list-style: none; margin: 0; padding: 0; }
+    /* 💾 saved to the trainee's account (gcal.js cloudHtml) */
+    .cloud { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 12.5px; color: var(--ink2); background: #f1f3f4; border-radius: 8px; padding: 4px 4px 4px 10px; margin-bottom: 12px; }
+    .cloud.saved { background: #e6f4ea; color: #137333; } .cloud.error, .cloud.off { background: #fef7e0; color: #8a5300; }
     /* My evaluations (gcal.js evalsHtml): the trainer's final feedback report */
     .ev-st { font-size: 12.5px; color: var(--ink2); } .ev-new { background: #d93025; color: #fff; border-radius: 10px; padding: 1px 8px; font-size: 11px; font-weight: 700; }
     .ev-rep { font-size: 13px; line-height: 1.5; } .ev-rep h4 { margin: 12px 0 4px; font-size: 13.5px; } .ev-meta { color: var(--mute); font-size: 12px; margin-bottom: 8px; }
@@ -219,7 +225,7 @@
     .gc-dlg h3 { margin: 0 0 14px; font-size: 22px; font-weight: 400; }
     .gc-dlg label { display: flex; gap: 12px; align-items: center; padding: 6px 0; cursor: pointer; }
     .gc-dlg .acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
-    .gc-snack { position: absolute; left: 24px; bottom: 24px; z-index: 80; background: #1f1f1f; color: #f2f2f2; border-radius: 4px; padding: 10px 8px 10px 16px; display: flex; align-items: center; gap: 16px; font-size: 14px; box-shadow: 0 3px 5px -1px rgba(0,0,0,.2), 0 6px 10px rgba(0,0,0,.14); max-width: calc(100% - 48px); }
+    .gc-snack { position: absolute; left: 24px; bottom: 76px; z-index: 80; background: #1f1f1f; color: #f2f2f2; border-radius: 4px; padding: 10px 8px 10px 16px; display: flex; align-items: center; gap: 16px; font-size: 14px; box-shadow: 0 3px 5px -1px rgba(0,0,0,.2), 0 6px 10px rgba(0,0,0,.14); max-width: calc(100% - 48px); }
     .gc-snack button { color: #a8c7fa; font-weight: 500; padding: 6px 10px; border-radius: 4px; } .gc-snack button:hover { background: rgba(255,255,255,.08); }
     .gc-colors { display: grid; grid-template-columns: repeat(6, 26px); gap: 8px; padding: 10px 14px; }
     .gc-colors button { width: 22px; height: 22px; border-radius: 50%; }
@@ -239,13 +245,13 @@
     .meet .mb.off { background: #ea4335; } .meet .mb.end { width: 64px; border-radius: 24px; background: #ea4335; }
     .meet .mb svg { width: 22px; height: 22px; fill: currentColor; }
     .meet .clock { position: absolute; left: 18px; bottom: 26px; font-size: 14px; color: #e8eaed; }
-    @media (max-width: 1100px) { .gc-panel { position: absolute; right: 56px; top: 0; bottom: 0; z-index: 30; box-shadow: -4px 0 12px rgba(0,0,0,.12); } .ed-cols { grid-template-columns: minmax(0, 1fr); } }
+    @media (max-width: 1100px) { .gc-panel { position: absolute; right: 0; top: 0; bottom: 0; z-index: 30; box-shadow: -4px 0 12px rgba(0,0,0,.12); } .ed-cols { grid-template-columns: minmax(0, 1fr); } }
     @media (max-width: 900px) { .gc-side { position: absolute; left: 0; top: 0; bottom: 0; z-index: 30; background: #fff; box-shadow: 4px 0 12px rgba(0,0,0,.12); } .gc-logo span, .gc-logo small { display: none; } }
     @media (max-width: 640px) {
         .gc { height: calc(100vh - 90px); border-radius: 12px; }
         .gc-head { gap: 2px; padding: 0 4px; } .gc-title { font-size: 16px; margin-left: 4px; } .gc-head .pill.today { padding: 0 10px; }
-        .gc-rail { width: 44px; } .gc-rail .ib { width: 36px; height: 36px; }
-        .gc-panel { right: 44px; width: calc(100% - 44px); }
+        .gc-rail .rb span:not(.badge) { display: none; } .gc-rail .rb { padding: 0 10px; }
+        .gc-panel { right: 0; width: 100%; }
         .wk-gut, .wk-hours { width: 44px; } .wk-gut.two, .wk-hours.two { width: 44px; } .wk-hours span em { display: none; }
         .wk-day .dd { width: 36px; height: 36px; font-size: 18px; }
         .ed-when { padding-left: 16px; } .ed-tabs { margin-left: 0; }

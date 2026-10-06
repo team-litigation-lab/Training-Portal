@@ -56,4 +56,14 @@ r = await call('POST', { action: 'retry', id: 2 }); r = await call('GET', null, 
 r = await call('POST', { action: 'reopen', id: 1 }); r = await call('GET', null, '?id=1'); ck(r.j.review.status === 'submitted', 'the trainer can reopen a final report');
 __setSession(ann);
 r = await call('POST', { action: 'submit', calendar: { blob: 'x'.repeat(70000) } }); ck(r.st === 400, 'a calendar too large is refused');
+// 💾 the calendar saved to the trainee's account (so their work isn't lost), one per person and track
+r = await call('GET', null, '?draft=standard'); ck(r.st === 200 && r.j.data === null, 'nothing saved yet');
+r = await call('POST', { action: 'draft', track: 'standard', data: { v: 1, events: [{ id: 'e1', title: 'Case Status Update – Maria Santos' }], savedAt: 5 } }); ck(r.st === 200, 'a trainee saves their calendar');
+r = await call('POST', { action: 'draft', track: 'cm', data: { v: 1, events: [], savedAt: 6 } });
+r = await call('GET', null, '?draft=standard'); ck(r.j.data.events[0].id === 'e1' && r.j.data.savedAt === 5, 'it comes back (the Standard Training one)');
+r = await call('POST', { action: 'draft', track: 'standard', data: { v: 1, events: [{ id: 'e1' }, { id: 'e2' }], savedAt: 9 } }); r = await call('GET', null, '?draft=standard'); ck(r.j.data.events.length === 2, 'a later save replaces it');
+__setSession({ username: 'cy', userType: 'Trainee', fullName: 'Cy', batchId: 'B1' });
+r = await call('GET', null, '?draft=standard'); ck(r.j.data === null, 'another trainee gets their own (none), never Ann\'s');
+r = await call('POST', { action: 'draft', track: 'standard', data: { big: 'x'.repeat(310000) } }); ck(r.st === 400, 'a calendar too large to save is refused');
+__setSession(null); r = await call('GET', null, '?draft=standard'); ck(r.st === 401, 'no Portal sign-in, nothing saved or read');
 console.log(fails.length ? 'FAILED' : 'all passed'); process.exit(fails.length ? 1 : 0);

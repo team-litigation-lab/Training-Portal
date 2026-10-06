@@ -20,8 +20,10 @@ import { runAi } from '../_ai-gateway.js';
 //   POST { action:'finalize', id }  /  { action:'reopen', id }  (admins) release the final report to the trainee / take it back
 //   POST { action:'retry', id }                                 (admins) run the AI review again
 //   POST { action:'rules', track, text }                        (admins) save the trainer's rules for a track
+//   GET  /api/gcal-reviews?draft=<track>      my saved calendar for the track (so work isn't lost: another browser, a cleared one)
+//   POST { action:'draft', track, data }                        save my calendar (the simulator saves on its own after each change)
 const TRACKS = ['standard', 'cm', 'ea'];
-const MAX_CAL = 60000, MAX_NOTES = 6000, MAX_RULES = 8000;
+const MAX_CAL = 60000, MAX_NOTES = 6000, MAX_RULES = 8000, MAX_DRAFT = 300000;
 const clean = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, ' ').trim().slice(0, n);
 const parse = (t) => { try { return JSON.parse(t); } catch (e) { return null; } };
 const nowIso = () => new Date().toISOString();
@@ -30,6 +32,7 @@ async function ensure(db) {
     await db.prepare(`CREATE TABLE IF NOT EXISTS gcal_reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, name TEXT, batch TEXT, track TEXT,
         submitted_at TEXT NOT NULL, calendar TEXT NOT NULL, check_score INTEGER, ai_status TEXT, ai TEXT, trainer TEXT, status TEXT NOT NULL DEFAULT 'submitted',
         finalized_at TEXT, finalized_by TEXT, updated_at TEXT NOT NULL)`).run();
+    await db.prepare(`CREATE TABLE IF NOT EXISTS gcal_drafts (username TEXT NOT NULL, track TEXT NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (username, track))`).run();
     await db.prepare(`CREATE TABLE IF NOT EXISTS gcal_review_rules (track TEXT PRIMARY KEY, text TEXT NOT NULL, updated_by TEXT, updated_at TEXT NOT NULL)`).run();
 }
 function view(r, full) {
@@ -79,6 +82,11 @@ export async function onRequestGet({ request, env }) {
     const s = auth.session, admin = s.userType === 'Admin', db = env.TRAINING_DB;
     await ensure(db);
     const q = new URL(request.url).searchParams;
+    if (q.get('draft') != null) {
+        const track = TRACKS.includes(q.get('draft')) ? q.get('draft') : 'standard';
+        const r = await db.prepare(`SELECT data, updated_at FROM gcal_drafts WHERE username = ? AND track = ?`).bind(s.username, track).first();
+        return json({ success: true, track, data: r ? parse(r.data) : null, updatedAt: r ? r.updated_at : null });
+    }
     if (q.get('rules') != null) {
         if (!admin) return json({ success: false, error: 'Admin access required.' }, 403);
         const track = TRACKS.includes(q.get('rules')) ? q.get('rules') : 'standard';
@@ -121,6 +129,14 @@ export async function onRequestPost({ request, env, waitUntil }) {
         const id = Number((r.meta && r.meta.last_row_id) || r.lastInsertRowid);
         await later(review(env, id));
         return json({ success: true, id });
+    }
+    if (b.action === 'draft') {
+        const data = b.data && typeof b.data === 'object' ? JSON.stringify(b.data) : '';
+        if (!data || data.length > MAX_DRAFT) return json({ success: false, error: data ? 'Your calendar is too large to save.' : 'Nothing to save.' }, 400);
+        const track = TRACKS.includes(b.track) ? b.track : 'standard', at = nowIso();
+        await db.prepare(`INSERT INTO gcal_drafts (username, track, data, updated_at) VALUES (?, ?, ?, ?)
+            ON CONFLICT(username, track) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`).bind(s.username, track, data, at).run();
+        return json({ success: true, updatedAt: at });
     }
     if (!admin) return json({ success: false, error: 'Admin access required.' }, 403);
     if (b.action === 'rules') {

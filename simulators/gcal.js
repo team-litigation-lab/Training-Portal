@@ -293,6 +293,64 @@ function gradeBookEvent(e, q, R, all, today) {
     add(rem, rem ? 'Email reminder a day before.' : 'Add an email notification 1 day before.', 0.5);
     return { pts, max: BOOK_MAX, items, ev: e };
 }
+/* Standard Training has no calendar requests: the trainee takes a Calendar Management mock call and books what the caller asks
+   for. checkOpen marks every appointment they put on the calendar against all of the attorney's rules (the caller's own
+   preferences are for the AI review and the trainer, who see the call's appointments): the Attorney's Calendar, the title
+   (the type and the client's name), Eastern time, the slot (free, 15-minute buffers, hours, consult window, new client
+   days and count, follow-ups in the afternoon, same-day approval), the length cap, the meeting type stated, the
+   description (name, callback number, DOB, DOL, what it's about) and an email reminder a day before. Changes to the
+   attorney's own appointments are listed for the trainer (a caller may have asked for them), not marked. */
+const OPEN = !TRK;
+function typeOf(title) {
+    const t = alnum(title);
+    return Object.keys(GCAL_TYPES).sort((a, b) => b.length - a.length).find(k => t.startsWith(alnum(k))) || '';
+}
+function gradeOpenEvent(e, all, today) {
+    const items = []; let pts = 0;
+    const add = (ok, t, w) => { items.push({ ok, t }); if (ok) pts += w; };
+    const type = typeOf(e.title), T = GCAL_TYPES[type] || { max: 30 };
+    // the client's name: what's left of the title after the type (its letters and digits, whatever the punctuation)
+    let name = '';
+    if (type) { const title = String(e.title || ''), want = alnum(type).length; let k = 0, n = 0; while (k < title.length && n < want) { if (/[a-z0-9]/i.test(title[k])) n++; k++; } name = title.slice(k).replace(/^[\s:–—-]+/, '').trim(); }
+    add(e.cal === 'attorney', e.cal === 'attorney' ? 'On the Attorney’s Calendar.' : `It’s on the ${calOf(e.cal).name}, not the Attorney’s Calendar.`, 1);
+    const okTitle = !!type && name.length > 1;
+    add(okTitle, okTitle ? 'Title: the request type and the client’s name.' : !type ? `The title should start with the request type, then the client’s name (${GCAL_RULES.title.replace(/^Use the request type and the client’s name, /, '')})` : 'Add the client’s name after the request type in the title.', 1.5);
+    add((e.tz || ET) === ET, (e.tz || ET) === ET ? 'Time zone: Eastern.' : `The event’s time zone is ${(TZS.find(z => z[0] === e.tz) || [0, e.tz])[1]}; the calendar should be in Eastern (EST).`, 0.5);
+    const probs = slotProblems(e, all, T);
+    if (e.date === today && !/approv/i.test(plain(e.desc))) probs.push('Same-day bookings need the attorney’s approval: book the next business day, or write in the description that it’s pending the attorney’s approval.');
+    add(!probs.length, probs.length ? probs.join(' ') : 'The slot follows the attorney’s rules (free, 15-minute buffers, hours).', 3);
+    const dur = mins(e.end) - mins(e.start);
+    add(!e.allDay && dur >= 15 && dur <= T.max, `Length: ${e.allDay ? 'all day' : dur + ' minutes'} (at most ${T.max}${type ? ' for a ' + type : ''}).`, 1);
+    const where = `${e.location || ''} ${plain(e.desc)}`, office = new RegExp(rx(GCAL_OFFICE.split(/[,\s]+/).slice(0, 2).join(' ')) + '|office', 'i').test(e.location || '');
+    const mt = T.consult ? (e.meet ? 'Consultations are phone only: remove the Google Meet link.' : (/phone|call/i.test(where) ? '' : 'Consultations are phone consults: say it’s a phone call (Location: Phone call) and that the attorney will call the client.'))
+        : (e.meet || /phone|call/i.test(where) || office ? '' : `Clarify the meeting type: Google Meet for a video call, “Phone call” in Location, or the office (${GCAL_OFFICE}) for in person.`);
+    add(!mt, mt || (e.meet ? 'Meeting type: video call, Google Meet added.' : office ? 'Meeting type: in person, at the office.' : 'Meeting type: phone call.'), 1);
+    const tx = plain(e.desc), lo = tx.toLowerCase();
+    const dated = (re) => { const m = re.exec(tx); return !!m && datesIn(tx.slice(m.index, m.index + 60)).length > 0; };
+    const rest = tx.replace(/\b(name|cb|callback|call ?back|number|phone|dob|dol|date of (birth|loss))\b[^\n]*/gi, ' ').replace(/[\d()/.:+-]+/g, ' ');
+    const need = [['the client’s name', name.length > 1 ? hasName(tx, name) : /name/i.test(tx)], ['the callback number', digits(tx).length >= 10],
+        ['the DOB', dated(/\b(dob|date of birth|birth ?date)\b/i)], ['the DOL', dated(/\b(dol|date of loss|date of (the )?(accident|incident))\b/i)],
+        ['what it’s about', (() => { const skip = new Set(name.toLowerCase().split(/\s+/).concat(['notes', 'note', 'reason', 'about', 'client', 'the', 'and', 'for']));
+            return rest.toLowerCase().split(/[^a-z]+/).filter(w => w.length > 2 && !skip.has(w)).length >= 1; })()]];
+    const got = need.filter(n => n[1]).length;
+    pts += 1.5 * got / need.length;
+    items.push({ ok: got === need.length, t: got === need.length ? 'Description: name, callback number, DOB, DOL and the reason.' : `The description is missing ${need.filter(n => !n[1]).map(n => n[0]).join(', ')}.` });
+    void lo;
+    const rem = (e.notifs || []).some(n => n.m === 'email' && nmins(n) === 1440);
+    add(rem, rem ? 'Email reminder a day before.' : 'Add an email notification 1 day before.', 0.5);
+    return { pts, max: BOOK_MAX, items };
+}
+function checkOpen(st, today) {
+    const all = instancesOf(st, addDays(today, -7), addDays(today, 42));
+    const mine = all.filter(e => !e.seed && e.cal !== 'holidays').sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+    const out = mine.map(e => Object.assign({ id: e.iid, date: e.date, head: e.title || '(No title)', when: `${shortDate(e.date)} · ${e.allDay ? 'all day' : span(mins(e.start), mins(e.end))}` }, gradeOpenEvent(e, all, today)));
+    const changed = [];
+    Object.keys(st.ex).forEach(k => { const m = /^s:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(k); const r = m && rowById(m[1]); if (r) changed.push(st.ex[k].del ? `${r.title} on ${shortDate(m[2])}: cancelled` : `${r.title} on ${shortDate(m[2])}: moved to ${shortDate(st.ex[k].date || m[2])} ${tl(mins(st.ex[k].start || r.start))}`); });
+    Object.keys(st.sx).forEach(id => { const r = rowById(id); if (r) changed.push(`${r.title}: changed for every week`); });
+    const got = out.reduce((a, r) => a + r.pts, 0), max = out.reduce((a, r) => a + r.max, 0);
+    return { score: max ? Math.round(got / max * 100) : 0, results: out, extra: [], changed, penalty: 0, right: out.filter(r => r.pts >= r.max - 0.01).length, open: true };
+}
+const checkNow = () => OPEN ? checkOpen(S, S.today) : checkPlan(S, S.reqs, S.today);
 function checkPlan(st, reqs, today) {
     const all = instancesOf(st, addDays(today, -7), addDays(today, 42));
     const handled = new Set();
@@ -349,10 +407,60 @@ const G = { pop: null, temp: null, drag: null, undo: null, q: '', menu: null, me
 function fresh() {
     const today = simToday();
     return { v: 1, today, view: innerWidth < 640 ? 'day' : 'week', anchor: today, mini: today.slice(0, 7), side: innerWidth > 900, panel: innerWidth > 1100 ? 'requests' : '',
-        hidden: {}, set: { dur: 30, weekends: false, tz2: false }, events: [], ex: {}, sx: {}, reqs: dealRequests(today), result: null };
+        hidden: {}, set: { dur: 30, weekends: false, tz2: false }, events: [], ex: {}, sx: {}, reqs: OPEN ? [] : dealRequests(today), result: null };
 }
-function load() { try { const s = JSON.parse(localStorage.getItem(KEY()) || 'null'); if (s && s.v === 1 && Array.isArray(s.reqs)) return s; } catch (e) { /* none */ } return null; }
-function save() { try { localStorage.setItem(KEY(), JSON.stringify(S)); } catch (e) { /* private mode */ } }
+function load() { try { const s = JSON.parse(localStorage.getItem(KEY()) || 'null'); if (s && s.v === 1 && Array.isArray(s.reqs)) { if (OPEN) s.reqs = []; return s; } } catch (e) { /* none */ } return null; }
+function save(local) {
+    if (!local && S) S.savedAt = Date.now();
+    try { localStorage.setItem(KEY(), JSON.stringify(S)); } catch (e) { /* private mode */ }
+    if (!local) cloudQueue();
+}
+/* ---------- 💾 saved to the trainee's Portal account (/api/gcal-reviews?draft=…), so their work isn't lost ----------
+   Every change is kept in this browser at once and sent to their account 3 seconds after the last one (and when the page
+   closes). On opening, the newer of the two comes back: their calendar follows them to another browser or computer. */
+const CLOUD = { state: '', at: 0, timer: null, busy: false, again: false };
+const cloudOn = () => !Sim.isAdmin();
+function cloudQueue() { if (!cloudOn()) return; clearTimeout(CLOUD.timer); CLOUD.state = CLOUD.state === 'off' ? 'off' : 'pending'; paintCloud(); CLOUD.timer = setTimeout(cloudSave, 3000); }
+async function cloudSave(keep) {
+    clearTimeout(CLOUD.timer);
+    if (!cloudOn() || !S) return;
+    if (CLOUD.busy) { CLOUD.again = true; return; }
+    CLOUD.busy = true; CLOUD.state = 'saving'; paintCloud();
+    try {
+        const res = await fetch(EV_API, { method: 'POST', credentials: 'include', keepalive: !!keep, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'draft', track: GCAL_TRACK || 'standard', data: S }) });
+        const d = await res.json().catch(() => ({}));
+        if (res.status === 401) CLOUD.state = 'off';
+        else if (res.ok && d.success) { CLOUD.state = 'saved'; CLOUD.at = Date.now(); }
+        else CLOUD.state = 'error';
+    } catch (e) { CLOUD.state = 'error'; }
+    CLOUD.busy = false; paintCloud();
+    if (CLOUD.again) { CLOUD.again = false; cloudSave(); }
+}
+async function cloudLoad() {
+    if (!cloudOn()) return;
+    try {
+        const res = await fetch(EV_API + '?draft=' + encodeURIComponent(GCAL_TRACK || 'standard'), { credentials: 'include' });
+        if (res.status === 401) { CLOUD.state = 'off'; paintCloud(); return; }
+        const d = await res.json().catch(() => ({}));
+        const c = d && d.success && d.data;
+        if (c && c.v === 1 && Array.isArray(c.events) && (c.savedAt || 0) > ((S && S.savedAt) || 0)) {
+            if (OPEN) c.reqs = []; else if (!Array.isArray(c.reqs)) c.reqs = S.reqs;
+            S = c; save(true); CLOUD.state = 'saved'; CLOUD.at = c.savedAt; closeAll(); render(); snack('Your saved calendar is back');
+        } else if (S && S.savedAt && (!c || (c.savedAt || 0) < S.savedAt)) cloudSave();   // this browser has newer work: send it
+        else { CLOUD.state = c ? 'saved' : ''; CLOUD.at = c ? c.savedAt : 0; paintCloud(); }
+    } catch (e) { CLOUD.state = 'error'; paintCloud(); }
+}
+function cloudText() {
+    const t = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return ({ pending: 'Unsaved changes…', saving: 'Saving…', saved: CLOUD.at ? `✓ Saved to your account ${t(CLOUD.at)}` : '✓ Saved to your account',
+        error: '⚠ Not saved to your account yet (kept in this browser). Try 💾 Save again.', off: 'Sign in to the LSH Training Portal to save your calendar to your account (it’s kept in this browser for now).' })[CLOUD.state] || 'Your calendar saves to your account as you work.';
+}
+function cloudHtml() {
+    if (!cloudOn()) return '';
+    return `<div class="cloud ${CLOUD.state}" id="gc-cloud"><span>${esc(cloudText())}</span><button class="txt" data-a="cloud-save" style="padding:0 8px;height:28px">💾 Save</button></div>`;
+}
+function paintCloud() { const n = document.getElementById('gc-cloud'); if (n) n.outerHTML = cloudHtml(); }
+window.addEventListener('pagehide', () => { if (CLOUD.state === 'pending' || CLOUD.state === 'error') cloudSave(true); });
 // (an Admin editing the weekly schedule sees the schedule itself: no practice changes or own events)
 const stNow = () => G.admin ? { events: [], ex: {}, sx: {} } : S;
 const instances = (from, to, all) => instancesOf(stNow(), from, to).filter(e => all || !S.hidden[e.cal]);
@@ -453,7 +561,7 @@ function render() {
     const app = $('#app');
     if (!$('#gc')) {
         app.innerHTML = `<div class="gc" id="gc" tabindex="-1"><div class="gc-head" id="gc-head"></div>
-            <div class="gc-body"><aside class="gc-side" id="gc-side"></aside><main class="gc-main" id="gc-main"></main><aside class="gc-panel" id="gc-panel"></aside><nav class="gc-rail" id="gc-rail"></nav></div></div>`;
+            <div class="gc-body"><aside class="gc-side" id="gc-side"></aside><main class="gc-main" id="gc-main"></main><aside class="gc-panel" id="gc-panel"></aside></div><nav class="gc-rail" id="gc-rail" aria-label="Calendar tools"></nav></div>`;
         bind();
     }
     renderHead(); renderSide(); renderMain(); renderPanel(); renderRail();
@@ -584,12 +692,17 @@ function renderMainInner() {
     if (S.view === 'agenda') { main.innerHTML = `<div class="ag">${agendaHtml(instances(S.anchor, addDays(S.anchor, 30)), 'Nothing planned')}</div>`; return; }
     renderWeek(viewDays());
 }
+// The tools, in a bar along the bottom of the calendar: the requests (Standard Training: your appointments), the rules,
+// Check my calendar, My evaluations; then the save status, 💾 Save and 📤 Submit for evaluation.
 function renderRail() {
     const open = S.reqs.filter(q => !q.done).length;
-    $('#gc-rail').innerHTML = `<button class="ib ${S.panel === 'requests' ? 'on' : ''}" data-a="panel" data-p="requests" aria-label="Calendar requests" title="Calendar requests">${ic('req')}${open ? `<span class="badge">${open}</span>` : ''}</button>
-        <button class="ib ${S.panel === 'rules' ? 'on' : ''}" data-a="panel" data-p="rules" aria-label="${WW("The attorney's rules")}" title="${WW("The attorney's rules")}">${ic('book')}</button>
-        <button class="ib ${S.panel === 'result' ? 'on' : ''}" data-a="check" aria-label="Check my calendar" title="Check my calendar">${ic('grade')}</button>
-        <button class="ib ${S.panel === 'evals' ? 'on' : ''}" data-a="evals" aria-label="My evaluations" title="My evaluations: submitted calendars and your trainer's feedback">${ic('notes')}${EV.ready ? `<span class="badge">${EV.ready}</span>` : ''}</button>`;
+    const b = (on, attrs, icon, label, badge) => `<button class="rb ${on ? 'on' : ''}" ${attrs}>${ic(icon)}<span>${label}</span>${badge ? `<span class="badge">${badge}</span>` : ''}</button>`;
+    $('#gc-rail').innerHTML = `<div class="rb-group">
+            ${b(S.panel === 'requests', 'data-a="panel" data-p="requests"', 'req', OPEN ? 'Your appointments' : 'Calendar requests', !OPEN && open)}
+            ${b(S.panel === 'rules', 'data-a="panel" data-p="rules"', 'book', WW("The attorney's rules"))}
+            ${b(S.panel === 'result', 'data-a="check"', 'grade', 'Check my calendar')}
+            ${b(S.panel === 'evals', 'data-a="evals"', 'notes', Sim.isAdmin() ? 'Trainee evaluations' : 'My evaluations', EV.ready)}</div>
+        <div class="rb-group rb-end">${cloudHtml()}${Sim.isAdmin() ? '' : '<button class="blue" data-a="submit-eval">📤 Submit for evaluation</button>'}</div>`;
 }
 function reqCard(q) {
     const R = reqDef(q.id); if (!R) return '';
@@ -622,10 +735,20 @@ function renderPanel() {
     if (S.panel === 'result' && S.result) {
         const r = S.result, col = r.score >= 85 ? '#188038' : r.score >= 70 ? '#e37400' : '#d93025';
         panel.innerHTML = head('Your calendar, checked') + `<div class="pb"><div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.score}%</div>
-            <div class="lead" style="margin:0">${r.right} of ${r.results.length} requests fully right.${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}<br><span style="color:#70757a">Checked ${esc(Sim.fmtDate(r.at))}</span></div></div>
+            <div class="lead" style="margin:0">${r.right} of ${r.results.length} ${r.open ? `appointment${r.results.length === 1 ? '' : 's'}` : 'requests'} fully right.${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}<br><span style="color:#70757a">Checked ${esc(Sim.fmtDate(r.at))}</span></div></div>
             ${r.results.map(x => `<div class="res-r"><h5><span>${esc(x.head)}</span><span>${Math.round(x.pts * 10) / 10}/${x.max}</span></h5>${x.when ? `<div style="color:#70757a;margin-bottom:4px">${esc(x.when)}</div>` : ''}<ul>${x.items.map(i => `<li class="${i.ok ? 'ok' : 'no'}"><span>${esc(i.t)}</span></li>`).join('')}</ul></div>`).join('')}
+            ${(r.changed || []).length ? `<div class="res-r"><h5><span>The attorney’s appointments you changed</span><span></span></h5><ul>${r.changed.map(t => `<li><span>${esc(t)}</span></li>`).join('')}</ul><div style="color:#70757a;margin-top:4px">Only when a caller asked for it: your trainer checks these.</div></div>` : ''}
+            ${r.open && !r.results.length ? '<p class="lead">There are no appointments on the calendar to check yet.</p>' : ''}
             ${r.extra.length ? `<div class="res-r"><h5><span>Changed without a request</span><span>−${r.penalty}</span></h5><ul>${r.extra.map(t => `<li class="no"><span>${esc(t)}</span></li>`).join('')}</ul></div>` : ''}
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="blue" data-a="panel" data-p="requests">Back to the requests</button><button class="pill" data-a="submit-eval">📤 Submit for evaluation</button><button class="pill" data-a="new-set">New set</button></div></div>`;
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="blue" data-a="panel" data-p="requests">${OPEN ? 'Back to your appointments' : 'Back to the requests'}</button><button class="pill" data-a="submit-eval">📤 Submit for evaluation</button>${OPEN ? '' : '<button class="pill" data-a="new-set">New set</button>'}</div></div>`;
+        return;
+    }
+    if (OPEN) {
+        const r = checkOpen(S, S.today);
+        panel.innerHTML = head('Your appointments') + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). Take a <b>Calendar Management mock call</b>, then book what the caller asks for on the <b>Attorney’s Calendar</b>, under the attorney’s rules (📖 in the bar below) and the caller’s preferences. Put the caller’s name, callback number, DOB, DOL and what it’s about in the description.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="submit-eval" title="Send your appointments to your trainer for an AI and trainer review">📤 Submit for evaluation</button></div>
+            ${r.results.length ? r.results.map(x => `<div class="rq"><b>${esc(x.head)}</b><div class="av2">${esc(x.when)}</div><div class="acts"><button class="txt" data-a="appt-go" data-d="${esc(x.date)}">Show on calendar</button></div></div>`).join('')
+                : '<p class="lead" style="color:#70757a">No appointments yet. Drag on the calendar or click <b>Create</b> to book one.</p>'}</div>`;
         return;
     }
     const open = S.reqs.filter(q => !q.done).length;
@@ -870,10 +993,10 @@ function createAt(date, start) {
     openEditor({ title: '', date: date || S.anchor, start: hhmm(st), end: hhmm(Math.min(st + S.set.dur, 1439)), allDay: false, tz: ET, repeat: 'none', cal: G.admin ? 'attorney' : 'lsh', color: '', location: '', meet: '', desc: '', guests: [], notifs: [{ m: 'popup', v: 30, u: 'minutes' }], busy: true, vis: 'default' }, null);
 }
 function doCheck() {
-    const r = checkPlan(S, S.reqs, S.today);
+    const r = checkNow();
     S.result = Object.assign(r, { at: new Date().toISOString() }); S.panel = 'result'; save(); closeAll(); render();
-    Sim.saveResult({ simulator: 'Google Calendar', scenario: `${CFG.scenario} · ${S.reqs.length} requests`, score: r.score,
-        summary: `${r.right}/${r.results.length} requests fully right${r.penalty ? `; −${r.penalty} for unasked changes` : ''}`,
+    Sim.saveResult({ simulator: 'Google Calendar', scenario: OPEN ? `${CFG.scenario} · ${r.results.length} appointments` : `${CFG.scenario} · ${S.reqs.length} requests`, score: r.score,
+        summary: `${r.right}/${r.results.length} ${OPEN ? 'appointments' : 'requests'} fully right${r.penalty ? `; −${r.penalty} for unasked changes` : ''}`,
         details: { results: r.results.map(x => ({ request: x.head, points: Math.round(x.pts * 10) / 10, max: x.max, missed: x.items.filter(i => !i.ok).map(i => i.t) })), extra: r.extra } });
 }
 
@@ -885,7 +1008,7 @@ const EV = { list: [], open: null, ready: 0, timer: null, busy: false };
 const EV_API = '/api/gcal-reviews';
 const REVIEW_PAGE = '/simulators/gcal-review.html' + (TRK ? '?track=' + TRK : '');   // the trainer's live review
 function evalPayload() {
-    const r = checkPlan(S, S.reqs, S.today);
+    const r = checkNow();
     const all = instancesOf(S, addDays(S.today, -7), addDays(S.today, 42));
     const appointments = all.filter(e => !e.seed && e.cal !== 'holidays').map(e => ({ title: e.title, calendar: calOf(e.cal).name, date: e.date, day: DAYN[wd(e.date)],
         time: e.allDay ? 'all day' : span(mins(e.start), mins(e.end)), timeZone: (TZS.find(z => z[0] === (e.tz || ET)) || [0, e.tz])[1], location: e.location || '',
@@ -901,16 +1024,18 @@ function evalPayload() {
         rules: { collectFromEveryCaller: GCAL_RULES.collect.map(WW), title: WW(GCAL_RULES.title), scheduling: GCAL_RULES.scheduling.map(WW), notes: GCAL_RULES.notes.map(WW), office: GCAL_OFFICE },
         requests: S.reqs.map(q => { const R = reqDef(q.id) || {}; return { kind: R.kind, caller: R.name, type: R.type, callerSaid: R.said, canDo: R.kind === 'cancel' ? '' : availText(q, R) }; }),
         appointments,
-        automatedCheck: { score: r.score, requestsFullyRight: `${r.right} of ${r.results.length}`, changedWithoutARequest: r.extra,
+        bookedFrom: OPEN ? 'the trainee\'s Calendar Management mock calls (no written requests): judge each appointment against the rules, and what the caller asked as far as the description shows it' : 'the calendar requests below',
+        automatedCheck: { score: r.score, requestsFullyRight: `${r.right} of ${r.results.length}`, changedWithoutARequest: r.extra, attorneyAppointmentsChanged: r.changed || [],
             results: r.results.map(x => ({ request: x.head, points: `${Math.round(x.pts * 10) / 10}/${x.max}`, when: x.when || '', met: x.items.filter(i => i.ok).map(i => i.t), missed: x.items.filter(i => !i.ok).map(i => i.t) })) } } };
 }
 async function submitEval() {
     if (Sim.isAdmin()) { snack('Trainers review submissions in Trainee evaluations (in Settings).'); return; }
     if (EV.busy) return;
     const p = evalPayload();
-    if (!p.calendar.appointments.length && !p.calendar.automatedCheck.results.some(x => x.met.length)) { snack('Book the appointments first, then submit them.'); return; }
-    dialog('Submit for evaluation?', `<p style="margin:0;color:#444746">Your appointments for these ${S.reqs.length} requests go to your trainer. An AI review is written for them, your trainer goes through it with you and adds their own feedback, and then the final report shows under <b>My evaluations</b>.</p>`, async () => {
+    if (!p.calendar.appointments.length && !p.calendar.automatedCheck.results.some(x => x.met.length) && !(p.calendar.automatedCheck.attorneyAppointmentsChanged || []).length) { snack('Book the appointments first, then submit them.'); return; }
+    dialog('Submit for evaluation?', `<p style="margin:0;color:#444746">${OPEN ? `Your ${p.calendar.appointments.length} appointment${p.calendar.appointments.length === 1 ? '' : 's'}` : `Your appointments for these ${S.reqs.length} requests`} go to your trainer. An AI review is written for them, your trainer goes through it with you and adds their own feedback, and then the final report shows under <b>My evaluations</b>.</p>`, async () => {
         EV.busy = true;
+        save(true); cloudSave();
         try {
             const res = await fetch(EV_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ action: 'submit' }, p)) });
             const d = await res.json().catch(() => ({}));
@@ -1019,6 +1144,7 @@ function bind() {
             check: () => doCheck(),
             evals: () => { if (Sim.isAdmin()) { window.open(REVIEW_PAGE, '_blank', 'noopener'); return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
             'submit-eval': () => submitEval(),
+            'cloud-save': () => { save(true); cloudSave(); },
             'eval-open': () => { EV.open = +a.dataset.id; renderPanel(); },
             'eval-back': () => { EV.open = null; renderPanel(); },
             'eval-pdf': () => { const r = EV.list.find(x => x.id === +a.dataset.id); if (r) reportPdf(r); },
@@ -1028,6 +1154,7 @@ function bind() {
                 ROWS = GCAL_ATTORNEY.map(r => Object.assign({}, r)); G.undo = null; render(); snack('The original schedule is back');
             }, 'Restore'),
             'new-set': () => dialog('A new set of requests?', '<p style="margin:0;color:#444746">New callers come in. Your calendar is cleared so you start fresh.</p>', () => { S = fresh(); save(); closeAll(); render(); snack('New requests are in'); }, 'New set'),
+            'appt-go': () => { const d = a.dataset.d; if (/^\d{4}-\d{2}-\d{2}$/.test(d)) { S.anchor = d; S.mini = d.slice(0, 7); if (S.view === 'month' || S.view === 'agenda') S.view = 'week'; save(); closeAll(); render(); } },
             'req-go': () => { const q = S.reqs.find(x => x.id === a.dataset.id); if (!q) return; const d = (q.orig || (q.dates || [])[0]); if (d) { S.anchor = d; S.mini = d.slice(0, 7); if (S.view === 'month' || S.view === 'agenda') S.view = 'week'; save(); closeAll(); render(); } },
             undo: () => undo(), 'snack-x': () => document.querySelectorAll('.gc-snack').forEach(n => n.remove()),
             'pop-x': () => closeAll(),
@@ -1155,16 +1282,17 @@ function onUp(ev) {
 }
 
 /* ---------- start ---------- */
-window.GCAL = { solve, checkPlan, slotProblems, concretize, instancesOf, dealRequests, simToday, datesIn, addDays, weekStart, rows: () => ROWS, setRows: (r) => { ROWS = r; } };
+window.GCAL = { solve, checkPlan, checkOpen, slotProblems, concretize, instancesOf, dealRequests, simToday, datesIn, addDays, weekStart, rows: () => ROWS, setRows: (r) => { ROWS = r; } };
 function start() {
     if (!document.getElementById('app')) return;
     const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal');
     if (TRK) document.title = 'Google Calendar Simulator · ' + CFG.label + ' — LSH Training Portal';
     if (TRK) { const eb = document.querySelector('.eyebrow'); if (eb) eb.textContent = 'Simulator · ' + CFG.scenario; }
     if (CFG.who) { const hp = document.querySelector('.sim-hero p'); if (hp) hp.innerHTML = WW(hp.innerHTML); }   // (fixed text of the page)
-    S = load() || fresh(); save();
+    if (OPEN) { const hp = document.querySelector('.sim-hero p'); if (hp) hp.innerHTML = 'The attorney’s calendar, as in Google Calendar. Take a <b>Calendar Management mock call</b>, then book what the caller asks for on the <b>Attorney’s Calendar</b> under the attorney’s rules, with the right title, a full description, a Google Meet link when it’s a video call, and an email reminder a day before. Move or cancel what callers ask you to. Then press <b>Check my calendar</b>, and <b>📤 Submit for evaluation</b> to send it to your trainer.'; }
+    S = load() || fresh(); save(true);   // (local only: the copy saved to their account may be newer, cloudLoad below)
     render();
-    if (!Sim.isAdmin()) loadEvals();   // My evaluations: a badge when a final report is waiting
+    if (!Sim.isAdmin()) { loadEvals(); cloudLoad(); }   // My evaluations (a badge when a final report is waiting); the calendar saved to their account
     // the weekly schedule as an Admin set it (if they did)
     fetch(API_SCHEDULE, { credentials: 'include' }).then(r => r.json()).then(data => {
         if (data && data.success && Array.isArray(data.rows) && data.rows.length && data.rows.every(r => r && r.id && r.title && /^\d\d:\d\d$/.test(r.start))) {
