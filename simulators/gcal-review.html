@@ -72,6 +72,7 @@
 <script src="/portal-nav.js"></script>
 <script src="/portal.js"></script>
 <script src="/simulators/sim.js"></script>
+<script src="/simulators/gcal-trainees.js"></script>
 <script>
 (function () {
 const API = '/api/gcal-reviews';
@@ -260,13 +261,15 @@ function paintRules() {
 
 /* ---------- the page ---------- */
 function page() {
-    $('#app').innerHTML = `<div class="rv">
+    // 👥 Your trainees’ calendars first (simulators/gcal-trainees.js, the same table as on the Calendaring Simulators page), the submissions under it
+    $('#app').innerHTML = `<div id="cs-trainees" style="margin-bottom:16px"></div><div class="rv">
         <div class="rv-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">📤 Submissions</h3>
             <select id="rv-track" style="width:auto;max-width:170px"><option value="">All tracks</option>${Object.keys(TRACKS).map(k => `<option value="${k}" ${k === R.track ? 'selected' : ''}>${esc(TRACKS[k])}</option>`).join('')}</select></div>
             <p class="rv-sub" style="margin:6px 0">Updates on its own while this page is open.</p>
             <button class="btn btn-ghost" data-a="rules" style="width:100%;margin-bottom:6px">📘 Your rules for the AI review</button>
             <div id="rv-list" class="rv-list"></div></div>
         <div><div id="rv-rules"></div><div id="rv-main"><div class="rv-card"><p class="rv-none">Open a submission on the left to review it with the trainee.</p></div></div></div></div>`;
+    GcalTrainees.render($('#cs-trainees'));
     paintList();
 }
 async function openRow(id) {

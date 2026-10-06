@@ -55,9 +55,10 @@ const server = http.createServer((req, res) => {
     await new Promise(r => server.listen(0, r));
     const base = `http://localhost:${server.address().port}`;
     const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
-    const open = async (url) => {
+    const open = async (url, admin) => {   // admin: signed in to the Portal as an Admin (Sim.isAdmin), as the Trainee Evaluations page checks
         const page = await browser.newPage({ viewport: { width: 1360, height: 1000 } });
-        await page.addInitScript(() => { try { localStorage.setItem('LSH_SIM_WHO', JSON.stringify({ name: 'Ci Trainee', batch: 'B1', skipped: false })); } catch (e) { /* none */ } });
+        await page.addInitScript((admin) => { try { localStorage.setItem('LSH_SIM_WHO', JSON.stringify({ name: 'Ci Trainee', batch: 'B1', skipped: false }));
+            if (admin) localStorage.setItem('LSH_SESSION_V1', JSON.stringify({ username: 'boss', userType: 'Admin', firstName: 'Trainer' })); } catch (e) { /* none */ } }, !!admin);
         page.on('pageerror', e => fail(`${url}: page error: ${e.message}`)); page.on('dialog', x => x.dismiss());
         await page.goto(base + url, { waitUntil: 'load' }); await page.waitForTimeout(1000);
         return page;
@@ -127,6 +128,16 @@ const server = http.createServer((req, res) => {
     if (tl.rows.length !== 2 || !/^Ci Trainee B1/.test(tl.rows[0]) || !/Zed Other/.test(tl.rows[1]) || JSON.stringify(tl.links) !== JSON.stringify(['/simulators/gcal.html?trainee=ci', '/simulators/gcal.html?track=cm&trainee=zed'])) fail('the trainees\' calendars list is wrong: ' + JSON.stringify(tl));
     await page.fill('#cs-tfind', 'b2');
     if (JSON.stringify(await page.$$eval('.cs-ttable tbody tr', trs => trs.map(t => t.style.display))) !== '["none",""]') fail('finding a trainee by batch doesn\'t narrow the list');
+    await page.close();
+    // the same table on the Trainee Evaluations page (simulators/gcal-trainees.js), above the submissions
+    page = await open('/simulators/gcal-review.html', true);
+    await page.waitForSelector('#cs-trainees .cs-ttable', { timeout: 5000 }).catch(() => fail('the Trainee Evaluations page has no list of the trainees\' calendars'));
+    const tl2 = await page.evaluate(() => ({ rows: [...document.querySelectorAll('.cs-ttable tbody tr')].map(tr => tr.innerText.replace(/\s+/g, ' ').trim()), links: [...document.querySelectorAll('.cs-ttable a.cs-view')].map(a => a.getAttribute('href')),
+        above: !!(document.querySelector('#cs-trainees') && document.querySelector('.rv') && (document.querySelector('#cs-trainees').compareDocumentPosition(document.querySelector('.rv')) & Node.DOCUMENT_POSITION_FOLLOWING)) }));
+    if (tl2.rows.length !== 2 || !/^Ci Trainee B1/.test(tl2.rows[0]) || !/Zed Other/.test(tl2.rows[1]) || JSON.stringify(tl2.links) !== JSON.stringify(tl.links)) fail('the Trainee Evaluations page\'s list of trainees differs from the Calendaring Simulators page\'s: ' + JSON.stringify(tl2));
+    if (!tl2.above) fail('the trainees\' calendars should sit above the submissions on the Trainee Evaluations page');
+    await page.fill('#cs-tfind', 'b2');
+    if (JSON.stringify(await page.$$eval('.cs-ttable tbody tr', trs => trs.map(t => t.style.display))) !== '["none",""]') fail('finding a trainee by batch doesn\'t narrow the list on the Trainee Evaluations page');
     await page.close();
     // the trainee's calendar, read only, with the automated check and the scorecard to fill in
     page = await open('/simulators/gcal.html?trainee=ci');
