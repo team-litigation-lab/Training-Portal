@@ -243,6 +243,10 @@ const server = http.createServer(async (req, res) => {
     if (!/New client consults are only scheduled on Tuesdays and Thursdays/.test(await page.textContent('#gc-panel'))) fail('the rules panel should list the attorney\'s rules');
     await page.click('#gc-rail [data-a="check"]'); await page.waitForSelector('.res-ring');
     await shot(page, 'gcal-5-checked');
+    // the score is below the calendar, in 📊 Your scores, not in the side panel (which stays on the rules)
+    const placed = await page.evaluate(() => { const g = document.getElementById('gc'), sc = document.getElementById('gc-scores'), ring = document.querySelector('.res-ring');
+        return { inScores: !!(sc && ring && sc.contains(ring)), below: !!(sc && sc.getBoundingClientRect().top >= g.getBoundingClientRect().bottom - 1), panel: (document.getElementById('gc-panel') || {}).innerText || '', head: ((sc && sc.querySelector('h2')) || {}).textContent || '' }; });
+    if (!placed.inScores || !placed.below || /checked/i.test(placed.panel) || !/Your scores/.test(placed.head) || !/New client consults/.test(placed.panel)) fail(`the check's score should be below the calendar, not in the side panel: ${JSON.stringify(Object.assign({}, placed, { panel: placed.panel.slice(0, 80) }))}`);
     // "The attorney's appointments you changed" reads as lines, not a word a line: its items keep the mark's column
     const chg = await page.evaluate(() => { const box = document.createElement('div'); box.className = 'res-r';
         box.innerHTML = '<ul><li class="chg"><span>Deposition Preparation: Gerald Anderson on Mon, Oct 5: moved to Mon, Oct 5 9am</span></li></ul>';
