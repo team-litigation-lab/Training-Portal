@@ -138,7 +138,8 @@
     .gc-rail .badge { position: absolute; top: -2px; right: -2px; background: #d93025; color: #fff; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 3px; }
     .gc-panel { width: 340px; flex: none; border-left: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; background: #fff; }
     .gc-panel.off { display: none; }
-    /* 📊 the scores, below the calendar (gcal.js renderScores): the automated check, the trainer's scorecard, the feedback */
+    /* 📊 the scores (gcal.js renderScores): the automated check, the trainer's scorecard, the feedback. Below the calendar; a
+       trainee's sit at the bottom of the blue card on a wide screen (see min-width: 1400px) */
     .gc-scores { --line: #dadce0; --ink: #1f1f1f; --ink2: #444746; --mute: #70757a; --blue: #0b57d0; --hover: #f1f3f4;
         margin-top: 16px; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px 20px 20px; color: var(--ink); }
     .gc-scores:empty { display: none; }
@@ -276,7 +277,7 @@
         .sim-hero p { font-size: 13px; line-height: 1.5; max-width: none; }
         #app { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
         .gc { flex: 1 1 auto; height: auto; min-height: max(440px, 62vh); }
-        /* 📊 the scores (after Check my calendar) sit below the calendar, past the first screen: the page scrolls to them */
+        /* 📊 the scores (after Check my calendar) sit below the calendar, past the first screen: the page scrolls to them (from 1400px a trainee's are in the blue card) */
         #app > .gc-scores { flex: none; margin-bottom: 16px; }
     }
     @media (min-width: 1400px) {
@@ -285,6 +286,24 @@
         .sim-hero h1 { font-size: 24px; margin-bottom: 8px; }
         .sim-hero p { font-size: 13.5px; line-height: 1.55; }
         .gc-panel { width: 300px; }
+        /* 📊 a trainee's scores at the bottom of the blue card (gcal.js placeScores): a white card, scrolling when it's long */
+        .sim-hero { display: flex; flex-direction: column; min-height: 0; }
+        .sim-hero .eyebrow { align-self: flex-start; }
+        .sim-hero > p { margin-bottom: 16px; }
+        .sim-hero > .gc-scores { margin-top: auto; flex: 0 1 auto; min-height: 0; overflow-y: auto; border: 0; border-radius: 14px; padding: 12px; }
+        .sim-hero .gc-scores h2 { font-size: 15px; margin-bottom: 8px; }
+        .sim-hero .gc-scores p { color: var(--ink2); font-size: 12.5px; line-height: 1.45; max-width: none; }
+        .sim-hero .gc-scores .sc-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+        .sim-hero .gc-scores .res-top { gap: 10px; margin: 2px 0 10px; }
+        .sim-hero .gc-scores .res-ring { width: 58px; height: 58px; font-size: 17px; border-width: 5px; }
+        .sim-hero .gc-scores .res-r { padding: 8px; font-size: 12px; }
+        /* the trainer's scorecard in the narrow card: the metric and its score on a line, the feedback under it */
+        .sim-hero .gc-scores .csc, .sim-hero .gc-scores .csc tbody { display: block; }
+        .sim-hero .gc-scores .csc thead { display: none; }
+        .sim-hero .gc-scores .csc tr { display: grid; grid-template-columns: minmax(0, 1fr) 44px; }
+        .sim-hero .gc-scores .csc td.n { width: auto; }
+        .sim-hero .gc-scores .csc td.fb { grid-column: 1 / -1; border-top: 0; }
+        .sim-hero .gc-scores .csc td.fb:empty { display: none; }
     }
     @media (max-width: 1100px) { .gc-panel { position: absolute; right: 0; top: 0; bottom: 0; z-index: 30; box-shadow: -4px 0 12px rgba(0,0,0,.12); } .ed-cols { grid-template-columns: minmax(0, 1fr); } }
     @media (max-width: 900px) { .gc-side { position: absolute; left: 0; top: 0; bottom: 0; z-index: 30; background: #fff; box-shadow: 4px 0 12px rgba(0,0,0,.12); } .gc-logo span, .gc-logo small { display: none; } }

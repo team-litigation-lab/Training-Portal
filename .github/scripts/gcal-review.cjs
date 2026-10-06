@@ -138,7 +138,7 @@ const server = http.createServer((req, res) => {
     await page.waitForSelector('#tv-card', { timeout: 6000 }).catch(() => fail('the trainee\'s calendar opened without the scorecard'));
     t = await scoresText(page);
     const side = await panelText(page);
-    if (!/Scores · Ci Trainee · B1/.test(t) || !/read only/.test(t) || !/Their calendar, checked \(automated\)/i.test(t) || !/Maria Santos/.test(t) || !/Maria Santos/.test(side) || /Your scorecard|checked/i.test(side) || !(await below(page))) fail('the trainee\'s calendar is missing who it is, the check or their appointment, or the scores aren\'t below the calendar: ' + t.slice(0, 600) + ' | side: ' + side.slice(0, 300));
+    if (!/Scores · Ci Trainee · B1/.test(t) || !/read only/.test(t) || !/Their calendar, checked \(automated\)/i.test(t) || !/Maria Santos/.test(t) || side.trim() || !(await below(page))) fail('the trainee\'s calendar is missing who it is, the check or their appointment, the side panel is open (Standard Training has none), or the scores aren\'t below the calendar: ' + t.slice(0, 600) + ' | side: ' + side.slice(0, 300));
     await page.click('[data-a="nav"][data-d="1"]').catch(() => {});
     const evs = await page.evaluate(() => [...document.querySelectorAll('.ev')].map(e => e.textContent));
     if (!evs.some(x => /Maria Santos/.test(x))) fail('the trainee\'s booking isn\'t on the calendar: ' + JSON.stringify(evs.slice(0, 5)));
