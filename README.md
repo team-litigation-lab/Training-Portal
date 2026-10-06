@@ -117,9 +117,10 @@ To change the content, edit `SLIDES` in `orientation.html`; the PDF is made from
 
 The Portal links to it from the Training Directory's banners, the home page's Simulators, the 🛠 Simulators hub and Master Control's menu, all through `/api/launch?tool=ringchannel`.
 
-- **Trainees** open it from the Portal and are signed in with the short-lived signed ticket (their name and batch). There is no second sign-in and no PIN. Any signed-in, approved trainee can open it (no program access to request).
-  - Ring Channel checks the ticket with `PORTAL_SSO_SECRET` if it has the secret; otherwise it asks this Portal's `/api/verify-ticket`, like the CMS.
-- **Admins** land on its trainer sign-in and type the trainer passphrase, like on every platform.
+Ring Channel has **no sign-in of its own**: everyone opens it from here.
+- **Trainees** land on their phone, signed in with the short-lived signed ticket (their name and batch). Any signed-in, approved trainee can open it (no program access to request).
+- **Admins** land on its console as trainers, under their Portal name, with a ticket `{ r: 'a', n: name }`. Ring Channel is the only place an admin ticket signs anyone in (`ADMIN_TICKET_TOOLS` in `functions/api/launch.js`); every other platform still asks admins for the admin password.
+- **Checking tickets:** Ring Channel checks them with `PORTAL_SSO_SECRET` if it has the secret; otherwise it asks this Portal's `/api/verify-ticket` (which returns the admin's name), like the CMS. Each ticket works there only once.
 
 ## 🕘 Attendance (admin)
 
