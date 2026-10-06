@@ -160,6 +160,10 @@ const server = http.createServer(async (req, res) => {
     // appointments panel: the side panel stays closed, even for a calendar saved with it open, and the bar has no button for it
     const noPanel = await page.evaluate(() => ({ off: document.getElementById('gc-panel').classList.contains('off'), text: document.getElementById('gc-panel').innerText, rail: document.getElementById('gc-rail').innerText }));
     if (!noPanel.off || noPanel.text.trim() || /Your appointments|Calendar requests/.test(noPanel.rail) || st.reqs.length) fail('Standard Training should have no Your appointments panel or button, and no calendar requests: ' + JSON.stringify(noPanel));
+    // 📖 the blue card holds Standard Training's attorney's rules (in place of the page's intro), open on a wide screen
+    const heroR = await page.evaluate(() => { const d = document.getElementById('hero-rules'), h = document.querySelector('.sim-hero');
+        return { inHero: !!(d && h.contains(d)), open: !!(d && d.open), summary: d ? d.querySelector('summary').textContent : '', text: h.innerText, rule: GCAL_RULES.scheduling[0], note: GCAL_RULES.notes[0] }; });
+    if (!heroR.inHero || !heroR.open || !/The attorney’s rules · Standard Training/.test(heroR.summary) || !heroR.text.includes(heroR.rule) || !heroR.text.includes(heroR.note) || /as in Google Calendar/.test(heroR.text)) fail(`the blue card should hold Standard Training's rules: ${JSON.stringify(Object.assign({}, heroR, { text: heroR.text.slice(0, 200) }))}`);
     // quick create: click Wednesday 1:00 PM in this week (a free slot)
     const wed = await page.evaluate((m) => GCAL.addDays(m, 2), mon);
     const colBox = await page.locator(`#gc-main .wk-col[data-d="${wed}"]`).boundingBox();
@@ -258,9 +262,12 @@ const server = http.createServer(async (req, res) => {
     await page.setViewportSize({ width: 1300, height: 1000 }); await page.waitForTimeout(300);
     placed = await where();
     if (placed.inHero || !placed.below || !placed.inScores) fail(`at 1300px the scores should be below the calendar: ${JSON.stringify({ inHero: placed.inHero, below: placed.below })}`);
+    const folded = await page.evaluate(() => ({ open: (document.getElementById('hero-rules') || { open: true }).open, h: document.querySelector('.sim-hero').getBoundingClientRect().height }));
+    if (folded.open || folded.h > 200) fail(`at 1300px the rules in the blue card should fold to a line: ${JSON.stringify(folded)}`);
     await page.setViewportSize({ width: 1440, height: 1000 }); await page.waitForTimeout(300);
     placed = await where();
     if (!placed.inHero || !placed.atBottom) fail(`back at 1440px the scores should be in the blue card again: ${JSON.stringify({ inHero: placed.inHero, atBottom: placed.atBottom })}`);
+    if (!(await page.evaluate(() => !!(document.getElementById('hero-rules') || {}).open))) fail('back at 1440px the rules in the blue card should be open again');
     const res = results[results.length - 1];
     if (!res || res.simulator !== 'Google Calendar' || typeof res.score !== 'number' || !res.who || res.who.name !== 'CI Trainee') fail(`Check my calendar should save the score: ${JSON.stringify(res).slice(0, 200)}`);
     await page.close();
@@ -341,6 +348,11 @@ const server = http.createServer(async (req, res) => {
         // the clones keep their Calendar requests panel (the callers to book, move or cancel) and its button in the bar
         const cr = await tp.evaluate(() => ({ head: ((document.querySelector('#gc-panel .ph h3') || {}).textContent || ''), cards: document.querySelectorAll('#gc-panel .rq').length, rail: document.getElementById('gc-rail').innerText }));
         if (!/Calendar requests/i.test(cr.head) || cr.cards !== 7 || !/Calendar requests/.test(cr.rail)) fail(`${track}: the Calendar requests panel should list the 7 callers: ${JSON.stringify(cr)}`);
+        // 📖 the blue card holds this track's own rules
+        const hr = await tp.evaluate(() => { const d = document.getElementById('hero-rules'); return { open: !!(d && d.open), summary: d ? d.querySelector('summary').textContent : '', text: d ? d.innerText : '', rules: GCAL_RULES.collect.concat(GCAL_RULES.scheduling) }; });
+        const want = track === 'cm' ? /The attorney’s rules · Litigation Week/ : /The executive’s rules · Executive Week/;
+        const missing = hr.rules.filter(x => !hr.text.includes(track === 'ea' ? x.replace(/attorney/g, 'executive').replace(/Attorney/g, 'Executive') : x));
+        if (!hr.open || !want.test(hr.summary) || missing.length) fail(`${track}: the blue card should hold this track's rules: ${JSON.stringify({ open: hr.open, summary: hr.summary, missing })}`);
         if (track === 'ea') {   // the executive's wording is only the page's own fixed text: what the trainee types is never reworded, and no DOB / DOL is asked
             await tp.keyboard.press('c'); await tp.waitForSelector('#ed-title', { timeout: 5000 });
             const ph = await tp.evaluate(() => document.getElementById('ed-desc').getAttribute('data-ph'));

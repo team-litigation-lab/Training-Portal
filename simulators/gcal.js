@@ -584,7 +584,6 @@ function render() {
             <div class="gc-body"><aside class="gc-side" id="gc-side"></aside><main class="gc-main" id="gc-main"></main><aside class="gc-panel" id="gc-panel"></aside></div><nav class="gc-rail" id="gc-rail" aria-label="Calendar tools"></nav></div>
             <section class="gc-scores" id="gc-scores" aria-label="Scores"></section>`;
         bind(); placeScores();
-        if (WIDE && !WIDE.bound) { WIDE.bound = true; (WIDE.addEventListener ? WIDE.addEventListener('change', placeScores) : WIDE.addListener(placeScores)); }
     }
     renderHead(); renderSide(); renderMain(); renderPanel(); renderRail();
 }
@@ -597,6 +596,20 @@ function placeScores() {
     if (inHero && sc.parentNode !== hero) hero.appendChild(sc);
     else if (!inHero && sc.parentNode !== app) app.appendChild(sc);
     sc.classList.toggle('in-hero', inHero);
+}
+// 📖 The blue card holds this track's attorney's rules (in place of the page's intro): open where the card is a column, folded
+// to one line where it sits on top of the calendar (a click opens it).
+function heroRules() {
+    const hero = document.querySelector('.sim-hero'); if (!hero) return;
+    let d = $('#hero-rules');
+    if (!d) {
+        const intro = hero.querySelector('p'), box = document.createElement('div'); box.className = 'hero-rules-wrap';
+        box.innerHTML = `<details class="hero-rules" id="hero-rules"><summary>📖 ${WW('The attorney’s rules')} · ${esc(CFG.label)}</summary><div class="rules">${rulesHtml()}</div></details>`;
+        if (intro) intro.replaceWith(box); else hero.appendChild(box);
+        d = $('#hero-rules');
+        if (WIDE) { const fit = () => { placeScores(); d.open = WIDE.matches; }; WIDE.addEventListener ? WIDE.addEventListener('change', fit) : WIDE.addListener(fit); }
+    }
+    d.open = !!(WIDE && WIDE.matches);
 }
 function viewDays() {
     if (S.view === 'day') return [S.anchor];
@@ -752,21 +765,21 @@ function reqCard(q) {
         <div class="acts"><button class="txt" data-a="req-go" data-id="${esc(q.id)}">Show on calendar</button><label><input type="checkbox" data-done="${esc(q.id)}" ${q.done ? 'checked' : ''}> Done</label></div></div>`;
 }
 function renderPanel() { renderSidePanel(); renderScores(); }
+// The attorney's rules for this track (gcal-data.js: Standard Training, Litigation Week, Executive Week): in the 📖 panel
+// and in the blue card on the left (heroRules).
+const rulesHtml = () => `<p class="lead">${esc(CFG.lead)} Plot every appointment on the <b>${WW('Attorney’s Calendar')}</b>, in Eastern time.</p>
+    <h4>Get from every caller</h4><ul>${GCAL_RULES.collect.map(x => `<li>${esc(WW(x))}</li>`).join('')}</ul>
+    <h4>Title</h4><ul><li>${esc(WW(GCAL_RULES.title))}</li></ul>
+    <h4>Scheduling rules</h4><ul>${GCAL_RULES.scheduling.map(x => `<li>${esc(WW(x))}</li>`).join('')}</ul>
+    <h4>Additional notes</h4><ul>${GCAL_RULES.notes.map(x => `<li>${esc(WW(x))}</li>`).join('')}</ul>
+    <h4>Office</h4><ul><li>${esc(GCAL_OFFICE)} (in-person meetings)</li></ul>`;
 function renderSidePanel() {
     // (Standard Training has no requests panel: its appointments are on the calendar, the scores in 📊 Your scores)
     const P = OPEN && S.panel !== 'rules' && S.panel !== 'evals' ? '' : S.panel;
     const panel = $('#gc-panel'); panel.classList.toggle('off', !P);
     if (!P) { panel.innerHTML = ''; return; }
     const head = (t) => `<div class="ph"><h3>${t}</h3><button class="ib" data-a="panel" data-p="" aria-label="Close panel">${ic('close')}</button></div>`;
-    if (S.panel === 'rules') {
-        panel.innerHTML = head(WW('The attorney’s rules')) + `<div class="pb rules"><p class="lead">${esc(CFG.lead)} Plot every appointment on the <b>${WW('Attorney’s Calendar')}</b>, in Eastern time.</p>
-            <h4>Get from every caller</h4><ul>${GCAL_RULES.collect.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
-            <h4>Title</h4><ul><li>${esc(GCAL_RULES.title)}</li></ul>
-            <h4>Scheduling rules</h4><ul>${GCAL_RULES.scheduling.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
-            <h4>Additional notes</h4><ul>${GCAL_RULES.notes.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
-            <h4>Office</h4><ul><li>${esc(GCAL_OFFICE)} (in-person meetings)</li></ul></div>`;
-        return;
-    }
+    if (S.panel === 'rules') { panel.innerHTML = head(WW('The attorney’s rules')) + `<div class="pb rules">${rulesHtml()}</div>`; return; }
     if (S.panel === 'evals') { panel.innerHTML = head('My evaluations') + `<div class="pb">${evalsHtml()}</div>`; return; }
     const open = S.reqs.filter(q => !q.done).length;
     panel.innerHTML = head('Calendar requests' + (TRK ? ' · ' + esc(CFG.label) : '')) + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). These callers want appointments booked, moved or cancelled on the ${WW('attorney’s')} calendar. ${open ? `${open} still open.` : 'All marked done.'}</p>
@@ -1441,9 +1454,8 @@ async function start() {
     const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal');
     if (TRK) document.title = 'Google Calendar Simulator · ' + CFG.label + ' — LSH Training Portal';
     if (TRK) { const eb = document.querySelector('.eyebrow'); if (eb) eb.textContent = 'Simulator · ' + CFG.scenario; }
-    if (CFG.who) { const hp = document.querySelector('.sim-hero p'); if (hp) hp.innerHTML = WW(hp.innerHTML); }   // (fixed text of the page)
+    heroRules();
     if (RV) { if (RV.live) liveStart(); else reviewStart(); return; }
-    if (OPEN) { const hp = document.querySelector('.sim-hero p'); if (hp) hp.innerHTML = 'The attorney’s calendar, as in Google Calendar. Take a <b>Calendar Management mock call</b>, then book what the caller asks for on the <b>Attorney’s Calendar</b> under the attorney’s rules, with the right title, a full description, a Google Meet link when it’s a video call, and an email reminder a day before. Move or cancel what callers ask you to. Then press <b>Check my calendar</b>, and <b>📤 Submit for evaluation</b> to send it to your trainer.'; }
     S = load() || fresh(); save(true);   // (local only: the copy saved to their account may be newer, cloudLoad below)
     render();
     mineStart();
