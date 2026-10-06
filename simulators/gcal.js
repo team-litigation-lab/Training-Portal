@@ -720,7 +720,8 @@ function renderRail() {
             ${b(S.panel === 'requests', 'data-a="panel" data-p="requests"', 'req', OPEN ? 'Your appointments' : 'Calendar requests', !OPEN && open)}
             ${b(S.panel === 'rules', 'data-a="panel" data-p="rules"', 'book', WW("The attorney's rules"))}
             ${b(S.panel === 'result' || (S.result && S.panel === 'requests'), 'data-a="check"', 'grade', 'Check my calendar')}
-            ${b(S.panel === 'evals', 'data-a="evals"', 'notes', Sim.isAdmin() ? 'Trainee evaluations' : 'My evaluations', EV.ready)}</div>
+            ${Sim.isAdmin() ? `<a class="rb" id="gc-evals-link" href="${REVIEW_PAGE}" title="Trainee Evaluations: the submissions with their AI review, and your trainees' calendars">${ic('notes')}<span>Trainee evaluations</span></a>`   // (a trainer goes to the Trainee Evaluations page: a plain link, in this tab, like every Portal page)
+                : b(S.panel === 'evals', 'data-a="evals"', 'notes', 'My evaluations', EV.ready)}</div>
         <div class="rb-group rb-end">${cloudHtml()}${Sim.isAdmin() || RV ? '' : '<button class="blue" data-a="submit-eval">📤 Submit for evaluation</button>'}</div>`;
 }
 function reqCard(q) {
@@ -986,7 +987,7 @@ function settings(anchor) {
         <label style="display:flex;gap:8px;align-items:center;padding:6px 0"><input type="checkbox" data-set="tz2" ${S.set.tz2 ? 'checked' : ''}> Show Manila time too</label>
         <button class="txt" data-a="reset" style="margin-top:6px;padding:0">Start over (clear my calendar)</button>
         ${Sim.isAdmin() ? `<button class="txt" data-a="admin-edit" style="margin-top:2px;padding:0">${G.admin ? 'Stop editing the weekly schedule' : '✎ Edit the weekly schedule (everyone)'}</button>
-        <a class="txt" href="${REVIEW_PAGE}" target="_blank" rel="noopener" style="display:block;margin-top:2px;padding:0;line-height:36px;text-decoration:none">🖥 Trainee evaluations (live review)</a>` : ''}</div>`);
+        <a class="txt" href="${REVIEW_PAGE}" style="display:block;margin-top:2px;padding:0;line-height:36px;text-decoration:none">🖥 Trainee evaluations (live review)</a>` : ''}</div>`);
 }
 
 /* ---------- moving around ---------- */
@@ -1267,7 +1268,7 @@ function bind() {
             create: () => createAt(S.view === 'day' ? S.anchor : null),
             panel: () => { S.panel = a.dataset.p === S.panel ? '' : a.dataset.p; save(); renderPanel(); renderRail(); },
             check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true),
-            evals: () => { if (Sim.isAdmin()) { window.open(REVIEW_PAGE, '_blank', 'noopener'); return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
+            evals: () => { if (Sim.isAdmin()) { location.href = REVIEW_PAGE; return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
             'submit-eval': () => submitEval(),
             'cloud-save': () => { save(true); cloudSave(); },
             'cloud-newer': () => { if (confirm('Open the newer copy saved to your account? The changes you made in this tab since then are replaced.')) cloudLoad(true); },

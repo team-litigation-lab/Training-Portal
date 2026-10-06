@@ -95,7 +95,24 @@ const server = http.createServer((req, res) => {
     const t = await panel(page);
     if (!/Trainee’s calendar|read only/i.test(t)) fail('a trainee’s calendar opened in a new tab shows no content: ' + t.slice(0, 200));
     await page.close();
+    // the Calendaring Simulators page has a Trainee Evaluations button for a trainer, a pill like Earlier scheduler scores, in the same tab
+    who = 'admin';
+    page = await open('/simulators/calsim.html');
+    const eb = await page.$$eval('#cs-evals', as => as.map(a => ({ href: a.getAttribute('href'), target: a.getAttribute('target'), cls: a.className, text: a.innerText.trim() })));
+    if (eb.length !== 1 || eb[0].href !== '/simulators/gcal-review.html' || eb[0].target || !/sim-btn ghost/.test(eb[0].cls) || !/Trainee Evaluations/.test(eb[0].text)) fail('the Calendaring Simulators page has no Trainee Evaluations button for a trainer: ' + JSON.stringify(eb));
+    await page.click('#cs-evals'); await page.waitForURL(/gcal-review\.html/, { timeout: 5000 }).catch(() => fail('the Trainee Evaluations button did not open the page: ' + page.url()));
+    await page.close();
+    who = 'trainee'; page = await open('/simulators/calsim.html');
+    if (await page.$('#cs-evals')) fail('a trainee sees the trainers’ Trainee Evaluations button');
+    await page.close();
+    // 9. a trainer's "Trainee evaluations" in the simulator goes to the Trainee Evaluations page, in the same tab, as a plain link
+    who = 'admin';
+    page = await open('/simulators/gcal.html?track=cm');
+    const lk = await page.$$eval('#gc-rail a.rb', as => as.map(a => ({ href: a.getAttribute('href'), target: a.getAttribute('target'), text: a.innerText.trim() })));
+    if (lk.length !== 1 || lk[0].href !== '/simulators/gcal-review.html?track=cm' || lk[0].target || !/Trainee evaluations/.test(lk[0].text)) fail('a trainer\'s Trainee evaluations is not a plain link to the Trainee Evaluations page: ' + JSON.stringify(lk));
+    await page.click('#gc-evals-link'); await page.waitForURL(/gcal-review\.html\?track=cm/, { timeout: 5000 }).catch(() => fail('Trainee evaluations did not go to the Trainee Evaluations page: ' + page.url()));
+    await page.close();
     await browser.close(); server.close();
     if (failures.length) { console.error('FAILED:\n- ' + failures.join('\n- ')); process.exit(1); }
-    console.log('Trainee side test passed (today follows the calendar, a newer saved copy is never overwritten, panels aren’t changes, big calendars trim, tracks named, PDF accents, cards show the evaluation, a trainee’s calendar opens in a new tab).');
+    console.log('Trainee side test passed (a trainer’s Trainee evaluations link goes to the Trainee Evaluations page, today follows the calendar, a newer saved copy is never overwritten, panels aren’t changes, big calendars trim, tracks named, PDF accents, cards show the evaluation, a trainee’s calendar opens in a new tab).');
 })();
