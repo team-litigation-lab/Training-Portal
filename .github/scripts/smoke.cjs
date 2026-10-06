@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
 const http = require('http'); const fs = require('fs'); const path = require('path');
 const ROOT = process.cwd();
 const PAGES = ['/index.html', '/programs.html', '/simulators.html', '/simulators/calsim.html', '/progress.html', '/core.html', '/registration.html', '/trainee-login.html', '/admin-login.html', '/orientation.html', '/orientation.html?track=admin', '/referrals.html', '/attendance.html',
-    '/simulators/email.html?program=CM', '/simulators/email-replies.html?program=CM', '/simulators/calendar.html?program=CM', '/simulators/gcal.html?program=FT', '/simulators/gcal.html?program=FT&track=cm', '/simulators/gcal.html?program=FT&track=ea',
+    '/simulators/email.html?program=CM', '/simulators/email-replies.html?program=CM', '/simulators/calendar.html?program=CM', '/simulators/gcal.html?program=FT', '/simulators/gcal.html?program=FT&track=cm', '/simulators/gcal.html?program=FT&track=ea', '/simulators/gcal-review.html',
     '/simulators/docket.html?program=CM', '/simulators/records.html?program=CM', '/simulators/efiling.html?program=CM'];
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.md': 'text/markdown' };
 const server = http.createServer((req, res) => {

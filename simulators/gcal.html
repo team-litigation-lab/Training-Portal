@@ -158,6 +158,11 @@
     .res-r { border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-bottom: 8px; font-size: 12.5px; }
     .res-r h5 { margin: 0 0 6px; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; }
     .res-r ul { list-style: none; margin: 0; padding: 0; }
+    /* My evaluations (gcal.js evalsHtml): the trainer's final feedback report */
+    .ev-st { font-size: 12.5px; color: var(--ink2); } .ev-new { background: #d93025; color: #fff; border-radius: 10px; padding: 1px 8px; font-size: 11px; font-weight: 700; }
+    .ev-rep { font-size: 13px; line-height: 1.5; } .ev-rep h4 { margin: 12px 0 4px; font-size: 13.5px; } .ev-meta { color: var(--mute); font-size: 12px; margin-bottom: 8px; }
+    .ev-sum { margin: 6px 0; } .ev-notes { margin: 4px 0; white-space: normal; } .ev-none { color: var(--mute); margin: 2px 0; }
+    .ev-l { margin: 0; padding-left: 18px; } .ev-l li { margin: 3px 0; } .ev-l.ok li::marker { color: #188038; } .ev-l.mid li::marker { color: #e37400; } .ev-l.no li::marker { color: #d93025; } .ev-l.tr li::marker { color: #0b57d0; }
     .res-r li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 6px; padding: 2px 0; line-height: 1.45; }
     .res-r li.ok::before { content: '✓'; color: #188038; font-weight: 700; } .res-r li.no::before { content: '✗'; color: #d93025; font-weight: 700; }
     /* popovers, editor, dialogs */

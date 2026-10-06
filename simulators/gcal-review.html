@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trainee Evaluations — LSH Training Portal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/simulators/sim.css">
+<style>
+    /* Trainee evaluations: the trainer's live review of calendars submitted from the Google Calendar Simulator (gcal.html) */
+    .rv { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
+    .rv-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px 16px; }
+    .rv-list { max-height: calc(100vh - 220px); overflow: auto; }
+    .rv-row { border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 10px; margin: 6px 0; cursor: pointer; background: #fff; }
+    .rv-row:hover { border-color: #94a3b8; } .rv-row.on { border-color: #0b57d0; box-shadow: 0 0 0 2px #c2e7ff; } .rv-row.new { animation: rvNew 2.4s ease-out; }
+    @keyframes rvNew { from { background: #fff7d6; } to { background: #fff; } }
+    .rv-row b { font-size: 14px; } .rv-sub { font-size: 12px; color: #64748b; }
+    .chip { display: inline-block; font-size: 11.5px; font-weight: 700; border-radius: 10px; padding: 1px 8px; margin-right: 4px; }
+    .chip.pend { background: #e8f0fe; color: #0b57d0; } .chip.ready { background: #e6f4ea; color: #137333; } .chip.err { background: #fce8e6; color: #c5221f; } .chip.final { background: #0b1633; color: #fff; }
+    .rv h2 { margin: 0 0 4px; font-size: 20px; } .rv h3 { margin: 16px 0 6px; font-size: 15px; } .rv h4 { margin: 12px 0 4px; font-size: 14px; }
+    .rv-l { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.5; } .rv-l li { margin: 4px 0; animation: rvIn .45s ease-out both; }
+    @keyframes rvIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .rv-l.ok li::marker { color: #188038; } .rv-l.mid li::marker { color: #e37400; } .rv-l.no li::marker { color: #d93025; }
+    .rv-none { color: #64748b; font-size: 13px; margin: 2px 0; }
+    .rv-wait { display: flex; align-items: center; gap: 10px; padding: 14px; background: #f8fafc; border-radius: 10px; color: #334155; }
+    .rv-spin { width: 18px; height: 18px; border: 3px solid #c2e7ff; border-top-color: #0b57d0; border-radius: 50%; animation: rvSpin 1s linear infinite; }
+    @keyframes rvSpin { to { transform: rotate(360deg); } }
+    .rv textarea, .rv input[type=number], .rv input[type=text], .rv select { font: inherit; border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 9px; width: 100%; box-sizing: border-box; }
+    .rv textarea { min-height: 110px; resize: vertical; }
+    .rv-pt { display: flex; gap: 6px; margin: 6px 0; } .rv-pt input { flex: 1; }
+    .rv-btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+    .rv .btn { border: 1px solid transparent; border-radius: 10px; padding: 8px 14px; font: inherit; font-weight: 700; font-size: 13.5px; cursor: pointer; }
+    .rv .btn-navy { background: #0b1633; color: #fff; } .rv .btn-orange { background: #f97316; color: #fff; } .rv .btn-ghost { background: #fff; color: #0b1633; border-color: #cbd5e1; }
+    .rv .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .rv-saved { font-size: 12.5px; color: #64748b; }
+    .rv table { width: 100%; border-collapse: collapse; font-size: 12.5px; } .rv td, .rv th { border-top: 1px solid #e5e7eb; padding: 5px 6px; text-align: left; vertical-align: top; }
+    .rv details summary { cursor: pointer; font-weight: 700; font-size: 13.5px; margin: 10px 0 4px; }
+    .rv-miss { color: #c5221f; } .rv-met { color: #137333; }
+    .rv-top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    /* the trainee's calendar, read only: Monday to Friday, 7 AM to 7 PM (Eastern) */
+    .wk { border: 1px solid #dadce0; border-radius: 10px; overflow: hidden; background: #fff; }
+    .wk-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #dadce0; font-size: 14px; flex-wrap: wrap; }
+    .wk-bar b { flex: 1; } .wk-key { font-size: 12px; color: #64748b; } .wk-key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin: 0 3px 0 8px; }
+    .wk-head, .wk-body { display: grid; grid-template-columns: 52px repeat(5, minmax(0, 1fr)); }
+    .wk-head div { text-align: center; font-size: 12px; color: #70757a; padding: 6px 0; border-left: 1px solid #eee; } .wk-head div.today b { background: #0b57d0; color: #fff; border-radius: 50%; width: 30px; height: 30px; line-height: 30px; margin: 0 auto; }
+    .wk-head b { display: block; font-size: 17px; color: #1f1f1f; font-weight: 500; }
+    .wk-body { position: relative; max-height: 560px; overflow-y: auto; }
+    .wk-hrs div { height: 40px; font-size: 10.5px; color: #70757a; text-align: right; padding-right: 6px; transform: translateY(-6px); }
+    .wk-col { position: relative; border-left: 1px solid #eee; background: repeating-linear-gradient(#fff 0 39px, #eee 39px 40px); }
+    .wk-ev { position: absolute; left: 2px; right: 2px; border-radius: 4px; color: #fff; font-size: 11px; line-height: 1.25; padding: 2px 4px; overflow: hidden; box-sizing: border-box; }
+    .wk-ev.mine { outline: 2px solid #1f1f1f; outline-offset: -2px; z-index: 2; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+    .wk-ev small { display: block; opacity: .9; }
+    .wk-all { font-size: 11px; padding: 2px 6px; border-top: 1px solid #eee; color: #444; }
+    @media (max-width: 900px) { .rv { grid-template-columns: 1fr; } .rv-list { max-height: none; } }
+</style>
+</head>
+<body>
+<div id="topbar"></div>
+<div class="sim-wrap">
+    <section class="sim-hero">
+        <div class="eyebrow">Trainers · Calendar Management</div>
+        <h1>Trainee Evaluations</h1>
+        <p>Calendars your trainees submit from the Google Calendar Simulator, with the AI review written from the attorney’s rules and your own rules and notes. Open one, go through the feedback with the trainee as it comes in, add what the AI missed and your own insights, then <b>finalize the report</b>: the trainee sees it under <b>My evaluations</b> and can download it.</p>
+    </section>
+    <div id="app"><div class="sim-loading" style="padding:40px;text-align:center;">Loading…</div></div>
+</div>
+<script src="/app.js"></script>
+<script src="/portal-nav.js"></script>
+<script src="/portal.js"></script>
+<script src="/simulators/sim.js"></script>
+<script>
+(function () {
+const API = '/api/gcal-reviews';
+const TRACKS = { standard: 'Standard Training', cm: 'Case Management (Litigation Week)', ea: 'EA / PA (Executive Week)' };
+const esc = (s) => Sim.esc(s);
+const $ = (s) => document.querySelector(s);
+const when = (t) => { try { return new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return t || ''; } };
+const R = { list: null, seen: null, open: null, row: null, err: '', track: new URLSearchParams(location.search).get('track') || '', listTimer: null, rowTimer: null, saveTimer: null,
+    saved: '', revealed: {}, wk: null, rules: null, rulesTrack: 'standard', showRules: false, dirty: false };
+async function api(path, opts) {
+    const res = await fetch(path, Object.assign({ credentials: 'include', headers: { 'Content-Type': 'application/json' } }, opts || {}));
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok || d.success === false) throw new Error(d.error || ('Request failed (' + res.status + ')'));
+    return d;
+}
+const post = (body) => api(API, { method: 'POST', body: JSON.stringify(body) });
+function chip(r) {
+    if (r.status === 'final') return '<span class="chip final">📄 Final</span>';
+    if (r.aiStatus === 'pending') return '<span class="chip pend">🤖 AI writing…</span>';
+    if (r.aiStatus === 'error') return '<span class="chip err">⚠ AI failed</span>';
+    return '<span class="chip ready">✅ AI review ready</span>';
+}
+
+/* ---------- the submissions: looked at again every 8 seconds while this page is on screen ---------- */
+async function loadList() {
+    clearTimeout(R.listTimer);
+    try {
+        const d = await api(API + '?all=1');
+        const before = R.seen; R.seen = new Set(d.reviews.map(r => r.id));
+        d.reviews.forEach(r => { r._new = before && !before.has(r.id); });
+        R.list = d.reviews; R.err = '';
+    } catch (e) { R.err = e.message; }
+    paintList();
+    R.listTimer = setTimeout(() => { if (!document.hidden) loadList(); else R.listTimer = null; }, 8000);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (!R.listTimer) loadList(); if (R.open && !R.rowTimer) loadRow(); } });
+function paintList() {
+    const el = $('#rv-list'); if (!el) return;
+    if (R.err && !R.list) { el.innerHTML = `<p class="rv-none">${esc(R.err)}</p>`; return; }
+    const rows = (R.list || []).filter(r => !R.track || r.track === R.track);
+    el.innerHTML = rows.length ? rows.map(r => `<div class="rv-row ${r.id === R.open ? 'on' : ''} ${r._new ? 'new' : ''}" data-id="${r.id}">
+            <b>${esc(r.name || r.username)}</b>${r.batch ? ` <span class="rv-sub">· ${esc(r.batch)}</span>` : ''}
+            <div class="rv-sub">${esc(when(r.submittedAt))} · ${esc(TRACKS[r.track] || r.track)}${r.checkScore != null ? ' · check ' + r.checkScore + '%' : ''}</div>
+            <div style="margin-top:4px">${chip(r)}</div></div>`).join('')
+        : '<p class="rv-none">No submissions yet. They show here as soon as a trainee clicks 📤 Submit for evaluation.</p>';
+}
+
+/* ---------- one submission, live: every 3 seconds while its AI review is being written, every 15 after ---------- */
+async function loadRow() {
+    clearTimeout(R.rowTimer); R.rowTimer = null;
+    const id = R.open; if (!id) return;
+    try {
+        const d = await api(API + '?id=' + id);
+        if (R.open !== id) return;
+        const had = R.row && R.row.id === id ? R.row : null;
+        R.row = d.review;
+        // what the trainer is typing stays as it is
+        if (had && R.dirty) R.row.trainer = had.trainer;
+        paintRow(had);
+    } catch (e) { $('#rv-main').innerHTML = `<div class="rv-card"><p class="rv-none">${esc(e.message)}</p></div>`; }
+    if (R.open === id && !document.hidden) R.rowTimer = setTimeout(loadRow, R.row && R.row.aiStatus === 'pending' ? 3000 : 15000);
+}
+function aiList(items, cls, key) {
+    if (!(items || []).length) return '<p class="rv-none">None.</p>';
+    // The points come in one after another the first time they're on screen, so they can be talked through as they appear.
+    const first = !R.revealed[key]; R.revealed[key] = true;
+    return `<ul class="rv-l ${cls}">${items.map((x, i) => `<li style="animation-delay:${first ? i * 0.6 : 0}s">${esc(x)}</li>`).join('')}</ul>`;
+}
+function aiHtml(r) {
+    if (r.aiStatus === 'pending') return `<div class="rv-wait"><span class="rv-spin"></span><div><b>The AI review is being written…</b><br><span class="rv-sub">It shows here the moment it’s ready. Meanwhile, go through the appointments and the automated check below.</span></div></div>`;
+    const a = r.ai || {};
+    if (r.aiStatus === 'error') return `<div class="rv-wait" style="background:#fce8e6"><div><b>The AI review couldn’t be written.</b><br><span class="rv-sub">${esc(a.error || '')}</span></div>${r.status === 'final' ? '' : '<button class="btn btn-ghost" data-a="retry">↻ Try again</button>'}</div>`;
+    const k = r.id + ':' + (a.at || '');
+    return `${a.summary ? `<p style="margin:4px 0 8px;font-size:14.5px">${esc(a.summary)}</p>` : ''}
+        <h4>✅ Done correctly</h4>${aiList(a.correct, 'ok', k + 'c')}
+        <h4>🛠 Needs improvement</h4>${aiList(a.improve, 'mid', k + 'i')}
+        <h4>⚠️ Requirements missed</h4>${aiList(a.missed, 'no', k + 'm')}`;
+}
+const DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], H0 = 7, H1 = 19, PH = 40;
+const dAdd = (d, n) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+const mOf = (t) => { const p = String(t || '0:0').split(':'); return (+p[0] || 0) * 60 + (+p[1] || 0); };
+const t12 = (t) => { const m = mOf(t), h = Math.floor(m / 60); return (h % 12 || 12) + (m % 60 ? ':' + String(m % 60).padStart(2, '0') : '') + (h < 12 ? 'am' : 'pm'); };
+function weekHtml(w) {
+    if (!w || !w.from) return '<p class="rv-none">This submission was made before the calendar view existed: see the appointments below.</p>';
+    const weeks = Math.max(1, Math.round((new Date(w.to + 'T00:00:00Z') - new Date(w.from + 'T00:00:00Z')) / 604800000) + (w.to > w.from ? 0 : 1));
+    // open on the week with the trainee's own events, the first time
+    if (R.wk == null) { const mine = (w.events || []).filter(e => e.mine).map(e => e.d).sort()[0]; R.wk = mine ? Math.max(0, Math.min(weeks - 1, Math.floor((new Date(mine + 'T00:00:00Z') - new Date(w.from + 'T00:00:00Z')) / 604800000))) : 0; }
+    const mon = dAdd(w.from, R.wk * 7), days = [0, 1, 2, 3, 4].map(i => dAdd(mon, i));
+    const evs = (w.events || []).filter(e => days.includes(e.d));
+    const label = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    const col = (d) => {
+        const list = evs.filter(e => e.d === d && e.s).sort((a, b) => mOf(a.s) - mOf(b.s));
+        // side by side when they overlap
+        const lanes = []; list.forEach(e => { let k = lanes.findIndex(end => end <= mOf(e.s)); if (k < 0) { k = lanes.length; lanes.push(0); } lanes[k] = mOf(e.e) || mOf(e.s) + 30; e._k = k; });
+        const n = Math.max(1, lanes.length);
+        return `<div class="wk-col" style="height:${(H1 - H0) * PH}px">${list.filter(e => (mOf(e.e) || mOf(e.s) + 30) > H0 * 60 && mOf(e.s) < H1 * 60).map(e => { const a0 = Math.max(mOf(e.s), H0 * 60), a1 = Math.min(mOf(e.e) || mOf(e.s) + 30, H1 * 60);   // clipped to the hours shown
+            const top = (a0 - H0 * 60) / 60 * PH, h = Math.max(16, (a1 - a0) / 60 * PH - 2);
+            return `<div class="wk-ev ${e.mine ? 'mine' : ''}" title="${esc(e.t)} · ${esc(t12(e.s))}–${esc(t12(e.e))} · ${esc(e.cal)}${e.mine ? ' (the trainee’s)' : ''}" style="top:${top}px;height:${h}px;background:${esc(e.c || '#039be5')};left:calc(${e._k / n * 100}% + 2px);width:calc(${100 / n}% - 4px);right:auto">${esc(e.t)}<small>${esc(t12(e.s))}–${esc(t12(e.e))}${e.meet ? ' · Meet' : ''}</small></div>`; }).join('')}</div>`;
+    };
+    const allDay = evs.filter(e => !e.s);
+    return `<div class="wk"><div class="wk-bar"><button class="btn btn-ghost" data-a="wk" data-d="-1" ${R.wk <= 0 ? 'disabled' : ''} aria-label="Previous week">‹</button><button class="btn btn-ghost" data-a="wk" data-d="1" ${R.wk >= weeks - 1 ? 'disabled' : ''} aria-label="Next week">›</button>
+            <b>${esc(label(days[0]))} – ${esc(label(days[4]))}</b><span class="wk-key"><i style="background:#039be5"></i>the attorney’s calendar <i style="background:#fff;outline:2px solid #1f1f1f"></i>the trainee’s events</span></div>
+        <div class="wk-head"><div></div>${days.map(d => `<div class="${d === w.today ? 'today' : ''}">${DN[new Date(d + 'T00:00:00Z').getUTCDay()]}<b>${+d.slice(8)}</b></div>`).join('')}</div>
+        <div class="wk-body"><div class="wk-hrs">${Array.from({ length: H1 - H0 }, (_, i) => `<div>${i ? t12(String(H0 + i).padStart(2, '0') + ':00') : ''}</div>`).join('')}</div>${days.map(col).join('')}</div>
+        ${allDay.length ? `<div class="wk-all">All day: ${allDay.map(e => esc(DN[new Date(e.d + 'T00:00:00Z').getUTCDay()] + ' ' + e.t)).join(' · ')}</div>` : ''}</div>`;
+}
+function checkHtml(c) {
+    const a = c && c.automatedCheck; if (!a) return '';
+    const ck = a.results || [];
+    return `<h3>🤖 Automated feedback <span class="rv-sub" style="font-weight:400">· ${esc(a.score)}% · ${esc(a.requestsFullyRight || '')} requests fully right</span></h3>
+        ${ck.map(x => `<div style="margin:6px 0"><b style="font-size:13px">${esc(x.request)}</b> <span class="rv-sub">${esc(x.points)}${x.when ? ' · ' + esc(x.when) : ''}</span>
+            <ul class="rv-l" style="font-size:12.5px">${(x.met || []).map(t => `<li class="rv-met">✓ ${esc(t)}</li>`).join('')}${(x.missed || []).map(t => `<li class="rv-miss">✗ ${esc(t)}</li>`).join('')}</ul></div>`).join('')}
+        ${(a.changedWithoutARequest || []).length ? `<p class="rv-miss" style="font-size:12.5px">Changed without a request: ${esc(a.changedWithoutARequest.join('; '))}</p>` : ''}`;
+}
+function calHtml(c) {
+    if (!c) return '';
+    const ap = c.appointments || [];
+    return `<details><summary>📅 The appointments in detail (${ap.length})</summary>${ap.length ? `<table><tr><th>Title</th><th>When</th><th>Where / Meet</th><th>Description</th></tr>${ap.map(e => `<tr><td>${esc(e.title)}<div class="rv-sub">${esc(e.calendar)}</div></td><td>${esc(e.day)} ${esc(e.date)}<br>${esc(e.time)}<div class="rv-sub">${esc(e.timeZone)}</div></td><td>${esc(e.location || '')}${e.googleMeet ? '<br>Google Meet' : ''}</td><td>${esc(e.description || '')}${(e.notifications || []).length ? `<div class="rv-sub">🔔 ${esc(e.notifications.join(', '))}</div>` : ''}</td></tr>`).join('')}</table>` : '<p class="rv-none">No appointments of their own.</p>'}</details>
+        <details><summary>📞 What the callers asked</summary>${(c.requests || []).map(q => `<div style="margin:6px 0;font-size:13px"><b>${esc(q.kind === 'book' ? (q.type || 'Book') : q.kind === 'move' ? 'Move' : 'Cancel')} – ${esc(q.caller)}</b>${q.canDo ? ` <span class="rv-sub">(${esc(q.canDo)})</span>` : ''}<br>“${esc(q.callerSaid)}”</div>`).join('')}</details>`;
+}
+function trainerHtml(r) {
+    const t = r.trainer || { notes: '', points: [], score: null }, fin = r.status === 'final';
+    return `<h3>👤 Your manual feedback</h3>
+        <p class="rv-sub" style="margin:0 0 6px">What the AI missed, what needs more explaining, your insights from the discussion. It’s saved as you type and goes in the trainee’s final report.</p>
+        <textarea id="rv-notes" ${fin ? 'disabled' : ''} placeholder="Your notes and insights for the trainee…">${esc(t.notes || '')}</textarea>
+        <h4>Additional points (what the AI missed)</h4>
+        <div id="rv-points">${(t.points || []).map((p, i) => `<div class="rv-pt"><input type="text" data-pt="${i}" value="${esc(p)}" ${fin ? 'disabled' : ''}>${fin ? '' : `<button class="btn btn-ghost" data-a="pt-del" data-i="${i}" aria-label="Remove">✕</button>`}</div>`).join('')}</div>
+        ${fin ? '' : '<button class="btn btn-ghost" data-a="pt-add">+ Add a point</button>'}
+        <div style="display:flex;gap:10px;align-items:center;margin-top:10px;max-width:260px"><label for="rv-score" style="white-space:nowrap;font-weight:700;font-size:13.5px">Score (optional)</label><input id="rv-score" type="number" min="0" max="100" value="${t.score == null ? '' : t.score}" ${fin ? 'disabled' : ''}><span class="rv-sub">/100</span></div>
+        <div class="rv-btns">${fin
+            ? `<span class="chip final">📄 Final report released ${esc(when(r.finalizedAt))}</span><button class="btn btn-ghost" data-a="reopen">Reopen to change it</button>`
+            : `<button class="btn btn-orange" data-a="finalize" ${r.aiStatus === 'pending' ? 'disabled title="Wait for the AI review"' : ''}>✅ Finalize the report</button><span class="rv-saved" id="rv-saved">${esc(R.saved)}</span>`}</div>`;
+}
+function paintRow(prev) {
+    const r = R.row, el = $('#rv-main'); if (!r || !el) return;
+    // Only the AI part changes on a refresh while the trainer is typing, so the cursor stays where it is.
+    if (prev && prev.id === r.id && $('#rv-ai') && prev.status === r.status) {
+        if (prev.aiStatus !== r.aiStatus || JSON.stringify(prev.ai) !== JSON.stringify(r.ai)) { $('#rv-ai').innerHTML = aiHtml(r); const f = $('[data-a="finalize"]'); if (f) f.disabled = r.aiStatus === 'pending'; }
+        return;
+    }
+    el.innerHTML = `<div class="rv-card">
+        <div class="rv-top"><div><h2>${esc(r.name || r.username)}</h2><div class="rv-sub">${r.batch ? esc(r.batch) + ' · ' : ''}${esc(TRACKS[r.track] || r.track)} · submitted ${esc(when(r.submittedAt))}${r.checkScore != null ? ` · automated check <b>${r.checkScore}%</b>` : ''}</div></div>${chip(r)}</div>
+        <h3>📅 The trainee’s calendar</h3><div id="rv-wk">${weekHtml(r.calendar && r.calendar.week)}</div>
+        ${checkHtml(r.calendar)}
+        ${calHtml(r.calendar)}
+        <h3>✨ AI review</h3><div id="rv-ai">${aiHtml(r)}</div>
+        ${trainerHtml(r)}</div>`;
+}
+
+/* ---------- the trainer's feedback: saved a second after they stop typing ---------- */
+function readTrainer() {
+    return { notes: ($('#rv-notes') || {}).value || '', points: [...document.querySelectorAll('[data-pt]')].map(x => x.value), score: ($('#rv-score') || {}).value };
+}
+function queueSave() { R.dirty = true; R.saved = 'Saving…'; const s = $('#rv-saved'); if (s) s.textContent = R.saved; clearTimeout(R.saveTimer); R.saveTimer = setTimeout(saveTrainer, 900); }
+async function saveTrainer() {
+    clearTimeout(R.saveTimer);
+    if (!R.row || R.row.status === 'final') return true;
+    const t = readTrainer();
+    try {
+        await post(Object.assign({ action: 'trainer', id: R.row.id }, t));
+        R.row.trainer = { notes: t.notes, points: t.points.filter(Boolean), score: t.score === '' ? null : Number(t.score) };
+        R.dirty = false; R.saved = 'Saved ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    } catch (e) { R.saved = '⚠ ' + e.message; }
+    const s = $('#rv-saved'); if (s) s.textContent = R.saved;
+    return !R.dirty;
+}
+
+/* ---------- your rules, guidelines and notes for the AI review ---------- */
+async function loadRules(track) {
+    R.rulesTrack = track; R.rules = null; paintRules();
+    try { const d = await api(API + '?rules=' + track); R.rules = d; } catch (e) { R.rules = { text: '', error: e.message }; }
+    paintRules();
+}
+function paintRules() {
+    const el = $('#rv-rules'); if (!el) return;
+    if (!R.showRules) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="rv-card" style="margin-bottom:16px"><h3 style="margin-top:0">📘 Your rules, guidelines and notes for the AI review</h3>
+        <p class="rv-sub" style="margin:0 0 8px">The AI reviews every submitted calendar against the attorney’s rules (in the simulator) <b>and</b> what you write here: house rules, what you look for, common mistakes to flag. A change applies to the next review.</p>
+        <select id="rv-rt" style="max-width:320px;margin-bottom:8px">${Object.keys(TRACKS).map(k => `<option value="${k}" ${k === R.rulesTrack ? 'selected' : ''}>${esc(TRACKS[k])}</option>`).join('')}</select>
+        ${R.rules == null ? '<p class="rv-none">Loading…</p>' : `<textarea id="rv-rtext" style="min-height:160px" placeholder="e.g. Consultations go in the afternoon when possible. The description must say who referred the client. Flag any appointment booked without a callback number.">${esc(R.rules.text || '')}</textarea>
+        <div class="rv-btns"><button class="btn btn-navy" data-a="rules-save">Save</button><span class="rv-saved">${R.rules.error ? '⚠ ' + esc(R.rules.error) : R.rules.updatedAt ? 'Last saved by ' + esc(R.rules.updatedBy || '') + ', ' + esc(when(R.rules.updatedAt)) : 'Nothing saved yet for this track.'}</span></div>`}</div>`;
+}
+
+/* ---------- the page ---------- */
+function page() {
+    $('#app').innerHTML = `<div class="rv">
+        <div class="rv-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">📤 Submissions</h3>
+            <select id="rv-track" style="width:auto;max-width:170px"><option value="">All tracks</option>${Object.keys(TRACKS).map(k => `<option value="${k}" ${k === R.track ? 'selected' : ''}>${esc(TRACKS[k])}</option>`).join('')}</select></div>
+            <p class="rv-sub" style="margin:6px 0">Updates on its own while this page is open.</p>
+            <button class="btn btn-ghost" data-a="rules" style="width:100%;margin-bottom:6px">📘 Your rules for the AI review</button>
+            <div id="rv-list" class="rv-list"></div></div>
+        <div><div id="rv-rules"></div><div id="rv-main"><div class="rv-card"><p class="rv-none">Open a submission on the left to review it with the trainee.</p></div></div></div></div>`;
+    paintList();
+}
+async function openRow(id) {
+    if (R.dirty) await saveTrainer();
+    R.open = id; R.row = null; R.saved = ''; R.dirty = false; R.wk = null;
+    $('#rv-main').innerHTML = '<div class="rv-card"><div class="rv-wait"><span class="rv-spin"></span>Opening…</div></div>';
+    paintList(); loadRow();
+}
+document.addEventListener('click', async (ev) => {
+    const row = ev.target.closest('.rv-row'); if (row) { openRow(+row.dataset.id); return; }
+    const a = ev.target.closest('[data-a]'); if (!a) return;
+    const act = a.dataset.a;
+    if (act === 'wk') { R.wk += +a.dataset.d; $('#rv-wk').innerHTML = weekHtml(R.row.calendar && R.row.calendar.week); return; }
+    if (act === 'pt-add') { R.row.trainer = Object.assign(readTrainer(), {}); R.row.trainer.points.push(''); const pts = R.row.trainer.points; paintRow(); const inp = document.querySelector(`[data-pt="${pts.length - 1}"]`); if (inp) inp.focus(); return; }
+    if (act === 'pt-del') { const t = readTrainer(); t.points.splice(+a.dataset.i, 1); R.row.trainer = t; paintRow(); queueSave(); return; }
+    if (act === 'finalize') {
+        if (!confirm('Finalize this report? The trainee sees the AI review and your feedback under My evaluations and can download it.')) return;
+        if (!(await saveTrainer())) { alert('Your feedback couldn’t be saved, so the report wasn’t finalized. ' + R.saved); return; }
+        try { await post({ action: 'finalize', id: R.row.id }); R.row = null; await loadRow(); loadList(); } catch (e) { alert(e.message); }
+        return;
+    }
+    if (act === 'reopen') { try { await post({ action: 'reopen', id: R.row.id }); R.row = null; await loadRow(); loadList(); } catch (e) { alert(e.message); } return; }
+    if (act === 'retry') { try { await post({ action: 'retry', id: R.row.id }); R.row = null; await loadRow(); loadList(); } catch (e) { alert(e.message); } return; }
+    if (act === 'rules') { R.showRules = !R.showRules; if (R.showRules) loadRules(R.track || 'standard'); else paintRules(); return; }
+    if (act === 'rules-save') {
+        try { await post({ action: 'rules', track: R.rulesTrack, text: $('#rv-rtext').value }); await loadRules(R.rulesTrack); } catch (e) { alert(e.message); }
+    }
+});
+document.addEventListener('input', (ev) => { if (ev.target.closest('#rv-main') && (ev.target.id === 'rv-notes' || ev.target.id === 'rv-score' || ev.target.dataset.pt != null)) queueSave(); });
+document.addEventListener('change', (ev) => {
+    if (ev.target.id === 'rv-track') { R.track = ev.target.value; paintList(); }
+    if (ev.target.id === 'rv-rt') loadRules(ev.target.value);
+});
+window.addEventListener('beforeunload', (ev) => { if (R.dirty) { saveTrainer(); ev.preventDefault(); ev.returnValue = ''; } });
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('topbar').innerHTML = Sim.topbar('gcal');
+    if (!Sim.isAdmin()) { $('#app').innerHTML = '<div class="rv-card" style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px">This page is for trainers. Sign in to the Portal as an admin to review your trainees’ calendars.</div>'; return; }
+    page(); loadList();
+});
+})();
+</script>
+</body>
+</html>
