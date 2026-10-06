@@ -416,7 +416,7 @@ function checkPlan(st, reqs, today) {
 /* ---------- state (this browser, one calendar per trainee) ---------- */
 const KEY = () => 'lsh_gcal' + (TRK ? '.' + TRK : '') + ':' + String(Sim.who().name || 'guest').trim().toLowerCase();
 let S = null;
-const G = { pop: null, temp: null, drag: null, undo: null, q: '', menu: null, meet: null, ed: null };
+const G = { wkTop: 7 * 48, pop: null, temp: null, drag: null, undo: null, q: '', menu: null, meet: null, ed: null };
 function fresh() {
     const today = simToday();
     return { v: 1, today, view: innerWidth < 640 ? 'day' : 'week', anchor: today, mini: today.slice(0, 7), side: innerWidth > 900, panel: innerWidth > 1100 ? 'requests' : '',
@@ -667,11 +667,12 @@ function renderWeek(days) {
         return `<div class="wk-col" data-d="${d}">${lines}${timed.map(e => evHtml(e)).join('')}${temp}${d === today ? `<div class="now" style="top:${nowM / 60 * HH}px"></div>` : ''}</div>`;
     }).join('');
     const allDay = days.map(d => `<div class="cell">${evs.filter(e => e.date === d && e.allDay).map(e => chipHtml(e)).join('')}</div>`).join('');
-    const scroll = $('#wk-scroll'), keep = scroll ? scroll.scrollTop : null;
+    const scroll = $('#wk-scroll'), keep = scroll ? G.wkTop : null;
     main.innerHTML = `<div class="wk-head"><div class="wk-gut ${tz2 ? 'two' : ''}"><div class="tz">${tz2 ? gmt('Asia/Manila', d0) + '<br>' : ''}${gmt(ET, d0)}</div></div>${days.map(d => `<div class="wk-day ${d === today ? 'today' : ''}"><div class="dn">${DAY3[wd(d)]}</div><button class="dd" data-a="goday" data-d="${d}" aria-label="${esc(longDate(d))}">${+d.slice(8)}</button></div>`).join('')}</div>
         <div class="wk-all"><div class="wk-gut ${tz2 ? 'two' : ''}"></div>${allDay}</div>
         <div class="wk-scroll" id="wk-scroll"><div class="wk-grid" style="height:${24 * HH}px"><div class="wk-hours ${tz2 ? 'two' : ''}">${hours}</div>${cols}</div></div>`;
-    const sc = $('#wk-scroll'); sc.scrollTop = keep != null ? keep : 7 * HH;
+    const sc = $('#wk-scroll'); sc.scrollTop = G.wkTop = keep != null ? keep : 7 * HH;   // (7 AM at first; then wherever they scrolled it)
+    requestAnimationFrame(() => { if (sc.isConnected) sc.addEventListener('scroll', () => { G.wkTop = sc.scrollTop; }, { passive: true }); });
 }
 function renderMonth() {
     const main = $('#gc-main'), today = etNow().date, m = S.anchor.slice(0, 7), start = weekStart(m + '-01', false);
@@ -1431,10 +1432,17 @@ function onUp(ev) {
 
 /* ---------- start ---------- */
 window.GCAL = { solve, checkPlan, checkOpen, slotProblems, concretize, instancesOf, dealRequests, simToday, trimPayload, datesIn, addDays, weekStart, rows: () => ROWS, setRows: (r) => { ROWS = r; } };
+// One screen: with the intro above the calendar (1100 to 1400px wide) the calendar's height is what is left under it (--hero-h in gcal.html)
+function fitScreen() {
+    const h = document.querySelector('.sim-hero'), above = innerWidth >= 1100 && innerWidth < 1400;
+    document.documentElement.style.setProperty('--hero-h', above && h ? (h.offsetHeight + 14) + 'px' : '0px');
+}
 async function start() {
     if (!document.getElementById('app')) return;
     await Sim.restore();   // opened in a new tab: the cookie says who is signed in (an admin must not be treated as a trainee), and the heartbeat starts
     const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal');
+    fitScreen(); window.addEventListener('resize', () => { clearTimeout(fitScreen.t); fitScreen.t = setTimeout(fitScreen, 120); });
+    window.addEventListener('load', fitScreen); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitScreen);   // (the intro's height changes once the fonts are in)
     if (TRK) document.title = 'Google Calendar Simulator · ' + CFG.label + ' — LSH Training Portal';
     if (TRK) { const eb = document.querySelector('.eyebrow'); if (eb) eb.textContent = 'Simulator · ' + CFG.scenario; }
     if (CFG.who) { const hp = document.querySelector('.sim-hero p'); if (hp) hp.innerHTML = WW(hp.innerHTML); }   // (fixed text of the page)

@@ -105,6 +105,23 @@ const server = http.createServer((req, res) => {
     who = 'trainee'; page = await open('/simulators/calsim.html');
     if (await page.$('#cs-evals')) fail('a trainee sees the trainers’ Trainee Evaluations button');
     await page.close();
+    // the calendar takes the first screen and the scores are on the second (laptops and up; the intro on the left from 1400px, on top below that)
+    who = 'admin'; serverDraft = { v: 1, events: [], savedAt: 5 };
+    for (const [w, h, side] of [[1915, 1000, true], [1440, 900, true], [1280, 720, false], [1100, 800, false]]) {
+        page = await browser.newPage({ viewport: { width: w, height: h } });
+        page.on('pageerror', e => fail('page error: ' + e.message));
+        await page.goto(base + '/simulators/gcal.html?trainee=ci', { waitUntil: 'load' }); await page.waitForSelector('.gc-scores', { timeout: 6000 }).catch(() => {}); await page.waitForTimeout(900);
+        const m = await page.evaluate(() => { const r = (s) => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; }, gc = r('.gc'), sc = r('.gc-scores'), hero = r('.sim-hero');
+            return { vh: innerHeight, gcTop: gc && gc.top, gcBottom: gc && gc.bottom, scoresTop: sc && sc.top + scrollY, heroLeft: hero && hero.right <= (gc ? gc.left + 1 : 0), heroTop: hero && hero.bottom <= (gc ? gc.top + 1 : 0), scroll: (document.getElementById('wk-scroll') || {}).scrollTop, pageH: document.documentElement.scrollHeight }; });
+        const tag = `${w}x${h}`;
+        if (!m.gcBottom || m.gcBottom > m.vh + 1) fail(`${tag}: the calendar does not fit the first screen (bottom ${m.gcBottom}, window ${m.vh})`);
+        else if (m.gcBottom < m.vh - 40) fail(`${tag}: the calendar leaves the first screen short (bottom ${m.gcBottom}, window ${m.vh})`);
+        if (m.scoresTop == null || m.scoresTop < m.vh - 2) fail(`${tag}: the scores are not on the second screen (top ${m.scoresTop}, window ${m.vh})`);
+        if (side ? !m.heroLeft : !m.heroTop) fail(`${tag}: the intro is not ${side ? 'on the left of' : 'above'} the calendar`);
+        if (!(m.scroll > 250)) fail(`${tag}: the week does not start in the morning (scrolled ${m.scroll}px)`);
+        if (process.env.SHOT) await page.screenshot({ path: `${process.env.SHOT}/one-screen-${tag}.png` });   // (to look at it: SHOT=<folder> node .github/scripts/gcal-trainee-side.cjs)
+        await page.close();
+    }
     // 9. a trainer's "Trainee evaluations" in the simulator goes to the Trainee Evaluations page, in the same tab, as a plain link
     who = 'admin';
     page = await open('/simulators/gcal.html?track=cm');
@@ -114,5 +131,5 @@ const server = http.createServer((req, res) => {
     await page.close();
     await browser.close(); server.close();
     if (failures.length) { console.error('FAILED:\n- ' + failures.join('\n- ')); process.exit(1); }
-    console.log('Trainee side test passed (a trainer’s Trainee evaluations link goes to the Trainee Evaluations page, today follows the calendar, a newer saved copy is never overwritten, panels aren’t changes, big calendars trim, tracks named, PDF accents, cards show the evaluation, a trainee’s calendar opens in a new tab).');
+    console.log('Trainee side test passed (the calendar fits one screen with the scores on the second, a trainer’s Trainee evaluations link goes to the Trainee Evaluations page, today follows the calendar, a newer saved copy is never overwritten, panels aren’t changes, big calendars trim, tracks named, PDF accents, cards show the evaluation, a trainee’s calendar opens in a new tab).');
 })();
