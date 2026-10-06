@@ -1011,7 +1011,7 @@ function checkSection(r) {
             <div class="lead" style="margin:0">${r.right} of ${r.results.length} ${r.open ? `appointment${r.results.length === 1 ? '' : 's'}` : 'requests'} fully right.${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}<br><span style="color:#70757a">Checked ${esc(Sim.fmtDate(r.at))}</span></div></div>
         ${r.open && !r.results.length ? '<p class="lead">There are no appointments on the calendar to check yet.</p>' : ''}
         ${resRows(r)}
-        ${(r.changed || []).length ? `<div class="res-r"><h5><span>The attorney’s appointments you changed</span><span></span></h5><ul>${r.changed.map(t => `<li><span>${esc(t)}</span></li>`).join('')}</ul><div style="color:#70757a;margin-top:4px">Only when a caller asked for it: your trainer checks these.</div></div>` : ''}</div>`;
+        ${(r.changed || []).length ? `<div class="res-r"><h5><span>The attorney’s appointments you changed</span><span></span></h5><ul>${r.changed.map(t => `<li class="chg"><span>${esc(t)}</span></li>`).join('')}</ul><div style="color:#70757a;margin-top:4px">Only when a caller asked for it: your trainer checks these.</div></div>` : ''}</div>`;
 }
 const slimResult = (r) => ({ score: r.score, right: r.right, penalty: r.penalty || 0, extra: r.extra || [], at: r.at,
     results: r.results.map(x => ({ head: x.head, when: x.when || '', pts: Math.round(x.pts * 10) / 10, max: x.max, items: x.items.map(i => ({ ok: !!i.ok, t: i.t })) })) });

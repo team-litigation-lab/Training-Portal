@@ -79,12 +79,12 @@ async function gsList(only) {
     // (the Foundational Training's cards say litigation / executive for the Case Management / EA clones)
     const want = ({ litigation: 'cm', executive: 'ea' })[String(q.get('track') || '').toLowerCase()] || String(q.get('track') || '').toLowerCase();
     const direct = ['standard', 'cm', 'ea'].includes(want) && q.get('view') !== 'scores';
-    let me;
+    let me, rec = null;
     try {
         const r = await fetch('/api/calsim', { credentials: 'include' });
         const d = await r.json();
         if (!r.ok || !d.success) throw new Error(d.error || 'Sign in on the Portal first.');
-        me = d.me;
+        me = d.me; rec = d.data || null;
     } catch (e) {
         if (direct) { location.replace(go(want)); return; }     // (the simulator asks for a name itself)
         document.getElementById('topbar').innerHTML = Sim.topbar('calsim');
@@ -110,15 +110,38 @@ async function gsList(only) {
         { id: 'ea', icon: '🏢', title: 'Executive Week', where: 'EA / PA',
           desc: 'The same Google Calendar practice on an executive’s week: board, travel, focus time and the all-hands to protect, with interviews, investor, vendor, press and donor requests to book, move or cancel, under the executive’s rules.' }
     ];
+    // The page as the Foundational Training's Simulators page has it (the final set-up): the three tracks and, with them,
+    // Lesson 5's Calendar Management Mock Calls in the CMS Call Simulator (call.html sends the call on, with the name and batch).
+    const callHref = (graded) => { const n = new URLSearchParams(); ['name', 'batch'].forEach(k => { if (q.get(k)) n.set(k, q.get(k)); });
+        n.set('program', 'FT'); n.set('line', 'Calendar Management Mock Calls'); if (graded) n.set('random', '1'); return '/simulators/call.html?' + n; };
+    const kicker = (t) => `<div style="font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#c2410c">${Sim.esc(t)}</div>`;
+    // 🤖 The automated calendar review, per track (a trainee's own): the last Check my calendar in the simulator (kept in this
+    // browser by gcal.js, one calendar per name and track), what they submitted (their account's gsubs, with the check it had)
+    // and the trainer's score on it.
+    const lastCheck = (track) => { try { const s = JSON.parse(localStorage.getItem('lsh_gcal' + (track === 'standard' ? '' : '.' + track) + ':' + String(me.name || '').trim().toLowerCase()) || 'null');
+        return s && s.result && typeof s.result.score === 'number' ? s.result : null; } catch (e) { return null; } };
+    const reviewHTML = (track) => {
+        if (me.admin) return '';
+        const a = lastCheck(track), subs = (rec && Array.isArray(rec.gsubs) ? rec.gsubs : []).filter(x => x && x.track === track), last = subs[subs.length - 1];
+        const fb = last && rec.reviews ? rec.reviews['g:' + track + '|' + last.at] : null, lines = [];
+        if (a) lines.push(`🤖 Automated review: <b>${Sim.esc(a.score)}%</b>${Array.isArray(a.results) && a.right != null ? ` · ${Sim.esc(a.right)} of ${a.results.length} right` : ''}${a.at ? ` · ${Sim.esc(String(a.at).slice(0, 10))}` : ''}`);
+        if (last) lines.push(`📤 Submitted${subs.length > 1 ? ` ${subs.length} times` : ''}${last.result && last.result.score != null ? ` · its review ${Sim.esc(last.result.score)}%` : ''}${fb && fb.score != null ? ` · 👤 trainer <b>${Sim.esc(fb.score)}/100</b>` : ''}`);
+        return `<div class="cs-review" style="font-size:13px;line-height:1.5;color:#334155;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px">${lines.length ? lines.join('<br>')
+            : '🤖 No automated review yet: open it, book what the callers ask, then click <b>Check my calendar</b> to review it against the rules.'}</div>`;
+    };
     root.innerHTML = `<div style="max-width:1180px;margin:0 auto;padding:24px 16px 40px">
-        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start"><div><h1 style="margin:0 0 6px;color:#0b1633;font-size:28px">📆 Calendaring Simulators</h1>
-        <p style="margin:0 0 18px;color:#475569;max-width:760px">All the calendaring practice in one place: the Google Calendar Simulator for each program. Pick yours. Each one checks your calendar against its rules and saves the score for your trainer.</p></div>
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start"><div><h1 style="margin:0 0 6px;color:#0b1633;font-size:28px">📅 Calendaring Simulators</h1>
+        <p style="margin:0 0 18px;color:#475569;max-width:760px">Practice the calendar on a Google Calendar style week: <b>Standard Training</b> (Foundational · Calendar Management), the <b>Litigation Week</b> (Case Management) and the <b>Executive Week</b> (EA / PA). Save, run the automated review under the attorney’s rules, submit for your trainer’s feedback. Your scores are saved to your own record.</p></div>
         ${me.admin ? '<a class="sim-btn ghost" style="text-decoration:none;align-self:flex-start" href="/simulators/calsim.html?view=scores" title="The earlier drag-and-drop scheduler’s submissions. Scores from the three simulators are under Recent results on the Simulators page.">📊 Earlier scheduler scores</a>' : ''}</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:14px">
-        ${TRACKS.map(t => `<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:10px"><div style="font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#c2410c">${Sim.esc(t.where)}</div>
+        ${TRACKS.map(t => `<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:10px">${kicker(t.where)}
             <h3 style="margin:0;color:#0b1633;font-size:19px">${t.icon} ${Sim.esc(t.title)}</h3><p style="margin:0;color:#475569;font-size:14px;flex:1">${Sim.esc(t.desc)}</p>
-            <div><a class="sim-btn orange" style="text-decoration:none" href="${Sim.esc(go(t.id))}">Open →</a></div></div>`).join('')}</div>
-        <p style="margin:18px 0 0;color:#64748b;font-size:13.5px">Also: <a href="/simulators/calendar.html${location.search}">🗓 Conflicts week</a>, a week full of conflicts to move, shorten or remove under real rules. ${me.admin ? 'Your trainees’ scores from these simulators are under <a href="/simulators.html#results">Recent results</a> on the Simulators page.' : ''}</p></div>`;
+            ${reviewHTML(t.id)}
+            <div><a class="sim-btn orange" style="text-decoration:none" href="${Sim.esc(go(t.id))}">📅 Open →</a></div></div>`).join('')}
+        <div class="card cs-calls" style="padding:18px;display:flex;flex-direction:column;gap:10px">${kicker('Calendaring & Appointment Setting Training')}
+            <h3 style="margin:0;color:#0b1633;font-size:19px">Calendar Management Mock Calls</h3><p style="margin:0;color:#475569;font-size:14px;flex:1">In the CMS Call Simulator: a caller phones in about one of the firm’s cases. Get their name, verify them, find their file in the CMS and handle the call. Who called, and about which case, is in your debrief.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="sim-btn orange" style="text-decoration:none" href="${Sim.esc(callHref(true))}">🎯 Take a graded call</a><a class="sim-btn ghost" style="text-decoration:none" href="${Sim.esc(callHref(false))}">📞 Practice a caller</a></div></div></div>
+        ${me.admin ? '<p style="margin:18px 0 0;color:#64748b;font-size:13.5px">Your trainees’ scores from these simulators are under <a href="/simulators.html#results">Recent results</a> on the Simulators page.</p>' : ''}</div>`;
 })();
 </script>
 </body>

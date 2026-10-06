@@ -78,7 +78,27 @@ const server = http.createServer((req, res) => {
     if (!/Ci Trainee/.test(list) || !/77\/100/.test(list)) fail('the trainer’s list does not show the submission: ' + list.slice(0, 160));
     if (!href.some(h => /track=cm/.test(h) && /review=ci%7C/.test(h))) fail('the list has no link to review it: ' + JSON.stringify(href));
     await page.close();
+    // 5. the Calendaring Simulators page, as the Foundational Training's Simulators page has it: the three tracks and the
+    //    Calendar Management Mock Calls (graded and practice, in the CMS Call Simulator, with the name and batch)
+    page = await open('/simulators/calsim.html?name=Ci%20Trainee&batch=B300926');
+    const cs = await page.evaluate(() => { const r = document.getElementById('cs-root');
+        return { h: r.querySelector('h1').textContent.trim(), cards: [...r.querySelectorAll('.card h3')].map(h => h.textContent.trim()),
+            calls: [...r.querySelectorAll('.cs-calls a')].map(a => [a.textContent.trim(), a.getAttribute('href')]), also: /Conflicts week/.test(r.textContent) }; });
+    if (cs.h !== '📅 Calendaring Simulators' || cs.cards.length !== 4 || cs.cards[3] !== 'Calendar Management Mock Calls' || cs.also) fail('the Calendaring Simulators page should be the three tracks and the Calendar Management Mock Calls: ' + JSON.stringify(cs));
+    const [g, pr] = cs.calls, want = (h, graded) => /^\/simulators\/call\.html\?/.test(h) && /program=FT/.test(h) && /line=Calendar\+Management\+Mock\+Calls/.test(h) && /name=Ci\+Trainee/.test(h) && /batch=B300926/.test(h) && /random=1/.test(h) === graded;
+    if (!g || !/Take a graded call/.test(g[0]) || !want(g[1], true) || !pr || !/Practice a caller/.test(pr[0]) || !want(pr[1], false)) fail('the mock calls card should open the graded and practice calls: ' + JSON.stringify(cs.calls));
+    if (await page.$('.cs-review')) fail('an Admin\'s page shows a trainee\'s automated review');
+    await page.close();
+    // 6. a trainee's page: each track's 🤖 automated calendar review (the last Check my calendar in this browser), what they
+    //    submitted with its review, and the trainer's score
+    role = 'trainee';
+    page = await open('/simulators/calsim.html');
+    await page.evaluate(() => localStorage.setItem('lsh_gcal:ci trainee', JSON.stringify({ v: 1, reqs: [], result: { score: 90, right: 4, results: [{}, {}, {}, {}, {}], at: '2026-10-06T13:00:00.000Z' } })));
+    await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(800);
+    const rev = await page.$$eval('#cs-root .cs-review', els => els.map(e => e.innerText.replace(/\s+/g, ' ').trim()));
+    if (rev.length !== 3 || !/Automated review: 90% · 4 of 5 right · 2026-10-06/.test(rev[0]) || !/Submitted · its review 40% · 👤 trainer 77\/100/.test(rev[1]) || !/No automated review yet/.test(rev[2])) fail('the trainee\'s cards should show each track\'s automated review: ' + JSON.stringify(rev));
+    await page.close();
     await browser.close(); server.close();
     if (failures.length) { console.error('Google Calendar submit and review test FAILED:\n- ' + failures.join('\n- ')); process.exit(1); }
-    console.log('Google Calendar submit and review test passed (submit keeps the calendar and check; the trainer opens it read only and gives feedback; the trainee sees it; the trainer’s list links to it).');
+    console.log('Google Calendar submit and review test passed (submit keeps the calendar and check; the trainer opens it read only and gives feedback; the trainee sees it; the trainer’s list links to it; the Calendaring Simulators page with the mock calls).');
 })();

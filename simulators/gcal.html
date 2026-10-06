@@ -171,6 +171,8 @@
     .ev-l { margin: 0; padding-left: 18px; } .ev-l li { margin: 3px 0; } .ev-l.ok li::marker { color: #188038; } .ev-l.mid li::marker { color: #e37400; } .ev-l.no li::marker { color: #d93025; } .ev-l.tr li::marker { color: #0b57d0; }
     .res-r li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 6px; padding: 2px 0; line-height: 1.45; }
     .res-r li.ok::before { content: '✓'; color: #188038; font-weight: 700; } .res-r li.no::before { content: '✗'; color: #d93025; font-weight: 700; }
+    /* an appointment the trainee changed: its mark keeps the 16px column, so the text gets the rest of the line */
+    .res-r li.chg::before { content: '↻'; color: #5f6368; font-weight: 700; }
     /* popovers, editor, dialogs */
     .gc-pop { position: absolute; z-index: 50; width: 448px; max-width: calc(100% - 16px); background: #fff; border-radius: 16px; box-shadow: 0 24px 38px 3px rgba(0,0,0,.14), 0 9px 46px 8px rgba(0,0,0,.12), 0 11px 15px -7px rgba(0,0,0,.2); }
     .gc-pop .tools { display: flex; justify-content: flex-end; padding: 6px 6px 0; gap: 2px; }
