@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="/simulators/sim.css">
 <style>
     /* Trainee evaluations: the trainer's live review of calendars submitted from the Google Calendar Simulator (gcal.html) */
+    .rv-trainees { grid-column: 1 / -1; min-width: 0; } .rv-tsub { margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e5e7eb; } .rv-tsub .btn { margin-top: 4px; padding: 5px 10px; font-size: 12.5px; }
     .rv { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
     .rv > * { min-width: 0; }
     .rv-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px 16px; min-width: 0; overflow-wrap: anywhere; }   /* a long address or link in a description wraps instead of widening the page */
@@ -80,6 +81,7 @@
 <script src="/portal-nav.js"></script>
 <script src="/portal.js"></script>
 <script src="/simulators/sim.js"></script>
+<script src="/simulators/trainees-calendars.js"></script>
 <script>
 (function () {
 const API = '/api/gcal-reviews';
@@ -147,6 +149,7 @@ async function loadList() {
         R.list = d.reviews; R.errList = null;
     } catch (e) { R.errList = e; }
     paintList(); paintBanner();
+    const sg = tsig(); if (sg !== R.tsig) { R.tsig = sg; if (typeof TraineesCalendars !== 'undefined') TraineesCalendars.repaint(); }   // the trainees' table shows each one's submission
     R.listTimer = setTimeout(() => { if (!document.hidden) loadList(); else R.listTimer = null; }, 8000);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (!R.listTimer) loadList(); if (R.open && !R.rowTimer) loadRow(); } });
@@ -355,6 +358,7 @@ function paintRulesBody() {   // only what is under the track menu: the menu kee
 /* ---------- the page ---------- */
 function page() {
     $('#app').innerHTML = `<div class="rv"><div id="rv-banner" class="rv-banner" role="alert"></div>
+        <div id="rv-trainees" class="rv-trainees"></div>
         <div class="rv-card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><h3 style="margin:0">📤 Submissions</h3>
             <select id="rv-track" aria-label="Show the submissions of one track" style="width:auto;max-width:100%"><option value="">All tracks</option>${Object.keys(TRACKS).map(k => `<option value="${k}" ${k === R.track ? 'selected' : ''}>${esc(TRACKS[k])}</option>`).join('')}</select></div>
             <p class="rv-sub" style="margin:6px 0">Updates on its own while this page is open.</p>
@@ -362,7 +366,16 @@ function page() {
             <div id="rv-list" class="rv-list" role="group" aria-label="Submitted calendars"></div></div>
         <div><div id="rv-rules"></div><div id="rv-main"><div class="rv-card"><p class="rv-none">Open a submission on the left to review it with the trainee.</p></div></div></div></div>`;
     paintList();
+    if (typeof TraineesCalendars !== 'undefined') TraineesCalendars.load('#rv-trainees', { extra: traineeExtra });
 }
+// In the trainees' table (👥 Your trainees' calendars): each trainee's latest submission on the track, its AI review state, and a way into the review.
+function traineeExtra(p, trackId) {
+    const r = (R.list || []).filter(x => x.username === p.username && x.track === trackId).sort((a, b) => String(b.submittedAt).localeCompare(String(a.submittedAt)))[0];
+    if (!r) return '';
+    return `<div class="rv-tsub"><span class="rv-sub">📤 Submitted ${esc(when(r.submittedAt))}${r.checkScore != null ? ' · check ' + esc(r.checkScore) + '%' : ''}</span><div>${chip(r)}</div>
+        <button type="button" class="btn btn-navy" data-sub="${esc(r.id)}">${r.status === 'final' ? '🖥 Open the sent report' : '🖥 AI review &amp; send'}</button></div>`;
+}
+const tsig = () => (R.list || []).map(r => [r.id, r.status, r.aiStatus].join(':')).join('|');
 async function openRow(id) {
     if (id === R.open && R.row) { const h = $('#rv-title'); if (h) h.focus(); return; }
     // feedback that didn't reach the server is not thrown away without asking
@@ -374,6 +387,7 @@ async function openRow(id) {
 }
 document.addEventListener('click', async (ev) => {
     const row = ev.target.closest('.rv-row'); if (row) { openRow(+row.dataset.id); return; }
+    const sub = ev.target.closest('[data-sub]'); if (sub) { openRow(+sub.dataset.sub); const m = $('#rv-main'); if (m && m.scrollIntoView) m.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     const a = ev.target.closest('[data-a]'); if (!a) return;
     const act = a.dataset.a;
     if (act === 'wk') { if (!R.row) return; R.wk += +a.dataset.d; $('#rv-wk').innerHTML = part(weekHtml, R.row.calendar && R.row.calendar.week); const b = $('#rv-wk [data-a="wk"][data-d="' + a.dataset.d + '"]'); if (b && !b.disabled) b.focus(); return; }

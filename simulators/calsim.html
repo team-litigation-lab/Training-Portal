@@ -40,6 +40,7 @@
 <script src="/portal-nav.js"></script>
 <script src="/portal.js"></script>
 <script src="/simulators/sim.js"></script>
+<script src="/simulators/trainees-calendars.js"></script>
 <script>Sim.module = 'calendaring';</script>
 <script src="/simulators/calsim-core.js"></script>
 <script src="/simulators/cal-scorecard.js"></script>
@@ -145,38 +146,9 @@ async function gsList(only) {
             <h3 style="margin:0;color:#0b1633;font-size:19px">Calendar Management Mock Calls</h3><p style="margin:0;color:#475569;font-size:14px;flex:1">In the CMS Call Simulator: a caller phones in about one of the firm’s cases. Get their name, verify them, find their file in the CMS and handle the call. Who called, and about which case, is in your debrief.</p>
             <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="sim-btn orange" style="text-decoration:none" href="${Sim.esc(callHref(true))}">🎯 Take a graded call</a><a class="sim-btn ghost" style="text-decoration:none" href="${Sim.esc(callHref(false))}">📞 Practice a caller</a></div></div></div>
         ${me.admin ? '<div id="cs-trainees" style="margin-top:22px"></div><p style="margin:14px 0 0;color:#64748b;font-size:13.5px">Your trainees’ scores from these simulators are also under <a href="/simulators.html#results">Recent results</a> on the Simulators page.</p>' : ''}</div>`;
-    if (me.admin) traineesList(TRACKS);
+    if (me.admin) TraineesCalendars.load('#cs-trainees');
 })();
-// 👥 Your trainees’ calendars (trainers): everyone who has a calendar saved on a simulator, with 👁 View & score on each track:
-// their calendar in the Google Calendar look, read only, with the automated check and the CALENDAR MANAGEMENT MOCK CALL
-// scorecard (gcal.html?trainee=<username>), and the last scorecard given.
-async function traineesList(TRACKS) {
-    const box = document.getElementById('cs-trainees'); if (!box) return;
-    const E = (t) => Sim.esc(t), card = (inner) => `<div class="card" style="padding:18px">${inner}</div>`;
-    box.innerHTML = card('<h2 style="margin:0;font-size:20px;color:#0b1633">👥 Your trainees’ calendars</h2><p style="margin:6px 0 0;color:#64748b">Loading…</p>');
-    let drafts = [], recs = [];
-    try {
-        const [a, b] = await Promise.all([fetch('/api/gcal-reviews?drafts=1', { credentials: 'include' }).then(r => r.json()), fetch('/api/calsim?all=1', { credentials: 'include' }).then(r => r.json())]);
-        drafts = (a && a.success && a.drafts) || []; recs = (b && b.success && b.rows) || [];
-    } catch (e) { drafts = []; }
-    const people = {};
-    drafts.forEach(d => { const p = people[d.username] = people[d.username] || { username: d.username, name: d.name || d.username, batch: d.batch || '', tracks: {}, latest: '' }; p.tracks[d.track] = { at: d.updatedAt }; if (String(d.updatedAt) > p.latest) p.latest = String(d.updatedAt); });
-    recs.forEach(r => { const sc = (r.data && r.data.scorecards) || {}; Object.keys(sc).forEach(t => { const list = Array.isArray(sc[t]) ? sc[t] : []; if (!list.length) return;
-        const p = people[r.username] = people[r.username] || { username: r.username, name: r.name || r.username, batch: r.batch || '', tracks: {}, latest: '' }; (p.tracks[t] = p.tracks[t] || {}).card = list[list.length - 1]; }); });
-    const list = Object.values(people).sort((x, y) => String(y.latest).localeCompare(String(x.latest)) || x.name.localeCompare(y.name));
-    const href = (u, t) => '/simulators/gcal.html?' + (t === 'standard' ? '' : 'track=' + encodeURIComponent(t) + '&') + 'trainee=' + encodeURIComponent(u);
-    const when = (t) => { const d = new Date(String(t || '').replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(t || '')) ? '' : 'Z')); return isNaN(d) ? '' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); };
-    const cell = (p, t) => { const x = p.tracks[t.id]; if (!x) return '<td style="color:#94a3b8">—</td>';
-        return `<td><a class="sim-btn orange cs-view" style="text-decoration:none;padding:5px 10px;font-size:13px" href="${E(href(p.username, t.id))}">👁 View &amp; score</a>
-            <div style="font-size:12px;color:#64748b;margin-top:3px">${x.at ? 'Saved ' + E(when(x.at)) : 'Not saved'}${x.card ? ` · 📋 <b style="color:#0b1633">${E(x.card.average)}/5 (${E(x.card.pct)}%)</b>` : ''}</div></td>`; };
-    box.innerHTML = card(`<h2 style="margin:0;font-size:20px;color:#0b1633">👥 Your trainees’ calendars</h2>
-        <p style="margin:6px 0 10px;color:#475569;font-size:14px">Open a trainee’s calendar as they last saved it, read only, with the automated check, and score it on the <b>CALENDAR MANAGEMENT MOCK CALL</b> scorecard (each metric 0 to 5 with your feedback). The trainee sees your scorecard on their card here and in the simulator.</p>
-        ${list.length ? `<input id="cs-tfind" type="search" placeholder="Find a trainee or batch…" style="width:min(100%,320px);font:inherit;padding:7px 10px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:10px" oninput="csFind(this.value)">
-        <div style="overflow-x:auto"><table class="cs-ttable" style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="text-align:left;color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:.04em"><th style="padding:6px 8px">Trainee</th>${TRACKS.map(t => `<th style="padding:6px 8px">${t.icon} ${E(t.title)}</th>`).join('')}</tr></thead>
-        <tbody>${list.map(p => `<tr data-find="${E((p.name + ' ' + p.batch + ' ' + p.username).toLowerCase())}" style="border-top:1px solid #e5e7eb"><td style="padding:8px"><b>${E(p.name)}</b><div style="font-size:12px;color:#64748b">${E(p.batch || 'No batch')}</div></td>${TRACKS.map(t => cell(p, t).replace('<td', '<td style="padding:8px;vertical-align:top"')).join('')}</tr>`).join('')}</tbody></table></div>`
-        : '<p style="margin:0;color:#64748b">No trainee has saved a calendar yet. A trainee’s calendar is saved to their account as they work in a simulator.</p>'}`);
-}
-window.csFind = function (q) { q = String(q || '').trim().toLowerCase(); document.querySelectorAll('.cs-ttable tbody tr').forEach(tr => { tr.style.display = !q || tr.dataset.find.includes(q) ? '' : 'none'; }); };
+// (the 👥 Your trainees’ calendars list is simulators/trainees-calendars.js, shared with Trainee Evaluations)
 </script>
 </body>
 </html>
