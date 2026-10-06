@@ -1,6 +1,7 @@
 // 📤 Submit for evaluation (functions/api/gcal-reviews.js) on SQLite, with the AI answered by the test: a trainee submits and the AI
 // review is written from the calendar and the trainer's rules; the trainee sees nothing of the feedback until the trainer finalizes it;
-// only admins list, open, write feedback, finalize, reopen and set the rules; a failed AI review can be run again.
+// only admins list, open, write feedback, finalize, reopen and set the rules; a failed AI review can be run again. A trainee's calendar
+// saved to their account comes back to them; a trainer opens anyone's (and lists whose are saved), a trainee only their own.
 // Also: the AI review always ends (done or error: a hung call is cut off, a D1 hiccup is tried again, a run that was cut off reads as an
 // error and can be retried or sent without it); a gateway "wait" is tried again; valid JSON in the wrong shape is not a finished review;
 // retry is one run at a time and keeps the review it replaces; the calendar is checked before it is stored (a bad field is fixed or dropped);
@@ -26,11 +27,12 @@ let fault = null;
 const boom = { bind: () => boom, run: async () => { throw new Error('D1 hiccup'); }, first: async () => { throw new Error('D1 hiccup'); }, all: async () => { throw new Error('D1 hiccup'); } };
 const env = { TRAINING_DB: { prepare: (q) => (fault && fault.n > 0 && fault.re.test(q) ? (fault.n--, boom) : mk(q)) } };
 // the AI, answered by the test: `queue` holds the replies for the next calls ('hang' waits for the deadline, an Error is thrown, a function is called), then it answers well (or 502 while `fail`)
-let seen = null, fail = false, calls = 0; const queue = [];
+let seen = null, fail = false, calls = 0, tries = 0, busy = 0; const queue = [];   // busy: how many more times the keys answer "at their limit"
 const GOOD = { summary: 'Mostly right.', correct: ['Booked Maria on the Attorney’s Calendar'], improve: ['Add the DOB'], missed: ['No email reminder'] };
 const reply = (o) => ({ status: 200, body: { success: true, text: typeof o === 'string' ? o : '```json\n' + JSON.stringify(o) + '\n```' } });
 const gw = (status, error, scope) => ({ status, body: { success: false, error, scope } });
-globalThis.__ai = async (db, e, o) => { seen = o; calls++; const q = queue.length ? queue.shift() : null;
+globalThis.__ai = async (db, e, o) => { seen = o; calls++; tries++; if (busy > 0) { busy--; return { status: 429, body: { success: false, error: 'AI generation limit reached. Try again in a minute.' } }; }
+    const q = queue.length ? queue.shift() : null;
     if (q === 'hang') return new Promise(res => { const done = () => res(gw(504, 'The AI took too long to answer.')); o.signal.aborted ? done() : o.signal.addEventListener('abort', done); });
     if (q instanceof Error) throw q;
     if (typeof q === 'function') return q(o);
@@ -72,6 +74,11 @@ __setSession(ann); fail = true;
 r = await call('POST', { action: 'submit', calendar: cal }); r = await call('GET'); ck(r.j.reviews[0].aiStatus === 'error', 'a failed AI review is marked, not lost');
 __setSession(bo); fail = false;
 r = await call('POST', { action: 'retry', id: 2 }); r = await call('GET', null, '?id=2'); ck(r.j.review.aiStatus === 'done' && r.j.review.ai.summary === 'Mostly right.', 'the trainer runs the AI review again');
+tries = 0; busy = 2;
+r = await call('POST', { action: 'retry', id: 2 }); r = await call('GET', null, '?id=2'); ck(r.j.review.aiStatus === 'done' && tries === 3, `with every key at its limit for a moment, the AI review tries again by itself (${tries} tries)`);
+tries = 0; fail = true;
+r = await call('POST', { action: 'retry', id: 2 }); r = await call('GET', null, '?id=2'); ck(r.j.review.aiStatus === 'done' && r.j.review.ai.summary === 'Mostly right.' && !!r.j.review.ai.retryError && tries === 3, `a retry that keeps failing stops after 3 tries and leaves the finished review in place, with the reason (${tries})`);
+fail = false; tries = 0;
 r = await call('POST', { action: 'reopen', id: 1 }); r = await call('GET', null, '?id=1'); ck(r.j.review.status === 'submitted', 'the trainer can reopen a final report');
 __setSession(ann);
 r = await call('POST', { action: 'submit', calendar: { blob: 'x'.repeat(210000) } }); ck(r.st === 400, 'a calendar too large is refused');
@@ -83,6 +90,13 @@ r = await call('GET', null, '?draft=standard'); ck(r.j.data.events[0].id === 'e1
 r = await call('POST', { action: 'draft', track: 'standard', data: { v: 1, events: [{ id: 'e1' }, { id: 'e2' }], savedAt: 9 } }); r = await call('GET', null, '?draft=standard'); ck(r.j.data.events.length === 2, 'a later save replaces it');
 __setSession({ username: 'cy', userType: 'Trainee', fullName: 'Cy', batchId: 'B1' });
 r = await call('GET', null, '?draft=standard'); ck(r.j.data === null, 'another trainee gets their own (none), never Ann\'s');
+r = await call('GET', null, '?draft=standard&user=ann'); ck(r.st === 403, 'a trainee cannot open another trainee\'s calendar');
+r = await call('GET', null, '?drafts=1'); ck(r.st === 403, 'a trainee cannot list whose calendars are saved');
+__setSession(bo);
+r = await call('GET', null, '?draft=standard&user=ann'); ck(r.st === 200 && r.j.data.events.length === 2 && r.j.person && r.j.person.name === 'ann' && r.j.updatedAt, 'a trainer opens a trainee\'s calendar as they last saved it, with who they are');
+r = await call('GET', null, '?draft=ea&user=ann'); ck(r.st === 200 && r.j.data === null, 'a simulator they haven\'t saved on is empty');
+r = await call('GET', null, '?drafts=1'); ck(r.st === 200 && r.j.drafts.length === 2 && r.j.drafts.every(d => d.username === 'ann' && d.name === 'ann' && d.updatedAt) && r.j.drafts.map(d => d.track).sort().join() === 'cm,standard', 'a trainer lists whose calendars are saved, on which simulator and when');
+__setSession({ username: 'cy', userType: 'Trainee', fullName: 'Cy', batchId: 'B1' });
 r = await call('POST', { action: 'draft', track: 'standard', data: { big: 'x'.repeat(310000) } }); ck(r.st === 400, 'a calendar too large to save is refused');
 __setSession(null); r = await call('GET', null, '?draft=standard'); ck(r.st === 401, 'no Portal sign-in, nothing saved or read');
 

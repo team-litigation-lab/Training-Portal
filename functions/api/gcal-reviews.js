@@ -22,6 +22,9 @@ import { runAi } from '../_ai-gateway.js';
 //   POST { action:'retry', id }                                 (admins) run the AI review again (409 while one is already running; the review it replaces stays until the new one is ready)
 //   POST { action:'rules', track, text }                        (admins) save the trainer's rules for a track
 //   GET  /api/gcal-reviews?draft=<track>      my saved calendar for the track (so work isn't lost: another browser, a cleared one)
+//   GET  /api/gcal-reviews?draft=<track>&user=<username>   (admins) a trainee's calendar as they last saved it, with who they are
+//        (the trainer's view of it in the simulator, read only: gcal.html?trainee=<username>)
+//   GET  /api/gcal-reviews?drafts=1           (admins) whose calendars are saved: username, name, batch, track and when, newest first
 //   POST { action:'draft', track, data, base }                  save my calendar (the simulator saves on its own after each change); `base` is the updatedAt
 //                                                               this copy was made from: if a newer one is saved (another tab or device) the answer is 409 DRAFT_NEWER
 //
@@ -32,6 +35,8 @@ const MAX_CAL = 200000, MAX_AI = 60000, MAX_NOTES = 6000, MAX_RULES = 8000, MAX_
 const AI_MS = 24000;                 // every attempt at the AI review shares this: waitUntil work is cut off about 30 s after the response
 const RETRY_WAIT = [1500, 4000];     // pauses before the 2nd and 3rd attempts when the gateway says wait a few seconds or the AI blipped
 const STALE_MS = 120000;             // 'pending' for longer than this: the run was cut off
+// the pause before the next attempt (AI_REVIEW_RETRY_MS, a Pages variable, sets a shorter one: the tests use it)
+const wait = (env, i) => { const v = env.AI_REVIEW_RETRY_MS; return v != null && v !== '' && Number.isFinite(Number(v)) ? Number(v) * (i + 1) : RETRY_WAIT[i]; };
 const TOO_LONG = 'The AI review took too long. Try again.';
 const clean = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, ' ').trim().slice(0, n);
 const parse = (t) => { try { return JSON.parse(t); } catch (e) { return null; } };
@@ -43,6 +48,13 @@ async function ensure(db) {
         finalized_at TEXT, finalized_by TEXT, updated_at TEXT NOT NULL)`).run();
     await db.prepare(`CREATE TABLE IF NOT EXISTS gcal_drafts (username TEXT NOT NULL, track TEXT NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (username, track))`).run();
     await db.prepare(`CREATE TABLE IF NOT EXISTS gcal_review_rules (track TEXT PRIMARY KEY, text TEXT NOT NULL, updated_by TEXT, updated_at TEXT NOT NULL)`).run();
+}
+// Who a username is (the Portal's users table), for the trainer's lists.
+async function person(env, username) {
+    try {
+        const u = env.DB ? await env.DB.prepare(`SELECT first_name, last_name, batch_id FROM users WHERE username = ?`).bind(username).first() : null;
+        return { name: u ? [u.first_name, u.last_name].filter(Boolean).join(' ') || username : username, batch: (u && u.batch_id) || '' };
+    } catch (e) { return { name: username, batch: '' }; }
 }
 // A run that is still 'pending' after STALE_MS never wrote its result (updated_at is when it started: nothing else touches it meanwhile, see TOUCH).
 const stale = (r) => r.ai_status === 'pending' && !(Date.parse(r.updated_at) > Date.now() - STALE_MS);
@@ -157,8 +169,8 @@ Write to the trainee, plainly and kindly, naming the appointment each point is a
             for (let i = 0; ; i++) {
                 try { r = await runAi(db, env, { module: 'calendaring', user: row.username, system, messages: [{ role: 'user', text: prompt }], json: true, maxTokens: 1400, signal }); }
                 catch (e) { r = { status: 502, body: { error: e && e.message } }; }
-                if (r.status === 200 || signal.aborted || i >= RETRY_WAIT.length || !again(r) || Date.now() - t0 + RETRY_WAIT[i] > AI_MS * 0.75) break;
-                await nap(RETRY_WAIT[i]);
+                if (r.status === 200 || signal.aborted || i >= RETRY_WAIT.length || !again(r) || Date.now() - t0 + wait(env, i) > AI_MS * 0.75) break;
+                await nap(wait(env, i));
             }
         } finally { clearTimeout(timer); }
         if (r.status !== 200) throw new Error(signal.aborted ? TOO_LONG : r.body.error || 'The AI review failed.');
@@ -183,8 +195,18 @@ export async function onRequestGet({ request, env }) {
     const q = new URL(request.url).searchParams;
     if (q.get('draft') != null) {
         const track = TRACKS.includes(q.get('draft')) ? q.get('draft') : 'standard';
-        const r = await db.prepare(`SELECT data, updated_at FROM gcal_drafts WHERE username = ? AND track = ?`).bind(s.username, track).first();
-        return json({ success: true, track, data: r ? parse(r.data) : null, updatedAt: r ? r.updated_at : null });
+        const other = q.get('user') ? clean(q.get('user'), 80) : '';
+        if (other && !admin) return json({ success: false, error: 'Admin access required.' }, 403);
+        const who = other || s.username;
+        const r = await db.prepare(`SELECT data, updated_at FROM gcal_drafts WHERE username = ? AND track = ?`).bind(who, track).first();
+        return json(Object.assign({ success: true, track, data: r ? parse(r.data) : null, updatedAt: r ? r.updated_at : null }, other ? { person: await person(env, who) } : {}));
+    }
+    if (q.get('drafts') === '1') {
+        if (!admin) return json({ success: false, error: 'Admin access required.' }, 403);
+        const { results } = await db.prepare(`SELECT username, track, updated_at FROM gcal_drafts ORDER BY updated_at DESC LIMIT 600`).all();
+        const people = {};
+        for (const r of results || []) if (!people[r.username]) people[r.username] = await person(env, r.username);
+        return json({ success: true, drafts: (results || []).map(r => ({ username: r.username, track: r.track, updatedAt: r.updated_at, name: people[r.username].name, batch: people[r.username].batch })) });
     }
     if (q.get('rules') != null) {
         if (!admin) return json({ success: false, error: 'Admin access required.' }, 403);

@@ -14,7 +14,15 @@
 //                             (it applies once the day is past 10% used: a quiet day isn't held back)
 //   AI_USER_10MIN     150     requests per person per 10 minutes (one practice call is about 15 to 30)
 //   AI_LIVE_COST      25      what one live voice call counts for (requests; about 400 tokens each), since its audio goes straight to Google
+//   AI_REVIEW_RESERVE 0.1     the last share of the day's calls and tokens kept for the AI reviews and grading (json requests),
+//                             so practice chats can't use it up; a review isn't held back by one flow's share either
 // Whoever is refused gets a 429 with a plain reason and the page retries or tells the trainee to wait.
+//
+// The keys (GEMINI_API_KEY, GEMINI_API_KEY1, …): each request starts on the next key in turn, and each model is tried on
+// every key before the next model, as the CMS's practice calls do (functions/_ai.js there). A key that hits a rate limit
+// rests for that model (a minute; a day's quota, an hour) and the next key answers. A key that is out of credits, has
+// billing off, or is rejected or blocked rests on every model (an hour; a rejected key, 10 minutes) and the next key
+// answers. A busy key (5xx) or one that can't be reached hands over too. Only when every key has failed does the request fail.
 //
 // The ledger is three small tables created on first use: ai_usage_day (flow, day), ai_usage_user (person, day),
 // ai_usage_minute (the minute). Tokens are the ones Gemini reports (usageMetadata), else about 4 characters each.
@@ -31,7 +39,8 @@ export function limits(env) {
         dailyTokens: num(env.AI_DAILY_TOKENS, 3000000),
         moduleShare: Math.min(1, num(env.AI_MODULE_SHARE, 0.5)),
         user10: num(env.AI_USER_10MIN, 150),
-        liveCost: num(env.AI_LIVE_COST, 25)
+        liveCost: num(env.AI_LIVE_COST, 25),
+        reviewReserve: Math.min(0.5, Number.isFinite(Number(env.AI_REVIEW_RESERVE)) && env.AI_REVIEW_RESERVE !== '' && env.AI_REVIEW_RESERVE != null ? Math.max(0, Number(env.AI_REVIEW_RESERVE)) : 0.1)
     };
 }
 
@@ -48,17 +57,19 @@ export async function ensureAiTables(db) {
 }
 
 // Is this request allowed? → { ok: true } or { ok: false, reason, scope }. Counts the request when allowed.
-export async function admit(db, env, { module, user, weight = 1 }) {
+// review: an AI review or grading (a json request): the day's reserve is open to it, and one flow's share doesn't hold it back.
+export async function admit(db, env, { module, user, weight = 1, review = false }) {
     const L = limits(env), d = day();
     try {
         await ensureAiTables(db);
         const rows = (await db.prepare(`SELECT module, calls, tokens FROM ai_usage_day WHERE day = ?`).bind(d).all()).results || [];
         const total = rows.reduce((a, r) => ({ calls: a.calls + r.calls, tokens: a.tokens + r.tokens }), { calls: 0, tokens: 0 });
         const mine = rows.find(r => r.module === module) || { calls: 0, tokens: 0 };
-        if (total.calls + weight > L.dailyCalls || total.tokens >= L.dailyTokens) return { ok: false, scope: 'daily', reason: 'The shared AI budget for today is used up. It resets tomorrow; ask an admin if you need more now.' };
-        // one flow may not take more than its share of the day, once the day is well under way
+        const open = review ? 1 : 1 - L.reviewReserve;   // (the reserve is for the reviews)
+        if (total.calls + weight > L.dailyCalls * open || total.tokens >= L.dailyTokens * open) return { ok: false, scope: 'daily', reason: 'The shared AI budget for today is used up. It resets tomorrow; ask an admin if you need more now.' };
+        // one flow may not take more than its share of the day, once the day is well under way (a review always may)
         const used = Math.max(total.calls / L.dailyCalls, total.tokens / L.dailyTokens);
-        if (used >= 0.1 && (mine.calls / Math.max(1, total.calls) > L.moduleShare || mine.tokens / Math.max(1, total.tokens) > L.moduleShare) && rows.length > 1)
+        if (!review && used >= 0.1 && (mine.calls / Math.max(1, total.calls) > L.moduleShare || mine.tokens / Math.max(1, total.tokens) > L.moduleShare) && rows.length > 1)
             return { ok: false, scope: 'module', reason: 'This call flow has used its share of today’s shared AI budget so the others keep theirs. Try again a little later.' };
         const mb = minuteBucket();
         const m = await db.prepare(`SELECT calls FROM ai_usage_minute WHERE bucket = ?`).bind(mb).first();
@@ -105,7 +116,17 @@ export async function usageSummary(db, env) {
 export const keyNames = (env) => Object.keys(env || {}).filter(n => /^GEMINI_API_KEY\d*$/.test(n) && String(env[n] || '').trim()).sort()
     .filter((n, i, a) => a.findIndex(m => String(env[m]).trim() === String(env[n]).trim()) === i);
 
-const rest = new Map();   // "<key name>" → resting until (ms): a key that hit its limit sits out a minute (an hour for a daily limit)
+const rest = new Map();   // "<key name>|<model>" (or "|*": every model) → resting until (ms)
+const resting = (name, model) => Math.max(rest.get(name + '|*') || 0, rest.get(name + '|' + model) || 0) > Date.now();
+const restKey = (name, model, ms) => rest.set(name + '|' + model, Date.now() + ms);
+// What a refusal says about the key: out of credits or billing off (it rests an hour: another key may have them), rejected or
+// blocked (10 minutes), or only a rate limit (a minute; a day's quota, an hour).
+// (Google's ordinary rate-limit message says "check your plan and billing details": that alone is only a rate limit.)
+const NO_CREDITS = /credit|prepa(?:y|id)|payment|insufficient|spend(?:ing)?[ _-]?(?:cap|limit)|free tier|enable billing|billing (?:account|is (?:not |in)?active|is disabled|disabled|not enabled)/i;
+const BAD_KEY = /API[ _]?key|leaked|suspended|permission|denied|not been used|is disabled|unauthori[sz]ed|unauthenticated/i;
+const restFor = (msg) => /per.?day|daily|PerDay/i.test(msg) ? 3600000 : 60000;
+const errOf = (d) => String((d && d.error && (d.error.message || d.error.status)) || '');
+export const _resetKeys = () => rest.clear();   // (the checks)
 const MODELS = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash'];
 let turn = Math.floor(Math.random() * 1000);
 
@@ -130,23 +151,22 @@ async function viaRelay(env, { system, messages, json, maxTokens, signal }) {
 // fires the relay and Gemini fetches stop and the answer is { ok: false, status: 504 } instead of walking on through the other keys and models.
 export async function generate(env, { system, messages, json, maxTokens, signal }) {
     const chars = String(system || '').length + messages.reduce((a, m) => a + String(m.text || '').length, 0);
+    const names = keyNames(env);
     const slow = () => ({ ok: false, status: 504, error: 'The AI took too long to answer.', tokens: 0 });
     let relayError = '';
     if (env.AI_RELAY_SECRET) {
         try {
             const r = await viaRelay(env, { system, messages, json, maxTokens, signal });
             if (r.ok) return { ok: true, text: r.text, model: r.model, tokens: r.tokens || Math.ceil((chars + r.text.length) / 4), via: 'relay' };
-            if (r.status === 429) return { ok: false, status: 429, error: 'AI generation limit reached. Try again in a minute.', tokens: 0 };
-            relayError = r.error || `relay error ${r.status}`;
+            if (r.status === 429 && !names.length) return { ok: false, status: 429, error: 'AI generation limit reached. Try again in a minute.', tokens: 0 };
+            relayError = r.status === 429 ? 'the relay is at its limit' : (r.error || `relay error ${r.status}`);   // (the keys here take over)
         } catch (e) { if (signal && signal.aborted) return slow(); relayError = String(e && e.message || e); }
         console.error('ai-gateway: relay failed, calling Gemini directly:', relayError);
     }
-    const names = keyNames(env), now = Date.now();
-    const awake = names.filter(n => (rest.get(n) || 0) <= now);
-    const order = (awake.length ? awake : names);
-    const start = order.length ? turn++ % order.length : 0;
-    const keys = order.slice(start).concat(order.slice(0, start)).map(n => ({ name: n, key: String(env[n]).trim() }));
-    if (!keys.length) return { ok: false, status: 500, tokens: 0, error: relayError ? 'The AI service is unavailable right now. Try again in a minute.' : 'No Gemini key is set on the Portal (GEMINI_API_KEY).' };
+    if (!names.length) return { ok: false, status: 500, tokens: 0, error: relayError ? 'The AI service is unavailable right now. Try again in a minute.' : 'No Gemini key is set on the Portal (GEMINI_API_KEY).' };
+    const start = turn++ % names.length, ring = names.slice(start).concat(names.slice(0, start));
+    // every key resting on every model: try them all anyway (a key may have been topped up or its minute may be over)
+    const everyResting = MODELS.every(m => ring.every(n => resting(n, m)));
 
     const payload = {
         contents: messages.map(m => ({ role: m.role === 'model' ? 'model' : 'user', parts: [{ text: String(m.text || '') }] })),
@@ -155,47 +175,57 @@ export async function generate(env, { system, messages, json, maxTokens, signal 
     if (json) payload.generationConfig.responseMimeType = 'application/json';
     if (system) payload.systemInstruction = { parts: [{ text: String(system) }] };
 
-    let last = { status: 502, error: 'No response.' }, limit = null;
-    for (const { name, key } of keys) {
-        let limited = false;
-        for (const model of MODELS) {
+    let last = null, limit = null, keyTrouble = null, other = null;   // other: a failure that isn't the key's (busy, no text, a bad request)
+    // Each model is tried on every key before the next model, so the preferred model's quota is used across all keys first.
+    for (const model of MODELS) {
+        for (const name of ring.filter(n => everyResting || !resting(n, model))) {
             if (signal && signal.aborted) return slow();
             const p = JSON.parse(JSON.stringify(payload));
             p.generationConfig.thinkingConfig = { thinkingLevel: 'low' };
             const send = (b) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-                method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(b) });
+                method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': String(env[name]).trim() }, body: JSON.stringify(b) });
             let res, data;
             try {
                 res = await send(p); data = await res.json().catch(() => ({}));
-                if (res.status === 400 && /thinking/i.test((data.error && data.error.message) || '')) { delete p.generationConfig.thinkingConfig; res = await send(p); data = await res.json().catch(() => ({})); }
-            } catch (e) { if (signal && signal.aborted) return slow(); throw e; }
+                if (res.status === 400 && /thinking/i.test(errOf(data))) { delete p.generationConfig.thinkingConfig; res = await send(p); data = await res.json().catch(() => ({})); }
+            } catch (e) { if (signal && signal.aborted) return slow(); last = other = { status: 502, error: 'Gemini unreachable: ' + (e && e.message || e) }; continue; }   // next key
             if (res.ok) {
                 const cand = (data.candidates || [])[0] || {};
                 const text = ((cand.content && cand.content.parts) || []).filter(x => !x.thought).map(x => x.text || '').join('');
                 const used = data.usageMetadata && data.usageMetadata.totalTokenCount;
                 if (text) return { ok: true, text, model, tokens: used || Math.ceil((chars + text.length) / 4) };
-                last = { status: 502, error: `Gemini returned no text (${cand.finishReason || 'blocked'}).` };
+                last = other = { status: 502, error: `Gemini returned no text (${cand.finishReason || 'blocked'}).` };
+                break;   // the same request won't do better on another key: the next model
+            }
+            const msg = errOf(data) || `Gemini error ${res.status}`;
+            last = { status: res.status, error: msg };
+            if (res.status === 429 && !NO_CREDITS.test(msg)) { limit = last; restKey(name, model, restFor(msg)); continue; }   // a rate limit: the next key
+            if ([401, 402, 403, 429].includes(res.status) || (res.status === 400 && (NO_CREDITS.test(msg) || BAD_KEY.test(msg)))) {
+                const credits = res.status === 402 || NO_CREDITS.test(msg);   // out of credits or billing off: another key may have them
+                restKey(name, '*', credits ? 3600000 : 600000);
+                keyTrouble = { status: 502, credits, error: msg };
+                console.error(`ai-gateway: ${name} ${credits ? 'is out of credits or has billing off' : 'was rejected'}; the next key takes over:`, msg);
                 continue;
             }
-            last = { status: res.status, error: (data.error && data.error.message) || `Gemini error ${res.status}` };
-            if (res.status === 429) { limited = true; limit = last; rest.set(name, Date.now() + (/per.?day|daily/i.test(last.error) ? 3600000 : 60000)); }
-            if (res.status === 400 && /API key/i.test(last.error)) { rest.set(name, Date.now() + 600000); break; }
-            if (![404, 429, 500, 503].includes(res.status)) break;
+            other = last;
+            if (res.status === 404) break;          // the model isn't there: the next model
+            if (res.status >= 500) continue;        // busy: the next key
+            break;                                  // anything else (a region Gemini refuses, a bad request) won't improve on another key
         }
-        const badKey = last.status === 400 && /API key/i.test(last.error);
-        if (!(limited || badKey)) break;
+        if (last && last.status === 400 && !NO_CREDITS.test(last.error) && !BAD_KEY.test(last.error)) break;
     }
-    if (limit && !(last.status === 400 && /API key/i.test(last.error))) last = limit;
-    const friendly = last.status === 429 ? 'AI generation limit reached. Try again in a minute.'
-        : /location is not supported/i.test(last.error) ? 'The AI caller isn’t available from this region yet: the US relay (AI_RELAY_SECRET) needs switching on.'
-        : last.error;
-    return { ok: false, status: last.status === 429 ? 429 : 502, error: friendly, tokens: 0 };
+    const out = limit || other || keyTrouble || { status: 429, error: 'every key is resting' };
+    const friendly = out.status === 429 ? 'AI generation limit reached. Try again in a minute.'
+        : out === keyTrouble ? (keyTrouble.credits ? 'Every Gemini key on the Portal is out of credits or has billing off. Add a key with billing on (a GEMINI_API_KEY variable), or top one up.' : 'Every Gemini key on the Portal was rejected. Check the GEMINI_API_KEY variables.') + ' (' + keyTrouble.error.slice(0, 200) + ')'
+        : /location is not supported/i.test(out.error) ? 'The AI caller isn’t available from this region yet: the US relay (AI_RELAY_SECRET) needs switching on.'
+        : out.error;
+    return { ok: false, status: out.status === 429 ? 429 : 502, error: friendly, tokens: 0 };
 }
 
 // The whole path for one request: budget → model → ledger. → { status, body }
 export async function runAi(db, env, { module, user, system, messages, json, maxTokens, signal }) {
     module = normModule(module);
-    const gate = await admit(db, env, { module, user });
+    const gate = await admit(db, env, { module, user, review: !!json });
     if (!gate.ok) {
         await record(db, { module, refused: true });
         return { status: 429, body: { success: false, error: gate.reason, scope: gate.scope } };
@@ -213,7 +243,7 @@ export async function runLiveToken(db, env, { module, user, setup, model, maxMin
     const gate = await admit(db, env, { module, user, weight: L.liveCost });
     if (!gate.ok) { await record(db, { module, refused: true }); return { status: 429, body: { success: false, error: gate.reason, scope: gate.scope } }; }
     const names = keyNames(env), now = Date.now();
-    const order = names.filter(n => (rest.get(n) || 0) <= now), pool = order.length ? order : names;
+    const order = names.filter(n => !resting(n, 'live')), pool = order.length ? order : names;
     if (!pool.length) { await record(db, { module, error: true }); return { status: 500, body: { success: false, error: 'No Gemini key is set on the Portal (GEMINI_API_KEY).' } }; }
     const start = turn++ % pool.length;
     let last = { status: 502, error: 'No response.' };
@@ -226,9 +256,9 @@ export async function runLiveToken(db, env, { module, user, setup, model, maxMin
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.name) { await record(db, { module, tokens: L.liveCost * 400 }); return { status: 200, body: { success: true, token: data.name, module } }; }
         last = { status: res.status, error: (data.error && data.error.message) || `Gemini error ${res.status}` };
-        if (res.status === 429) rest.set(name, Date.now() + 60000);
-        else if (res.status === 400 && /API key/i.test(last.error)) rest.set(name, Date.now() + 600000);
-        else if (![500, 503].includes(res.status)) break;
+        if (res.status === 429 && !NO_CREDITS.test(last.error)) restKey(name, 'live', 60000);   // a rate limit: the next key
+        else if ([401, 402, 403, 429].includes(res.status) || (res.status === 400 && (NO_CREDITS.test(last.error) || BAD_KEY.test(last.error)))) restKey(name, '*', res.status === 402 || NO_CREDITS.test(last.error) ? 3600000 : 600000);
+        else if (res.status < 500) break;   // (busy: the next key)
     }
     await record(db, { module, error: true });
     return { status: last.status === 429 ? 429 : 502, body: { success: false, error: last.status === 429 ? 'The line is busy (all keys are at their limit). Try again in a minute.' : last.error } };

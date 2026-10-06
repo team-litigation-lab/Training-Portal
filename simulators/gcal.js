@@ -126,7 +126,11 @@ const CFG = GCAL_CFG;
    requests panel. Scores also reach the Progress page (functions/api/program-progress.js). */
 const GT = GCAL_TRACK;                                    // standard | cm | ea
 const RVQ = new URLSearchParams(location.search).get('review') || '';
-const RV = RVQ.indexOf('|') > 0 ? { user: RVQ.slice(0, RVQ.indexOf('|')), at: RVQ.slice(RVQ.indexOf('|') + 1), sub: null, review: null, name: '', batch: '' } : null;
+// A trainer looking at a trainee's calendar as they last saved it (gcal.html?trainee=<username>, from the Calendaring Simulators
+// page): read only like a review, with the automated check and the CALENDAR MANAGEMENT MOCK CALL scorecard (cal-scorecard.js).
+const TVQ = String(new URLSearchParams(location.search).get('trainee') || '').trim().slice(0, 80);
+const RV = RVQ.indexOf('|') > 0 ? { user: RVQ.slice(0, RVQ.indexOf('|')), at: RVQ.slice(RVQ.indexOf('|') + 1), sub: null, review: null, name: '', batch: '' }
+    : TVQ ? { user: TVQ, live: true, sub: null, review: null, name: '', batch: '', savedAt: null, empty: false, cards: [] } : null;
 const SUBKEY = (at) => 'g:' + GT + '|' + at;
 const MINE = { data: null, me: null };                  // the signed-in trainee's record
 const BOOK_MAX = CFG.exact ? 11 : 10;   // Standard Training scores a booking out of 10 as it always did; the clones out of what the checks add up to
@@ -466,7 +470,7 @@ function cloudText() {
         error: '⚠ Not saved to your account yet (kept in this browser). Try 💾 Save again.', off: 'Sign in to the LSH Training Portal to save your calendar to your account (it’s kept in this browser for now).' })[CLOUD.state] || 'Your calendar saves to your account as you work.';
 }
 function cloudHtml() {
-    if (!cloudOn()) return '';
+    if (!cloudOn() || RV) return '';   // (a trainer looking at a trainee's calendar saves nothing)
     return `<div class="cloud ${CLOUD.state}" id="gc-cloud"><span>${esc(cloudText())}</span><button class="txt" data-a="cloud-save" style="padding:0 8px;height:28px">💾 Save</button></div>`;
 }
 function paintCloud() { const n = document.getElementById('gc-cloud'); if (n) n.outerHTML = cloudHtml(); }
@@ -729,7 +733,7 @@ function reqCard(q) {
         <div class="acts"><button class="txt" data-a="req-go" data-id="${esc(q.id)}">Show on calendar</button><label><input type="checkbox" data-done="${esc(q.id)}" ${q.done ? 'checked' : ''}> Done</label></div></div>`;
 }
 function renderPanel() {
-    const panel = $('#gc-panel'); panel.classList.toggle('off', !S.panel);
+    const panel = $('#gc-panel'); panel.classList.toggle('off', !S.panel); panel.classList.toggle('tv', !!(RV && RV.live && S.panel && S.panel !== 'rules' && S.panel !== 'evals'));
     if (!S.panel) { panel.innerHTML = ''; return; }
     const head = (t) => `<div class="ph"><h3>${t}</h3><button class="ib" data-a="panel" data-p="" aria-label="Close panel">${ic('close')}</button></div>`;
     if (S.panel === 'rules') {
@@ -743,18 +747,19 @@ function renderPanel() {
     }
     if (S.panel === 'evals') { panel.innerHTML = head('My evaluations') + `<div class="pb">${evalsHtml()}</div>`; return; }
     if (S.panel === 'result' && RV && RV.sub) { reviewPanel(panel, head); return; }
+    if (RV && RV.live) { livePanel(panel, head); return; }
     if (OPEN) {
         const r = checkOpen(S, S.today);
         panel.innerHTML = head('Your appointments') + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). Take a <b>Calendar Management mock call</b>, then book what the caller asks for on the <b>Attorney’s Calendar</b>, under the attorney’s rules (📖 in the bar below) and the caller’s preferences. Put the caller’s name, callback number, DOB, DOL and what it’s about in the description.</p>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="submit-eval" title="Send your appointments to your trainer for an AI and trainer review">📤 Submit for evaluation</button></div>
             ${r.results.length ? r.results.map(x => `<div class="rq"><b>${esc(x.head)}</b><div class="av2">${esc(x.when)}</div><div class="acts"><button class="txt" data-a="appt-go" data-d="${esc(x.date)}">Show on calendar</button></div></div>`).join('')
-                : '<p class="lead" style="color:#70757a">No appointments yet. Drag on the calendar or click <b>Create</b> to book one.</p>'}${S.result ? checkSection(S.result) : ''}</div>`;
+                : '<p class="lead" style="color:#70757a">No appointments yet. Drag on the calendar or click <b>Create</b> to book one.</p>'}${myScorecardBox()}${S.result ? checkSection(S.result) : ''}</div>`;
         return;
     }
     const open = S.reqs.filter(q => !q.done).length;
     panel.innerHTML = head('Calendar requests' + (TRK ? ' · ' + esc(CFG.label) : '')) + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). These callers want appointments booked, moved or cancelled on the ${WW('attorney’s')} calendar. ${open ? `${open} still open.` : 'All marked done.'}</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="submit-eval" title="Send these appointments to your trainer for an AI and trainer review">📤 Submit for evaluation</button><button class="pill" data-a="new-set">New set</button></div>
-        ${mySubBox()}${S.reqs.map(reqCard).join('')}${S.result ? checkSection(S.result) : ''}</div>`;
+        ${myScorecardBox()}${mySubBox()}${S.reqs.map(reqCard).join('')}${S.result ? checkSection(S.result) : ''}</div>`;
 }
 
 /* ---------- popovers: quick create, event card ---------- */
@@ -1072,6 +1077,63 @@ async function reviewStart() {
         render();
     } catch (e) { $('#app').innerHTML = `<div class="sim-card" style="margin:20px"><p>${esc(e.message)}</p></div>`; }
 }
+/* ---------- 👁 a trainee's calendar, for their trainer (?trainee=<username>) ----------
+   Their calendar as they last saved it to their account (gcal_drafts), read only; the automated check run on it now; and the
+   trainer's CALENDAR MANAGEMENT MOCK CALL scorecard (each metric 0-5 with feedback, the weighted average), saved in the trainee's
+   /api/calsim record. The trainee sees the scorecard in their requests panel and on the Calendaring Simulators page. */
+async function liveStart(again) {
+    if (!again) { S = fresh(); S.panel = 'result'; render(); }
+    try {
+        const [dr, j] = await Promise.all([
+            fetch(EV_API + '?draft=' + encodeURIComponent(GCAL_TRACK || 'standard') + '&user=' + encodeURIComponent(RV.user), { credentials: 'include' }).then(r => r.json()),
+            recFetch(RV.user)]);
+        if (!j.me || !j.me.admin) throw new Error('Viewing a trainee’s calendar is for trainers.');
+        if (!dr || !dr.success) throw new Error((dr && dr.error) || 'Their calendar couldn’t be loaded.');
+        RV.name = (dr.person && dr.person.name) || (j.person && j.person.name) || RV.user; RV.batch = (dr.person && dr.person.batch) || (j.person && j.person.batch) || '';
+        RV.cards = ((j.data && j.data.scorecards) || {})[GT] || [];
+        RV.savedAt = dr.updatedAt || null;
+        try {   // the weekly schedule as an Admin set it, before the check
+            const sch = await (await fetch(API_SCHEDULE, { credentials: 'include' })).json();
+            if (sch && sch.success && Array.isArray(sch.rows) && sch.rows.length && sch.rows.every(r => r && r.id && r.title && /^\d\d:\d\d$/.test(r.start))) ROWS = sch.rows;
+        } catch (e) { /* the schedule as it came */ }
+        const c = dr.data, keep = S ? { view: S.view, anchor: S.anchor, mini: S.mini } : {};
+        RV.empty = !(c && c.v === 1 && Array.isArray(c.events));
+        S = Object.assign(fresh(), RV.empty ? {} : c, { panel: 'result', side: false }, again ? keep : {});
+        if (OPEN) S.reqs = []; else if (!Array.isArray(S.reqs)) S.reqs = [];
+        S.result = Object.assign(checkNow(), { at: new Date().toISOString() });
+        if (!again) { S.anchor = S.today; S.mini = S.today.slice(0, 7); }
+        closeAll(); render();
+        if (again) snack('Their calendar is up to date');
+    } catch (e) { $('#app').innerHTML = `<div class="sim-card" style="margin:20px"><p>${esc(e.message)}</p></div>`; }
+}
+function livePanel(panel, head) {
+    const C = window.CalScorecard, last = RV.cards[RV.cards.length - 1], when = (t) => t ? new Date(t.replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(t) ? '' : 'Z')).toLocaleString() : '';
+    panel.innerHTML = head('Trainee’s calendar · ' + esc(CFG.label)) + `<div class="pb"><p class="lead" style="margin:0 0 10px"><b>${esc(RV.name)}</b>${RV.batch ? ' · ' + esc(RV.batch) : ''}<br>
+            <span style="color:#70757a">${RV.empty ? 'Nothing saved to their account on this simulator yet.' : `Their calendar as they last saved it${RV.savedAt ? ', ' + esc(when(RV.savedAt)) : ''}. It’s on the left, read only.`}</span>
+            <button class="txt" data-a="tv-refresh" style="padding:0 6px">🔄 Refresh</button></p>
+        <div class="res-r" id="tv-card"><h5><span>📋 Your scorecard</span><span>${last ? `${esc(C ? String(last.average) : '')}/5 · ${esc(last.pct)}%` : 'to score'}</span></h5>
+            ${last ? `<p style="margin:0 0 6px;color:#70757a">Last saved ${esc(when(last.at))}${last.by ? ' by ' + esc(last.by) : ''}${RV.cards.length > 1 ? ` · ${RV.cards.length} scorecards` : ''}. Saving again keeps the earlier ones.</p>` : '<p style="margin:0 0 6px;color:#70757a">Score each metric 0 to 5 and add your feedback; the weighted average works itself out.</p>'}
+            ${C ? C.formHTML(last) : '<p>The scorecard didn’t load. Refresh the page.</p>'}
+            <div style="margin-top:8px"><button class="blue" data-a="tv-save">💾 Save scorecard</button></div></div>
+        ${RV.cards.length > 1 ? `<div class="res-r"><h5><span>Earlier scorecards</span><span></span></h5><ul>${RV.cards.slice(0, -1).reverse().map(x => `<li><span>${esc(when(x.at))} · ${esc(x.by || '')} · ${esc(x.average)}/5 (${esc(x.pct)}%)</span></li>`).join('')}</ul></div>` : ''}
+        ${S.result ? checkSection(S.result).replace('Your calendar, checked', 'Their calendar, checked (automated)') : ''}</div>`;
+}
+async function saveScorecard() {
+    const C = window.CalScorecard; if (!C) return;
+    const got = C.read();
+    if (got.error) { snack(got.error); return; }
+    try {
+        const out = await recPost({ scorecard: { user: RV.user, track: GT, rows: got.rows, calendarAt: RV.savedAt || '' } });
+        RV.cards = out.scorecards || RV.cards.concat([out.scorecard]);
+        snack('Scorecard saved: ' + out.scorecard.average + '/5 (' + out.scorecard.pct + '%)'); renderPanel();
+    } catch (e) { snack(e.message); }
+}
+// A trainee's own: their trainer's latest scorecard on this simulator.
+function myScorecardBox() {
+    const list = MINE.data && MINE.data.scorecards && Array.isArray(MINE.data.scorecards[GT]) ? MINE.data.scorecards[GT] : [], last = list[list.length - 1];
+    if (!last || !window.CalScorecard) return '';
+    return `<div class="rq" id="my-scorecard">${window.CalScorecard.sheetHTML(last, `👤 Your trainer’s scorecard · ${esc(last.average)}/5 (${esc(last.pct)}%)${last.by ? ' · ' + esc(last.by) : ''} · ${esc(new Date(last.at).toLocaleDateString())}`)}</div>`;
+}
 async function mineStart() {   // a signed-in trainee's submissions and the trainer's feedback (a guest has none)
     try { const j = await recFetch(); MINE.me = j.me; MINE.data = Object.assign(blankRec(), j.data || {}); if (S) renderPanel(); } catch (e) { /* not signed in on the Portal */ }
 }
@@ -1185,7 +1247,7 @@ function bind() {
             reset: () => dialog('Start over?', '<p style="margin:0;color:#444746">Your events and changes are cleared and a new set of requests comes in.</p>', () => { S = fresh(); save(); closeAll(); render(); }, 'Start over'),
             create: () => createAt(S.view === 'day' ? S.anchor : null),
             panel: () => { S.panel = a.dataset.p === S.panel ? '' : a.dataset.p; save(); renderPanel(); renderRail(); },
-            check: () => doCheck(), 'rv-save': () => saveReview(),
+            check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true),
             evals: () => { if (Sim.isAdmin()) { window.open(REVIEW_PAGE, '_blank', 'noopener'); return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
             'submit-eval': () => submitEval(),
             'cloud-save': () => { save(true); cloudSave(); },
@@ -1334,7 +1396,7 @@ function start() {
     if (TRK) document.title = 'Google Calendar Simulator · ' + CFG.label + ' — LSH Training Portal';
     if (TRK) { const eb = document.querySelector('.eyebrow'); if (eb) eb.textContent = 'Simulator · ' + CFG.scenario; }
     if (CFG.who) { const hp = document.querySelector('.sim-hero p'); if (hp) hp.innerHTML = WW(hp.innerHTML); }   // (fixed text of the page)
-    if (RV) { reviewStart(); return; }
+    if (RV) { if (RV.live) liveStart(); else reviewStart(); return; }
     if (OPEN) { const hp = document.querySelector('.sim-hero p'); if (hp) hp.innerHTML = 'The attorney’s calendar, as in Google Calendar. Take a <b>Calendar Management mock call</b>, then book what the caller asks for on the <b>Attorney’s Calendar</b> under the attorney’s rules, with the right title, a full description, a Google Meet link when it’s a video call, and an email reminder a day before. Move or cancel what callers ask you to. Then press <b>Check my calendar</b>, and <b>📤 Submit for evaluation</b> to send it to your trainer.'; }
     S = load() || fresh(); save(true);   // (local only: the copy saved to their account may be newer, cloudLoad below)
     render();

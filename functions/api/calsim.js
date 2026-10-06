@@ -10,7 +10,15 @@ import { json, requireSession } from '../_utils.js';
 //   GET  /api/calsim?user=<username> (admins) one person's record
 //   POST /api/calsim { data }        save my record. The trainer's reviews are kept as stored: nobody changes their own feedback.
 //   POST /api/calsim { review: { user, key, score, comment, tasks } }   (admins) save feedback on one submission
+//   POST /api/calsim { scorecard: { user, track, rows: [{ score 0-5, feedback }], calendarAt } }   (admins) the trainer's
+//        CALENDAR MANAGEMENT MOCK CALL scorecard on the trainee's calendar (simulators/cal-scorecard.js), kept under
+//        scorecards[track], newest last (the last 20). Like the reviews, a save from the trainee never changes them.
 const MAX_BYTES = 400000;
+// The scorecard's metrics, in the sheet's order (simulators/cal-scorecard.js has the same list; the checks keep them equal).
+export const SCORECARD_TITLE = 'CALENDAR MANAGEMENT MOCK CALL';
+export const SCORECARD_METRICS = ['Professional Introduction & Call Control', 'Client Comprehension & Flow Control', 'Information Verification & Accuracy',
+    'Slot Identification & Scheduling Rule Compliance', 'Alternative Time Offering', 'Calendar Creation & Attorney Reminder Setup', 'Notes, Recap & Call Closing'];
+const SCORECARD_TRACKS = ['standard', 'cm', 'ea'];
 async function ensure(db) {
     await db.prepare(`CREATE TABLE IF NOT EXISTS calsim_records (username TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL)`).run();
 }
@@ -66,6 +74,28 @@ export async function onRequestPost({ request, env }) {
         return json({ success: true, data: d });
     }
 
+    if (body.scorecard) {
+        if (!admin) return json({ success: false, error: 'Admin access required.' }, 403);
+        const c = body.scorecard, user = clean(c.user, 80), track = SCORECARD_TRACKS.includes(c.track) ? c.track : '';
+        if (!user || !track || !Array.isArray(c.rows) || c.rows.length !== SCORECARD_METRICS.length) return json({ success: false, error: `A trainee, a simulator and all ${SCORECARD_METRICS.length} scores are required.` }, 400);
+        const rows = [];
+        for (let i = 0; i < SCORECARD_METRICS.length; i++) {
+            const x = c.rows[i] || {}, v = Number(x.score);
+            if (x.score === '' || x.score == null || !Number.isFinite(v) || v < 0 || v > 5) return json({ success: false, error: `Give "${SCORECARD_METRICS[i]}" a score from 0 to 5.` }, 400);
+            rows.push({ metric: SCORECARD_METRICS[i], weight: 1, score: Math.round(v), feedback: clean(x.feedback, 600) });
+        }
+        const avg = rows.reduce((a, r) => a + r.weight * r.score, 0) / rows.reduce((a, r) => a + r.weight, 0);
+        const card = { title: SCORECARD_TITLE, rows, average: Math.round(avg * 10) / 10, pct: Math.round(avg / 5 * 100), by: s.fullName || s.username, at: new Date().toISOString(),
+            calendarAt: clean(c.calendarAt, 40) || null };
+        const row = await db.prepare(`SELECT data FROM calsim_records WHERE username = ?`).bind(user).first();
+        const d = (row && parse(row.data)) || { v: 2, drafts: {}, autos: [], submissions: [], reviews: {}, external: [] };
+        d.scorecards = d.scorecards && typeof d.scorecards === 'object' ? d.scorecards : {};
+        d.scorecards[track] = (Array.isArray(d.scorecards[track]) ? d.scorecards[track] : []).concat([card]).slice(-20);
+        await db.prepare(`INSERT INTO calsim_records (username, data, updated_at) VALUES (?, ?, ?) ON CONFLICT(username) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`)
+            .bind(user, JSON.stringify(d), new Date().toISOString()).run();
+        return json({ success: true, scorecard: card, scorecards: d.scorecards[track] });
+    }
+
     if (!body.data || typeof body.data !== 'object') return json({ success: false, error: 'data is required.' }, 400);
     if (admin) return json({ success: true, preview: true });   // a trainer's preview saves nothing
     const text = JSON.stringify(body.data);
@@ -74,7 +104,8 @@ export async function onRequestPost({ request, env }) {
     const old = row ? parse(row.data) : null;
     const next = body.data;
     next.reviews = (old && old.reviews) || {};   // the trainer's feedback is theirs: a save from the trainee never changes it
+    next.scorecards = (old && old.scorecards) || {};   // (and their scorecards)
     await db.prepare(`INSERT INTO calsim_records (username, data, updated_at) VALUES (?, ?, ?) ON CONFLICT(username) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`)
         .bind(s.username, JSON.stringify(next), new Date().toISOString()).run();
-    return json({ success: true, reviews: next.reviews });
+    return json({ success: true, reviews: next.reviews, scorecards: next.scorecards });
 }
