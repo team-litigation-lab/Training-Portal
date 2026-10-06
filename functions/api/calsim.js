@@ -2,7 +2,8 @@ import { json, requireSession } from '../_utils.js';
 
 // The Calendaring Simulators' saved work (Standard Training, Litigation Week, Executive Week: /simulators/calsim.html).
 // One record per person in D1 (table calsim_records, made on first use):
-//   {v:2, drafts:{scenario:[events]}, autos:[…], submissions:[{scn, at, events, auto}], reviews:{"<scn>|<at>":{score, comment, tasks, by, at}}, external:[…]}
+//   {v:2, drafts:{scenario:[events]}, autos:[…], submissions:[{scn, at, events, auto}], reviews:{"<scn>|<at>":{score, comment, tasks, by, at}}, external:[…],
+//    gsubs:[{track, at, result, snap}]}   (Google Calendar Simulator submissions: reviewed under reviews["g:<track>|<at>"])
 //
 //   GET  /api/calsim                 the signed-in person's own record, and who they are
 //   GET  /api/calsim?all=1           (admins) every record with the person's name and batch
@@ -34,7 +35,12 @@ export async function onRequestGet({ request, env }) {
     }
     const who = admin && url.searchParams.get('user') ? clean(url.searchParams.get('user'), 80) : s.username;
     const row = await db.prepare(`SELECT data FROM calsim_records WHERE username = ?`).bind(who).first();
-    return json({ success: true, me, data: row ? parse(row.data) : null });
+    let person = null;   // (a trainer opening someone's record: who it is)
+    if (admin && who !== s.username) {
+        const u = await env.DB.prepare(`SELECT first_name, last_name, batch_id FROM users WHERE username = ?`).bind(who).first();
+        person = { name: u ? [u.first_name, u.last_name].filter(Boolean).join(' ') || who : who, batch: (u && u.batch_id) || '' };
+    }
+    return json({ success: true, me, data: row ? parse(row.data) : null, person });
 }
 
 export async function onRequestPost({ request, env }) {

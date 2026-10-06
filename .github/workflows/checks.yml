@@ -72,6 +72,10 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/gcal.cjs
+      - name: Google Calendar Simulator submit and trainer review
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/gcal-review.cjs
       - name: Orientation (the admin track for admins only; each track downloads as a PDF with the deploy stamp)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules

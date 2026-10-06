@@ -48,6 +48,29 @@
 //   ⚖️ Litigation Week (Case Management) and 🏢 Executive Week (EA / PA): clones of it with their own week, callers and rules.
 // ?track=standard|cm|ea opens that simulator at once (the Foundational Training's cards link that way). Admins also get
 // 📊 Earlier scheduler scores (?view=scores): the earlier drag-and-drop scheduler's submissions (calsim.js, only used for this page now).
+// 📊 The Google Calendar Simulators' submissions (gsubs in each trainee's /api/calsim record): who submitted what, the automated score and the
+// trainer's score, and a link that opens it in the Google Calendar look to review (gcal.html?track=…&review=<user>|<at>).
+async function gsList(only) {
+    const box = document.getElementById('gs-list'); if (!box) return;
+    const NAMES = { standard: '🎓 Standard Training', cm: '⚖️ Litigation Week', ea: '🏢 Executive Week' };
+    box.innerHTML = '<div style="max-width:1180px;margin:0 auto;padding:10px 16px"><div class="card" style="padding:16px 18px;background:#fff;border:1px solid #e5e7eb;border-radius:14px">Loading the Google Calendar submissions…</div></div>';
+    let rows = [];
+    try {
+        const d = await (await fetch('/api/calsim?all=1', { credentials: 'include' })).json();
+        (d.rows || []).forEach(r => (r.data && Array.isArray(r.data.gsubs) ? r.data.gsubs : []).forEach(g => { if (!only || g.track === only) rows.push({ r, g, rv: (r.data.reviews || {})['g:' + g.track + '|' + g.at] }); }));
+    } catch (e) { rows = []; }
+    rows.sort((a, b) => String(b.g.at).localeCompare(String(a.g.at)));
+    const E = (t) => Sim.esc(t), todo = rows.filter(x => !x.rv).length;
+    box.innerHTML = `<div style="max-width:1180px;margin:0 auto;padding:10px 16px"><div class="card" style="padding:16px 18px;background:#fff;border:1px solid #e5e7eb;border-radius:14px">
+        <h3 style="margin:0 0 4px;font-family:inherit">📅 Google Calendar Simulator submissions${only ? ' · ' + E(NAMES[only] || only) : ''}</h3>
+        <p style="margin:0 0 10px;font-size:13.5px"><a class="sim-btn orange" style="text-decoration:none" href="/simulators/gcal-review.html${only ? '?track=' + E(only) : ''}">🖥 Trainee evaluations →</a> <span style="color:#64748b">New submissions (📤 Submit for evaluation) are there: the trainee’s calendar, the automated check, the AI review, your feedback and the final report.</span></p>
+        <p style="margin:0 0 10px;color:#64748b;font-size:13px">Earlier submissions: open one to see the calendar the trainee built, the automated check, and add your score and feedback. ${rows.length ? `${rows.length} submitted${todo ? `, ${todo} to review` : ', all reviewed'}.` : ''}</p>
+        ${rows.length ? `<div style="display:grid;gap:6px">${rows.map(x => `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px;font-size:13.5px">
+            <b style="min-width:150px">${E(x.r.name)}</b><span style="color:#64748b">${E(x.r.batch || 'No batch')}</span><span>${E(NAMES[x.g.track] || x.g.track)}</span>
+            <span style="color:#64748b">${E(new Date(x.g.at).toLocaleString())}</span><span>🤖 ${E(x.g.result && x.g.result.score)}%</span>
+            <span>${x.rv ? '👤 ' + E(x.rv.score) + '/100' : '<b style="color:#b45309">To review</b>'}</span>
+            <a class="sim-btn orange" style="text-decoration:none;margin-left:auto" href="/simulators/gcal.html?${x.g.track === 'standard' ? '' : 'track=' + E(x.g.track) + '&'}review=${encodeURIComponent(x.r.username + '|' + x.g.at)}">${x.rv ? 'Open' : 'Review'} →</a></div>`).join('')}</div>` : '<div style="color:#64748b">No one has submitted a Google Calendar Simulator yet.</div>'}</div></div>`;
+}
 (async function () {
     Sim.label('Calendaring Simulators');
     const root = document.getElementById('cs-root');
@@ -72,7 +95,8 @@
     if (direct) { location.replace(go(want)); return; }
     document.getElementById('topbar').innerHTML = Sim.topbar('calsim');
     if (me.admin && q.get('view') === 'scores') {
-        root.innerHTML = '<div style="max-width:1180px;margin:0 auto;padding:14px 16px 0"><a href="/simulators/calsim.html" class="sim-btn ghost" style="text-decoration:none">← Calendaring Simulators</a></div><div id="cs-scores"></div>';
+        root.innerHTML = '<div style="max-width:1180px;margin:0 auto;padding:14px 16px 0"><a href="/simulators/calsim.html" class="sim-btn ghost" style="text-decoration:none">← Calendaring Simulators</a></div><div id="gs-list"></div><div id="cs-scores"></div>';
+        gsList(['standard', 'cm', 'ea'].includes(want) ? want : '');
         window.CalSimHost = { me, root: document.getElementById('cs-scores'), page: 'scores' };
         await new Promise((ok, no) => { const s = document.createElement('script'); s.src = '/simulators/calsim.js'; s.onload = ok; s.onerror = no; document.body.appendChild(s); });
         CalSim.show('scores');

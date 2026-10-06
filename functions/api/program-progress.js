@@ -193,19 +193,50 @@ async function calsimSummary(db, usersDb) {
         const byName = {};
         for (const r of results || []) {
             let d; try { d = JSON.parse(r.data); } catch (e) { continue; }
-            if (!d || !Array.isArray(d.submissions)) continue;
+            if (!d || (!Array.isArray(d.submissions) && !Array.isArray(d.gsubs))) continue;
             const u = await usersDb.prepare(`SELECT first_name, last_name FROM users WHERE username = ?`).bind(r.username).first();
             const key = nameKey(u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : r.username);
             if (!key) continue;
             const latest = {};
-            d.submissions.forEach(z => { if (CAL_WEEKS[z.scn]) latest[z.scn] = z; });
+            (Array.isArray(d.submissions) ? d.submissions : []).forEach(z => { if (CAL_WEEKS[z.scn]) latest[z.scn] = z; });
             for (const [scn, z] of Object.entries(latest)) {
                 const [program, label] = CAL_WEEKS[scn];
                 const rev = (d.reviews || {})[scn + '|' + z.at] || null;
                 const p = (byName[key] || (byName[key] = {}))[program] || (byName[key][program] = { weeks: [] });
                 p.weeks.push({ label, at: z.at || null, auto: z.auto && num(z.auto.pct) ? z.auto.pct : null, score: rev && num(rev.score) ? rev.score : null, comment: rev ? str(rev.comment, 400) : '' });
             }
+            // Google Calendar Simulator submissions (standard → ft, cm → cm, ea → eapa): the latest per track, with the trainer's score
+            const GSUB = { standard: ['ft', 'Google Calendar · Standard Training'], cm: ['cm', 'Google Calendar · Litigation Week'], ea: ['eapa', 'Google Calendar · Executive Week'] };
+            const lastG = {};
+            (Array.isArray(d.gsubs) ? d.gsubs : []).forEach(g => { if (g && GSUB[g.track]) lastG[g.track] = g; });
+            for (const [track, g] of Object.entries(lastG)) {
+                const [program, label] = GSUB[track];
+                const rev = (d.reviews || {})['g:' + track + '|' + g.at] || null;
+                const p = (byName[key] || (byName[key] = {}))[program] || (byName[key][program] = { weeks: [] });
+                p.weeks.push({ label, at: g.at || null, auto: g.result && num(g.result.score) ? g.result.score : null, score: rev && num(rev.score) ? rev.score : null, comment: rev ? str(rev.comment, 400) : '' });
+            }
         }
+        // 📤 Submit for evaluation (gcal_reviews, functions/api/gcal-reviews.js): the latest per trainee and track, with the trainer's
+        // score and notes once the report is final; it takes the place of an older submission of the same track above.
+        try {
+            const GTR = { standard: ['ft', 'Google Calendar · Standard Training'], cm: ['cm', 'Google Calendar · Litigation Week'], ea: ['eapa', 'Google Calendar · Executive Week'] };
+            const { results: ev } = await db.prepare(`SELECT username, name, track, submitted_at, check_score, trainer, status FROM gcal_reviews ORDER BY id ASC LIMIT 5000`).all();
+            const last = {};
+            for (const r of ev || []) if (GTR[r.track]) last[r.username + '|' + r.track] = r;
+            for (const r of Object.values(last)) {
+                const u = await usersDb.prepare(`SELECT first_name, last_name FROM users WHERE username = ?`).bind(r.username).first();
+                const key = nameKey(u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : (r.name || r.username));
+                if (!key) continue;
+                const [program, label] = GTR[r.track];
+                let t = null; try { t = JSON.parse(r.trainer || 'null'); } catch (e) { t = null; }
+                const fin = r.status === 'final';
+                const p = (byName[key] || (byName[key] = {}))[program] || (byName[key][program] = { weeks: [] });
+                const old = p.weeks.findIndex(w => w.label === label);
+                if (old >= 0 && String(p.weeks[old].at || '') > String(r.submitted_at)) continue;
+                if (old >= 0) p.weeks.splice(old, 1);
+                p.weeks.push({ label, at: r.submitted_at, auto: num(r.check_score) ? r.check_score : null, score: fin && t && num(t.score) ? t.score : null, comment: fin && t ? str(t.notes, 400) : '' });
+            }
+        } catch (e) { /* no evaluations yet */ }
         return byName;
     } catch (e) { return {}; }   // no calendars saved yet
 }
