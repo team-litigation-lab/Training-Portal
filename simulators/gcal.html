@@ -138,8 +138,24 @@
     .gc-rail .badge { position: absolute; top: -2px; right: -2px; background: #d93025; color: #fff; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 3px; }
     .gc-panel { width: 340px; flex: none; border-left: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; background: #fff; }
     .gc-panel.off { display: none; }
-    .gc-panel.tv { width: min(560px, 46vw); }   /* a trainer scoring a trainee's calendar (gcal.js livePanel): room for the scorecard */
-    .gc-panel.tv .csc th:nth-child(1) { width: 36%; }
+    /* 📊 the scores, below the calendar (gcal.js renderScores): the automated check, the trainer's scorecard, the feedback */
+    .gc-scores { --line: #dadce0; --ink: #1f1f1f; --ink2: #444746; --mute: #70757a; --blue: #0b57d0; --hover: #f1f3f4;
+        margin-top: 16px; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px 20px 20px; color: var(--ink); }
+    .gc-scores:empty { display: none; }
+    .gc-scores h2 { margin: 0 0 12px; font-size: 18px; font-weight: 500; color: var(--ink); }
+    .gc-scores .sc-h { margin: 0 0 8px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #5f6368; font-weight: 500; }
+    .gc-scores .sc-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+    .gc-scores .sc-grid.one { grid-template-columns: minmax(0, 1fr); }
+    .gc-scores .sc-grid.wide { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+    .gc-scores .lead { font-size: 13px; color: var(--ink2); line-height: 1.5; margin: 0 0 10px; }
+    .gc-scores #gc-check { margin-top: 0 !important; padding-top: 0 !important; border-top: 0 !important; }
+    .gc-scores button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    .gc-scores .blue { background: var(--blue); color: #fff; border-radius: 18px; height: 36px; padding: 0 22px; font-weight: 500; }
+    .gc-scores .blue:hover { background: #0842a0; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+    .gc-scores .txt { color: var(--blue); font-weight: 500; height: 32px; padding: 0 10px; border-radius: 16px; }
+    .gc-scores .txt:hover { background: #f0f4f9; }
+    .gc-scores .res-r ul { margin-top: 2px; }
+    @media (max-width: 900px) { .gc-scores { padding: 14px 12px 16px; } .gc-scores .sc-grid, .gc-scores .sc-grid.wide { grid-template-columns: minmax(0, 1fr); } }
     .gc-panel .ph { display: flex; align-items: center; justify-content: space-between; padding: 10px 6px 6px 16px; }
     .gc-panel .ph h3 { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink2); font-weight: 500; }
     .gc-panel .pb { flex: 1; overflow-y: auto; padding: 0 14px 16px; }

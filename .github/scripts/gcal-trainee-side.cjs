@@ -92,7 +92,7 @@ const server = http.createServer((req, res) => {
     // 8. a trainer opening a trainee's calendar in a NEW TAB (the tab has no copy of the session, only the cookie)
     who = 'admin'; serverDraft = { v: 1, events: [], savedAt: 5 };
     page = await open('/simulators/gcal.html?trainee=ci');
-    const t = await panel(page);
+    const t = await page.evaluate(() => document.body.innerText);   // (the trainer's scorecard and the check are in the scores section below the calendar)
     if (!/Trainee’s calendar|read only/i.test(t)) fail('a trainee’s calendar opened in a new tab shows no content: ' + t.slice(0, 200));
     await page.close();
     // the Calendaring Simulators page has a Trainee Evaluations button for a trainer, a pill like Earlier scheduler scores, in the same tab

@@ -63,6 +63,9 @@ const server = http.createServer((req, res) => {
         return page;
     };
     const panelText = (p) => p.evaluate(() => (document.querySelector('#gc-panel') || {}).innerText || '');
+    // the scores are in a section of their own below the calendar (not in the side panel)
+    const scoresText = (p) => p.evaluate(() => (document.querySelector('#gc-scores') || {}).innerText || '');
+    const below = (p) => p.evaluate(() => { const g = document.getElementById('gc'), s = document.getElementById('gc-scores'); return !!(g && s && s.getBoundingClientRect().top >= g.getBoundingClientRect().bottom - 1 && s.offsetHeight > 40); });
     // 1. a submission made with 📤 Submit to my trainer (before 📤 Submit for evaluation, functions/api/gcal-reviews.js, took its place):
     //    kept in the trainee's /api/calsim record; the trainee sees it, and the page's one Submit button is 📤 Submit for evaluation
     rec = { v: 2, drafts: {}, autos: [], submissions: [], reviews: {}, external: [], gsubs: [{ track: 'cm', at: '2026-10-06T12:00:00.000Z',
@@ -71,14 +74,14 @@ const server = http.createServer((req, res) => {
     const sub = rec.gsubs[0];
     role = 'trainee';
     let page = await open('/simulators/gcal.html?track=cm');
-    if (!/Submitted/.test(await panelText(page))) fail('the trainee does not see their earlier submission: ' + (await panelText(page)).slice(0, 100));
+    if (!/Submitted/.test(await scoresText(page)) || /Submitted ·/.test(await panelText(page)) || !(await below(page))) fail('the trainee does not see their earlier submission below the calendar: ' + (await scoresText(page)).slice(0, 160));
     if (await page.$('[data-a="gsubmit"]') || !(await page.$('#gc-rail [data-a="submit-eval"]'))) fail('the one Submit button should be 📤 Submit for evaluation');
     await page.close();
     // 2. a trainer opens it, read only, and gives feedback
     role = 'admin';
     page = await open('/simulators/gcal.html?track=cm&review=' + encodeURIComponent('ci|' + sub.at));
-    let t = await panelText(page);
-    if (!/Review/i.test(t) || !/Ci Trainee/.test(t) || !/Your feedback/i.test(t)) fail('the review panel is not showing: ' + t.slice(0, 160));
+    let t = await scoresText(page);
+    if (!/Review/i.test(t) || !/Ci Trainee/.test(t) || !/Your feedback/i.test(t) || /Your feedback/i.test(await panelText(page)) || !(await below(page))) fail('the review is not showing below the calendar: ' + t.slice(0, 160));
     await page.fill('#rv-score', '77'); await page.fill('#rv-comment', 'Good start: check the buffers.'); await page.fill('#rv-t0', 'Needs the case number.');
     await page.click('[data-a="rv-save"]'); await page.waitForTimeout(700);
     const rv = rec.reviews && rec.reviews['g:cm|' + sub.at];
@@ -88,8 +91,8 @@ const server = http.createServer((req, res) => {
     // 3. the trainee sees the feedback
     role = 'trainee';
     page = await open('/simulators/gcal.html?track=cm');
-    t = await panelText(page);
-    if (!/77\/100/.test(t) || !/Good start/.test(t) || !/Needs the case number/.test(t)) fail('the trainee does not see the trainer’s feedback: ' + t.slice(0, 200));
+    t = await scoresText(page);
+    if (!/77\/100/.test(t) || !/Good start/.test(t) || !/Needs the case number/.test(t)) fail('the trainee does not see the trainer’s feedback below the calendar: ' + t.slice(0, 200));
     await page.close();
     // 4. the trainer's list of submissions
     role = 'admin';
@@ -131,8 +134,9 @@ const server = http.createServer((req, res) => {
     // the trainee's calendar, read only, with the automated check and the scorecard to fill in
     page = await open('/simulators/gcal.html?trainee=ci');
     await page.waitForSelector('#tv-card', { timeout: 6000 }).catch(() => fail('the trainee\'s calendar opened without the scorecard'));
-    t = await panelText(page);
-    if (!/Trainee’s calendar/i.test(t) || !/Ci Trainee · B1/.test(t) || !/read only/.test(t) || !/Their calendar, checked \(automated\)/i.test(t) || !/Maria Santos/.test(t)) fail('the trainee\'s calendar panel is missing who it is, the check or their appointment: ' + t.slice(-900));
+    t = await scoresText(page);
+    const side = await panelText(page);
+    if (!/Scores · Ci Trainee · B1/.test(t) || !/read only/.test(t) || !/Their calendar, checked \(automated\)/i.test(t) || !/Maria Santos/.test(t) || !/Maria Santos/.test(side) || /Your scorecard|checked/i.test(side) || !(await below(page))) fail('the trainee\'s calendar is missing who it is, the check or their appointment, or the scores aren\'t below the calendar: ' + t.slice(0, 600) + ' | side: ' + side.slice(0, 300));
     await page.click('[data-a="nav"][data-d="1"]').catch(() => {});
     const evs = await page.evaluate(() => [...document.querySelectorAll('.ev')].map(e => e.textContent));
     if (!evs.some(x => /Maria Santos/.test(x))) fail('the trainee\'s booking isn\'t on the calendar: ' + JSON.stringify(evs.slice(0, 5)));
@@ -146,7 +150,7 @@ const server = http.createServer((req, res) => {
     await page.click('[data-a="tv-save"]'); await page.waitForTimeout(600);
     const sc = posted[0];
     if (!sc || sc.user !== 'ci' || sc.track !== 'standard' || sc.rows.map(r => r.score).join() !== '5,4,4,3,4,5,4' || !/add the DOB/.test(sc.rows[5].feedback)) fail('the scorecard wasn\'t saved for the trainee: ' + JSON.stringify(sc));
-    if (!/4\.1\/5 · 83%/.test(await panelText(page))) fail('the saved scorecard isn\'t shown: ' + (await panelText(page)).slice(0, 300));
+    if (!/4\.1\/5 · 83%/.test(await scoresText(page))) fail('the saved scorecard isn\'t shown: ' + (await scoresText(page)).slice(0, 300));
     if (await page.evaluate(() => Object.keys(localStorage).some(k => k.indexOf('lsh_gcal') === 0))) fail('looking at a trainee\'s calendar wrote to the trainer\'s own practice calendar');
     await page.close();
     // the trainee sees it: on their card on the Calendaring Simulators page and in the simulator
@@ -159,7 +163,7 @@ const server = http.createServer((req, res) => {
     if (await page.$('#cs-trainees')) fail('a trainee sees the trainees\' calendars list');
     await page.close();
     page = await open('/simulators/gcal.html');
-    if (!/Your trainer’s scorecard · 4\.1\/5 \(83%\)/.test(await panelText(page))) fail('the trainee doesn\'t see the scorecard in the simulator: ' + (await panelText(page)).slice(0, 300));
+    if (!/Your trainer’s scorecard · 4\.1\/5 \(83%\)/.test(await scoresText(page)) || /scorecard/i.test(await panelText(page)) || !(await below(page))) fail('the trainee doesn\'t see the scorecard below the calendar: ' + (await scoresText(page)).slice(0, 300));
     await page.close();
     // a trainee can't open someone's calendar
     page = await open('/simulators/gcal.html?trainee=zed');

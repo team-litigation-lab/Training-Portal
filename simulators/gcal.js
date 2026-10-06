@@ -580,7 +580,8 @@ function render() {
     const app = $('#app');
     if (!$('#gc')) {
         app.innerHTML = `<div class="gc" id="gc" tabindex="-1"><div class="gc-head" id="gc-head"></div>
-            <div class="gc-body"><aside class="gc-side" id="gc-side"></aside><main class="gc-main" id="gc-main"></main><aside class="gc-panel" id="gc-panel"></aside></div><nav class="gc-rail" id="gc-rail" aria-label="Calendar tools"></nav></div>`;
+            <div class="gc-body"><aside class="gc-side" id="gc-side"></aside><main class="gc-main" id="gc-main"></main><aside class="gc-panel" id="gc-panel"></aside></div><nav class="gc-rail" id="gc-rail" aria-label="Calendar tools"></nav></div>
+            <section class="gc-scores" id="gc-scores" aria-label="Scores"></section>`;
         bind();
     }
     renderHead(); renderSide(); renderMain(); renderPanel(); renderRail();
@@ -738,8 +739,9 @@ function reqCard(q) {
         <q>${esc(R.said)}</q><div class="av2">${when}</div>
         <div class="acts"><button class="txt" data-a="req-go" data-id="${esc(q.id)}">Show on calendar</button><label><input type="checkbox" data-done="${esc(q.id)}" ${q.done ? 'checked' : ''}> Done</label></div></div>`;
 }
-function renderPanel() {
-    const panel = $('#gc-panel'); panel.classList.toggle('off', !S.panel); panel.classList.toggle('tv', !!(RV && RV.live && S.panel && S.panel !== 'rules' && S.panel !== 'evals'));
+function renderPanel() { renderSidePanel(); renderScores(); }
+function renderSidePanel() {
+    const panel = $('#gc-panel'); panel.classList.toggle('off', !S.panel);
     if (!S.panel) { panel.innerHTML = ''; return; }
     const head = (t) => `<div class="ph"><h3>${t}</h3><button class="ib" data-a="panel" data-p="" aria-label="Close panel">${ic('close')}</button></div>`;
     if (S.panel === 'rules') {
@@ -752,20 +754,20 @@ function renderPanel() {
         return;
     }
     if (S.panel === 'evals') { panel.innerHTML = head('My evaluations') + `<div class="pb">${evalsHtml()}</div>`; return; }
-    if (S.panel === 'result' && RV && RV.sub) { reviewPanel(panel, head); return; }
-    if (RV && RV.live) { livePanel(panel, head); return; }
     if (OPEN) {
         const r = checkOpen(S, S.today);
         panel.innerHTML = head('Your appointments') + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). Take a <b>Calendar Management mock call</b>, then book what the caller asks for on the <b>Attorney’s Calendar</b>, under the attorney’s rules (📖 in the bar below) and the caller’s preferences. Put the caller’s name, callback number, DOB, DOL and what it’s about in the description.</p>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="submit-eval" title="Send your appointments to your trainer for an AI and trainer review">📤 Submit for evaluation</button></div>
+            ${RV ? '' : '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="submit-eval" title="Send your appointments to your trainer for an AI and trainer review">📤 Submit for evaluation</button></div>'}
             ${r.results.length ? r.results.map(x => `<div class="rq"><b>${esc(x.head)}</b><div class="av2">${esc(x.when)}</div><div class="acts"><button class="txt" data-a="appt-go" data-d="${esc(x.date)}">Show on calendar</button></div></div>`).join('')
-                : '<p class="lead" style="color:#70757a">No appointments yet. Drag on the calendar or click <b>Create</b> to book one.</p>'}${myScorecardBox()}${S.result ? checkSection(S.result) : ''}</div>`;
+                : `<p class="lead" style="color:#70757a">${RV ? 'No appointments on this calendar.' : 'No appointments yet. Drag on the calendar or click <b>Create</b> to book one.'}</p>`}
+            <p class="lead" style="margin-top:10px"><a href="#gc-scores" data-a="to-scores">📊 ${RV ? 'The scores' : 'Your scores'} are below the calendar ↓</a></p></div>`;
         return;
     }
     const open = S.reqs.filter(q => !q.done).length;
     panel.innerHTML = head('Calendar requests' + (TRK ? ' · ' + esc(CFG.label) : '')) + `<div class="pb"><p class="lead">Today is <b>${esc(longDate(S.today))}</b> (Eastern). These callers want appointments booked, moved or cancelled on the ${WW('attorney’s')} calendar. ${open ? `${open} still open.` : 'All marked done.'}</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="submit-eval" title="Send these appointments to your trainer for an AI and trainer review">📤 Submit for evaluation</button><button class="pill" data-a="new-set">New set</button></div>
-        ${myScorecardBox()}${mySubBox()}${S.reqs.map(reqCard).join('')}${S.result ? checkSection(S.result) : ''}</div>`;
+        ${RV ? '' : '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="blue" data-a="check">Check my calendar</button><button class="pill" data-a="submit-eval" title="Send these appointments to your trainer for an AI and trainer review">📤 Submit for evaluation</button><button class="pill" data-a="new-set">New set</button></div>'}
+        <p class="lead"><a href="#gc-scores" data-a="to-scores">📊 ${RV ? 'The scores' : 'Your scores'} are below the calendar ↓</a></p>
+        ${S.reqs.map(reqCard).join('')}</div>`;
 }
 
 /* ---------- popovers: quick create, event card ---------- */
@@ -1007,8 +1009,8 @@ function createAt(date, start) {
 function doCheck() {
     if (RV) return;
     const r = checkNow();
-    S.result = Object.assign(r, { at: new Date().toISOString() }); S.panel = 'requests'; save(); closeAll(); render();
-    setTimeout(() => { const c = $('#gc-check'); if (c && c.scrollIntoView) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
+    S.result = Object.assign(r, { at: new Date().toISOString() }); save(); closeAll(); render();
+    setTimeout(toScores, 60);
     Sim.saveResult({ simulator: 'Google Calendar', scenario: OPEN ? `${CFG.scenario} · ${r.results.length} appointments` : `${CFG.scenario} · ${S.reqs.length} requests`, score: r.score,
         summary: `${r.right}/${r.results.length} ${OPEN ? 'appointments' : 'requests'} fully right${r.penalty ? `; −${r.penalty} for unasked changes` : ''}`,
         details: { results: r.results.map(x => ({ request: x.head, points: Math.round(x.pts * 10) / 10, max: x.max, missed: x.items.filter(i => !i.ok).map(i => i.t) })), extra: r.extra } });
@@ -1046,16 +1048,17 @@ function mySubBox() {
     const per = rv && rv.tasks ? last.result.results.map((x, i) => rv.tasks['r' + i] ? `<li><b>${esc(x.head)}:</b> ${esc(rv.tasks['r' + i])}</li>` : '').join('') : '';
     return `<div class="rq"><div class="nm">📤 Submitted ${esc(new Date(last.at).toLocaleString())} · 🤖 ${last.result.score}%</div>${rv ? `<div class="av2"><b>👤 Your trainer: ${esc(rv.score)}/100</b>${rv.comment ? '<br>' + esc(rv.comment) : ''}${per ? '<ul>' + per + '</ul>' : ''}</div>` : '<div class="av2">Waiting for your trainer’s feedback.</div>'}</div>`;
 }
-function reviewPanel(panel, head) {
+// A review of a submission (?review=): the automated check and the trainer's feedback form, below the calendar.
+function reviewScoresHTML() {
     const r = RV.sub.result, rv = RV.review || {}, col = r.score >= 85 ? '#188038' : r.score >= 70 ? '#e37400' : '#d93025';
-    panel.innerHTML = head('Review · ' + esc(CFG.label)) + `<div class="pb"><p class="lead" style="margin:0 0 8px"><b>${esc(RV.name)}</b>${RV.batch ? ' · ' + esc(RV.batch) : ''}<br><span style="color:#70757a">Submitted ${esc(new Date(RV.sub.at).toLocaleString())}. The calendar is on the left, read only.</span></p>
-        <div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.score}%</div><div class="lead" style="margin:0">Automated check: ${r.right} of ${r.results.length} requests fully right.${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}</div></div>
-        ${resRows(r)}
-        <div class="res-r"><h5><span>👤 Your feedback</span><span>${rv.score != null ? 'given' : 'to review'}</span></h5>
+    return `<h2>📊 Review · ${esc(CFG.label)}</h2><p class="lead" style="margin:0 0 12px"><b>${esc(RV.name)}</b>${RV.batch ? ' · ' + esc(RV.batch) : ''} · Submitted ${esc(new Date(RV.sub.at).toLocaleString())}. The calendar is above, read only.</p>
+        <div class="sc-grid"><div><div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.score}%</div><div class="lead" style="margin:0">Automated check: ${r.right} of ${r.results.length} requests fully right.${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}</div></div>
+        ${resRows(r)}</div>
+        <div><div class="res-r"><h5><span>👤 Your feedback</span><span>${rv.score != null ? 'given' : 'to review'}</span></h5>
             <p style="margin:0 0 6px"><label>Score (0–100)<br><input type="number" min="0" max="100" id="rv-score" value="${rv.score != null ? esc(rv.score) : ''}" style="width:90px;font:inherit;padding:6px 8px;border:1px solid #dadce0;border-radius:6px"></label></p>
-            <p style="margin:0 0 6px"><label>Overall comment to the trainee<br><textarea id="rv-comment" rows="3" style="width:100%;font:inherit;padding:6px 8px;border:1px solid #dadce0;border-radius:6px">${esc(rv.comment || '')}</textarea></label></p>
-            ${r.results.map((x, i) => `<p style="margin:0 0 6px"><label>${esc(x.head)}<br><input id="rv-t${i}" maxlength="400" value="${esc((rv.tasks || {})['r' + i] || '')}" placeholder="Comment on this request (optional)" style="width:100%;font:inherit;padding:6px 8px;border:1px solid #dadce0;border-radius:6px"></label></p>`).join('')}
-            <button class="blue" data-a="rv-save">${rv.score != null ? 'Update feedback' : 'Save feedback'}</button></div></div>`;
+            <p style="margin:0 0 6px"><label>Overall comment to the trainee<br><textarea id="rv-comment" rows="3" style="width:100%;box-sizing:border-box;font:inherit;padding:6px 8px;border:1px solid #dadce0;border-radius:6px">${esc(rv.comment || '')}</textarea></label></p>
+            ${r.results.map((x, i) => `<p style="margin:0 0 6px"><label>${esc(x.head)}<br><input id="rv-t${i}" maxlength="400" value="${esc((rv.tasks || {})['r' + i] || '')}" placeholder="Comment on this request (optional)" style="width:100%;box-sizing:border-box;font:inherit;padding:6px 8px;border:1px solid #dadce0;border-radius:6px"></label></p>`).join('')}
+            <button class="blue" data-a="rv-save">${rv.score != null ? 'Update feedback' : 'Save feedback'}</button></div></div></div>`;
 }
 async function saveReview() {
     const sc = Number(($('#rv-score') || {}).value), raw = ($('#rv-score') || {}).value;
@@ -1112,17 +1115,31 @@ async function liveStart(again) {
         if (again) snack('Their calendar is up to date');
     } catch (e) { $('#app').innerHTML = `<div class="sim-card" style="margin:20px"><p>${esc(e.message)}</p></div>`; }
 }
-function livePanel(panel, head) {
+// A trainer's view of a trainee's calendar (?trainee=): their scorecard to fill in and the automated check, below the calendar.
+function liveScoresHTML() {
     const C = window.CalScorecard, last = RV.cards[RV.cards.length - 1], when = (t) => t ? new Date(t.replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(t) ? '' : 'Z')).toLocaleString() : '';
-    panel.innerHTML = head('Trainee’s calendar · ' + esc(CFG.label)) + `<div class="pb"><p class="lead" style="margin:0 0 10px"><b>${esc(RV.name)}</b>${RV.batch ? ' · ' + esc(RV.batch) : ''}<br>
-            <span style="color:#70757a">${RV.empty ? 'Nothing saved to their account on this simulator yet.' : `Their calendar as they last saved it${RV.savedAt ? ', ' + esc(when(RV.savedAt)) : ''}. It’s on the left, read only.`}</span>
-            <button class="txt" data-a="tv-refresh" style="padding:0 6px">🔄 Refresh</button></p>
-        <div class="res-r" id="tv-card"><h5><span>📋 Your scorecard</span><span>${last ? `${esc(C ? String(last.average) : '')}/5 · ${esc(last.pct)}%` : 'to score'}</span></h5>
+    return `<h2>📊 Scores · ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>
+        <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on this simulator yet.' : `Their calendar as they last saved it${RV.savedAt ? ', ' + esc(when(RV.savedAt)) : ''}. It’s above, read only.`}
+            <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>
+        <div class="sc-grid wide"><div class="res-r" id="tv-card"><h5><span>📋 Your scorecard</span><span>${last ? `${esc(last.average)}/5 · ${esc(last.pct)}%` : 'to score'}</span></h5>
             ${last ? `<p style="margin:0 0 6px;color:#70757a">Last saved ${esc(when(last.at))}${last.by ? ' by ' + esc(last.by) : ''}${RV.cards.length > 1 ? ` · ${RV.cards.length} scorecards` : ''}. Saving again keeps the earlier ones.</p>` : '<p style="margin:0 0 6px;color:#70757a">Score each metric 0 to 5 and add your feedback; the weighted average works itself out.</p>'}
             ${C ? C.formHTML(last) : '<p>The scorecard didn’t load. Refresh the page.</p>'}
-            <div style="margin-top:8px"><button class="blue" data-a="tv-save">💾 Save scorecard</button></div></div>
-        ${RV.cards.length > 1 ? `<div class="res-r"><h5><span>Earlier scorecards</span><span></span></h5><ul>${RV.cards.slice(0, -1).reverse().map(x => `<li><span>${esc(when(x.at))} · ${esc(x.by || '')} · ${esc(x.average)}/5 (${esc(x.pct)}%)</span></li>`).join('')}</ul></div>` : ''}
-        ${S.result ? checkSection(S.result).replace('Your calendar, checked', 'Their calendar, checked (automated)') : ''}</div>`;
+            <div style="margin-top:8px"><button class="blue" data-a="tv-save">💾 Save scorecard</button></div>
+            ${RV.cards.length > 1 ? `<div style="margin-top:10px"><b>Earlier scorecards</b><ul>${RV.cards.slice(0, -1).reverse().map(x => `<li><span>${esc(when(x.at))} · ${esc(x.by || '')} · ${esc(x.average)}/5 (${esc(x.pct)}%)</span></li>`).join('')}</ul></div>` : ''}</div>
+        <div>${S.result ? checkSection(S.result).replace('Your calendar, checked', 'Their calendar, checked (automated)') : ''}</div></div>`;
+}
+// 📊 The scores, in a section of their own below the calendar (not in the side panel): the automated check (Check my
+// calendar), the trainer's scorecard and what was submitted with its feedback. A trainer looking at a trainee's calendar
+// (?trainee=) gets the scorecard to fill in there, and a review (?review=) the feedback form.
+function renderScores() {
+    const box = $('#gc-scores'); if (!box || !S) return;
+    if (RV && RV.sub) { box.innerHTML = reviewScoresHTML(); return; }
+    if (RV && RV.live) { box.innerHTML = liveScoresHTML(); return; }
+    if (RV) { box.innerHTML = ''; return; }   // (a review still loading)
+    const side = myScorecardBox() + mySubBox();
+    const check = S.result ? checkSection(S.result)
+        : `<div id="gc-check"><h3 class="sc-h">Your calendar, checked</h3><p class="lead">Click <b>Check my calendar</b> (in the bar above) to check ${OPEN ? 'your appointments' : 'what the callers asked for'} against the ${WW('attorney’s')} rules. Your score shows here.</p></div>`;
+    box.innerHTML = `<h2>📊 Your scores</h2><div class="sc-grid${side ? '' : ' one'}"><div>${check}</div>${side ? `<div>${side}</div>` : ''}</div>`;
 }
 async function saveScorecard() {
     const C = window.CalScorecard; if (!C) return;
@@ -1131,7 +1148,7 @@ async function saveScorecard() {
     try {
         const out = await recPost({ scorecard: { user: RV.user, track: GT, rows: got.rows, calendarAt: RV.savedAt || '' } });
         RV.cards = out.scorecards || RV.cards.concat([out.scorecard]);
-        snack('Scorecard saved: ' + out.scorecard.average + '/5 (' + out.scorecard.pct + '%)'); renderPanel();
+        snack('Scorecard saved: ' + out.scorecard.average + '/5 (' + out.scorecard.pct + '%)'); renderScores();
     } catch (e) { snack(e.message); }
 }
 // A trainee's own: their trainer's latest scorecard on this simulator.
@@ -1240,9 +1257,10 @@ const trackName = (r) => TRACK_NAMES[r && r.track] || CFG.label || 'Standard Tra
 const reportPdf = (r) => EvalReport.pdf(r, trackName(r), snack);
 
 /* ---------- events (one delegated handler each) ---------- */
+const toScores = () => { const c = $('#gc-scores'); if (c && c.scrollIntoView) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
 function bind() {
-    const root = gc();
-    root.addEventListener('click', (ev) => {
+    const root = gc(), scores = $('#gc-scores');
+    const onClick = (ev) => {
         const t = ev.target;
         const cal = t.closest('input[data-cal]'); if (cal) { S.hidden[cal.dataset.cal] = !cal.checked; save(); render(); return; }
         const done = t.closest('input[data-done]'); if (done) { const q = S.reqs.find(x => x.id === done.dataset.done); if (q) { q.done = done.checked; save(); renderRail(); renderPanel(); } return; }
@@ -1267,7 +1285,7 @@ function bind() {
             reset: () => dialog('Start over?', '<p style="margin:0;color:#444746">Your events and changes are cleared and a new set of requests comes in.</p>', () => { S = fresh(); save(); closeAll(); render(); }, 'Start over'),
             create: () => createAt(S.view === 'day' ? S.anchor : null),
             panel: () => { S.panel = a.dataset.p === S.panel ? '' : a.dataset.p; save(); renderPanel(); renderRail(); },
-            check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true),
+            check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true), 'to-scores': () => { ev.preventDefault(); toScores(); },
             evals: () => { if (Sim.isAdmin()) { location.href = REVIEW_PAGE; return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
             'submit-eval': () => submitEval(),
             'cloud-save': () => { save(true); cloudSave(); },
@@ -1308,7 +1326,9 @@ function bind() {
             'ed-ungu': () => { edSync(); G.ed.d.guests.splice(+a.dataset.i, 1); drawEditor(); }
         };
         if (acts[A]) { ev.preventDefault(); acts[A](); }
-    });
+    };
+    root.addEventListener('click', onClick);
+    if (scores) scores.addEventListener('click', onClick);   // (the scores below the calendar: Save, Refresh)
     root.addEventListener('change', (ev) => {
         const t = ev.target;
         if (t.dataset.set) { S.set[t.dataset.set] = t.type === 'checkbox' ? t.checked : +t.value; save(); renderMain(); return; }
