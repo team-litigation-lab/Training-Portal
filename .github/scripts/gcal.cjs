@@ -243,6 +243,12 @@ const server = http.createServer(async (req, res) => {
     if (!/New client consults are only scheduled on Tuesdays and Thursdays/.test(await page.textContent('#gc-panel'))) fail('the rules panel should list the attorney\'s rules');
     await page.click('#gc-rail [data-a="check"]'); await page.waitForSelector('.res-ring');
     await shot(page, 'gcal-5-checked');
+    // "The attorney's appointments you changed" reads as lines, not a word a line: its items keep the mark's column
+    const chg = await page.evaluate(() => { const box = document.createElement('div'); box.className = 'res-r';
+        box.innerHTML = '<ul><li class="chg"><span>Deposition Preparation: Gerald Anderson on Mon, Oct 5: moved to Mon, Oct 5 9am</span></li></ul>';
+        document.getElementById('gc-check').appendChild(box); const w = box.querySelector('span').getBoundingClientRect().width, all = box.getBoundingClientRect().width; box.remove(); return { w, all }; });
+    if (!(chg.w > chg.all * 0.6)) fail(`the changed appointments are squeezed into the mark's column: ${JSON.stringify(chg)}`);
+    if (!/<li class="chg">/.test(fs.readFileSync(path.join(ROOT, 'simulators/gcal.js'), 'utf8'))) fail('the changed appointments should be listed with li class="chg"');
     const res = results[results.length - 1];
     if (!res || res.simulator !== 'Google Calendar' || typeof res.score !== 'number' || !res.who || res.who.name !== 'CI Trainee') fail(`Check my calendar should save the score: ${JSON.stringify(res).slice(0, 200)}`);
     await page.close();
