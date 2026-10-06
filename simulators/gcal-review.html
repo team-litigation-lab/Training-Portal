@@ -13,12 +13,19 @@
 <style>
     /* Trainee evaluations: the trainer's live review of calendars submitted from the Google Calendar Simulator (gcal.html) */
     .rv { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
-    .rv-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px 16px; }
+    .rv > * { min-width: 0; }
+    .rv-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px 16px; min-width: 0; overflow-wrap: anywhere; }   /* a long address or link in a description wraps instead of widening the page */
     .rv-list { max-height: calc(100vh - 220px); overflow: auto; }
-    .rv-row { border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 10px; margin: 6px 0; cursor: pointer; background: #fff; }
+    .rv-row { display: block; width: 100%; text-align: left; font: inherit; color: inherit; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 10px; margin: 6px 0; cursor: pointer; background: #fff; }   /* a button: Tab reaches it, Enter and Space open it */
     .rv-row:hover { border-color: #94a3b8; } .rv-row.on { border-color: #0b57d0; box-shadow: 0 0 0 2px #c2e7ff; } .rv-row.new { animation: rvNew 2.4s ease-out; }
     @keyframes rvNew { from { background: #fff7d6; } to { background: #fff; } }
-    .rv-row b { font-size: 14px; } .rv-sub { font-size: 12px; color: #64748b; }
+    .rv-row b { font-size: 14px; } .rv-sub { font-size: 12px; color: #64748b; } .rv-blk { display: block; }
+    .rv a:focus-visible, .rv button:focus-visible, .rv select:focus-visible, .rv textarea:focus-visible, .rv input:focus-visible, .rv summary:focus-visible { outline: 2px solid #0b57d0; outline-offset: 2px; }
+    .rv h2:focus { outline: none; }
+    .rv-banner:empty { display: none; }
+    .rv-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-radius: 12px; padding: 10px 14px; font-size: 13.5px; overflow-wrap: anywhere; grid-column: 1 / -1; }
+    .rv-banner .btn { padding: 4px 10px; font-size: 12.5px; } .rv-banner a { color: #0b57d0; font-weight: 700; }
+    .rv-err { color: #c5221f; font-size: 12.5px; margin-top: 4px; }
     .chip { display: inline-block; font-size: 11.5px; font-weight: 700; border-radius: 10px; padding: 1px 8px; margin-right: 4px; }
     .chip.pend { background: #e8f0fe; color: #0b57d0; } .chip.ready { background: #e6f4ea; color: #137333; } .chip.err { background: #fce8e6; color: #c5221f; } .chip.final { background: #0b1633; color: #fff; }
     .rv h2 { margin: 0 0 4px; font-size: 20px; } .rv h3 { margin: 16px 0 6px; font-size: 15px; } .rv h4 { margin: 12px 0 4px; font-size: 14px; }
@@ -37,7 +44,8 @@
     .rv .btn-navy { background: #0b1633; color: #fff; } .rv .btn-orange { background: #f97316; color: #fff; } .rv .btn-ghost { background: #fff; color: #0b1633; border-color: #cbd5e1; }
     .rv .btn:disabled { opacity: .5; cursor: not-allowed; }
     .rv-saved { font-size: 12.5px; color: #64748b; }
-    .rv table { width: 100%; border-collapse: collapse; font-size: 12.5px; } .rv td, .rv th { border-top: 1px solid #e5e7eb; padding: 5px 6px; text-align: left; vertical-align: top; }
+    .rv-tw { overflow-x: auto; }
+    .rv table { width: 100%; border-collapse: collapse; font-size: 12.5px; } .rv td, .rv th { border-top: 1px solid #e5e7eb; padding: 5px 6px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
     .rv details summary { cursor: pointer; font-weight: 700; font-size: 13.5px; margin: 10px 0 4px; }
     .rv-miss { color: #c5221f; } .rv-met { color: #137333; }
     .rv-top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
@@ -55,7 +63,7 @@
     .wk-ev.mine { outline: 2px solid #1f1f1f; outline-offset: -2px; z-index: 2; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
     .wk-ev small { display: block; opacity: .9; }
     .wk-all { font-size: 11px; padding: 2px 6px; border-top: 1px solid #eee; color: #444; }
-    @media (max-width: 900px) { .rv { grid-template-columns: 1fr; } .rv-list { max-height: none; } }
+    @media (max-width: 900px) { .rv { grid-template-columns: minmax(0, 1fr); } .rv-list { max-height: none; } }
 </style>
 </head>
 <body>
@@ -75,24 +83,57 @@
 <script>
 (function () {
 const API = '/api/gcal-reviews';
-const TRACKS = { standard: 'Standard Training', cm: 'Case Management (Litigation Week)', ea: 'EA / PA (Executive Week)' };
+const TRACKS = { standard: 'Standard Training', cm: 'Litigation Week · Case Management', ea: 'Executive Week · EA / PA' };
+const STALE_MS = 120000, TOO_LONG = 'The AI review took too long. Try again.';   // 'pending' for longer than this: the run was cut off (the API says so too, but an older reply or another clock must not leave the trainer stuck)
 const esc = (s) => Sim.esc(s);
 const $ = (s) => document.querySelector(s);
 const when = (t) => { try { return new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return t || ''; } };
-const R = { list: null, seen: null, open: null, row: null, err: '', track: new URLSearchParams(location.search).get('track') || '', listTimer: null, rowTimer: null, saveTimer: null,
-    saved: '', revealed: {}, wk: null, rules: null, rulesTrack: 'standard', showRules: false, dirty: false };
+const qt = (new URLSearchParams(location.search).get('track') || '').toLowerCase();
+// R.t is what the trainer has typed for the open submission (the page's fields are copied into it as they type) and R.sv what the server holds: a save
+// sends R.t, never whatever the page happens to show, so a screen that was repainted or lost can't blank the saved feedback.
+const R = { list: null, listHtml: null, seen: null, open: null, row: null, errList: null, errRow: null, errSave: null, track: Object.keys(TRACKS).includes(qt) ? qt : '', listTimer: null, rowTimer: null, saveTimer: null,
+    t: null, sv: null, tid: null, rev: 0, dirty: false, saved: '', why: '', revealed: {}, wk: null, rules: null, rulesTrack: 'standard', rulesSeq: 0, rulesDirty: false, showRules: false };
+const go = (u, o) => Sim.fetchRetry ? Sim.fetchRetry(u, o) : fetch(u, o);   // (fetchRetry asks /api/me and tries once more when the heartbeat had lapsed: a laptop that slept, a tab the browser throttled)
 async function api(path, opts) {
-    const res = await fetch(path, Object.assign({ credentials: 'include', headers: { 'Content-Type': 'application/json' } }, opts || {}));
-    const d = await res.json().catch(() => ({}));
-    if (!res.ok || d.success === false) throw new Error(d.error || ('Request failed (' + res.status + ')'));
+    let res;
+    try { res = await go(path, Object.assign({ credentials: 'include', headers: { 'Content-Type': 'application/json' } }, opts || {})); }
+    catch (e) { throw Object.assign(new Error('Can’t reach the server. Check the connection.'), { status: 0 }); }
+    const d = (await res.json().catch(() => null)) || {};
+    if (!res.ok || d.success === false) throw Object.assign(new Error(d.error || ('Request failed (' + res.status + ')')), { status: res.status, code: d.code });
     return d;
 }
 const post = (body) => api(API, { method: 'POST', body: JSON.stringify(body) });
+const authErr = (e) => !!e && (e.status === 401 || e.status === 403 || e.status === 423);
+const transient = (e) => !e.status || e.status >= 500 || e.status === 401 || e.status === 423 || e.status === 429;   // worth saving again later; a refusal (400, 403, 409) is not
+const stuck = (r) => r.aiStatus === 'pending' && Date.now() - Date.parse(r.updatedAt || r.submittedAt) > STALE_MS;
+const norm = (r) => { if (stuck(r)) { r.aiStatus = 'error'; r.ai = { error: TOO_LONG }; } return r; };   // so it gets ↻ Try again and can be sent
+// One section of the page that can't be drawn (a calendar sent in a shape it doesn't expect) must not hide the rest of the submission.
+const part = (fn, ...a) => { try { return fn(...a); } catch (e) { console.error('gcal-review: ' + fn.name, e); return '<p class="rv-none">This part of the submission couldn’t be shown.</p>'; } };
 function chip(r) {
     if (r.status === 'final') return '<span class="chip final">📤 Sent</span>';
     if (r.aiStatus === 'pending') return '<span class="chip pend">🤖 AI writing…</span>';
     if (r.aiStatus === 'error') return '<span class="chip err">⚠ AI failed</span>';
     return '<span class="chip ready">✅ AI review ready</span>';
+}
+const keepFocus = (box, fn) => {   // a box that is drawn again keeps the focus on the same button
+    const f = document.activeElement, k = f && box.contains(f) && (f.dataset.id ? '[data-id="' + f.dataset.id + '"]' : f.dataset.a ? '[data-a="' + f.dataset.a + '"]' : '');
+    fn(); const n = k && box.querySelector(k); if (n) n.focus();
+};
+
+/* ---------- why this page isn't up to date: a banner that stays until it is, with the way back in ---------- */
+function paintBanner() {
+    const el = $('#rv-banner'); if (!el) return;
+    const e = R.errList || R.errRow || (authErr(R.errSave) ? R.errSave : null), s = e && e.status, bits = [];
+    if (e) {
+        bits.push(s === 401 ? `<span><b>Your session has ended, so this page has stopped updating.</b> <a href="/admin-login.html" target="_blank" rel="noopener">Sign in again</a> in a new tab${R.dirty ? '; what you typed stays here and is saved once you are in' : ''}.</span>`
+            : s === 423 ? '<span><b>This page has been locked by an administrator.</b> It updates again when it is unlocked.</span><button type="button" class="btn btn-ghost" data-a="reload">Reload</button>'
+            : s === 403 ? '<span><b>This page is for trainers.</b> <a href="/admin-login.html" target="_blank" rel="noopener">Sign in as an admin</a>, then reload.</span>'
+            : `<span><b>Not updating:</b> ${esc(e.message)}</span>`);
+        bits.push('<button type="button" class="btn btn-ghost" data-a="refresh">Try again</button>');
+    }
+    if (R.errSave && !authErr(R.errSave)) bits.push(`<span><b>Your latest feedback isn’t saved yet:</b> ${esc(R.errSave.message)} It stays on this page${transient(R.errSave) ? ' and is saved again by itself' : ''}.</span>`);
+    const html = bits.join('');
+    if (html !== R.bannerHtml) { R.bannerHtml = html; el.innerHTML = html; }
 }
 
 /* ---------- the submissions: looked at again every 8 seconds while this page is on screen ---------- */
@@ -100,23 +141,30 @@ async function loadList() {
     clearTimeout(R.listTimer);
     try {
         const d = await api(API + '?all=1');
+        if (!Array.isArray(d.reviews)) throw new Error('The server sent no list.');
         const before = R.seen; R.seen = new Set(d.reviews.map(r => r.id));
-        d.reviews.forEach(r => { r._new = before && !before.has(r.id); });
-        R.list = d.reviews; R.err = '';
-    } catch (e) { R.err = e.message; }
-    paintList();
+        d.reviews.forEach(r => { norm(r); r._new = before && !before.has(r.id); });
+        R.list = d.reviews; R.errList = null;
+    } catch (e) { R.errList = e; }
+    paintList(); paintBanner();
     R.listTimer = setTimeout(() => { if (!document.hidden) loadList(); else R.listTimer = null; }, 8000);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (!R.listTimer) loadList(); if (R.open && !R.rowTimer) loadRow(); } });
 function paintList() {
     const el = $('#rv-list'); if (!el) return;
-    if (R.err && !R.list) { el.innerHTML = `<p class="rv-none">${esc(R.err)}</p>`; return; }
-    const rows = (R.list || []).filter(r => !R.track || r.track === R.track);
-    el.innerHTML = rows.length ? rows.map(r => `<div class="rv-row ${r.id === R.open ? 'on' : ''} ${r._new ? 'new' : ''}" data-id="${r.id}">
-            <b>${esc(r.name || r.username)}</b>${r.batch ? ` <span class="rv-sub">· ${esc(r.batch)}</span>` : ''}
-            <div class="rv-sub">${esc(when(r.submittedAt))} · ${esc(TRACKS[r.track] || r.track)}${r.checkScore != null ? ' · check ' + r.checkScore + '%' : ''}</div>
-            <div style="margin-top:4px">${chip(r)}</div></div>`).join('')
-        : '<p class="rv-none">No submissions yet. They show here as soon as a trainee clicks 📤 Submit for evaluation.</p>';
+    let html;
+    if (!R.list) html = `<p class="rv-none">${R.errList ? 'The submissions couldn’t be loaded.' : 'Loading…'}</p>`;
+    else {
+        const rows = R.list.filter(r => !R.track || r.track === R.track);
+        html = rows.length ? rows.map(r => `<button type="button" class="rv-row ${r.id === R.open ? 'on' : ''} ${r._new ? 'new' : ''}" data-id="${esc(r.id)}"${r.id === R.open ? ' aria-current="true"' : ''}>
+            <span class="rv-blk"><b>${esc(r.name || r.username)}</b>${r.batch ? ` <span class="rv-sub">· ${esc(r.batch)}</span>` : ''}</span>
+            <span class="rv-sub rv-blk">${esc(when(r.submittedAt))} · ${esc(TRACKS[r.track] || r.track)}${r.checkScore != null ? ' · check ' + esc(r.checkScore) + '%' : ''}</span>
+            <span class="rv-blk" style="margin-top:4px">${chip(r)}</span></button>`).join('')
+            : R.list.length ? `<p class="rv-none">No ${esc(TRACKS[R.track] || R.track)} submissions. <button type="button" class="btn btn-ghost" data-a="all-tracks">Show all tracks</button></p>`
+            : '<p class="rv-none">No submissions yet. They show here as soon as a trainee clicks 📤 Submit for evaluation.</p>';
+    }
+    if (html === R.listHtml) return;   // nothing changed: leave the list (and the focus in it) alone
+    R.listHtml = html; keepFocus(el, () => { el.innerHTML = html; });
 }
 
 /* ---------- one submission, live: every 3 seconds while its AI review is being written, every 15 after ---------- */
@@ -126,12 +174,17 @@ async function loadRow() {
     try {
         const d = await api(API + '?id=' + id);
         if (R.open !== id) return;
+        if (!d.review) throw new Error('The server sent no submission.');
         const had = R.row && R.row.id === id ? R.row : null;
-        R.row = d.review;
-        // what the trainer is typing stays as it is
-        if (had && R.dirty) R.row.trainer = had.trainer;
+        R.row = norm(d.review); R.errRow = null;
         paintRow(had);
-    } catch (e) { $('#rv-main').innerHTML = `<div class="rv-card"><p class="rv-none">${esc(e.message)}</p></div>`; }
+    } catch (e) {
+        if (R.open !== id) return;
+        R.errRow = e;
+        // What is on screen stays exactly as it is, with what the trainer has typed: only a first look that failed has nothing to keep.
+        if (!R.row) $('#rv-main').innerHTML = `<div class="rv-card"><p class="rv-none">This submission couldn’t be opened: ${esc(e.message)}</p><button type="button" class="btn btn-ghost" data-a="refresh">Try again</button></div>`;
+    }
+    paintBanner();
     if (R.open === id && !document.hidden) R.rowTimer = setTimeout(loadRow, R.row && R.row.aiStatus === 'pending' ? 3000 : 15000);
 }
 function aiList(items, cls, key) {
@@ -143,9 +196,10 @@ function aiList(items, cls, key) {
 function aiHtml(r) {
     if (r.aiStatus === 'pending') return `<div class="rv-wait"><span class="rv-spin"></span><div><b>The AI review is being written…</b><br><span class="rv-sub">It shows here the moment it’s ready. Meanwhile, go through the appointments and the automated check below.</span></div></div>`;
     const a = r.ai || {};
-    if (r.aiStatus === 'error') return `<div class="rv-wait" style="background:#fce8e6"><div><b>The AI review couldn’t be written.</b><br><span class="rv-sub">${esc(a.error || '')}</span></div>${r.status === 'final' ? '' : '<button class="btn btn-ghost" data-a="retry">↻ Try again</button>'}</div>`;
+    if (r.aiStatus === 'error') return `<div class="rv-wait" style="background:#fce8e6"><div><b>The AI review couldn’t be written.</b><br><span class="rv-sub">${esc(a.error || '')}</span></div>${r.status === 'final' ? '' : '<button type="button" class="btn btn-ghost" data-a="retry">↻ Try again</button>'}</div>`;
     const k = r.id + ':' + (a.at || '');
-    return `${a.summary ? `<p style="margin:4px 0 8px;font-size:14.5px">${esc(a.summary)}</p>` : ''}
+    return `${a.retryError && r.status !== 'final' ? `<p class="rv-sub" style="color:#c5221f">The last try at a new review failed (${esc(a.retryError)}), so this one is still showing. <button type="button" class="btn btn-ghost" data-a="retry">↻ Try again</button></p>` : ''}
+        ${a.summary ? `<p style="margin:4px 0 8px;font-size:14.5px">${esc(a.summary)}</p>` : ''}
         <h4>✅ Done correctly</h4>${aiList(a.correct, 'ok', k + 'c')}
         <h4>🛠 Needs improvement</h4>${aiList(a.improve, 'mid', k + 'i')}
         <h4>⚠️ Requirements missed</h4>${aiList(a.missed, 'no', k + 'm')}`;
@@ -154,6 +208,7 @@ const DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], H0 = 7, H1 = 19, P
 const dAdd = (d, n) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
 const mOf = (t) => { const p = String(t || '0:0').split(':'); return (+p[0] || 0) * 60 + (+p[1] || 0); };
 const t12 = (t) => { const m = mOf(t), h = Math.floor(m / 60); return (h % 12 || 12) + (m % 60 ? ':' + String(m % 60).padStart(2, '0') : '') + (h < 12 ? 'am' : 'pm'); };
+const colour = (c) => typeof c === 'string' && /^#[0-9a-f]{3,8}$/i.test(c) ? c : '#039be5';   // goes into a style attribute: only a #hex colour gets in
 function weekHtml(w) {
     if (!w || !w.from) return '<p class="rv-none">This submission was made before the calendar view existed: see the appointments below.</p>';
     const weeks = Math.max(1, Math.round((new Date(w.to + 'T00:00:00Z') - new Date(w.from + 'T00:00:00Z')) / 604800000) + (w.to > w.from ? 0 : 1));
@@ -169,10 +224,10 @@ function weekHtml(w) {
         const n = Math.max(1, lanes.length);
         return `<div class="wk-col" style="height:${(H1 - H0) * PH}px">${list.filter(e => (mOf(e.e) || mOf(e.s) + 30) > H0 * 60 && mOf(e.s) < H1 * 60).map(e => { const a0 = Math.max(mOf(e.s), H0 * 60), a1 = Math.min(mOf(e.e) || mOf(e.s) + 30, H1 * 60);   // clipped to the hours shown
             const top = (a0 - H0 * 60) / 60 * PH, h = Math.max(16, (a1 - a0) / 60 * PH - 2);
-            return `<div class="wk-ev ${e.mine ? 'mine' : ''}" title="${esc(e.t)} · ${esc(t12(e.s))}–${esc(t12(e.e))} · ${esc(e.cal)}${e.mine ? ' (the trainee’s)' : ''}" style="top:${top}px;height:${h}px;background:${esc(e.c || '#039be5')};left:calc(${e._k / n * 100}% + 2px);width:calc(${100 / n}% - 4px);right:auto">${esc(e.t)}<small>${esc(t12(e.s))}–${esc(t12(e.e))}${e.meet ? ' · Meet' : ''}</small></div>`; }).join('')}</div>`;
+            return `<div class="wk-ev ${e.mine ? 'mine' : ''}" title="${esc(e.t)} · ${esc(t12(e.s))}–${esc(t12(e.e))} · ${esc(e.cal)}${e.mine ? ' (the trainee’s)' : ''}" style="top:${top}px;height:${h}px;background:${colour(e.c)};left:calc(${e._k / n * 100}% + 2px);width:calc(${100 / n}% - 4px);right:auto">${esc(e.t)}<small>${esc(t12(e.s))}–${esc(t12(e.e))}${e.meet ? ' · Meet' : ''}</small></div>`; }).join('')}</div>`;
     };
     const allDay = evs.filter(e => !e.s);
-    return `<div class="wk"><div class="wk-bar"><button class="btn btn-ghost" data-a="wk" data-d="-1" ${R.wk <= 0 ? 'disabled' : ''} aria-label="Previous week">‹</button><button class="btn btn-ghost" data-a="wk" data-d="1" ${R.wk >= weeks - 1 ? 'disabled' : ''} aria-label="Next week">›</button>
+    return `<div class="wk"><div class="wk-bar"><button type="button" class="btn btn-ghost" data-a="wk" data-d="-1" ${R.wk <= 0 ? 'disabled' : ''} aria-label="Previous week">‹</button><button type="button" class="btn btn-ghost" data-a="wk" data-d="1" ${R.wk >= weeks - 1 ? 'disabled' : ''} aria-label="Next week">›</button>
             <b>${esc(label(days[0]))} – ${esc(label(days[4]))}</b><span class="wk-key"><i style="background:#039be5"></i>the attorney’s calendar <i style="background:#fff;outline:2px solid #1f1f1f"></i>the trainee’s events</span></div>
         <div class="wk-head"><div></div>${days.map(d => `<div class="${d === w.today ? 'today' : ''}">${DN[new Date(d + 'T00:00:00Z').getUTCDay()]}<b>${+d.slice(8)}</b></div>`).join('')}</div>
         <div class="wk-body"><div class="wk-hrs">${Array.from({ length: H1 - H0 }, (_, i) => `<div>${i ? t12(String(H0 + i).padStart(2, '0') + ':00') : ''}</div>`).join('')}</div>${days.map(col).join('')}</div>
@@ -180,7 +235,7 @@ function weekHtml(w) {
 }
 function checkHtml(c) {
     const a = c && c.automatedCheck; if (!a) return '';
-    const ck = a.results || [];
+    const ck = Array.isArray(a.results) ? a.results : [];
     const unit = (c.requests || []).length ? 'requests' : 'appointments';
     return `<h3>🤖 Automated feedback <span class="rv-sub" style="font-weight:400">· ${esc(a.score)}% · ${esc(a.requestsFullyRight || '')} ${unit} fully right</span></h3>
         ${!(c.requests || []).length ? '<p class="rv-sub" style="margin:0 0 6px">Booked from the trainee’s mock calls: each appointment is checked against the attorney’s rules. Whether it matches what the caller asked is yours and the AI’s to judge.</p>' : ''}
@@ -192,115 +247,182 @@ function checkHtml(c) {
 function calHtml(c) {
     if (!c) return '';
     const ap = c.appointments || [];
-    return `<details><summary>📅 The appointments in detail (${ap.length})</summary>${ap.length ? `<table><tr><th>Title</th><th>When</th><th>Where / Meet</th><th>Description</th></tr>${ap.map(e => `<tr><td>${esc(e.title)}<div class="rv-sub">${esc(e.calendar)}</div></td><td>${esc(e.day)} ${esc(e.date)}<br>${esc(e.time)}<div class="rv-sub">${esc(e.timeZone)}</div></td><td>${esc(e.location || '')}${e.googleMeet ? '<br>Google Meet' : ''}</td><td>${esc(e.description || '')}${(e.notifications || []).length ? `<div class="rv-sub">🔔 ${esc(e.notifications.join(', '))}</div>` : ''}</td></tr>`).join('')}</table>` : '<p class="rv-none">No appointments of their own.</p>'}</details>
+    return `<details><summary>📅 The appointments in detail (${ap.length})</summary>${ap.length ? `<div class="rv-tw"><table><tr><th>Title</th><th>When</th><th>Where / Meet</th><th>Description</th></tr>${ap.map(e => `<tr><td>${esc(e.title)}<div class="rv-sub">${esc(e.calendar)}</div></td><td>${esc(e.day)} ${esc(e.date)}<br>${esc(e.time)}<div class="rv-sub">${esc(e.timeZone)}</div></td><td>${esc(e.location || '')}${e.googleMeet ? '<br>Google Meet' : ''}</td><td>${esc(e.description || '')}${(e.notifications || []).length ? `<div class="rv-sub">🔔 ${esc(e.notifications.join(', '))}</div>` : ''}</td></tr>`).join('')}</table></div>` : '<p class="rv-none">No appointments of their own.</p>'}</details>
         ${(c.requests || []).length ? `<details><summary>📞 What the callers asked</summary>${(c.requests || []).map(q => `<div style="margin:6px 0;font-size:13px"><b>${esc(q.kind === 'book' ? (q.type || 'Book') : q.kind === 'move' ? 'Move' : 'Cancel')} – ${esc(q.caller)}</b>${q.canDo ? ` <span class="rv-sub">(${esc(q.canDo)})</span>` : ''}<br>“${esc(q.callerSaid)}”</div>`).join('')}</details>` : ''}`;
 }
+const scoreOk = (t) => !t.bad && (t.score === '' || (Number.isFinite(Number(t.score)) && Number(t.score) >= 0 && Number(t.score) <= 100));
+const SCORE_MSG = 'The score must be a number from 0 to 100. Your notes and points are saved without it until it fits.';
 function trainerHtml(r) {
-    const t = r.trainer || { notes: '', points: [], score: null }, fin = r.status === 'final';
+    const t = R.t, fin = r.status === 'final';
     return `<h3>👤 Your manual feedback</h3>
         <p class="rv-sub" style="margin:0 0 6px">What the AI missed, what needs more explaining, your insights from the discussion. It’s saved as you type and goes in the trainee’s final report.</p>
-        <textarea id="rv-notes" ${fin ? 'disabled' : ''} placeholder="Your notes and insights for the trainee…">${esc(t.notes || '')}</textarea>
+        <textarea id="rv-notes" aria-label="Your notes and insights for the trainee" ${fin ? 'disabled' : ''} placeholder="Your notes and insights for the trainee…">${esc(t.notes)}</textarea>
         <h4>Additional points (what the AI missed)</h4>
-        <div id="rv-points">${(t.points || []).map((p, i) => `<div class="rv-pt"><input type="text" data-pt="${i}" value="${esc(p)}" ${fin ? 'disabled' : ''}>${fin ? '' : `<button class="btn btn-ghost" data-a="pt-del" data-i="${i}" aria-label="Remove">✕</button>`}</div>`).join('')}</div>
-        ${fin ? '' : '<button class="btn btn-ghost" data-a="pt-add">+ Add a point</button>'}
-        <div style="display:flex;gap:10px;align-items:center;margin-top:10px;max-width:260px"><label for="rv-score" style="white-space:nowrap;font-weight:700;font-size:13.5px">Score (optional)</label><input id="rv-score" type="number" min="0" max="100" value="${t.score == null ? '' : t.score}" ${fin ? 'disabled' : ''}><span class="rv-sub">/100</span></div>
+        <div id="rv-points">${t.points.map((p, i) => `<div class="rv-pt"><input type="text" data-pt="${i}" aria-label="Additional point ${i + 1}" value="${esc(p)}" ${fin ? 'disabled' : ''}>${fin ? '' : `<button type="button" class="btn btn-ghost" data-a="pt-del" data-i="${i}" aria-label="Remove point ${i + 1}">✕</button>`}</div>`).join('')}</div>
+        ${fin ? '' : '<button type="button" class="btn btn-ghost" data-a="pt-add">+ Add a point</button>'}
+        <div style="display:flex;gap:10px;align-items:center;margin-top:10px;max-width:260px"><label for="rv-score" style="white-space:nowrap;font-weight:700;font-size:13.5px">Score (optional)</label><input id="rv-score" type="number" min="0" max="100" value="${esc(t.score)}" aria-describedby="rv-score-err" ${scoreOk(t) ? '' : 'aria-invalid="true"'} ${fin ? 'disabled' : ''}><span class="rv-sub">/100</span></div>
+        <div id="rv-score-err" class="rv-err" aria-live="polite">${scoreOk(t) ? '' : SCORE_MSG}</div>
         <div class="rv-btns">${fin
-            ? `<span class="chip final">📤 Sent to ${esc(r.name || 'the trainee')} ${esc(when(r.finalizedAt))}</span><button class="btn btn-ghost" data-a="reopen" title="Take the report back from the trainee and edit it">↩ Take it back to edit</button>`
-            : `<button class="btn btn-orange" data-a="finalize" ${r.aiStatus === 'pending' ? 'disabled title="Wait for the AI review"' : ''}>📤 Send final report to ${esc(r.name || 'the trainee')}</button><span class="rv-saved" id="rv-saved">${esc(R.saved)}</span>`}</div>`;
+            ? `<span class="chip final">📤 Sent to ${esc(r.name || 'the trainee')} ${esc(when(r.finalizedAt))}</span><button type="button" class="btn btn-ghost" data-a="reopen" title="Take the report back from the trainee and edit it">↩ Take it back to edit</button>`
+            : `<button type="button" class="btn btn-orange" data-a="finalize" ${r.aiStatus === 'pending' ? 'disabled title="Wait for the AI review"' : ''}>📤 Send final report to ${esc(r.name || 'the trainee')}</button><span class="rv-saved" id="rv-saved" role="status">${esc(R.saved)}</span>`}</div>`;
 }
+const paintTrainer = () => { const el = $('#rv-trainer'); if (el && R.row && R.t) el.innerHTML = part(trainerHtml, R.row); };
 function paintRow(prev) {
     const r = R.row, el = $('#rv-main'); if (!r || !el) return;
+    if (!R.t || R.tid !== r.id) {   // the first look at this submission: what is typed starts as what the server holds
+        const t = r.trainer || {};
+        R.t = { notes: String(t.notes || ''), points: (Array.isArray(t.points) ? t.points : []).map(x => String(x == null ? '' : x)), score: t.score == null ? '' : String(t.score), bad: false };
+        R.sv = Object.assign({}, R.t); R.tid = r.id;
+    }
     // Only the AI part changes on a refresh while the trainer is typing, so the cursor stays where it is.
     if (prev && prev.id === r.id && $('#rv-ai') && prev.status === r.status) {
-        if (prev.aiStatus !== r.aiStatus || JSON.stringify(prev.ai) !== JSON.stringify(r.ai)) { $('#rv-ai').innerHTML = aiHtml(r); const f = $('[data-a="finalize"]'); if (f) f.disabled = r.aiStatus === 'pending'; }
+        if (prev.aiStatus !== r.aiStatus || JSON.stringify(prev.ai) !== JSON.stringify(r.ai)) {
+            $('#rv-ai').innerHTML = part(aiHtml, r);
+            const c = $('#rv-chip'); if (c) c.innerHTML = chip(r);
+            const f = $('[data-a="finalize"]'); if (f) { f.disabled = r.aiStatus === 'pending'; if (f.disabled) f.title = 'Wait for the AI review'; else f.removeAttribute('title'); }
+        }
         return;
     }
     el.innerHTML = `<div class="rv-card">
-        <div class="rv-top"><div><h2>${esc(r.name || r.username)}</h2><div class="rv-sub">${r.batch ? esc(r.batch) + ' · ' : ''}${esc(TRACKS[r.track] || r.track)} · submitted ${esc(when(r.submittedAt))}${r.checkScore != null ? ` · automated check <b>${r.checkScore}%</b>` : ''}</div></div>${chip(r)}</div>
-        <h3>📅 The trainee’s calendar</h3><div id="rv-wk">${weekHtml(r.calendar && r.calendar.week)}</div>
-        ${checkHtml(r.calendar)}
-        ${calHtml(r.calendar)}
-        <h3>✨ AI review</h3><div id="rv-ai">${aiHtml(r)}</div>
-        ${trainerHtml(r)}</div>`;
+        <div class="rv-top"><div><h2 id="rv-title" tabindex="-1">${esc(r.name || r.username)}</h2><div class="rv-sub">${r.batch ? esc(r.batch) + ' · ' : ''}${esc(TRACKS[r.track] || r.track)} · submitted ${esc(when(r.submittedAt))}${r.checkScore != null ? ` · automated check <b>${esc(r.checkScore)}%</b>` : ''}</div></div><span id="rv-chip">${chip(r)}</span></div>
+        <h3>📅 The trainee’s calendar</h3><div id="rv-wk">${part(weekHtml, r.calendar && r.calendar.week)}</div>
+        ${part(checkHtml, r.calendar)}
+        ${part(calHtml, r.calendar)}
+        <h3>✨ AI review</h3><div id="rv-ai">${part(aiHtml, r)}</div>
+        <div id="rv-trainer">${part(trainerHtml, r)}</div></div>`;
+    const f = document.activeElement; if (!f || f === document.body || $('#rv-list').contains(f)) $('#rv-title').focus({ preventScroll: true });   // opened from the keyboard: on to the review
 }
 
 /* ---------- the trainer's feedback: saved a second after they stop typing ---------- */
-function readTrainer() {
-    return { notes: ($('#rv-notes') || {}).value || '', points: [...document.querySelectorAll('[data-pt]')].map(x => x.value), score: ($('#rv-score') || {}).value };
+function syncT() {   // the page's fields into R.t (when they are there to read)
+    const n = $('#rv-notes'), s = $('#rv-score'); if (!R.t || !n) return;
+    R.t.notes = n.value; R.t.points = [...document.querySelectorAll('[data-pt]')].map(x => x.value);
+    if (s) { R.t.score = s.value; R.t.bad = !!(s.validity && s.validity.badInput); }
 }
-function queueSave() { R.dirty = true; R.saved = 'Saving…'; const s = $('#rv-saved'); if (s) s.textContent = R.saved; clearTimeout(R.saveTimer); R.saveTimer = setTimeout(saveTrainer, 900); }
-async function saveTrainer() {
-    clearTimeout(R.saveTimer);
-    if (!R.row || R.row.status === 'final') return true;
-    const t = readTrainer();
+function showSaved() { const s = $('#rv-saved'); if (s) s.textContent = R.saved; }
+function showScoreErr() { const e = $('#rv-score-err'), s = $('#rv-score'); if (!e || !R.t) return; e.textContent = scoreOk(R.t) ? '' : SCORE_MSG; if (s) s.setAttribute('aria-invalid', String(!scoreOk(R.t))); }
+function queueSave() { R.dirty = true; R.rev++; R.saved = 'Saving…'; showSaved(); clearTimeout(R.saveTimer); R.saveTimer = setTimeout(saveTrainer, 900); }
+// One save at a time, each sending what R.t holds when its turn comes. Resolves to true when nothing typed is left unsaved.
+let saving = Promise.resolve();
+function saveTrainer() { clearTimeout(R.saveTimer); const p = saving.then(doSave); saving = p; return p; }
+async function doSave() {
+    const t = R.t, row = R.row;
+    if (!t || !row || row.status === 'final' || !R.dirty) return true;
+    const rev = R.rev, ok = scoreOk(t);
+    // a score that doesn't fit is the one thing the server would refuse the whole save for: the notes and points go with the last good score
+    const body = { action: 'trainer', id: row.id, notes: t.notes, points: t.points, score: ok ? t.score : R.sv.score };
     try {
-        await post(Object.assign({ action: 'trainer', id: R.row.id }, t));
-        R.row.trainer = { notes: t.notes, points: t.points.filter(Boolean), score: t.score === '' ? null : Number(t.score) };
-        R.dirty = false; R.saved = 'Saved ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    } catch (e) { R.saved = '⚠ ' + e.message; }
-    const s = $('#rv-saved'); if (s) s.textContent = R.saved;
+        await post(body);
+        R.sv = { notes: t.notes, points: t.points.slice(), score: body.score, bad: false }; R.errSave = null;
+        if (R.rev === rev && R.t === t) {   // (typed again while this went to the server: that is still to be saved)
+            R.dirty = !ok; R.why = ok ? '' : 'the score must be a number from 0 to 100';
+            R.saved = ok ? 'Saved ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'Saved, but not the score';
+        } else R.saved = 'Saving…';
+    } catch (e) {
+        R.errSave = e; R.why = e.message; R.saved = '⚠ Not saved: ' + e.message;
+        if (transient(e)) R.saveTimer = setTimeout(saveTrainer, 10000);
+    }
+    showSaved(); paintBanner();
     return !R.dirty;
 }
 
 /* ---------- your rules, guidelines and notes for the AI review ---------- */
 async function loadRules(track) {
-    R.rulesTrack = track; R.rules = null; paintRules();
-    try { const d = await api(API + '?rules=' + track); R.rules = d; } catch (e) { R.rules = { text: '', error: e.message }; }
-    paintRules();
+    const seq = ++R.rulesSeq;
+    R.rulesTrack = track; R.rules = null; R.rulesDirty = false; paintRulesBody();
+    let d; try { d = await api(API + '?rules=' + track); } catch (e) { d = { error: e.message }; }
+    if (seq !== R.rulesSeq) return;   // another track was chosen meanwhile: this answer is for the one before
+    R.rules = d; paintRulesBody();
 }
 function paintRules() {
-    const el = $('#rv-rules'); if (!el) return;
+    const el = $('#rv-rules'), b = $('[data-a="rules"]'); if (!el) return;
+    if (b) b.setAttribute('aria-expanded', String(R.showRules));
     if (!R.showRules) { el.innerHTML = ''; return; }
     el.innerHTML = `<div class="rv-card" style="margin-bottom:16px"><h3 style="margin-top:0">📘 Your rules, guidelines and notes for the AI review</h3>
         <p class="rv-sub" style="margin:0 0 8px">The AI reviews every submitted calendar against the attorney’s rules (in the simulator) <b>and</b> what you write here: house rules, what you look for, common mistakes to flag. A change applies to the next review.</p>
-        <select id="rv-rt" style="max-width:320px;margin-bottom:8px">${Object.keys(TRACKS).map(k => `<option value="${k}" ${k === R.rulesTrack ? 'selected' : ''}>${esc(TRACKS[k])}</option>`).join('')}</select>
-        ${R.rules == null ? '<p class="rv-none">Loading…</p>' : `<textarea id="rv-rtext" style="min-height:160px" placeholder="e.g. Consultations go in the afternoon when possible. The description must say who referred the client. Flag any appointment booked without a callback number.">${esc(R.rules.text || '')}</textarea>
-        <div class="rv-btns"><button class="btn btn-navy" data-a="rules-save">Save</button><span class="rv-saved">${R.rules.error ? '⚠ ' + esc(R.rules.error) : R.rules.updatedAt ? 'Last saved by ' + esc(R.rules.updatedBy || '') + ', ' + esc(when(R.rules.updatedAt)) : 'Nothing saved yet for this track.'}</span></div>`}</div>`;
+        <select id="rv-rt" aria-label="The track these rules are for" style="max-width:320px;margin-bottom:8px">${Object.keys(TRACKS).map(k => `<option value="${k}" ${k === R.rulesTrack ? 'selected' : ''}>${esc(TRACKS[k])}</option>`).join('')}</select>
+        <div id="rv-rbody"></div></div>`;
+    paintRulesBody();
+}
+function paintRulesBody() {   // only what is under the track menu: the menu keeps the focus while the trainer arrows through it
+    const el = $('#rv-rbody'), x = R.rules; if (!el) return;
+    el.innerHTML = x == null ? '<p class="rv-none">Loading…</p>'
+        : x.error ? `<p class="rv-none">⚠ ${esc(x.error)}</p><div class="rv-btns"><button type="button" class="btn btn-ghost" data-a="rules-retry">Try again</button></div>`   // (no empty box to save over the rules that are there)
+        : `<textarea id="rv-rtext" aria-label="Your rules, guidelines and notes for ${esc(TRACKS[R.rulesTrack])}" style="min-height:160px" placeholder="e.g. Consultations go in the afternoon when possible. The description must say who referred the client. Flag any appointment booked without a callback number.">${esc(x.text || '')}</textarea>
+        <div class="rv-btns"><button type="button" class="btn btn-navy" data-a="rules-save">Save</button><span class="rv-saved" id="rv-rmeta" role="status">${x.updatedAt ? 'Last saved by ' + esc(x.updatedBy || '') + ', ' + esc(when(x.updatedAt)) : 'Nothing saved yet for this track.'}</span></div>`;
 }
 
 /* ---------- the page ---------- */
 function page() {
-    $('#app').innerHTML = `<div class="rv">
-        <div class="rv-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">📤 Submissions</h3>
-            <select id="rv-track" style="width:auto;max-width:170px"><option value="">All tracks</option>${Object.keys(TRACKS).map(k => `<option value="${k}" ${k === R.track ? 'selected' : ''}>${esc(TRACKS[k])}</option>`).join('')}</select></div>
+    $('#app').innerHTML = `<div class="rv"><div id="rv-banner" class="rv-banner" role="alert"></div>
+        <div class="rv-card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><h3 style="margin:0">📤 Submissions</h3>
+            <select id="rv-track" aria-label="Show the submissions of one track" style="width:auto;max-width:100%"><option value="">All tracks</option>${Object.keys(TRACKS).map(k => `<option value="${k}" ${k === R.track ? 'selected' : ''}>${esc(TRACKS[k])}</option>`).join('')}</select></div>
             <p class="rv-sub" style="margin:6px 0">Updates on its own while this page is open.</p>
-            <button class="btn btn-ghost" data-a="rules" style="width:100%;margin-bottom:6px">📘 Your rules for the AI review</button>
-            <div id="rv-list" class="rv-list"></div></div>
+            <button type="button" class="btn btn-ghost" data-a="rules" aria-expanded="false" style="width:100%;margin-bottom:6px">📘 Your rules for the AI review</button>
+            <div id="rv-list" class="rv-list" role="group" aria-label="Submitted calendars"></div></div>
         <div><div id="rv-rules"></div><div id="rv-main"><div class="rv-card"><p class="rv-none">Open a submission on the left to review it with the trainee.</p></div></div></div></div>`;
     paintList();
 }
 async function openRow(id) {
-    if (R.dirty) await saveTrainer();
-    R.open = id; R.row = null; R.saved = ''; R.dirty = false; R.wk = null;
+    if (id === R.open && R.row) { const h = $('#rv-title'); if (h) h.focus(); return; }
+    // feedback that didn't reach the server is not thrown away without asking
+    if (R.dirty && !(await saveTrainer()) && !confirm('Your latest feedback for ' + ((R.row && (R.row.name || R.row.username)) || 'this submission') + ' hasn’t been saved' + (R.why ? ' (' + R.why + ')' : '') + '. Open another submission anyway and lose it?')) return;
+    clearTimeout(R.saveTimer);
+    R.open = id; R.row = null; R.t = null; R.sv = null; R.tid = null; R.saved = ''; R.why = ''; R.errRow = null; R.errSave = null; R.dirty = false; R.wk = null;
     $('#rv-main').innerHTML = '<div class="rv-card"><div class="rv-wait"><span class="rv-spin"></span>Opening…</div></div>';
-    paintList(); loadRow();
+    paintList(); paintBanner(); loadRow();
 }
 document.addEventListener('click', async (ev) => {
     const row = ev.target.closest('.rv-row'); if (row) { openRow(+row.dataset.id); return; }
     const a = ev.target.closest('[data-a]'); if (!a) return;
     const act = a.dataset.a;
-    if (act === 'wk') { R.wk += +a.dataset.d; $('#rv-wk').innerHTML = weekHtml(R.row.calendar && R.row.calendar.week); return; }
-    if (act === 'pt-add') { R.row.trainer = Object.assign(readTrainer(), {}); R.row.trainer.points.push(''); const pts = R.row.trainer.points; paintRow(); const inp = document.querySelector(`[data-pt="${pts.length - 1}"]`); if (inp) inp.focus(); return; }
-    if (act === 'pt-del') { const t = readTrainer(); t.points.splice(+a.dataset.i, 1); R.row.trainer = t; paintRow(); queueSave(); return; }
+    if (act === 'wk') { if (!R.row) return; R.wk += +a.dataset.d; $('#rv-wk').innerHTML = part(weekHtml, R.row.calendar && R.row.calendar.week); const b = $('#rv-wk [data-a="wk"][data-d="' + a.dataset.d + '"]'); if (b && !b.disabled) b.focus(); return; }
+    if (act === 'pt-add') { if (!R.t) return; syncT(); R.t.points.push(''); paintTrainer(); const inp = document.querySelector(`[data-pt="${R.t.points.length - 1}"]`); if (inp) inp.focus(); return; }
+    if (act === 'pt-del') { if (!R.t) return; syncT(); R.t.points.splice(+a.dataset.i, 1); paintTrainer(); queueSave(); const n = document.querySelector(`[data-pt="${Math.min(+a.dataset.i, R.t.points.length - 1)}"]`) || $('[data-a="pt-add"]'); if (n) n.focus(); return; }
     if (act === 'finalize') {
-        if (!confirm('Send this final report to ' + (R.row.name || 'the trainee') + '? They will see the AI review and your feedback under My Evaluations and can download it.')) return;
-        if (!(await saveTrainer())) { alert('Your feedback couldn’t be saved, so the report wasn’t sent. ' + R.saved); return; }
-        try { await post({ action: 'finalize', id: R.row.id }); R.row = null; await loadRow(); loadList(); } catch (e) { alert(e.message); }
+        if (!R.row || !confirm('Send this final report to ' + (R.row.name || 'the trainee') + '? They will see the AI review and your feedback under My Evaluations and can download it.')) return;
+        if (!(await saveTrainer())) { alert('Your feedback couldn’t be saved, so the report wasn’t sent: ' + R.why + '.'); return; }
+        try { await post({ action: 'finalize', id: R.row.id }); await loadRow(); loadList(); } catch (e) { alert(e.message); }
         return;
     }
-    if (act === 'reopen') { try { await post({ action: 'reopen', id: R.row.id }); R.row = null; await loadRow(); loadList(); } catch (e) { alert(e.message); } return; }
-    if (act === 'retry') { try { await post({ action: 'retry', id: R.row.id }); R.row = null; await loadRow(); loadList(); } catch (e) { alert(e.message); } return; }
-    if (act === 'rules') { R.showRules = !R.showRules; if (R.showRules) loadRules(R.track || 'standard'); else paintRules(); return; }
+    // (the page stays as it is while these load again: what the trainer has typed is not replaced)
+    if (act === 'reopen') { try { await post({ action: 'reopen', id: R.row.id }); await loadRow(); loadList(); } catch (e) { alert(e.message); } return; }
+    if (act === 'retry') { try { await post({ action: 'retry', id: R.row.id }); await loadRow(); loadList(); } catch (e) { alert(e.message); } return; }
+    if (act === 'refresh') { loadList(); if (R.open) loadRow(); if (R.dirty) saveTrainer(); return; }
+    if (act === 'reload') { location.reload(); return; }
+    if (act === 'all-tracks') { R.track = ''; const s = $('#rv-track'); if (s) s.value = ''; paintList(); return; }
+    if (act === 'rules') {
+        if (R.showRules && R.rulesDirty && !confirm('You have unsaved changes to your rules. Close them anyway?')) return;
+        R.showRules = !R.showRules;
+        if (R.showRules) { R.rulesTrack = R.track || 'standard'; paintRules(); loadRules(R.rulesTrack); } else { R.rulesSeq++; R.rulesDirty = false; paintRules(); }
+        return;
+    }
+    if (act === 'rules-retry') { loadRules(R.rulesTrack); return; }
     if (act === 'rules-save') {
-        try { await post({ action: 'rules', track: R.rulesTrack, text: $('#rv-rtext').value }); await loadRules(R.rulesTrack); } catch (e) { alert(e.message); }
+        const ta = $('#rv-rtext'), track = R.rulesTrack, seq = R.rulesSeq, text = ta ? ta.value : ''; if (!ta) return;
+        const meta = (m) => { const e = $('#rv-rmeta'); if (e && seq === R.rulesSeq) e.textContent = m; };   // (not on another track's screen)
+        a.disabled = true; meta('Saving…');
+        try {
+            await post({ action: 'rules', track, text });
+            if (seq === R.rulesSeq) { const cur = $('#rv-rtext'); if (cur && cur.value === text) R.rulesDirty = false; if (R.rules) R.rules.text = text; }
+            meta('Saved ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+        } catch (e) { meta('⚠ Not saved: ' + e.message); }
+        a.disabled = false;
     }
 });
-document.addEventListener('input', (ev) => { if (ev.target.closest('#rv-main') && (ev.target.id === 'rv-notes' || ev.target.id === 'rv-score' || ev.target.dataset.pt != null)) queueSave(); });
+document.addEventListener('input', (ev) => {
+    const el = ev.target;
+    if (el.id === 'rv-rtext') { R.rulesDirty = true; const m = $('#rv-rmeta'); if (m) m.textContent = 'Not saved yet'; return; }
+    if (el.closest('#rv-main') && (el.id === 'rv-notes' || el.id === 'rv-score' || el.dataset.pt != null)) { syncT(); showScoreErr(); queueSave(); }
+});
 document.addEventListener('change', (ev) => {
     if (ev.target.id === 'rv-track') { R.track = ev.target.value; paintList(); }
-    if (ev.target.id === 'rv-rt') loadRules(ev.target.value);
+    if (ev.target.id === 'rv-rt') {
+        if (R.rulesDirty && !confirm('You have unsaved changes to the rules for ' + TRACKS[R.rulesTrack] + '. Switch tracks and lose them?')) { ev.target.value = R.rulesTrack; return; }
+        loadRules(ev.target.value);
+    }
 });
-window.addEventListener('beforeunload', (ev) => { if (R.dirty) { saveTrainer(); ev.preventDefault(); ev.returnValue = ''; } });
+window.addEventListener('beforeunload', (ev) => { if (R.dirty || R.rulesDirty) { if (R.dirty) saveTrainer(); ev.preventDefault(); ev.returnValue = ''; } });
 document.addEventListener('DOMContentLoaded', async () => {
     if (!Sim.isAdmin()) await Sim.restore();   // opened in a new tab (noopener): the cookie says who is signed in, this tab has no copy yet
     document.getElementById('topbar').innerHTML = Sim.topbar('gcal');

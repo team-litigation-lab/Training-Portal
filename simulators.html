@@ -106,7 +106,8 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', () => { renderHub(); renderResults(); });
+    // A new tab has the signed cookie but no copy of who in its own storage: ask first, so an admin gets the admin hub and results, and the heartbeat runs.
+    document.addEventListener('DOMContentLoaded', async () => { await Sim.restore(); renderHub(); renderResults(); });
 </script>
 </body>
 </html>

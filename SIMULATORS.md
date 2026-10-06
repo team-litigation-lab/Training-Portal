@@ -42,12 +42,25 @@ progress: Standard Training by lesson (Reception 4, Calendar Management 5, Intak
 - Page shell: load `/app.js`, `/portal.js`, `/simulators/sim.js`, then the simulator's
   own scripts; put `Sim.topbar('<id>')` in `#topbar`; call `Sim.label(...)` for the
   heartbeat view label.
-- Trainees don't sign in on the portal. Identity is `Sim.who()` → `{ name, batch, program }`
-  (asked once by the "Who's practicing?" card, or passed as `?name=&batch=&program=`).
-  Only admins have a session (`Sim.isAdmin()`).
+- Everyone signs in on the Portal, trainees and admins alike: `functions/_middleware.js` sends a visitor without a Portal session
+  to the sign-in before any `/simulators/*` page, and the simulators' APIs refuse one. **`sim.js` keeps a Trainee session** (it
+  used to delete it): `Sim.isAdmin()` is only `userType === 'Admin'`. The Portal treats a session with no heartbeat for 90 s as
+  expired (the APIs answer 401 `SESSION_EXPIRED`), and `app.js` beats every 30 s only for a person the tab knows. A page opened
+  in a new tab (a link from a course site, a bookmark) has the cookie but no copy in the tab, so **every page that decides by
+  who is signed in calls `await Sim.restore()` before its first render** (`simulators.html`, `gcal.js`, `my-evaluations.html`,
+  `gcal-review.html`): it asks `/api/me` once, keeps the answer (Admin or Trainee) with `setSession()`, starts the heartbeat,
+  and resolves to the session (`{}` when signed out). `Sim.fetchRetry(url, opts)` is `fetch` that, on a 401 `SESSION_EXPIRED`,
+  asks `/api/me` once (it re-seeds the heartbeat) and sends the request again once: use it for the Portal's own APIs
+  (`Sim.ai`, `Sim.saveResult` and `Sim.results` do). Test: `.github/scripts/sim-session.cjs`.
+- `Sim.who()` → `{ name, batch, program }` is what the trainer sees with the scores (asked once by the "Who's practicing?" card,
+  or passed as `?name=&batch=&program=`). It is typed, not taken from the account, and kept in this browser with the calendars
+  (`lsh_gcal[.track]:<name>`, `lsh_gcal_seen`) and the results history (`LSH_SIM_HISTORY`). `LSH_SIM_USER` remembers whose they
+  are: when `Sim.restore()` (or the tab's own session) names a different person, `Sim.claim()` clears all of them, so a second
+  trainee on a shared browser never inherits the first one's calendar nor uploads it as their draft. (No sign-out hook is needed:
+  `logoutSession()` is `app.js`'s and clears only the session; the next person to sign in is compared with `LSH_SIM_USER`.)
 - `?program=CM` / `?program=EA` should open that program's content first.
 - Gemini: `Sim.ai({ system, messages:[{role:'user'|'model', text}], json, maxTokens })`
-  → `/api/sim-ai`. Public visitors go through `functions/_sim-guard.js` (same-origin only, `SIM_RATE_LIMIT`
+  → `/api/sim-ai`. Calls go through `functions/_sim-guard.js` (a Portal session, same-origin only, `SIM_RATE_LIMIT`
   requests per connection per 10 minutes, default 400 — a whole class often shares one office connection).
   No Anthropic keys.
   - **US relay (recommended):** Gemini refuses some regions ("User location is not supported", e.g. Hong Kong),

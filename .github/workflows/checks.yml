@@ -70,6 +70,10 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/requests.cjs
+      - name: Simulator pages keep a signed-in person (a trainee's session and heartbeat, a new tab asks /api/me once, retry on SESSION_EXPIRED, a second trainee starts clean)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/sim-session.cjs
       - name: Google Calendar Simulator (the week, every request doable, the check, the page, an Admin's schedule)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
