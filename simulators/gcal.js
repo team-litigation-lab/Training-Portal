@@ -1138,18 +1138,7 @@ const seenFinal = (id) => { try { return (JSON.parse(localStorage.getItem(SEEN) 
 const markSeen = (id) => { try { const a = JSON.parse(localStorage.getItem(SEEN) || '[]'); if (!a.includes(id)) { a.push(id); localStorage.setItem(SEEN, JSON.stringify(a.slice(-200))); } } catch (e) { /* storage blocked */ } };
 const evWhen = (t) => { try { return new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return t; } };
 const list = (items, cls) => (items || []).length ? `<ul class="ev-l ${cls}">${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="ev-none">None.</p>';
-function reportHtml(r) {
-    const ai = r.ai || {}, t = r.trainer || {};
-    return `<div class="ev-rep">
-        <div class="ev-meta">${esc(evWhen(r.submittedAt))} · automated check ${r.checkScore == null ? '—' : r.checkScore + '%'}${t.score != null ? ` · <b>trainer's score ${t.score}/100</b>` : ''}<br>Finalized by ${esc(r.finalizedBy || 'your trainer')}, ${esc(evWhen(r.finalizedAt))}</div>
-        ${ai.summary ? `<p class="ev-sum">${esc(ai.summary)}</p>` : ''}
-        ${ai.error ? `<p class="ev-none">The AI review couldn't be written for this one; your trainer's feedback is below.</p>` : `
-        <h4>✅ Done correctly</h4>${list(ai.correct, 'ok')}
-        <h4>🛠 Needs improvement</h4>${list(ai.improve, 'mid')}
-        <h4>⚠️ Requirements missed</h4>${list(ai.missed, 'no')}`}
-        <h4>👤 Your trainer's feedback</h4>${t.notes ? `<p class="ev-notes">${textToHtml(t.notes)}</p>` : ''}${(t.points || []).length ? list(t.points, 'tr') : (t.notes ? '' : '<p class="ev-none">No written comments.</p>')}
-    </div>`;
-}
+const reportHtml = (r) => EvalReport.html(r);
 function evalsHtml() {
     if (EV.open != null) {
         const r = EV.list.find(x => x.id === EV.open);
@@ -1158,36 +1147,15 @@ function evalsHtml() {
         return `<button class="txt" data-a="eval-back" style="padding:0;margin-bottom:6px">← All evaluations</button><h4 style="margin:4px 0 8px">Final feedback report</h4>${reportHtml(r)}
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="blue" data-a="eval-pdf" data-id="${r.id}">⬇ Download PDF</button></div>`;
     }
-    if (!EV.list.length) return `<p class="lead">Nothing submitted yet. When your appointments are on the calendar, click <b>📤 Submit for evaluation</b> on the requests. Your trainer goes through the AI review with you, adds their own feedback, and the final report shows here to keep and download.</p>`;
-    return `<p class="lead">Your submitted calendars. Each report shows here once your trainer has finalized it.</p>` + EV.list.map(r => {
+    const all = `<p style="margin:0 0 8px"><a href="/simulators/my-evaluations.html" target="_blank" rel="noopener">📋 Open My Evaluations (all my calendars and reports)</a></p>`;
+    if (!EV.list.length) return all + `<p class="lead">Nothing submitted yet. When your appointments are on the calendar, click <b>📤 Submit for evaluation</b> on the requests. Your trainer goes through the AI review with you, adds their own feedback, and the final report shows here to keep and download.</p>`;
+    return all + `<p class="lead">Your submitted calendars. Each report shows here once your trainer has sent it.</p>` + EV.list.map(r => {
         const st = r.status === 'final' ? `<button class="blue" data-a="eval-open" data-id="${r.id}">View report</button>`
             : `<span class="ev-st">${r.aiStatus === 'pending' ? '🤖 AI review being written…' : '👤 With your trainer for review'}</span>`;
         return `<div class="res-r"><h5><span>${esc(evWhen(r.submittedAt))}</span><span>${r.checkScore == null ? '' : r.checkScore + '%'}</span></h5><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${st}${r.status === 'final' && !seenFinal(r.id) ? '<span class="ev-new">New</span>' : ''}</div></div>`;
     }).join('');
 }
-function reportPdf(r) {
-    const J = window.jspdf && window.jspdf.jsPDF; if (!J) { snack('The PDF maker didn\'t load: reload the page and try again.'); return; }
-    const doc = new J({ unit: 'pt', format: 'letter' }), W = 612, M = 54; let y = 60;
-    const ai = r.ai || {}, t = r.trainer || {};
-    const ascii = (x) => String(x == null ? '' : x).replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/[\u2013\u2014]/g, '-').replace(/\u2026/g, '...').replace(/[^\x20-\x7e\n]/g, '');
-    const page = (need) => { if (y + need > 740) { doc.addPage(); y = 60; } };
-    const text = (s, size, bold, color) => { doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(size); doc.setTextColor(...(color || [31, 31, 31]));
-        doc.splitTextToSize(ascii(s), W - 2 * M).forEach(l => { page(size + 4); doc.text(l, M, y); y += size + 4; }); };
-    const bullets = (items) => { if (!(items || []).length) { text('None.', 10.5, false, [112, 117, 122]); return; }
-        items.forEach(x => { doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); const ls = doc.splitTextToSize(ascii(x), W - 2 * M - 14); page(ls.length * 14.5); doc.setTextColor(31, 31, 31); doc.text('-', M, y); ls.forEach(l => { doc.text(l, M + 14, y); y += 14.5; }); y += 2; }); };
-    const h = (s) => { y += 8; page(30); text(s, 13, true, [11, 87, 208]); y += 2; };
-    text('LSH Training Portal - Calendar Evaluation', 18, true, [20, 33, 61]);
-    text(`${CFG.label || 'Standard Training'} - Google Calendar Simulator`, 11, false, [68, 71, 70]); y += 6;
-    text(`Trainee: ${r.name || ''}${r.batch ? ' (' + r.batch + ')' : ''}`, 10.5);
-    text(`Submitted: ${evWhen(r.submittedAt)}   Finalized: ${evWhen(r.finalizedAt)} by ${r.finalizedBy || 'the trainer'}`, 10.5);
-    text(`Automated check: ${r.checkScore == null ? '-' : r.checkScore + '%'}${t.score != null ? `   Trainer's score: ${t.score}/100` : ''}`, 10.5);
-    if (ai.summary) { h('Summary'); text(ai.summary, 10.5); }
-    if (!ai.error) { h('Done correctly'); bullets(ai.correct); h('Needs improvement'); bullets(ai.improve); h('Requirements missed'); bullets(ai.missed); }
-    h("Trainer's feedback"); if (t.notes) text(t.notes, 10.5); bullets(t.points || []);
-    const c = r.calendar && r.calendar.automatedCheck;
-    if (c && (c.results || []).length) { h('Automated check, request by request'); c.results.forEach(x => { text(`${x.request}  (${x.points})${x.when ? ' - ' + x.when : ''}`, 10.5, true); bullets((x.missed || []).length ? x.missed.map(m => 'Missed: ' + m) : ['Everything checked was right.']); }); }
-    doc.save(`Calendar_Evaluation_${ascii(r.name || 'trainee').replace(/\s+/g, '_')}_${String(r.finalizedAt || r.submittedAt).slice(0, 10)}.pdf`);
-}
+const reportPdf = (r) => EvalReport.pdf(r, CFG.label || 'Standard Training', snack);
 
 /* ---------- events (one delegated handler each) ---------- */
 function bind() {

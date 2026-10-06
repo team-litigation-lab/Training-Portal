@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Evaluations — LSH Training Portal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/simulators/sim.css">
+<style>
+    /* My Evaluations: the trainee's own section: calendars in progress, calendars submitted, and the final reports their trainer has sent */
+    .me-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; }
+    .me-card h2 { margin: 0 0 4px; font-size: 18px; } .me-lead { margin: 0 0 10px; color: #64748b; font-size: 13.5px; }
+    .me-tracks { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+    .me-track { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; background: #f8fafc; display: flex; flex-direction: column; gap: 6px; }
+    .me-track b { font-size: 14.5px; } .me-sub { font-size: 12.5px; color: #64748b; }
+    .me-row { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; border-top: 1px solid #eef0f3; padding: 10px 0; }
+    .me-row:first-of-type { border-top: 0; } .me-row b { font-size: 14px; }
+    .chip { display: inline-block; font-size: 11.5px; font-weight: 700; border-radius: 10px; padding: 2px 9px; margin-right: 4px; }
+    .chip.pend { background: #e8f0fe; color: #0b57d0; } .chip.ready { background: #e6f4ea; color: #137333; } .chip.draft { background: #fef3c7; color: #92400e; } .chip.new { background: #f97316; color: #fff; }
+    .me .btn { border: 1px solid transparent; border-radius: 10px; padding: 8px 14px; font: inherit; font-weight: 700; font-size: 13.5px; cursor: pointer; text-decoration: none; display: inline-block; }
+    .me .btn-navy { background: #0b1633; color: #fff; } .me .btn-ghost { background: #fff; color: #0b1633; border-color: #cbd5e1; }
+    .me-note { padding: 18px; background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; }
+</style>
+</head>
+<body>
+<div id="topbar"></div>
+<div class="sim-wrap me">
+    <section class="sim-hero">
+        <div class="eyebrow">Trainee · Calendar Management</div>
+        <h1>My Evaluations</h1>
+        <p>Your calendars in the Google Calendar Simulator: pick up where you left off (your work saves to your account as you go), and see each calendar you submitted for evaluation. When your trainer has been through the AI review with you and sends your final report, it appears here to read and download.</p>
+    </section>
+    <div id="app"><div class="sim-loading" style="padding:40px;text-align:center;">Loading…</div></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/app.js"></script>
+<script src="/portal-nav.js"></script>
+<script src="/portal.js"></script>
+<script src="/simulators/sim.js"></script>
+<script src="/simulators/eval-report.js"></script>
+<script>
+(function () {
+const API = '/api/gcal-reviews';
+const TRACKS = [
+    { id: 'standard', icon: '🎓', name: 'Standard Training', where: 'Foundational · Calendar Management', href: '/simulators/gcal.html' },
+    { id: 'cm', icon: '⚖️', name: 'Litigation Week', where: 'Case Management', href: '/simulators/gcal.html?track=cm' },
+    { id: 'ea', icon: '🏢', name: 'Executive Week', where: 'EA / PA', href: '/simulators/gcal.html?track=ea' }
+];
+const trackOf = (id) => TRACKS.find(t => t.id === id) || TRACKS[0];
+const esc = EvalReport.esc, when = EvalReport.when, $ = (s) => document.querySelector(s);
+const SEEN = 'lsh_gcal_seen';   // the same list the simulator keeps: a report read in either place is no longer new
+const seenFinal = (id) => { try { return JSON.parse(localStorage.getItem(SEEN) || '[]').includes(id); } catch (e) { return true; } };
+const markSeen = (id) => { try { const a = JSON.parse(localStorage.getItem(SEEN) || '[]'); if (!a.includes(id)) { a.push(id); localStorage.setItem(SEEN, JSON.stringify(a.slice(-200))); } } catch (e) { /* storage blocked */ } };
+const M = { list: null, drafts: {}, open: null, err: '', signedOut: false, timer: null };
+async function get(q) {
+    const res = await fetch(API + q, { credentials: 'include', cache: 'no-store' });
+    const d = await res.json().catch(() => ({}));
+    if (res.status === 401) { const e = new Error('Sign in to the LSH Training Portal to see your evaluations.'); e.signedOut = true; throw e; }
+    if (!res.ok || d.success === false) throw new Error(d.error || ('Request failed (' + res.status + ')'));
+    return d;
+}
+async function load() {
+    clearTimeout(M.timer);
+    try {
+        const [mine, ...ds] = await Promise.all([get(''), ...TRACKS.map(t => get('?draft=' + t.id))]);
+        M.list = mine.reviews || []; TRACKS.forEach((t, i) => { M.drafts[t.id] = ds[i]; }); M.err = ''; M.signedOut = false;
+    } catch (e) { M.err = e.message; M.signedOut = !!e.signedOut; }
+    paint();
+    // While a calendar is still with the trainer, look again every 20 seconds (not in a background tab).
+    if (M.list && M.list.some(r => r.status !== 'final')) M.timer = setTimeout(() => { if (!document.hidden) load(); else document.addEventListener('visibilitychange', function v() { if (!document.hidden) { document.removeEventListener('visibilitychange', v); load(); } }); }, 20000);
+}
+function status(r) {
+    if (r.status === 'final') return `<span class="chip ready">✅ Final report sent</span>${seenFinal(r.id) ? '' : '<span class="chip new">New</span>'}`;
+    return r.aiStatus === 'pending' ? '<span class="chip pend">🤖 AI review being written…</span>' : '<span class="chip pend">👤 With your trainer</span>';
+}
+function inProgress() {
+    return `<div class="me-card"><h2>📝 My calendars in progress</h2><p class="me-lead">Your work saves to your account as you go, so you can close this and come back on any computer.</p><div class="me-tracks">${TRACKS.map(t => {
+        const d = M.drafts[t.id], c = d && d.data, n = c && Array.isArray(c.events) ? c.events.length : 0;
+        const sent = M.list.filter(r => r.track === t.id).length;
+        return `<div class="me-track"><b>${t.icon} ${esc(t.name)}</b><span class="me-sub">${esc(t.where)}</span>
+            ${c ? `<span><span class="chip draft">📝 Draft saved</span></span><span class="me-sub">${esc(when(d.updatedAt))}${n ? ' · ' + n + ' of your own event' + (n === 1 ? '' : 's') : ''}</span>` : '<span class="me-sub">Not started yet.</span>'}
+            ${sent ? `<span class="me-sub">📤 ${sent} submitted for evaluation</span>` : ''}
+            <a class="btn btn-navy" href="${t.href}">${c ? 'Continue my calendar →' : 'Start →'}</a></div>`; }).join('')}</div></div>`;
+}
+function submitted() {
+    if (!M.list.length) return `<div class="me-card"><h2>📤 Submitted for evaluation</h2><p class="me-lead">Nothing submitted yet. In the simulator, once your appointments are on the calendar, press <b>📤 Submit for evaluation</b>. An AI review is written straight away, your trainer goes through it with you, and the final report is sent here.</p></div>`;
+    return `<div class="me-card"><h2>📤 Submitted for evaluation</h2><p class="me-lead">Each report shows once your trainer has sent it.</p>${M.list.map(r => {
+        const t = trackOf(r.track);
+        return `<div class="me-row"><div><b>${t.icon} ${esc(t.name)}</b><div class="me-sub">${esc(when(r.submittedAt))} · automated check ${r.checkScore == null ? '—' : r.checkScore + '%'}</div></div>
+            <div>${status(r)}${r.status === 'final' ? `<button class="btn btn-ghost" data-a="open" data-id="${r.id}">View report</button>` : ''}</div></div>`; }).join('')}</div>`;
+}
+function report(r) {
+    markSeen(r.id);
+    return `<div class="me-card"><button class="btn btn-ghost" data-a="back">← All my evaluations</button><h2 style="margin-top:12px">Final feedback report · ${esc(trackOf(r.track).name)}</h2>${EvalReport.html(r)}
+        <div style="margin-top:12px"><button class="btn btn-navy" data-a="pdf" data-id="${r.id}">⬇ Download PDF</button></div></div>`;
+}
+function paint() {
+    const app = $('#app');
+    if (M.err && !M.list) { app.innerHTML = `<div class="me-note">${esc(M.err)} ${M.signedOut ? '<a href="/trainee-login.html">Sign in</a>' : '<button class="btn btn-ghost" data-a="retry">Try again</button>'}</div>`; return; }
+    if (!M.list) return;
+    const r = M.open != null ? M.list.find(x => x.id === M.open && x.status === 'final') : null;
+    if (M.open != null && !r) M.open = null;
+    app.innerHTML = `<style>${EvalReport.css}</style>` + (r ? report(r) : inProgress() + submitted()) + (M.err ? `<p class="me-sub">⚠ ${esc(M.err)}</p>` : '');
+}
+document.addEventListener('click', (ev) => {
+    const a = ev.target.closest('[data-a]'); if (!a) return;
+    const id = Number(a.dataset.id), act = a.dataset.a;
+    if (act === 'open') { M.open = id; paint(); window.scrollTo(0, 0); }
+    else if (act === 'back') { M.open = null; paint(); }
+    else if (act === 'pdf') { const r = M.list.find(x => x.id === id); if (r) EvalReport.pdf(r, trackOf(r.track).name, alert); }
+    else if (act === 'retry') load();
+});
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!Sim.isAdmin()) await Sim.restore();   // a new tab: the cookie says who is signed in
+    Sim._asked = true;   // a trainee here is signed in to the Portal: no "Who's practicing?" box
+    document.getElementById('topbar').innerHTML = Sim.topbar('my-evaluations');
+    if (!Sim.isAdmin()) fetch('/api/me', { credentials: 'include', cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
+        const w = document.querySelector('.sim-nav .who'); if (w && d && d.user) w.outerHTML = '<span class="who">' + esc(d.user.fullName || d.user.username) + '</span>';
+    }).catch(() => { /* the name is a courtesy */ });
+    if (Sim.isAdmin()) { $('#app').innerHTML = '<div class="me-note">This page is the trainee\'s own section. Trainers review and send evaluations on <a href="/simulators/gcal-review.html">Trainee Evaluations</a>.</div>'; return; }
+    load();
+});
+})();
+</script>
+</body>
+</html>

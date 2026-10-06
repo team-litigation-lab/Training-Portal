@@ -64,7 +64,7 @@
     <section class="sim-hero">
         <div class="eyebrow">Trainers · Calendar Management</div>
         <h1>Trainee Evaluations</h1>
-        <p>Calendars your trainees submit from the Google Calendar Simulator, with the AI review written from the attorney’s rules and your own rules and notes. Open one, go through the feedback with the trainee as it comes in, add what the AI missed and your own insights, then <b>finalize the report</b>: the trainee sees it under <b>My evaluations</b> and can download it.</p>
+        <p>Calendars your trainees submit from the Google Calendar Simulator, with the AI review written from the attorney’s rules and your own rules and notes. Open one, go through the feedback with the trainee as it comes in, add what the AI missed and your own insights, then <b>send the final report to the trainee</b>: they see it under <b>My Evaluations</b> (in the Portal and in the simulator) and can download it.</p>
     </section>
     <div id="app"><div class="sim-loading" style="padding:40px;text-align:center;">Loading…</div></div>
 </div>
@@ -89,7 +89,7 @@ async function api(path, opts) {
 }
 const post = (body) => api(API, { method: 'POST', body: JSON.stringify(body) });
 function chip(r) {
-    if (r.status === 'final') return '<span class="chip final">📄 Final</span>';
+    if (r.status === 'final') return '<span class="chip final">📤 Sent</span>';
     if (r.aiStatus === 'pending') return '<span class="chip pend">🤖 AI writing…</span>';
     if (r.aiStatus === 'error') return '<span class="chip err">⚠ AI failed</span>';
     return '<span class="chip ready">✅ AI review ready</span>';
@@ -205,8 +205,8 @@ function trainerHtml(r) {
         ${fin ? '' : '<button class="btn btn-ghost" data-a="pt-add">+ Add a point</button>'}
         <div style="display:flex;gap:10px;align-items:center;margin-top:10px;max-width:260px"><label for="rv-score" style="white-space:nowrap;font-weight:700;font-size:13.5px">Score (optional)</label><input id="rv-score" type="number" min="0" max="100" value="${t.score == null ? '' : t.score}" ${fin ? 'disabled' : ''}><span class="rv-sub">/100</span></div>
         <div class="rv-btns">${fin
-            ? `<span class="chip final">📄 Final report released ${esc(when(r.finalizedAt))}</span><button class="btn btn-ghost" data-a="reopen">Reopen to change it</button>`
-            : `<button class="btn btn-orange" data-a="finalize" ${r.aiStatus === 'pending' ? 'disabled title="Wait for the AI review"' : ''}>✅ Finalize the report</button><span class="rv-saved" id="rv-saved">${esc(R.saved)}</span>`}</div>`;
+            ? `<span class="chip final">📤 Sent to ${esc(r.name || 'the trainee')} ${esc(when(r.finalizedAt))}</span><button class="btn btn-ghost" data-a="reopen" title="Take the report back from the trainee and edit it">↩ Take it back to edit</button>`
+            : `<button class="btn btn-orange" data-a="finalize" ${r.aiStatus === 'pending' ? 'disabled title="Wait for the AI review"' : ''}>📤 Send final report to ${esc(r.name || 'the trainee')}</button><span class="rv-saved" id="rv-saved">${esc(R.saved)}</span>`}</div>`;
 }
 function paintRow(prev) {
     const r = R.row, el = $('#rv-main'); if (!r || !el) return;
@@ -283,8 +283,8 @@ document.addEventListener('click', async (ev) => {
     if (act === 'pt-add') { R.row.trainer = Object.assign(readTrainer(), {}); R.row.trainer.points.push(''); const pts = R.row.trainer.points; paintRow(); const inp = document.querySelector(`[data-pt="${pts.length - 1}"]`); if (inp) inp.focus(); return; }
     if (act === 'pt-del') { const t = readTrainer(); t.points.splice(+a.dataset.i, 1); R.row.trainer = t; paintRow(); queueSave(); return; }
     if (act === 'finalize') {
-        if (!confirm('Finalize this report? The trainee sees the AI review and your feedback under My evaluations and can download it.')) return;
-        if (!(await saveTrainer())) { alert('Your feedback couldn’t be saved, so the report wasn’t finalized. ' + R.saved); return; }
+        if (!confirm('Send this final report to ' + (R.row.name || 'the trainee') + '? They will see the AI review and your feedback under My Evaluations and can download it.')) return;
+        if (!(await saveTrainer())) { alert('Your feedback couldn’t be saved, so the report wasn’t sent. ' + R.saved); return; }
         try { await post({ action: 'finalize', id: R.row.id }); R.row = null; await loadRow(); loadList(); } catch (e) { alert(e.message); }
         return;
     }
