@@ -156,9 +156,10 @@ const server = http.createServer(async (req, res) => {
     await shot(page, 'gcal-1-week');
     const grid = await page.evaluate(() => [...document.querySelectorAll('#gc-main .ev b')].map(b => b.textContent));
     for (const t of ['Deposition Preparation: Gerald Anderson', 'Lunch Break', 'Daily Case and Email Review', 'Document Signing: Aretha Franklin']) if (!grid.includes(t)) fail(`the week grid is missing ${t}`);
-    // Standard Training has no calendar requests: the trainee books from the Calendar Management mock calls
-    const panel = await page.textContent('#gc-panel');
-    if (!/Your appointments/.test(panel) || /Calendar requests/.test(panel) || (await page.locator('#gc-panel .rq').count()) !== 0 || st.reqs.length) fail('Standard Training should show Your appointments, with no calendar requests');
+    // Standard Training has no calendar requests (the trainee books from the Calendar Management mock calls) and no Your
+    // appointments panel: the side panel stays closed, even for a calendar saved with it open, and the bar has no button for it
+    const noPanel = await page.evaluate(() => ({ off: document.getElementById('gc-panel').classList.contains('off'), text: document.getElementById('gc-panel').innerText, rail: document.getElementById('gc-rail').innerText }));
+    if (!noPanel.off || noPanel.text.trim() || /Your appointments|Calendar requests/.test(noPanel.rail) || st.reqs.length) fail('Standard Training should have no Your appointments panel or button, and no calendar requests: ' + JSON.stringify(noPanel));
     // quick create: click Wednesday 1:00 PM in this week (a free slot)
     const wed = await page.evaluate((m) => GCAL.addDays(m, 2), mon);
     const colBox = await page.locator(`#gc-main .wk-col[data-d="${wed}"]`).boundingBox();
@@ -243,16 +244,23 @@ const server = http.createServer(async (req, res) => {
     if (!/New client consults are only scheduled on Tuesdays and Thursdays/.test(await page.textContent('#gc-panel'))) fail('the rules panel should list the attorney\'s rules');
     await page.click('#gc-rail [data-a="check"]'); await page.waitForSelector('.res-ring');
     await shot(page, 'gcal-5-checked');
-    // the score is below the calendar, in 📊 Your scores, not in the side panel (which stays on the rules)
-    const placed = await page.evaluate(() => { const g = document.getElementById('gc'), sc = document.getElementById('gc-scores'), ring = document.querySelector('.res-ring');
-        return { inScores: !!(sc && ring && sc.contains(ring)), below: !!(sc && sc.getBoundingClientRect().top >= g.getBoundingClientRect().bottom - 1), panel: (document.getElementById('gc-panel') || {}).innerText || '', head: ((sc && sc.querySelector('h2')) || {}).textContent || '' }; });
-    if (!placed.inScores || !placed.below || /checked/i.test(placed.panel) || !/Your scores/.test(placed.head) || !/New client consults/.test(placed.panel)) fail(`the check's score should be below the calendar, not in the side panel: ${JSON.stringify(Object.assign({}, placed, { panel: placed.panel.slice(0, 80) }))}`);
-    // "The attorney's appointments you changed" reads as lines, not a word a line: its items keep the mark's column
-    const chg = await page.evaluate(() => { const box = document.createElement('div'); box.className = 'res-r';
-        box.innerHTML = '<ul><li class="chg"><span>Deposition Preparation: Gerald Anderson on Mon, Oct 5: moved to Mon, Oct 5 9am</span></li></ul>';
-        document.getElementById('gc-check').appendChild(box); const w = box.querySelector('span').getBoundingClientRect().width, all = box.getBoundingClientRect().width; box.remove(); return { w, all }; });
-    if (!(chg.w > chg.all * 0.6)) fail(`the changed appointments are squeezed into the mark's column: ${JSON.stringify(chg)}`);
-    if (!/<li class="chg">/.test(fs.readFileSync(path.join(ROOT, 'simulators/gcal.js'), 'utf8'))) fail('the changed appointments should be listed with li class="chg"');
+    // the score is in 📊 Your scores, not in the side panel (which stays on the rules): on a wide screen (1440px) at the bottom
+    // of the blue card on the left, a white card that scrolls when it's long
+    const where = () => page.evaluate(() => { const g = document.getElementById('gc'), sc = document.getElementById('gc-scores'), ring = document.querySelector('.res-ring'), hero = document.querySelector('.sim-hero');
+        const s = sc.getBoundingClientRect(), h = hero.getBoundingClientRect();
+        return { inScores: !!(ring && sc.contains(ring)), inHero: sc.parentNode === hero, atBottom: Math.abs(h.bottom - s.bottom) < 40 && s.top > h.top + 200, below: s.top >= g.getBoundingClientRect().bottom - 1,
+            fits: s.bottom <= h.bottom + 1, scrolls: getComputedStyle(sc).overflowY, panel: (document.getElementById('gc-panel') || {}).innerText || '', head: (sc.querySelector('h2') || {}).textContent || '', text: sc.innerText }; });
+    let placed = await where();
+    if (!placed.inScores || !placed.inHero || !placed.atBottom || !placed.fits || placed.scrolls !== 'auto' || /checked/i.test(placed.panel) || !/Your scores/.test(placed.head) || !/New client consults/.test(placed.panel)) fail(`on a wide screen the check's score should be at the bottom of the blue card, not in the side panel: ${JSON.stringify(Object.assign({}, placed, { panel: placed.panel.slice(0, 80), text: placed.text.slice(0, 80) }))}`);
+    // "The attorney's appointments you changed" is not shown (the check keeps them for the evaluation)
+    if (/appointments you changed/i.test(placed.text) || /appointments you changed/.test(fs.readFileSync(path.join(ROOT, 'simulators/gcal.js'), 'utf8'))) fail('the scores still list the attorney\'s appointments you changed');
+    // narrower (the blue card on top): the scores are below the calendar; wider again, back in the card
+    await page.setViewportSize({ width: 1300, height: 1000 }); await page.waitForTimeout(300);
+    placed = await where();
+    if (placed.inHero || !placed.below || !placed.inScores) fail(`at 1300px the scores should be below the calendar: ${JSON.stringify({ inHero: placed.inHero, below: placed.below })}`);
+    await page.setViewportSize({ width: 1440, height: 1000 }); await page.waitForTimeout(300);
+    placed = await where();
+    if (!placed.inHero || !placed.atBottom) fail(`back at 1440px the scores should be in the blue card again: ${JSON.stringify({ inHero: placed.inHero, atBottom: placed.atBottom })}`);
     const res = results[results.length - 1];
     if (!res || res.simulator !== 'Google Calendar' || typeof res.score !== 'number' || !res.who || res.who.name !== 'CI Trainee') fail(`Check my calendar should save the score: ${JSON.stringify(res).slice(0, 200)}`);
     await page.close();
@@ -330,6 +338,9 @@ const server = http.createServer(async (req, res) => {
         if (track === 'ea' && /ttorney/.test(r.text || '')) fail('ea: the executive\'s week should say executive, not attorney');
         if (track === 'ea' && !/Executive’s Calendar/.test(r.text || '')) fail('ea: the calendar should be the Executive’s Calendar');
         if (!/Litigation Week|Executive Week/.test(r.title || '')) fail(`${track}: the page title should name the track (${r.title})`);
+        // the clones keep their Calendar requests panel (the callers to book, move or cancel) and its button in the bar
+        const cr = await tp.evaluate(() => ({ head: ((document.querySelector('#gc-panel .ph h3') || {}).textContent || ''), cards: document.querySelectorAll('#gc-panel .rq').length, rail: document.getElementById('gc-rail').innerText }));
+        if (!/Calendar requests/i.test(cr.head) || cr.cards !== 7 || !/Calendar requests/.test(cr.rail)) fail(`${track}: the Calendar requests panel should list the 7 callers: ${JSON.stringify(cr)}`);
         if (track === 'ea') {   // the executive's wording is only the page's own fixed text: what the trainee types is never reworded, and no DOB / DOL is asked
             await tp.keyboard.press('c'); await tp.waitForSelector('#ed-title', { timeout: 5000 });
             const ph = await tp.evaluate(() => document.getElementById('ed-desc').getAttribute('data-ph'));
