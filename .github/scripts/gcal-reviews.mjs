@@ -1,6 +1,7 @@
 // 📤 Submit for evaluation (functions/api/gcal-reviews.js) on SQLite, with the AI answered by the test: a trainee submits and the AI
 // review is written from the calendar and the trainer's rules; the trainee sees nothing of the feedback until the trainer finalizes it;
-// only admins list, open, write feedback, finalize, reopen and set the rules; a failed AI review can be run again.
+// only admins list, open, write feedback, finalize, reopen and set the rules; a failed AI review can be run again. A trainee's calendar
+// saved to their account comes back to them; a trainer opens anyone's (and lists whose are saved), a trainee only their own.
 // Run: node --no-warnings .github/scripts/gcal-reviews.mjs   (from the repository root)
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'fs';
@@ -64,6 +65,13 @@ r = await call('GET', null, '?draft=standard'); ck(r.j.data.events[0].id === 'e1
 r = await call('POST', { action: 'draft', track: 'standard', data: { v: 1, events: [{ id: 'e1' }, { id: 'e2' }], savedAt: 9 } }); r = await call('GET', null, '?draft=standard'); ck(r.j.data.events.length === 2, 'a later save replaces it');
 __setSession({ username: 'cy', userType: 'Trainee', fullName: 'Cy', batchId: 'B1' });
 r = await call('GET', null, '?draft=standard'); ck(r.j.data === null, 'another trainee gets their own (none), never Ann\'s');
+r = await call('GET', null, '?draft=standard&user=ann'); ck(r.st === 403, 'a trainee cannot open another trainee\'s calendar');
+r = await call('GET', null, '?drafts=1'); ck(r.st === 403, 'a trainee cannot list whose calendars are saved');
+__setSession(bo);
+r = await call('GET', null, '?draft=standard&user=ann'); ck(r.st === 200 && r.j.data.events.length === 2 && r.j.person && r.j.person.name === 'ann' && r.j.updatedAt, 'a trainer opens a trainee\'s calendar as they last saved it, with who they are');
+r = await call('GET', null, '?draft=ea&user=ann'); ck(r.st === 200 && r.j.data === null, 'a simulator they haven\'t saved on is empty');
+r = await call('GET', null, '?drafts=1'); ck(r.st === 200 && r.j.drafts.length === 2 && r.j.drafts.every(d => d.username === 'ann' && d.name === 'ann' && d.updatedAt) && r.j.drafts.map(d => d.track).sort().join() === 'cm,standard', 'a trainer lists whose calendars are saved, on which simulator and when');
+__setSession({ username: 'cy', userType: 'Trainee', fullName: 'Cy', batchId: 'B1' });
 r = await call('POST', { action: 'draft', track: 'standard', data: { big: 'x'.repeat(310000) } }); ck(r.st === 400, 'a calendar too large to save is refused');
 __setSession(null); r = await call('GET', null, '?draft=standard'); ck(r.st === 401, 'no Portal sign-in, nothing saved or read');
 console.log(fails.length ? 'FAILED' : 'all passed'); process.exit(fails.length ? 1 : 0);

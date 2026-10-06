@@ -1,13 +1,22 @@
 // The trainer's review inside the Google Calendar look (simulators/gcal.js ?review=, calsim.html's list of submissions) of the submissions
 // made with 📤 Submit to my trainer (kept in the trainee's /api/calsim record): a trainer opens one read only, scores it and comments,
-// the trainee sees the feedback, and the trainer's list shows it.
+// the trainee sees the feedback, and the trainer's list shows it. And 👥 Your trainees' calendars: a trainer opens a trainee's
+// calendar as they last saved it (gcal.html?trainee=), read only, with the automated check, scores it on the CALENDAR
+// MANAGEMENT MOCK CALL scorecard (simulators/cal-scorecard.js), and the trainee sees the scorecard on their card and in the simulator.
 // Usage: node .github/scripts/gcal-review.cjs   (from the repository root; needs `npm i playwright`)
 const { chromium } = require('playwright');
 const http = require('http'); const fs = require('fs'); const path = require('path');
 const ROOT = process.cwd();
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
 const failures = []; const fail = (m) => failures.push(m);
+const posted = [];
+const SHEET = require(path.join(ROOT, 'simulators/cal-scorecard.js'));
 let rec = null, role = 'trainee';
+// a trainee's calendar as saved to their account (gcal_drafts): one booking on the Attorney's Calendar, Standard Training
+const DRAFT = { v: 1, today: '2026-10-06', view: 'week', anchor: '2026-10-06', mini: '2026-10', side: false, panel: 'requests', hidden: {}, set: { dur: 30, weekends: false, tz2: false }, reqs: [], result: null, savedAt: 1791300000000, ex: {}, sx: {},
+    events: [{ id: 'ev1', cal: 'attorney', title: 'Client Consultation Meeting – Maria Santos', date: '2026-10-07', start: '10:00', end: '10:30', allDay: false, tz: 'America/New_York', repeat: 'none', location: '', meet: 'https://meet.google.com/abc-defg-hij',
+        desc: 'Name: Maria Santos<br>CB Number: (555) 010-4411', guests: [], notifs: [{ m: 'email', v: 1, u: 'days' }], busy: true }] };
+const ME = () => role === 'admin' ? { username: 'boss', name: 'Trainer', batch: '', admin: true } : { username: 'ci', name: 'Ci Trainee', batch: 'B1', admin: false };
 const server = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x'); const chunks = [];
     req.on('data', c => chunks.push(c)); req.on('end', () => {
@@ -16,6 +25,13 @@ const server = http.createServer((req, res) => {
             const me = role === 'admin' ? { username: 'boss', name: 'Trainer', batch: '', admin: true } : { username: 'ci', name: 'Ci Trainee', batch: 'B1', admin: false };
             if (req.method === 'POST') {
                 const b = JSON.parse(Buffer.concat(chunks).toString());
+                if (b.scorecard) {
+                    if (role !== 'admin') return send({ success: false, error: 'Admin access required.' }, 403);
+                    const rows = b.scorecard.rows.map((r, i) => ({ metric: SHEET.METRICS[i].name, weight: 1, score: r.score, feedback: r.feedback })), avg = rows.reduce((a, r) => a + r.score, 0) / rows.length;
+                    const card = { title: 'CALENDAR MANAGEMENT MOCK CALL', rows, average: Math.round(avg * 10) / 10, pct: Math.round(avg / 5 * 100), by: 'Trainer', at: '2026-10-06T14:00:00.000Z' };
+                    rec = rec || {}; rec.scorecards = rec.scorecards || {}; rec.scorecards[b.scorecard.track] = (rec.scorecards[b.scorecard.track] || []).concat([card]);
+                    posted.push(b.scorecard); return send({ success: true, scorecard: card, scorecards: rec.scorecards[b.scorecard.track] });
+                }
                 if (b.review) { if (role !== 'admin') return send({ success: false, error: 'Admin access required.' }, 403); rec.reviews = rec.reviews || {}; rec.reviews[b.review.key] = { score: Math.round(b.review.score), comment: b.review.comment, tasks: b.review.tasks, by: 'Trainer', at: new Date().toISOString() }; return send({ success: true, data: rec }); }
                 if (role === 'admin') return send({ success: true, preview: true });
                 rec = Object.assign({}, b.data, { reviews: (rec && rec.reviews) || {} }); return send({ success: true, reviews: rec.reviews });
@@ -23,6 +39,11 @@ const server = http.createServer((req, res) => {
             if (u.searchParams.get('all') === '1') return send({ success: true, me, rows: rec ? [{ username: 'ci', name: 'Ci Trainee', batch: 'B1', data: rec }] : [] });
             if (u.searchParams.get('user')) return send({ success: true, me, data: rec, person: { name: 'Ci Trainee', batch: 'B1' } });
             return send({ success: true, me, data: role === 'admin' ? null : rec });
+        }
+        if (u.pathname === '/api/gcal-reviews' && req.method === 'GET' && (u.searchParams.get('drafts') || u.searchParams.get('user'))) {
+            if (role !== 'admin') return send({ success: false, error: 'Admin access required.' }, 403);
+            if (u.searchParams.get('drafts')) return send({ success: true, drafts: [{ username: 'ci', track: 'standard', updatedAt: '2026-10-06 13:30:00', name: 'Ci Trainee', batch: 'B1' }, { username: 'zed', track: 'cm', updatedAt: '2026-10-05 09:00:00', name: 'Zed Other', batch: 'B2' }] });
+            return send({ success: true, track: u.searchParams.get('draft'), data: u.searchParams.get('user') === 'ci' && u.searchParams.get('draft') === 'standard' ? DRAFT : null, updatedAt: '2026-10-06 13:30:00', person: { name: 'Ci Trainee', batch: 'B1' } });
         }
         if (u.pathname.startsWith('/api/')) return send({ success: false, error: 'offline test' });
         let f = path.join(ROOT, decodeURIComponent(u.pathname));
@@ -98,7 +119,53 @@ const server = http.createServer((req, res) => {
     const rev = await page.$$eval('#cs-root .cs-review', els => els.map(e => e.innerText.replace(/\s+/g, ' ').trim()));
     if (rev.length !== 3 || !/Automated review: 90% · 4 of 5 right · 2026-10-06/.test(rev[0]) || !/Submitted · its review 40% · 👤 trainer 77\/100/.test(rev[1]) || !/No automated review yet/.test(rev[2])) fail('the trainee\'s cards should show each track\'s automated review: ' + JSON.stringify(rev));
     await page.close();
+    // 7. 👥 Your trainees' calendars (a trainer): each trainee with a calendar saved, 👁 View & score on each track they have
+    role = 'admin';
+    page = await open('/simulators/calsim.html');
+    await page.waitForSelector('.cs-ttable', { timeout: 5000 }).catch(() => fail('the trainer\'s page has no list of the trainees\' calendars'));
+    const tl = await page.evaluate(() => ({ rows: [...document.querySelectorAll('.cs-ttable tbody tr')].map(tr => tr.innerText.replace(/\s+/g, ' ').trim()), links: [...document.querySelectorAll('.cs-ttable a.cs-view')].map(a => a.getAttribute('href')) }));
+    if (tl.rows.length !== 2 || !/^Ci Trainee B1/.test(tl.rows[0]) || !/Zed Other/.test(tl.rows[1]) || JSON.stringify(tl.links) !== JSON.stringify(['/simulators/gcal.html?trainee=ci', '/simulators/gcal.html?track=cm&trainee=zed'])) fail('the trainees\' calendars list is wrong: ' + JSON.stringify(tl));
+    await page.fill('#cs-tfind', 'b2');
+    if (JSON.stringify(await page.$$eval('.cs-ttable tbody tr', trs => trs.map(t => t.style.display))) !== '["none",""]') fail('finding a trainee by batch doesn\'t narrow the list');
+    await page.close();
+    // the trainee's calendar, read only, with the automated check and the scorecard to fill in
+    page = await open('/simulators/gcal.html?trainee=ci');
+    await page.waitForSelector('#tv-card', { timeout: 6000 }).catch(() => fail('the trainee\'s calendar opened without the scorecard'));
+    t = await panelText(page);
+    if (!/Trainee’s calendar/i.test(t) || !/Ci Trainee · B1/.test(t) || !/read only/.test(t) || !/Their calendar, checked \(automated\)/i.test(t) || !/Maria Santos/.test(t)) fail('the trainee\'s calendar panel is missing who it is, the check or their appointment: ' + t.slice(-900));
+    await page.click('[data-a="nav"][data-d="1"]').catch(() => {});
+    const evs = await page.evaluate(() => [...document.querySelectorAll('.ev')].map(e => e.textContent));
+    if (!evs.some(x => /Maria Santos/.test(x))) fail('the trainee\'s booking isn\'t on the calendar: ' + JSON.stringify(evs.slice(0, 5)));
+    const metrics = await page.$$eval('.csc-form tbody tr', trs => trs.map(tr => tr.cells[0].textContent));
+    if (metrics.length !== 8 || metrics[0] !== 'Professional Introduction & Call Control' || metrics[6] !== 'Notes, Recap & Call Closing' || metrics[7] !== 'WEIGHTED AVERAGE') fail('the scorecard isn\'t the CALENDAR MANAGEMENT MOCK CALL sheet: ' + JSON.stringify(metrics));
+    for (let i = 0; i < 6; i++) await page.selectOption(`select[data-csc="${i}"]`, String([5, 4, 4, 3, 4, 5][i]));
+    await page.click('[data-a="tv-save"]'); await page.waitForTimeout(300);
+    if (posted.length) fail('a scorecard with a metric unscored was saved');
+    await page.selectOption('select[data-csc="6"]', '4'); await page.fill('textarea[data-csf="5"]', 'Meet link and the reminder are on: add the DOB.');
+    if (await page.textContent('#csc-avg') !== '4.1' || !/83%/.test(await page.textContent('#csc-pct'))) fail('the weighted average doesn\'t work itself out: ' + await page.textContent('#csc-avg'));
+    await page.click('[data-a="tv-save"]'); await page.waitForTimeout(600);
+    const sc = posted[0];
+    if (!sc || sc.user !== 'ci' || sc.track !== 'standard' || sc.rows.map(r => r.score).join() !== '5,4,4,3,4,5,4' || !/add the DOB/.test(sc.rows[5].feedback)) fail('the scorecard wasn\'t saved for the trainee: ' + JSON.stringify(sc));
+    if (!/4\.1\/5 · 83%/.test(await panelText(page))) fail('the saved scorecard isn\'t shown: ' + (await panelText(page)).slice(0, 300));
+    if (await page.evaluate(() => Object.keys(localStorage).some(k => k.indexOf('lsh_gcal') === 0))) fail('looking at a trainee\'s calendar wrote to the trainer\'s own practice calendar');
+    await page.close();
+    // the trainee sees it: on their card on the Calendaring Simulators page and in the simulator
+    role = 'trainee';
+    page = await open('/simulators/calsim.html');
+    const mine = await page.$$eval('#cs-root .cs-review', els => els.map(e => e.innerText.replace(/\s+/g, ' ').trim()));
+    if (!/📋 Trainer’s scorecard: 4\.1\/5 \(83%\)/.test(mine[0] || '') || /scorecard/.test(mine[1] || '')) fail('the trainee\'s card doesn\'t show the trainer\'s scorecard: ' + JSON.stringify(mine));
+    await page.click('.cs-scorecard summary');
+    if (!/Calendar Creation & Attorney Reminder Setup\s*5\s*Meet link and the reminder are on: add the DOB\./.test(await page.innerText('.cs-scorecard')) || !/WEIGHTED AVERAGE\s*4\.1\s*out of 5 · 83%/.test(await page.innerText('.cs-scorecard'))) fail('the scorecard on the trainee\'s card doesn\'t open to the sheet: ' + (await page.innerText('.cs-scorecard')).slice(0, 600));
+    if (await page.$('#cs-trainees')) fail('a trainee sees the trainees\' calendars list');
+    await page.close();
+    page = await open('/simulators/gcal.html');
+    if (!/Your trainer’s scorecard · 4\.1\/5 \(83%\)/.test(await panelText(page))) fail('the trainee doesn\'t see the scorecard in the simulator: ' + (await panelText(page)).slice(0, 300));
+    await page.close();
+    // a trainee can't open someone's calendar
+    page = await open('/simulators/gcal.html?trainee=zed');
+    if (!/for trainers|Admin access/i.test(await page.textContent('#app'))) fail('a trainee opened another trainee\'s calendar');
+    await page.close();
     await browser.close(); server.close();
     if (failures.length) { console.error('Google Calendar submit and review test FAILED:\n- ' + failures.join('\n- ')); process.exit(1); }
-    console.log('Google Calendar submit and review test passed (submit keeps the calendar and check; the trainer opens it read only and gives feedback; the trainee sees it; the trainer’s list links to it; the Calendaring Simulators page with the mock calls).');
+    console.log('Google Calendar submit and review test passed (submit keeps the calendar and check; the trainer opens it read only and gives feedback; the trainee sees it; the trainer’s list links to it; the Calendaring Simulators page with the mock calls; the trainees’ calendars, read only, scored on the scorecard, which the trainee sees).');
 })();
