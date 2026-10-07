@@ -58,7 +58,7 @@ const server = http.createServer((req, res) => {
     // 2. opening a panel is not a change: nothing is sent
     await sleep(3600);   // (a calendar newer than the saved one is sent once when the page opens: let that finish)
     const before = draftPosts.length;
-    await page.click('[data-a="panel"][data-p="rules"]').catch(() => {}); await sleep(3600);
+    await page.click('[data-a="evals"]').catch(() => {}); await sleep(1800); await page.click('[data-a="evals"]').catch(() => {}); await sleep(1800);
     if (draftPosts.length !== before) fail('opening a panel sent the calendar to the account as a change');
     // 3. a saved copy newer than the one this tab was made from is not overwritten
     newer = true; draftPosts = [];
