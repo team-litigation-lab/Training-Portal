@@ -240,10 +240,12 @@
     .footer-inner { max-width: 1180px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-bottom: 20px; }
     footer .foot-brand { font-weight: 700; font-size: 13px; color: var(--navy); }
     .social-row { display: flex; gap: 12px; }
+    .social-link svg { width: 20px; height: 20px; fill: currentColor; }
+    .social-link svg[fill="none"] { fill: none; }
     .social-link {
         width: 36px; height: 36px; border-radius: 50%; background: rgba(15,33,72,0.06);
         display: flex; align-items: center; justify-content: center; text-decoration: none;
-        font-size: 13px; font-weight: 700; color: var(--navy); transition: background 0.15s ease, color 0.15s ease;
+        font-size: 13px; font-weight: 700; color: var(--orange); transition: background 0.15s ease, color 0.15s ease;
     }
     .social-link:hover { background: var(--navy); color: var(--orange); }
     .footer-bottom { max-width: 1180px; margin: 0 auto; border-top: 1px solid rgba(15,33,72,0.06); padding: 16px 0; font-size: 11.5px; color: var(--slate); text-align: center; }
@@ -449,7 +451,9 @@
     <div class="footer-inner">
         <div class="footer-bottom">&copy; 2026 Legal Support Help. All Rights Reserved.</div>
         <div class="social-row">
-            <a href="https://legalsupporthelp.com/" class="social-link" target="_blank" rel="noopener" title="legalsupporthelp.com" aria-label="Legal Support Help website">www</a>
+            <a href="https://www.facebook.com/LegalSupport2000" class="social-link" target="_blank" rel="noopener" title="Facebook" aria-label="Legal Support Help on Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.8-4.7 4.55-4.7 1.32 0 2.7.24 2.7.24v2.97h-1.52c-1.5 0-1.97.93-1.97 1.89v2.26h3.35l-.54 3.49h-2.81V24C19.61 23.1 24 18.1 24 12.07z"/></svg></a>
+            <a href="https://legalsupporthelp.com/" class="social-link" target="_blank" rel="noopener" title="legalsupporthelp.com" aria-label="Legal Support Help website"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2c2.8 2.9 4.2 6.2 4.2 10S14.8 19.1 12 22c-2.8-2.9-4.2-6.2-4.2-10S9.2 4.9 12 2z"/></svg></a>
+            <a href="https://www.linkedin.com/company/legalsupporthelp/" class="social-link" target="_blank" rel="noopener" title="LinkedIn" aria-label="Legal Support Help on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg></a>
         </div>
     </div>
 </footer>
