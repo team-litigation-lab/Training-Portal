@@ -140,11 +140,13 @@ async function gsList(only) {
         return `<div class="cs-review" style="font-size:13px;line-height:1.5;color:#334155;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px">${lines.length ? lines.join('<br>')
             : '🤖 No automated review yet: open it, book what the callers ask, then click <b>Check my calendar</b> to review it against the rules.'}${scLine}</div>`;
     };
-    root.innerHTML = `<div style="max-width:1180px;margin:0 auto;padding:24px 16px 40px">
-        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start"><div><h1 style="margin:0 0 6px;color:#0b1633;font-size:28px">📅 Calendaring Simulators</h1>
-        <p style="margin:0 0 18px;color:#475569;max-width:760px">Practice the calendar on a Google Calendar style week: <b>Standard Training</b> (Foundational · Calendar Management), the <b>Litigation Week</b> (Case Management) and the <b>Executive Week</b> (EA / PA). Save, run the automated review under the attorney’s rules, submit for your trainer’s feedback. Your scores are saved to your own record.</p></div>
-        ${me.admin ? '<div style="display:flex;gap:8px;flex-wrap:wrap;align-self:flex-start"><a class="sim-btn ghost" id="cs-evals" style="text-decoration:none" href="/simulators/gcal-review.html" title="Trainee Evaluations: what trainees submit for evaluation, with the AI review and your feedback, and your trainees’ calendars.">📋 Trainee Evaluations</a><a class="sim-btn ghost" style="text-decoration:none" href="/simulators/calsim.html?view=scores" title="The earlier drag-and-drop scheduler’s submissions. Scores from the three simulators are under Recent results on the Simulators page.">📊 Earlier scheduler scores</a></div>' : ''}</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:14px">
+    // One wide screen: the heading and a one-line intro across the top, the four cards next to each other on the row
+    // below (wrapping on narrower screens), and for trainers one line at the foot with their links (Trainee Evaluations,
+    // Recent results, Earlier scheduler scores) — no separate buttons row above the cards: it repeated that line.
+    root.innerHTML = `<div style="max-width:1720px;margin:0 auto;padding:24px 24px 40px">
+        <h1 style="margin:0 0 6px;color:#0b1633;font-size:28px">📅 Calendaring Simulators</h1>
+        <p style="margin:0 0 20px;color:#475569">Build the week in a Google Calendar look-alike, run the automated review under the attorney’s rules, and submit for your trainer’s feedback. Your scores are saved to your record.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:14px">
         ${TRACKS.map(t => `<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:10px">${kicker(t.where)}
             <h3 style="margin:0;color:#0b1633;font-size:19px">${t.icon} ${Sim.esc(t.title)}</h3><p style="margin:0;color:#475569;font-size:14px;flex:1">${Sim.esc(t.desc)}</p>
             ${reviewHTML(t.id)}
@@ -152,7 +154,7 @@ async function gsList(only) {
         <div class="card cs-calls" style="padding:18px;display:flex;flex-direction:column;gap:10px">${kicker('Calendaring & Appointment Setting Training')}
             <h3 style="margin:0;color:#0b1633;font-size:19px">Calendar Management Mock Calls</h3><p style="margin:0;color:#475569;font-size:14px;flex:1">In the CMS Call Simulator: a caller phones in about one of the firm’s cases. Get their name, verify them, find their file in the CMS and handle the call. Who called, and about which case, is in your debrief.</p>
             <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="sim-btn orange" style="text-decoration:none" href="${Sim.esc(callHref(true))}">🎯 Take a graded call</a><a class="sim-btn ghost" style="text-decoration:none" href="${Sim.esc(callHref(false))}">📞 Practice a caller</a></div></div></div>
-        ${me.admin ? '<p style="margin:14px 0 0;color:#64748b;font-size:13.5px">Your trainees’ calendars, to view and score, are under <a href="/simulators/gcal-review.html">📋 Trainee Evaluations</a>; their scores from these simulators are under <a href="/simulators.html#results">Recent results</a> on the Simulators page.</p>' : ''}</div>`;
+        ${me.admin ? '<p style="margin:14px 0 0;color:#64748b;font-size:13.5px">Your trainees’ calendars, to view and score, are under <a id="cs-evals" href="/simulators/gcal-review.html" title="Trainee Evaluations: what trainees submit for evaluation, with the AI review and your feedback, and your trainees’ calendars.">📋 Trainee Evaluations</a>; their scores from these simulators are under <a href="/simulators.html#results">Recent results</a> on the Simulators page, and the earlier drag-and-drop scheduler’s submissions under <a href="/simulators/calsim.html?view=scores" title="The earlier drag-and-drop scheduler’s submissions.">📊 Earlier scheduler scores</a>.</p>' : ''}</div>`;
 })();
 </script>
 </body>

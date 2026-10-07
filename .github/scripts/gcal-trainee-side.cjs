@@ -58,8 +58,9 @@ const server = http.createServer((req, res) => {
     // 2. opening a panel is not a change: nothing is sent
     await sleep(3600);   // (a calendar newer than the saved one is sent once when the page opens: let that finish)
     const before = draftPosts.length;
-    await page.click('[data-a="panel"][data-p="rules"]').catch(() => {}); await sleep(3600);
+    await page.click('[data-a="evals"]').catch(() => {}); await sleep(3600);
     if (draftPosts.length !== before) fail('opening a panel sent the calendar to the account as a change');
+    await page.click('[data-a="evals"]').catch(() => {});   // close it again (step 5 opens it fresh)
     // 3. a saved copy newer than the one this tab was made from is not overwritten
     newer = true; draftPosts = [];
     await page.evaluate(() => { document.querySelector('[data-a="cloud-save"]').click(); }); await sleep(800);
@@ -95,15 +96,18 @@ const server = http.createServer((req, res) => {
     const t = await page.evaluate(() => document.body.innerText);   // (the trainer's scorecard and the check are in the scores section below the calendar)
     if (!/Trainee’s calendar|read only/i.test(t)) fail('a trainee’s calendar opened in a new tab shows no content: ' + t.slice(0, 200));
     await page.close();
-    // the Calendaring Simulators page has a Trainee Evaluations button for a trainer, a pill like Earlier scheduler scores, in the same tab
+    // the Calendaring Simulators page has one Trainee Evaluations link for a trainer, in the foot line and in the same
+    // tab (no buttons row above the cards: it repeated that line)
     who = 'admin';
     page = await open('/simulators/calsim.html');
-    const eb = await page.$$eval('#cs-evals', as => as.map(a => ({ href: a.getAttribute('href'), target: a.getAttribute('target'), cls: a.className, text: a.innerText.trim() })));
-    if (eb.length !== 1 || eb[0].href !== '/simulators/gcal-review.html' || eb[0].target || !/sim-btn ghost/.test(eb[0].cls) || !/Trainee Evaluations/.test(eb[0].text)) fail('the Calendaring Simulators page has no Trainee Evaluations button for a trainer: ' + JSON.stringify(eb));
-    await page.click('#cs-evals'); await page.waitForURL(/gcal-review\.html/, { timeout: 5000 }).catch(() => fail('the Trainee Evaluations button did not open the page: ' + page.url()));
+    const eb = await page.$$eval('#cs-evals', as => as.map(a => ({ href: a.getAttribute('href'), target: a.getAttribute('target'), text: a.innerText.trim() })));
+    if (eb.length !== 1 || eb[0].href !== '/simulators/gcal-review.html' || eb[0].target || !/Trainee Evaluations/.test(eb[0].text)) fail('the Calendaring Simulators page has no Trainee Evaluations link for a trainer: ' + JSON.stringify(eb));
+    const pills = await page.$$eval('#cs-root .sim-btn', as => as.map(a => a.innerText.trim()).filter(x => /Trainee Evaluations|Earlier scheduler scores/.test(x)));
+    if (pills.length) fail('the buttons row above the cards is back (it repeats the foot line): ' + JSON.stringify(pills));
+    await page.click('#cs-evals'); await page.waitForURL(/gcal-review\.html/, { timeout: 5000 }).catch(() => fail('the Trainee Evaluations link did not open the page: ' + page.url()));
     await page.close();
     who = 'trainee'; page = await open('/simulators/calsim.html');
-    if (await page.$('#cs-evals')) fail('a trainee sees the trainers’ Trainee Evaluations button');
+    if (await page.$('#cs-evals')) fail('a trainee sees the trainers’ Trainee Evaluations link');
     await page.close();
     // 9. a trainer's "Trainee evaluations" in the simulator goes to the Trainee Evaluations page, in the same tab, as a plain link
     who = 'admin';
