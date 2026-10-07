@@ -59,6 +59,8 @@
         overflow: hidden; flex-shrink: 0;
     }
     .brand-mark img { width: 100%; height: 100%; object-fit: contain; }
+    .brand-logo { height: 52px; width: auto; display: block; }
+    .brand-title { font-size: 16px; font-weight: 800; letter-spacing: .01em; white-space: nowrap; }
     .nav-links { display: flex; gap: 28px; align-items: center; }
     .nav-links a { color: rgba(255,255,255,0.7); font-size: 13.5px; font-weight: 600; text-decoration: none; transition: color 0.15s ease; }
     .nav-links a:hover { color: #fff; }
@@ -114,7 +116,7 @@
     }
     .hero h1 span { color: var(--orange); }
     .hero p.tagline { font-size: 19px; font-weight: 700; color: var(--orange-soft); margin: 0 0 16px; }
-    .hero p.lead { font-size: 16.5px; line-height: 1.65; color: rgba(255,255,255,0.62); max-width: 460px; margin-bottom: 32px; }
+    .hero p.lead { font-size: 16.5px; line-height: 1.65; color: rgba(255,255,255,0.62); max-width: 640px; margin-bottom: 32px; }
     .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
 
     .reveal { opacity: 0; transform: translateY(16px); animation: revealUp 0.7s ease forwards; }
@@ -158,7 +160,7 @@
     .stats-inner .stat-num { font-size: 18px; line-height: 1.3; }
     .stats-inner .stat-ring { background: none; }
     .nav-pills { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-    .nav-pills .pill { font: inherit; font-size: 12.5px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; color: var(--orange); background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.28); border-radius: 12px; padding: 9px 14px; text-decoration: none; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+    .nav-pills .pill { font: inherit; font-size: 12px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; color: var(--orange); background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.28); border-radius: 12px; padding: 8px 12px; text-decoration: none; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
     .nav-pills .pill:hover { background: rgba(255,255,255,0.14); border-color: var(--orange); }
     @media (max-width: 900px) { .nav-inner { flex-direction: column; gap: 12px; align-items: flex-start; } .nav-pills { justify-content: flex-start; } }
     footer .footer-inner { justify-content: space-between; }
@@ -184,7 +186,9 @@
 
 
     /* ===== FOUNDER, TEAM, ABOUT, VISION, VALUES ===== */
-    section[id] { scroll-margin-top: 84px; }
+    section[id], .founder-block { scroll-margin-top: 84px; }
+    .founder-block { margin-top: 72px; }
+    .sub-head { font-size: clamp(22px, 2.6vw, 30px); font-weight: 800; letter-spacing: -0.01em; color: var(--navy); margin: 0; }
     .founder-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 44px; align-items: start; margin-top: 36px; }
     .founder-photo { width: 100%; height: auto; border-radius: 18px; box-shadow: 0 24px 50px -24px rgba(15,33,72,.45); }
     .founder-text p { font-size: 16.5px; line-height: 1.75; color: var(--navy); margin: 0 0 16px; }
@@ -240,21 +244,43 @@
     .footer-inner { max-width: 1180px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-bottom: 20px; }
     footer .foot-brand { font-weight: 700; font-size: 13px; color: var(--navy); }
     .social-row { display: flex; gap: 12px; }
+    .social-link svg { width: 20px; height: 20px; fill: currentColor; }
+    .social-link svg[fill="none"] { fill: none; }
     .social-link {
         width: 36px; height: 36px; border-radius: 50%; background: rgba(15,33,72,0.06);
         display: flex; align-items: center; justify-content: center; text-decoration: none;
-        font-size: 13px; font-weight: 700; color: var(--navy); transition: background 0.15s ease, color 0.15s ease;
+        font-size: 13px; font-weight: 700; color: var(--orange); transition: background 0.15s ease, color 0.15s ease;
     }
     .social-link:hover { background: var(--navy); color: var(--orange); }
     .footer-bottom { max-width: 1180px; margin: 0 auto; border-top: 1px solid rgba(15,33,72,0.06); padding: 16px 0; font-size: 11.5px; color: var(--slate); text-align: center; }
     .footer-bottom em { color: #94a3b8; }
+
+    /* ===== ONE THEME ACROSS THE PAGE: the hero's dark navy under every section ===== */
+    body { background: var(--navy-deep); color: #fff; }
+    .section { border-top: 1px solid rgba(255,255,255,0.06); }
+    .section-head h2, .sub-head { color: #fff; }
+    .section-head p { color: rgba(255,255,255,0.62); }
+    .founder-text p, .about-text p, .vm-body p { color: rgba(255,255,255,0.82); }
+    .founder-photo, .about-imgs img { box-shadow: 0 24px 50px -24px rgba(0,0,0,.7); }
+    .name-pill { background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.22); }
+    .org-card, .vm-tag { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); box-shadow: none; }
+    .value-card { background: rgba(255,255,255,0.05); border: 1.5px solid rgba(249,115,22,0.7); }
+    .faq-item { border-bottom-color: rgba(255,255,255,0.1); }
+    .faq-question { color: #fff; }
+    .faq-answer p { color: rgba(255,255,255,0.66); }
+    footer { border-top: 1px solid rgba(255,255,255,0.08); background: var(--navy-deep); }
+    footer .foot-brand { color: #fff; }
+    .footer-bottom { color: rgba(255,255,255,0.58); }
+    .footer-bottom a, .footer-bottom em { color: rgba(255,255,255,0.75); }
+    .social-link { background: rgba(255,255,255,0.08); }
+    .social-link:hover { background: var(--orange); color: var(--navy-deep); }
 </style>
 </head>
 <body>
 
 <nav>
     <div class="nav-inner">
-        <div class="brand"><span class="brand-mark"><img src="/favicon.png" onerror="this.src='data:image/png;base64,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'" alt="LSH Logo"></span> Legal Support Help Upskill Hub</div>
+        <div class="brand"><img class="brand-logo" src="/img/logo.png" alt="Legal Support Help" width="86" height="56"> <span class="brand-title">Legal Support Help Upskill Hub</span></div>
         <div class="nav-pills">
             <button type="button" class="pill" onclick="openReferral()">Got a referral?</button>
             <a class="pill" href="/orientation.html">Platform Orientation</a>
@@ -327,19 +353,6 @@
 </div>
 </div>
 
-<section class="section founder" id="founder">
-    <div class="section-head"><div class="eyebrow">Our leadership</div><h2>Meet our founder.</h2></div>
-    <div class="founder-grid">
-        <img class="founder-photo" src="/img/founder.jpg" alt="Sandy Van, Esq., CEO of Legal Support Help" width="760" height="815" loading="lazy">
-        <div class="founder-text">
-            <div class="name-pill">CEO Sandy Van, Esq.</div>
-            <p>Attorney Sandy Van is the CEO of Legal Support Help, a virtual staffing agency that sources, trains, and onboards high-performing Virtual Assistants for law firms and medical facilities nationwide.</p>
-            <p>She is also the founder and managing partner of <b class="hl">Van Law Firm Injury and Accident Attorneys</b>, where she leads a team specializing in personal injury, mass tort, and sexual abuse litigation.</p>
-            <p>With over 15 years of legal experience and more than a decade in real estate, Attorney Van combines deep industry expertise with operational excellence. She has managed hundreds of multi-skilled Virtual Assistants, featured in Inc.com, and frequently speaks at industry conventions, events, and podcasts.</p>
-        </div>
-    </div>
-</section>
-
 <section class="section" id="team">
     <div class="section-head"><div class="eyebrow">The people behind your training</div><h2>Meet the training team.</h2></div>
     <div class="org">
@@ -365,6 +378,18 @@
         <div class="about-text">
             <p>Legal Support Help (LSH) was established to assist professionals (e.g. Attorneys) and businesses (e.g. Law Firms, Medical Facilities) in delegating highly administrative, routine, and time-consuming tasks to reclaim their time and be more productive and efficient in both their professional and personal priorities. Founded in 2018.</p>
             <p>Officially registered in Las Vegas, Nevada. 100% remote. Setting standards in legal and medical VA outsourcing. Providing law firm standard training to qualified virtual assistants. Making outsourcing processes faster for potential clients. Providing better virtual assistant services at affordable prices to clients.</p>
+        </div>
+    </div>
+    <div class="founder-block" id="founder">
+        <h3 class="sub-head">Meet our founder.</h3>
+        <div class="founder-grid">
+            <img class="founder-photo" src="/img/founder.jpg" alt="Sandy Van, Esq., CEO of Legal Support Help" width="760" height="815" loading="lazy">
+            <div class="founder-text">
+                <div class="name-pill">CEO Sandy Van, Esq.</div>
+                <p>Attorney Sandy Van is the CEO of Legal Support Help, a virtual staffing agency that sources, trains, and onboards high-performing Virtual Assistants for law firms and medical facilities nationwide.</p>
+                <p>She is also the founder and managing partner of <b class="hl">Van Law Firm Injury and Accident Attorneys</b>, where she leads a team specializing in personal injury, mass tort, and sexual abuse litigation.</p>
+                <p>With over 15 years of legal experience and more than a decade in real estate, Attorney Van combines deep industry expertise with operational excellence. She has managed hundreds of multi-skilled Virtual Assistants, featured in Inc.com, and frequently speaks at industry conventions, events, and podcasts.</p>
+            </div>
         </div>
     </div>
 </section>
@@ -449,7 +474,9 @@
     <div class="footer-inner">
         <div class="footer-bottom">&copy; 2026 Legal Support Help. All Rights Reserved.</div>
         <div class="social-row">
-            <a href="https://legalsupporthelp.com/" class="social-link" target="_blank" rel="noopener" title="legalsupporthelp.com" aria-label="Legal Support Help website">www</a>
+            <a href="https://www.facebook.com/LegalSupport2000" class="social-link" target="_blank" rel="noopener" title="Facebook" aria-label="Legal Support Help on Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.8-4.7 4.55-4.7 1.32 0 2.7.24 2.7.24v2.97h-1.52c-1.5 0-1.97.93-1.97 1.89v2.26h3.35l-.54 3.49h-2.81V24C19.61 23.1 24 18.1 24 12.07z"/></svg></a>
+            <a href="https://legalsupporthelp.com/" class="social-link" target="_blank" rel="noopener" title="legalsupporthelp.com" aria-label="Legal Support Help website"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2c2.8 2.9 4.2 6.2 4.2 10S14.8 19.1 12 22c-2.8-2.9-4.2-6.2-4.2-10S9.2 4.9 12 2z"/></svg></a>
+            <a href="https://www.linkedin.com/company/legalsupporthelp/" class="social-link" target="_blank" rel="noopener" title="LinkedIn" aria-label="Legal Support Help on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg></a>
         </div>
     </div>
 </footer>
