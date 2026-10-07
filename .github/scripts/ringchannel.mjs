@@ -42,8 +42,8 @@ for (const q of ['tool=cms', 'tool=kb', 'program=' + encodeURIComponent(Object.k
 // 3. signed out: no way in
 const o = await go(null);
 if (o.status !== 401) fail(`a signed-out launch: ${o.status} ${o.at}`);
-// 4. the Portal links to it: the Training Directory, the home page's Simulators, the Simulators hub and Master Control
-for (const f of ['programs.html', 'index.html', 'simulators.html', 'core.html']) if (!readFileSync(new URL('../../' + f, import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail(`${f} has no link to LSH Ring Channel`);
+// 4. the Portal links to it: the Training Directory, the Simulators hub and Master Control (the home page no longer lists the simulators)
+for (const f of ['programs.html', 'simulators.html', 'core.html']) if (!readFileSync(new URL('../../' + f, import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail(`${f} has no link to LSH Ring Channel`);
 
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-console.log('LSH Ring Channel test passed (trainees and admins open it signed in, admins nowhere else; linked from the Directory, home, Simulators and Master Control).');
+console.log('LSH Ring Channel test passed (trainees and admins open it signed in, admins nowhere else; linked from the Directory, the Simulators hub and Master Control).');
