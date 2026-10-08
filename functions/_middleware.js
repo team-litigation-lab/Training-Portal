@@ -33,7 +33,10 @@ export async function onRequest(context) {
     const path = new URL(request.url).pathname;
     if (request.method === 'GET' && FRONT_DOORS.some((re) => re.test(path)) && !new URL(request.url).searchParams.has('stay')) {
         try {
-            if (await signedInPerson(request, env)) return new Response(null, { status: 302, headers: { Location: '/programs.html', 'Cache-Control': 'no-store' } });
+            // A trainee who wants to sign in as an admin must see the admin sign-in, so only an admin is sent on from it.
+            const person = await signedInPerson(request, env);
+            const adminDoor = /^\/admin-login(\.html)?\/?$/i.test(path);
+            if (person && (!adminDoor || person.userType === 'Admin')) return new Response(null, { status: 302, headers: { Location: '/programs.html', 'Cache-Control': 'no-store' } });
         } catch (e) { /* any trouble: show the page as usual */ }
     }
     if (ADMIN_PAGES.some((re) => re.test(path))) {
