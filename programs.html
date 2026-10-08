@@ -150,9 +150,16 @@
     .idx-tools { background: #efe8dc; }
     .outline-title, .topic-group-head h2 { -webkit-text-stroke: 1.5px var(--navy); }
     @supports not (-webkit-text-stroke: 1px #000) { .outline-title, .topic-group-head h2 { color: var(--navy); } }
-    .topic-card { background: var(--navy); border-color: rgba(15,33,72,.25); box-shadow: 0 14px 28px -18px rgba(15,33,72,.55); }
-    .topic-card h3 { border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.04); }
+    /* the program cards are white, with their gridlines: the navy frame around the card and around its title */
+    .topic-card { background: #fff; color: var(--navy); border-color: rgba(15,33,72,.35); box-shadow: 0 14px 28px -18px rgba(15,33,72,.35); }
+    .topic-card h3 { border-color: var(--navy); background: transparent; color: var(--navy); }
+    .topic-status { background: #f1f5f9 !important; color: #475569 !important; }
+    .topic-status.approved { background: #f0fdf4 !important; color: #166534 !important; }
+    .topic-status.pending { background: #fffbeb !important; color: #b45309 !important; }
+    .topic-status.passed { background: #fff7ed !important; color: #9a3412 !important; }
+    .topic-status.denied { background: #fef2f2 !important; color: #b91c1c !important; }
     .topic-action-btn.primary { background: var(--navy-deep); }
+    .topic-action-btn.disabled { background: #f1f5f9; color: #94a3b8; }
     .queue-card { background: #fff7ed; border-color: #fed7aa; color: var(--navy); }
     .queue-card h3 { color: #9a3412; } .queue-row { border-top-color: #fed7aa; }
     .idx-rings { opacity: .5; }
