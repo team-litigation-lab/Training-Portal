@@ -106,7 +106,7 @@ const sum = await gw.usageSummary(db, env);
 check(sum.total.calls >= 1 && Array.isArray(sum.today) && sum.limits.dailyCalls === 40, 'the admin summary lists each flow and the limits');
 
 // the endpoint
-const ep = await load('functions/api/ai-gateway.js', [["import { json, requireSession } from '../_utils.js';", "const json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { 'Content-Type': 'application/json' } }); const requireSession = async () => ({ ok: false });"], ["from '../_ai-gateway.js'", `from '${pathToFileURL(path.join(tmp, '_ai-gateway.mjs')).href}'`]]);
+const ep = await load('functions/api/ai-gateway.js', [["import { json, requireSession, sameSecret } from '../_utils.js';", "const json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { 'Content-Type': 'application/json' } }); const requireSession = async () => ({ ok: false }); const sameSecret = (a, b) => !!a && String(a) === String(b);"], ["from '../_ai-gateway.js'", `from '${pathToFileURL(path.join(tmp, '_ai-gateway.mjs')).href}'`]]);
 const post = (key, body) => ep.onRequestPost({ request: new Request('https://p/api/ai-gateway', { method: 'POST', headers: { 'X-Gateway-Key': key }, body: JSON.stringify(body) }), env: { ...env, AI_USER_10MIN: '999', AI_DAILY_CALLS: '4000', AI_MINUTE_CALLS: '1000', TRAINING_DB: db, AI_GATEWAY_SECRET: 'sekret' } });
 sql.exec(`DELETE FROM ai_usage_day`); sql.exec(`DELETE FROM ai_usage_minute`);
 let res = await post('wrong', { module: 'cms', messages: [{ role: 'user', text: 'hi' }] });

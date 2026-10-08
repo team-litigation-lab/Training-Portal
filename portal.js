@@ -414,8 +414,9 @@ function applyAlertData(data) {
         // the in-memory __alertDismissedId — dismissing an alert should
         // stay dismissed until an admin sets a genuinely new one (a
         // different data.id), not just until the next reload.
-        const dismissedId = localStorage.getItem('LSH_ALERT_DISMISSED_ID');
-        if (dismissedId === String(data.id)) { __alertDismissedId = data.id; return; }
+        let dismissedId = null;
+        try { dismissedId = localStorage.getItem('LSH_ALERT_DISMISSED_ID'); } catch (e) { /* storage unavailable: the in-memory fallback below still holds */ }
+        if (dismissedId === String(data.id) || (__alertDismissedId != null && String(__alertDismissedId) === String(data.id))) { __alertDismissedId = data.id; return; }
 
         const textEl = document.getElementById('alert-overlay-text');
         const imgEl = document.getElementById('alert-overlay-image');
@@ -564,7 +565,7 @@ function applyAuthPageLockState(state) {
         if (heading) heading.textContent = state.locked ? 'Site Locked' : 'Admin Login';
         if (sub) sub.textContent = state.locked
             ? 'Enter the Master Account credentials to unlock the site.'
-            : 'Sign in with your administrator credentials.';
+            : 'Sign in with your own administrator username and password: one sign-in for every program, the simulators and Master Control.';
         return;
     }
 

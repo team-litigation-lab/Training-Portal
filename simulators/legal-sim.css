@@ -16,7 +16,7 @@
 .dk-lbl { display: flex; gap: 8px; align-items: center; font-weight: 800; font-size: 13px; min-width: 0; max-width: 100%; }
 .dk-lbl select { min-width: 0; max-width: 100%; flex: 1 1 auto; }
 .dk-small, .lx-small { font-size: 12.5px; }
-.dk-lock, .lx-note { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 10px 14px; font-size: 13px; margin: 8px 0; line-height: 1.5; }
+.dk-lock { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 10px 14px; font-size: 13px; margin: 8px 0; line-height: 1.5; }
 .dk-x { border: 0; background: none; color: var(--bad); cursor: pointer; font-size: 12px; padding: 0 4px; }
 
 /* ---------- Docket System ---------- */

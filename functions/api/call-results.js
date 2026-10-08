@@ -1,4 +1,4 @@
-import { json, requireSession } from '../_utils.js';
+import { json, requireSession, sameSecret } from '../_utils.js';
 
 // Graded calls from the CMS Call Simulator (the main Call Simulator: the CMS's call-packs.js lines), so they count in the
 // trainee's course. The CMS sends each graded call here, server to server, with the shared secret of the AI gateway.
@@ -15,14 +15,6 @@ import { json, requireSession } from '../_utils.js';
 //     { traineeId, updatedAt, calls: [{ id, line, lesson, title, score, at }] (the latest 60), best: { <lesson or line>: { score, calls, at } } }
 //   GET  /api/call-results   (a signed-in admin) the latest graded calls.
 const COURSES = { FT: { prefix: 'ft:' }, CM: { prefix: 'cm:' }, PD: { prefix: 'pd:' }, EA: { prefix: '' } };
-const enc = new TextEncoder();
-function same(a, b) {
-    const x = enc.encode(String(a)), y = enc.encode(String(b));
-    if (x.length !== y.length) return false;
-    let d = 0;
-    for (let i = 0; i < x.length; i++) d |= x[i] ^ y[i];
-    return d === 0;
-}
 const clip = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, n);
 
 // The course Workers' trainee id (worker.js candidateIds, in every course): "first last" and the batch, slugged.
@@ -46,7 +38,7 @@ export function addCall(record, traineeId, call) {
     return { traineeId, updatedAt: call.at, calls, best };
 }
 
-async function ensureTable(db) {
+export async function ensureSimResultsTable(db) {   // the one copy of the simulator_results schema (sim-results.js imports it)
     await db.prepare(`CREATE TABLE IF NOT EXISTS simulator_results (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL,
@@ -63,7 +55,7 @@ async function ensureTable(db) {
 export async function onRequestPost({ request, env }) {
     const want = String(env.AI_GATEWAY_SECRET || '').trim();
     if (!want) return json({ success: false, error: 'The Portal has no AI_GATEWAY_SECRET yet.' }, 501);
-    if (!same(String(request.headers.get('X-Gateway-Key') || '').trim(), want)) return json({ success: false, error: 'Not allowed.' }, 401);
+    if (!sameSecret(String(request.headers.get('X-Gateway-Key') || '').trim(), want)) return json({ success: false, error: 'Not allowed.' }, 401);
     let body;
     try { body = await request.json(); } catch (e) { return json({ success: false, error: 'Invalid request body.' }, 400); }
     const c = (body && body.call) || {};
@@ -82,7 +74,7 @@ export async function onRequestPost({ request, env }) {
         if (u) username = u.username;
     } catch (e) { /* the account lookup is a nicety */ }
     if (!username) username = 'cms:' + clip(body.username || `${first} ${last}`, 80).toLowerCase();
-    await ensureTable(tdb);
+    await ensureSimResultsTable(tdb);
     await tdb.prepare(`INSERT INTO simulator_results (username, full_name, simulator, scenario, score, summary, details, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
         .bind(username, fullName, 'Call Simulator', call.title, call.score, call.verdict,
             JSON.stringify({ graded: true, via: 'cms', program: call.program, line: call.line, lesson: call.lesson, call: call.id, secs: call.secs, voice: call.voice, batch }), call.at).run();
@@ -105,7 +97,7 @@ export async function onRequestPost({ request, env }) {
 export async function onRequestGet({ request, env }) {
     const auth = await requireSession(request, env, { adminOnly: true });
     if (!auth.ok) return auth.response;
-    await ensureTable(env.TRAINING_DB);
+    await ensureSimResultsTable(env.TRAINING_DB);
     const { results } = await env.TRAINING_DB.prepare(`SELECT id, username, full_name, scenario, score, summary, details, created_at FROM simulator_results
         WHERE simulator = 'Call Simulator' AND details LIKE '%"via":"cms"%' ORDER BY id DESC LIMIT 200`).all();
     return json({ success: true, results: results || [] });

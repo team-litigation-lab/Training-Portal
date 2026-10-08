@@ -94,9 +94,7 @@
     .sim-banner-tx { flex: 1; min-width: 0; } .sim-banner-tx b { display: block; font-size: 16px; } .sim-banner-tx span { font-size: 13px; color: #c7d2fe; }
     .sim-banner-go { background: var(--orange); color: #0f172a; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 8px 16px; white-space: nowrap; }
 
-    /* ===== The Training Directory design: dark navy, Training Tools on the left, the programs by practice area on the right ===== */
-    body { background: var(--navy); color: #fff; }
-    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    /* The top bar: the LSH logo, the page's name, and the pill bar (trainees, visitors, or the admin bar). */
     .idx-top { position: relative; z-index: 5; gap: 18px; padding: 10px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
     .idx-brand { flex-shrink: 0; }
     .idx-logo { height: 66px; width: auto; display: block; }
@@ -105,67 +103,8 @@
     .idx-user .pn-pill { font-size: 11.5px !important; padding: 5px 10px !important; }
     .idx-user .pn-back { font-size: 12px; font-weight: 700; padding: 5px 10px !important; }
     @media (max-width: 1400px) { .idx-title { white-space: normal; max-width: 9em; line-height: 1.1; } }
-    .idx-user-name { margin: 0 4px; }
     @media (max-width: 900px) { .idx-top { flex-wrap: wrap; } .idx-title { order: 2; flex-basis: auto; } .idx-user { order: 3; width: 100%; justify-content: flex-start; } }
-    .idx-rings { position: fixed; right: -260px; bottom: -260px; width: 520px; height: 520px; pointer-events: none; z-index: 0; }
-    .idx-layout { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(320px, 440px) 1fr; min-height: calc(100vh - 90px); }
-    @media (max-width: 1000px) { .idx-layout { grid-template-columns: 1fr; } }
-    .outline-title { margin: 0 0 22px; text-align: center; font-size: clamp(28px, 3.4vw, 44px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; line-height: 1.1;
-        color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,.9); }
-    @supports not (-webkit-text-stroke: 1px #fff) { .outline-title { color: #fff; } }
-    .idx-tools { background: rgba(255,255,255,.07); padding: 26px 20px 40px; display: flex; flex-direction: column; gap: 18px; }
-    .tool-card { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px 14px; border-radius: 16px; text-decoration: none; color: var(--navy);
-        border: 4px solid transparent; transition: transform .15s ease, box-shadow .15s ease;
-        background: linear-gradient(#fff, #fff) padding-box, linear-gradient(120deg, #22d3ee, #fde047) border-box; }
-    .tool-card.c2 { background: linear-gradient(#fff, #fff) padding-box, linear-gradient(120deg, #f472b6, #fde047) border-box; }
-    .tool-card:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -14px rgba(0,0,0,.6); }
-    .tool-head { display: flex; align-items: center; justify-content: center; gap: 10px; }
-    .tool-ic { font-size: 30px; line-height: 1; }
-    .tool-name { padding: 3px 16px; border: 2.5px solid var(--navy); color: var(--orange); font-size: 17px; font-weight: 900; letter-spacing: .03em; text-transform: uppercase; text-align: center; }
-    .tool-row { display: flex; align-items: center; gap: 12px; }
-    .tool-desc { flex: 1; font-size: 12.5px; line-height: 1.45; font-weight: 600; color: #1e293b; }
-    .tool-go { flex-shrink: 0; background: var(--navy); color: var(--orange); border-radius: 999px; padding: 8px 16px; font-size: 13px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
-    .idx-main { padding: 26px 32px 60px; min-width: 0; }
-    @media (max-width: 640px) { .idx-main { padding: 22px 16px 50px; } .idx-tools { padding: 22px 16px 30px; } }
-    .queue-card { background: rgba(249,115,22,.10); border-color: rgba(251,146,60,.5); color: #fff; }
-    .queue-card h3 { color: var(--orange-soft); }
-    .queue-row { border-top-color: rgba(251,146,60,.3); }
-    .topic-group { margin-bottom: 36px; }
-    .topic-group-head { justify-content: center; border-bottom: 0; padding-bottom: 0; margin-bottom: 22px; }
-    .topic-group-head h2 { margin: 0; text-align: center; font-size: clamp(26px, 3.2vw, 42px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; line-height: 1.1;
-        color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,.9); }
-    .topic-group .topic-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px 26px; }
-    .topic-card { align-items: center; text-align: center; gap: 14px; padding: 22px 16px 20px; border-radius: 16px; color: #fff;
-        background: rgba(255,255,255,.16); border: 2px solid rgba(139,92,246,.45); box-shadow: 0 10px 24px -16px rgba(0,0,0,.7); }
-    .topic-card h3 { align-self: stretch; padding: 9px 10px; border: 3px solid var(--navy); background: rgba(255,255,255,.04); color: #fff; font-size: 15px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
-    .topic-status { background: rgba(255,255,255,.12) !important; color: rgba(255,255,255,.85) !important; }
-    .topic-status.approved { color: #86efac !important; } .topic-status.pending { color: #fde68a !important; } .topic-status.passed { color: var(--orange-soft) !important; } .topic-status.denied { color: #fca5a5 !important; }
-    .topic-action-btn { margin-top: 0; min-width: 62%; padding: 9px 18px; font-size: 12.5px; letter-spacing: .08em; }
-    .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
-    .topic-action-btn.request { background: var(--orange); color: var(--navy-deep); }
-    .topic-action-btn.disabled { background: rgba(8,18,38,.55); color: rgba(255,255,255,.55); }
     .pn-trainee-view { position: relative; z-index: 5; }
-    /* ===== Cream page: only the header stays navy ===== */
-    body { background: var(--paper); color: var(--navy); }
-    .idx-tools { background: #efe8dc; }
-    .outline-title, .topic-group-head h2 { color: var(--navy); -webkit-text-stroke: 0; }
-    @supports not (-webkit-text-stroke: 1px #000) { .outline-title, .topic-group-head h2 { color: var(--navy); } }
-    /* the program cards are white, with their gridlines: the navy frame around the card and around its title */
-    .topic-card { background: #fff; color: var(--navy); border-color: rgba(15,33,72,.35); box-shadow: 0 14px 28px -18px rgba(15,33,72,.35); }
-    .topic-card h3 { border-color: var(--navy); background: transparent; color: var(--navy); }
-    .topic-status { background: #f1f5f9 !important; color: #475569 !important; }
-    .topic-status.approved { background: #f0fdf4 !important; color: #166534 !important; }
-    .topic-status.pending { background: #fffbeb !important; color: #b45309 !important; }
-    .topic-status.passed { background: #fff7ed !important; color: #9a3412 !important; }
-    .topic-status.denied { background: #fef2f2 !important; color: #b91c1c !important; }
-    .topic-action-btn.primary { background: var(--navy-deep); }
-    .topic-action-btn.disabled { background: #f1f5f9; color: #94a3b8; }
-    .queue-card { background: #fff7ed; border-color: #fed7aa; color: var(--navy); }
-    .queue-card h3 { color: #9a3412; } .queue-row { border-top-color: #fed7aa; }
-    .idx-rings { opacity: .5; }
-    /* every card's status and button sit at the same height, however many lines the title takes */
-    .topic-card h3 { box-sizing: border-box; min-height: 80px; line-height: 1.2; display: flex; align-items: center; justify-content: center; }
-    .topic-card .topic-status { margin-top: auto; }
 </style>
 <script src="/portal-nav.js"></script>
 </head>
@@ -194,35 +133,39 @@
     </div>
 </div>
 
-<svg class="idx-rings" viewBox="0 0 600 600" fill="none" aria-hidden="true"><circle cx="300" cy="300" r="280" stroke="#f97316" stroke-opacity=".35" stroke-width="10"/><circle cx="300" cy="300" r="220" stroke="#fb923c" stroke-opacity=".18" stroke-width="2"/></svg>
-<div class="idx-layout">
-    <aside class="idx-tools" aria-label="Training tools">
-        <h2 class="outline-title">Training Tools</h2>
-        <a class="tool-card c1" href="/simulators.html">
-            <span class="tool-head"><span class="tool-ic">🛠</span><span class="tool-name">Simulators</span></span>
-            <span class="tool-row"><span class="tool-desc">Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program.</span><span class="tool-go">Explore</span></span>
-        </a>
-        <a class="tool-card c2" href="/kb.html">
-            <span class="tool-head"><span class="tool-ic">📚</span><span class="tool-name">Knowledge Base</span></span>
-            <span class="tool-row"><span class="tool-desc">Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know.</span><span class="tool-go">Explore</span></span>
-        </a>
-        <a class="tool-card c1" id="ring-banner" href="/api/launch?tool=ringchannel" target="_blank" rel="noopener">
-            <span class="tool-head"><span class="tool-ic">☎</span><span class="tool-name">LSH Ring Channel</span></span>
-            <span class="tool-row"><span class="tool-desc">Mock calls on your training phone, with your trainer or a 🤖 AI caller: reception, calendar and intake. Use a headset. You are signed in from the Portal.</span><span class="tool-go">Explore</span></span>
-        </a>
-        <a class="tool-card c2" id="cms-banner" href="/api/launch?tool=cms" target="_blank" rel="noopener">
-            <span class="tool-head"><span class="tool-ic">🗂</span><span class="tool-name">Case Management System</span></span>
-            <span class="tool-row"><span class="tool-desc">The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. Your work is saved for your trainer.</span><span class="tool-go">Explore</span></span>
-        </a>
-    </aside>
-    <main class="idx-main">
-        <h1 class="sr-only" id="idx-heading">Training Directory</h1>
-        <p class="sr-only" id="idx-subhead">Every LSH training program in one place.</p>
-        <div id="idx-queue-wrap"></div>
-        <div id="idx-topics" class="topic-grid">
-            <div style="grid-column:1/-1; font-size:13px; color:#64748b; padding:20px;">Loading programs...</div>
-        </div>
-    </main>
+<div class="idx-wrap">
+    <div class="idx-head">
+        <div class="eyebrow">All Programs</div>
+        <h1 id="idx-heading">Training <span>Directory</span></h1>
+        <p id="idx-subhead">Every LSH training program in one place. Open a program to start. Each program has its own sign-in.</p>
+    </div>
+
+    <div class="sim-banner-row">
+    <a class="sim-banner" href="/simulators.html">
+        <span class="sim-banner-ic">🛠</span>
+        <span class="sim-banner-tx"><b>Simulators</b><span>Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way.</span></span>
+        <span class="sim-banner-go">Open →</span>
+    </a>
+    <a class="sim-banner" href="/kb.html">
+        <span class="sim-banner-ic">📚</span>
+        <span class="sim-banner-tx"><b>Knowledge Base</b><span>Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know.</span></span>
+        <span class="sim-banner-go">Open →</span>
+    </a>
+    <a class="sim-banner" id="ring-banner" href="/api/launch?tool=ringchannel" target="_blank" rel="noopener">
+        <span class="sim-banner-ic">☎</span>
+        <span class="sim-banner-tx"><b>LSH Ring Channel</b><span>Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal.</span></span>
+        <span class="sim-banner-go">Open →</span>
+    </a>
+    <a class="sim-banner" id="cms-banner" href="/api/launch?tool=cms" target="_blank" rel="noopener">
+        <span class="sim-banner-ic">🗂</span>
+        <span class="sim-banner-tx"><b>Case Management System</b><span>The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer.</span></span>
+        <span class="sim-banner-go">Open →</span>
+    </a>
+    </div>
+    <div id="idx-queue-wrap"></div>
+    <div id="idx-topics" class="topic-grid">
+        <div style="grid-column:1/-1; font-size:13px; color:#94a3b8; padding:20px;">Loading programs...</div>
+    </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -290,9 +233,8 @@
     // Shown first on the index, ahead of the progression, with a "Free" badge.
     const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
 
-    // Fixed VA progression order — must match TOPIC_SEQUENCE in
-    // functions/api/topics.js exactly. Duplicated here because a static
-    // page and a Pages Function can't share a module directly. Anything
+    // Fixed VA progression order — display order only now: the topics API
+    // no longer gates by sequence (its old gated copy is gone). Anything
     // NOT in this list (Handouts, Training Tools and Resources, Other
     // Resources) is reference material, not a gated training — always
     // freely requestable regardless of progression.
@@ -405,7 +347,7 @@
     // Archived — old/superseded modules kept in the database (and in any
     // trainee's history) but hidden from the active Training Index. Purely
     // a display-level exclusion; nothing is deleted.
-    const ARCHIVED_TOPICS = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];
+    const ARCHIVED_TOPICS = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];   // keep in step with PA_HIDDEN in app.js (same list; app.js loads into this page's global scope, so the names must differ)
     // Reference cards that aren't on the index either (they were the whole "More Training &
     // Resources" section, all Coming Soon). A program added later still shows up there.
     const HIDDEN_TOPICS = ['HANDOUTS', 'TRAINING TOOLS AND RESOURCES', 'OTHER RESOURCES'];

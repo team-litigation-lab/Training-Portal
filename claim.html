@@ -41,6 +41,7 @@
     <div id="msg"></div>
     <div class="links"><a href="/trainee-login.html">&larr; Back to Trainee Log In</a></div>
 </div>
+<script src="/portal-nav.js"></script>
 <script>
 async function claim() {
     const msg = document.getElementById('msg'), btn = document.getElementById('go');
@@ -56,9 +57,9 @@ async function claim() {
         setTimeout(() => { location.href = '/trainee-login.html'; }, 1200);
     } catch (e) {
         msg.className = 'error'; msg.textContent = 'Network error. Please try again.';
-    } finally { btn.disabled = false; }
+    } finally { if (msg.className !== 'ok') btn.disabled = false; }   // stay disabled while the success redirect waits: no second claim
 }
-document.addEventListener('keydown', (e) => { if (e.key === 'Enter') claim(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !document.getElementById('go').disabled) claim(); });   // Enter never re-fires an in-flight or finished claim
 </script>
 </body>
 </html>

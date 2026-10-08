@@ -38,7 +38,7 @@ export async function onRequestPost({ request, env }) {
              ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_by = excluded.updated_by, updated_at = excluded.updated_at`
         ).bind(clean, auth.session.username).run();
 
-        await logActivity(env.TRAINING_DB, auth.session.username, auth.session.batchId, 'ANNOUNCEMENT_SET', { text: clean });
+        await logActivity(env.DB, auth.session.username, auth.session.batchId, 'ANNOUNCEMENT_SET', { text: clean });
 
         return json({ success: true, text: clean });
     } catch (err) {
@@ -52,7 +52,7 @@ export async function onRequestDelete({ request, env }) {
 
     try {
         await env.TRAINING_DB.prepare("DELETE FROM site_settings WHERE key = 'announcement'").run();
-        await logActivity(env.TRAINING_DB, auth.session.username, auth.session.batchId, 'ANNOUNCEMENT_CLEARED', {});
+        await logActivity(env.DB, auth.session.username, auth.session.batchId, 'ANNOUNCEMENT_CLEARED', {});
         return json({ success: true, text: DEFAULT_TEXT });
     } catch (err) {
         return json({ success: false, error: err.message }, 500);

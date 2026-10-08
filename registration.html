@@ -103,7 +103,7 @@
     .auth-switch a:hover { text-decoration: underline; }
 
     /* ===== Lock-restricted state (site-wide Lock is active) ===== */
-    #auth-locked-notice { display: none; text-align: center; padding: 24px 4px; }
+    #auth-locked-notice { text-align: center; padding: 24px 4px; }   /* hidden inline below, like trainee-login: portal.js unhides it by clearing style.display, which a stylesheet display:none would defeat */
     #auth-locked-notice .icon { font-size: 34px; margin-bottom: 10px; }
     #auth-locked-notice p { font-size: 13.5px; color: var(--slate); line-height: 1.6; }
 </style>
@@ -124,7 +124,7 @@
         <div class="visual-copy">
             <div class="badge">New Account</div>
             <h1>Join the next generation of case managers.</h1>
-            <p>Create your account once. After an administrator approves it, you sign in here and open every training program from the Training Directory: no separate sign-in in each program.</p>
+            <p>Create your account once. After an administrator approves it, you sign in here and open every training program from the Training Directory: no separate sign-in in each program. Trainers register as <b>Admin / Trainer</b>: one sign-in with their own username and password opens every program, the simulators and Master Control.</p>
         </div>
         <div class="visual-foot">&copy; 2026 Legal Support Help. All Rights Reserved.</div>
     </div>
@@ -154,7 +154,7 @@
                 <div class="field"><label>Type of User</label>
                     <select id="reg-usertype" onchange="onRegUserTypeChange()">
                         <option value="Trainee" selected>Trainee</option>
-                        <option value="Admin">Admin</option>
+                        <option value="Admin">Admin / Trainer</option>
                     </select>
                 </div>
                 <div class="field" id="reg-training-date-wrap"><label>Start of Training Date</label><input type="date" id="reg-training-date" autocomplete="off"></div>
@@ -171,7 +171,7 @@
                 <div class="auth-switch">Already have an account? <a href="/trainee-login.html">Log in</a> &middot; <a href="/admin-login.html">Admin log in</a></div>
             </div>
 
-            <div id="auth-locked-notice">
+            <div id="auth-locked-notice" style="display:none">
                 <div class="icon">🔒</div>
                 <h2>Registration Unavailable</h2>
                 <p>The site is currently locked. Please wait for the administrator to unlock it.</p>

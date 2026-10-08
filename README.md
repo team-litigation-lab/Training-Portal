@@ -5,7 +5,7 @@
 Trainees log in once, here, and open each training program from the Training Directory. They aren't asked to sign in again inside the program.
 
 - **Register:** `/registration.html` (Trainee is the default type). An admin approves the account and assigns the Batch ID, as for admins. **Batch IDs** are the batch's: `B` + MMDDYY of the training start date (an admin's: the day the account was made), e.g. `B100526` for 5 October 2026, shared by everyone in the batch (`nextBatchId`, `functions/_utils.js`). Batch IDs given out before October 2026 have a trainee number (`B30092026-LSHTRAINEE-004`): they keep it in storage, since the programs know those trainees by it, but the pages show only the batch (`B300926`, `batchLabel` in `app.js`), and an admin's edit box leaves it alone unless a new Batch ID is typed. Two trainees with the same first and last name in one batch would share a program record (the M.I. isn't sent): give one of them a different Batch ID before they open a program. **Log in:** `/trainee-login.html` with the username and password they registered with (`/api/login`, `portalMode: "Trainee"`). A name alone no longer works. Admins still use `/admin-login.html`; an admin account used on the trainee form is told to use the Admin Portal.
-- **Open a program:** `/programs.html`. For a trainee whose access to the program is approved, the card's **Enter Program** goes to `/api/launch?program=<topic key>` (`functions/api/launch.js`), which checks the portal session and the approved access, then redirects to the program with a signed ticket (`?ticket=…`). The ticket carries the account's first name, last name and Batch ID, and is good for 5 minutes. Visitors who aren't logged in see **Log in to open** on those cards. Admins go through the same launch step: they signed in here with their admin password, so the program signs them in as an admin from an admin ticket (`{r: 'a', exp}`) and doesn't ask for the password again. Only someone who opens a program's own link directly is asked for it.
+- **Open a program:** `/programs.html`. For a trainee whose access to the program is approved, the card's **Enter Program** goes to `/api/launch?program=<topic key>` (`functions/api/launch.js`), which checks the portal session and the approved access, then redirects to the program with a signed ticket (`?ticket=…`). The ticket carries the account's first name, last name and Batch ID, and is good for 5 minutes. Visitors who aren't logged in see **Log in to open** on those cards. Admins go through the same launch step, but a ticket only signs them in on LSH Ring Channel (`ADMIN_TICKET_TOOLS` in `functions/api/launch.js`); on every other platform the launch lands them on that platform's own admin password prompt (`?admin=1`), by design.
 - **Which programs:** `SSO_PROGRAMS` in `programs.html` and `SSO_PROGRAMS` in `functions/api/launch.js` (keep them the same). Today **every program** (Standard Foundational Training, EA / PA, CM, PD Claims and Medsum & Demand) accepts tickets; the other programs still open directly and keep their own sign-in until they get the same change (`js/portal-gate.js` and the Worker endpoints in the Foundational-Training repo).
 - **Sign-in check (admins):** `/api/sso-check` (no longer in the admin menus; open the address directly) signs a test ticket and tries it on every program, listing each as **OK**, **MISMATCH** (its `PORTAL_SSO_SECRET` differs from the Portal's), or **NOT LOCKED YET**. Reload it after changing a secret and redeploying the Portal. Nothing is stored.
 - **Secret:** `PORTAL_SSO_SECRET` (Pages → Settings → Variables and Secrets, as a secret) must be the same value as the program's. Without it `/api/launch` answers "Not available yet". The ticket is `base64url(JSON {first, last, b, exp})` + `.` + `base64url(HMAC-SHA256(key = "portal-sso:" + secret, message = that text))`.
@@ -63,7 +63,7 @@ Three simulators on the Simulators hub (`/simulators.html`) train the paperwork 
 
 ## 🤝 Got a referral?
 
-The **Got a referral?** button on the home page (in the hero, next to *See how it works*) opens a pop-up card. Anyone can use it to refer someone to LSH.
+The **Got a referral?** button on the home page (a pill in the top navigation) opens a pop-up card. Anyone can use it to refer someone to LSH.
 
 **What the form collects**
 - The person's full name, email and phone. Optional: location, the role they're interested in, LinkedIn, and why they'd be a good fit.
@@ -101,6 +101,12 @@ How to use it:
 - Links to it: **Blueprint** in the main page header and in the admin bar on every main page. Signed-in admins get the admin track.
 
 To change the content, edit `SLIDES` in `blueprint.html`; the PDF is made from the same slides. `.github/scripts/blueprint.cjs` checks it in CI: trainees get the Trainees track only, an admin gets both, and each track downloads as a PDF with every slide and the deploy stamp.
+
+### 🔑 Admin accounts and Master Control
+
+One sign-in opens everything: a trainer registers on the Portal as **Admin / Trainer**, an administrator approves the account, and they sign in at **Admin Login** with their own username and password. That session opens the Training Directory, every program's admin, the Simulators, the Knowledge Base, the Ring Channel, Trainee Monitoring, Attendance, Referrals and **Master Control** (users, registrations, program access, logs, Broadcast & Ping) — no second password anywhere.
+
+The one exception is the **site-wide Lock**, which belongs to the master account, `LSHADMIN123`, whose password is the `MASTER_ADMIN_PASSWORD` secret in Cloudflare (it has no row in the users table). Only a session belonging to it may LOCK, and UNLOCK takes that password since a lock leaves nobody with a valid session. A site with no `MASTER_ADMIN_PASSWORD` says so (`503 MASTER_NOT_SET`) at the Admin Login instead of "incorrect password". `.github/scripts/master-control.mjs` checks this in CI.
 
 ### 🧭 The admin bar
 
@@ -162,7 +168,7 @@ The attendance Google Sheet (linked from the page) gets a **Platform Attendance*
 
 **Admin → 📊 Progress & Feedback** (`/progress.html`, also linked from Master Control) is the central record of every trainee's training.
 
-**A tab per program:** Standard Foundational Training, EA / PA Training, CM Training and PD Claims Training. Each tab loads only its own program, so one request's KV reads go to one program.
+**A tab per program:** Standard Foundational Training, EA / PA Training, CM Training, PD Claims Training and Medsum & Demand Training. Each tab loads only its own program, so one request's KV reads go to one program.
 
 **👤 Trainees**, grouped into 📁 batch sections (count, average completion, last activity). For each trainee:
 - status and days completed;
@@ -226,7 +232,7 @@ About 98 requests a minute per signed-in tab became about 5. Pings are read from
 
 **Uptime** (`.github/workflows/uptime.yml`) checks every 30 minutes (at :07 and :37):
 - the live portal, including its database (`/api/site-state`) and the Docket simulator;
-- the CM, EA/PA and PD Claims courses;
+- the CM, EA/PA, PD Claims and Medsum & Demand courses;
 - the CMS, including its database (`/api/state`).
 
 Each failing check is retried once after 20 seconds.
