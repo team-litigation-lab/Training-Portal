@@ -23,6 +23,8 @@
     .hub-card.soon { background: #fbfaf7; }
     .hub-sec { margin: 34px 0 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
     .hub-sec h2 { margin: 0; font-size: 20px; font-weight: 800; }
+    /* the Calendaring card's one text link (each program's evaluations): a plain link, not a pill */
+    .hub-note { margin: 0 0 10px; font-size: 13.5px; font-weight: 700; } .hub-note a { color: var(--navy); }
 </style>
 </head>
 <body>
@@ -74,6 +76,7 @@
                 <div class="row" style="margin-top:0;"><span class="icon">${s.icon}</span><span class="sim-chip ${CHIP[s.status][0]}">${CHIP[s.status][1]}</span></div>
                 <h3>${Sim.esc(s.title)}</h3>
                 <p>${Sim.esc(s.desc)}</p>
+                ${s.id === 'calsim' ? `<p class="hub-note"><a href="${Sim.isAdmin() ? '/simulators/gcal-review.html' : '/simulators/my-evaluations.html'}">${Sim.isAdmin() ? '🖥 Trainee Evaluations: review and feedback →' : '📋 My Evaluations: my calendars and my reports →'}</a></p>` : ''}
                 <div class="row"><span class="uses">${Sim.esc(s.uses)}</span>
                     ${s.href ? `<a class="sim-btn primary" href="${s.href}">Open →</a>` : `<button class="sim-btn ghost" disabled>Not yet</button>`}</div>
             </div>`).join('');
