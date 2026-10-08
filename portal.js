@@ -564,7 +564,7 @@ function applyAuthPageLockState(state) {
         if (heading) heading.textContent = state.locked ? 'Site Locked' : 'Admin Login';
         if (sub) sub.textContent = state.locked
             ? 'Enter the Master Account credentials to unlock the site.'
-            : 'Sign in with your administrator credentials.';
+            : 'Sign in with your own administrator username and password. Master Control asks for the master password separately.';
         return;
     }
 

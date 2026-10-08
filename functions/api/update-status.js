@@ -6,7 +6,7 @@ import { json, nextBatchId, logActivity, requireSession } from '../_utils.js';
 // who is allowed to revoke whom (Admins can't revoke Admins; only the
 // Master Account can; the Master Account itself can never be revoked).
 export async function onRequestPost({ request, env }) {
-    const auth = await requireSession(request, env, { adminOnly: true });
+    const auth = await requireSession(request, env, { adminOnly: true, master: true });
     if (!auth.ok) return auth.response;
     const { session } = auth;
     const db = env.DB;

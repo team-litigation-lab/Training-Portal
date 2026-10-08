@@ -32,7 +32,7 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-    const auth = await requireSession(request, env, { adminOnly: true });
+    const auth = await requireSession(request, env, { adminOnly: true, master: true });
     if (!auth.ok) return auth.response;
     const { session } = auth;
     const db = env.DB;

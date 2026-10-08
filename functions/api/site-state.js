@@ -57,7 +57,7 @@ export async function onRequestPost({ request, env }) {
         }
 
         // LOCK, PAUSE, and RESUME all require an already-valid admin session.
-        const auth = await requireSession(request, env, { adminOnly: true });
+        const auth = await requireSession(request, env, { adminOnly: true, master: true });
         if (!auth.ok) return auth.response;
         const { session } = auth;
 

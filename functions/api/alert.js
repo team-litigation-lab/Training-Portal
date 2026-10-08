@@ -34,7 +34,7 @@ export async function onRequestGet({ env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-    const auth = await requireSession(request, env, { adminOnly: true });
+    const auth = await requireSession(request, env, { adminOnly: true, master: true });
     if (!auth.ok) return auth.response;
     const { session } = auth;
 
@@ -62,7 +62,7 @@ export async function onRequestPost({ request, env }) {
 }
 
 export async function onRequestDelete({ request, env }) {
-    const auth = await requireSession(request, env, { adminOnly: true });
+    const auth = await requireSession(request, env, { adminOnly: true, master: true });
     if (!auth.ok) return auth.response;
     const { session } = auth;
 
