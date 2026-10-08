@@ -112,10 +112,8 @@ async function gsList(only) {
         { id: 'ea', icon: '🏢', title: 'Executive Week', where: 'EA / PA',
           desc: 'The same Google Calendar practice on an executive’s week: board, travel, focus time and the all-hands to protect, with interviews, investor, vendor, press and donor requests to book, move or cancel, under the executive’s rules.' }
     ];
-    // The page as the Foundational Training's Simulators page has it (the final set-up): the three tracks and, with them,
-    // Lesson 5's Calendar Management Mock Calls in the CMS Call Simulator (call.html sends the call on, with the name and batch).
-    const callHref = (graded) => { const n = new URLSearchParams(); ['name', 'batch'].forEach(k => { if (q.get(k)) n.set(k, q.get(k)); });
-        n.set('program', 'FT'); n.set('line', 'Calendar Management Mock Calls'); if (graded) n.set('random', '1'); return '/simulators/call.html?' + n; };
+    // The three tracks. (Lesson 5's Calendar Management Mock Calls aren't here: they are part of the Foundational Training's
+    // Calendaring Practice Lab, in the course.)
     const kicker = (t) => `<div style="font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#c2410c">${Sim.esc(t)}</div>`;
     // 🤖 The automated calendar review, per track (a trainee's own): the last Check my calendar in the simulator (kept in this
     // browser by gcal.js, one calendar per name and track), what they submitted (their account's gsubs, with the check it had)
@@ -140,7 +138,7 @@ async function gsList(only) {
         return `<div class="cs-review" style="font-size:13px;line-height:1.5;color:#334155;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px">${lines.length ? lines.join('<br>')
             : '🤖 No automated review yet: open it, book what the callers ask, then click <b>Check my calendar</b> to review it against the rules.'}${scLine}</div>`;
     };
-    // One wide screen: the heading and a one-line intro across the top, the four cards next to each other on the row
+    // One wide screen: the heading and a one-line intro across the top, the three cards next to each other on the row
     // below (wrapping on narrower screens), and for trainers one line at the foot with their links (Trainee Evaluations,
     // Recent results, Earlier scheduler scores) — no separate buttons row above the cards: it repeated that line.
     root.innerHTML = `<div style="max-width:1720px;margin:0 auto;padding:24px 24px 40px">
@@ -150,10 +148,7 @@ async function gsList(only) {
         ${TRACKS.map(t => `<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:10px">${kicker(t.where)}
             <h3 style="margin:0;color:#0b1633;font-size:19px">${t.icon} ${Sim.esc(t.title)}</h3><p style="margin:0;color:#475569;font-size:14px;flex:1">${Sim.esc(t.desc)}</p>
             ${reviewHTML(t.id)}
-            <div><a class="sim-btn orange" style="text-decoration:none" href="${Sim.esc(go(t.id))}">📅 Open →</a></div></div>`).join('')}
-        <div class="card cs-calls" style="padding:18px;display:flex;flex-direction:column;gap:10px">${kicker('Calendaring & Appointment Setting Training')}
-            <h3 style="margin:0;color:#0b1633;font-size:19px">Calendar Management Mock Calls</h3><p style="margin:0;color:#475569;font-size:14px;flex:1">In the CMS Call Simulator: a caller phones in about one of the firm’s cases. Get their name, verify them, find their file in the CMS and handle the call. Who called, and about which case, is in your debrief.</p>
-            <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="sim-btn orange" style="text-decoration:none" href="${Sim.esc(callHref(true))}">🎯 Take a graded call</a><a class="sim-btn ghost" style="text-decoration:none" href="${Sim.esc(callHref(false))}">📞 Practice a caller</a></div></div></div>
+            <div><a class="sim-btn orange" style="text-decoration:none" href="${Sim.esc(go(t.id))}">📅 Open →</a></div></div>`).join('')}</div>
         ${me.admin ? '<p style="margin:14px 0 0;color:#64748b;font-size:13.5px">Your trainees’ calendars, to view and score, are under <a id="cs-evals" href="/simulators/gcal-review.html" title="Trainee Evaluations: what trainees submit for evaluation, with the AI review and your feedback, and your trainees’ calendars.">📋 Trainee Evaluations</a>; their scores from these simulators are under <a href="/simulators.html#results">Recent results</a> on the Simulators page.</p>' : ''}</div>`;
 })();
 </script>
