@@ -1040,11 +1040,11 @@
 <script src="app.js"></script>
     <script src="portal.js"></script>
 <script>
-// /core.html#master, #registrations and #users open Master Control (the admin screen, not the trainee workspace) on that tab:
-// the Training Directory's 📝 Registrations and Master Control links use them.
+// /core.html#master, #registrations, #users, #access and #monitoring open Master Control (the admin screen, not the trainee
+// workspace) on that tab: the Training Directory's grouped admin bar (People & Access, Monitoring) and Master Control link use them.
 (function () {
     const want = (location.hash || '').replace('#', '');
-    const tabs = { master: 'overview', registrations: 'registrations', users: 'users', access: 'program-access' };
+    const tabs = { master: 'overview', registrations: 'registrations', users: 'users', access: 'program-access', monitoring: 'monitoring' };
     if (!tabs[want]) return;
     function open() {
         if (typeof openAdminDashboard !== 'function' || typeof showAdminDashTab !== 'function' || !document.getElementById('admin-dash-' + tabs[want])) return false;
