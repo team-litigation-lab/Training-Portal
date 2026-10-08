@@ -285,6 +285,22 @@
     .footer-bottom a, .footer-bottom em { color: rgba(255,255,255,0.75); }
     .social-link { background: rgba(255,255,255,0.08); }
     .social-link:hover { background: var(--orange); color: var(--navy-deep); }
+
+    /* Section bands ("segregators"): a full-width navy bar, the title in white capitals, a thin orange rule under it. */
+    html, body { overflow-x: clip; }
+    .section > .band { margin: -96px calc(50% - 50vw) 52px; padding: 22px 24px; background: var(--navy-mid); border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 3px solid var(--orange); text-align: center; }
+    .band h2 { margin: 0; color: #fff; font-size: clamp(20px, 2.6vw, 30px); font-weight: 900; letter-spacing: .12em; text-transform: uppercase; line-height: 1.2; }
+    .section { border-top: 0 !important; }
+    @media (max-width: 760px) { .section > .band { padding: 16px 16px; } .band h2 { letter-spacing: .08em; } }
+    /* Log In / Log Out: one of the two shows, from /api/me. */
+    .nav-pills .pill.pill-auth { background: var(--orange); border-color: var(--orange); color: var(--navy-deep) !important; }
+    .nav-pills .pill.pill-auth:hover { background: var(--orange-soft); }
+    .pill[hidden] { display: none !important; }
+    /* Footer: the copyright line in italics, the three icons in orange. */
+    footer .footer-bottom { font-style: italic; margin: 0; }
+    .social-link, .social-link:hover { background: transparent !important; color: var(--orange) !important; }
+    .social-link:hover { opacity: .8; }
+    .social-link svg { width: 24px; height: 24px; }
 </style>
 </head>
 <body>
@@ -300,6 +316,8 @@
             <a class="pill" href="#faq">FAQs</a>
             <a class="pill" href="/admin-login.html" title="Admin monitoring (sign-in required)">Admin</a>
             <a class="pill" href="#about">About</a>
+            <a class="pill pill-auth" id="pill-login" href="/trainee-login.html">Log In</a>
+            <button type="button" class="pill pill-auth" id="pill-logout" onclick="PortalNav.logout()" hidden>Log Out</button>
         </div>
     </div>
 </nav>
@@ -365,7 +383,7 @@
 </div>
 
 <section class="section" id="team">
-    <div class="section-head"><div class="eyebrow">The people behind your training</div><h2>Meet the training team.</h2></div>
+    <div class="band"><h2>Meet the training team</h2></div>
     <div class="org">
         <div class="org-card"><img src="/img/team/gwen.jpg" alt="Gwen Paiso-Adams" width="96" height="96" loading="lazy"><div><div class="org-name">Gwen Paiso-Adams</div><div class="org-role">General Manager</div></div></div>
         <div class="org-arrow" aria-hidden="true"></div>
@@ -381,7 +399,7 @@
 </section>
 
 <section class="section" id="about">
-    <div class="section-head"><div class="eyebrow">About</div><h2>About LSH</h2></div>
+    <div class="band"><h2>About Legal Support Help</h2></div>
     <div class="founder-block" id="founder">
         <h3 class="sub-head">Meet our Founder</h3>
         <div class="founder-grid">
@@ -411,7 +429,7 @@
 </section>
 
 <section class="section" id="vision">
-    <div class="section-head"><div class="eyebrow">Where we are going</div><h2>Mission and Vision</h2></div>
+    <div class="band"><h2>Mission and Vision</h2></div>
     <div class="vm-grid">
         <div class="vm-col">
             <div class="vm-tag" aria-label="Clients"><span>C</span><span>L</span><span>I</span><span>E</span><span>N</span><span>T</span><span>S</span></div>
@@ -435,7 +453,7 @@
 </section>
 
 <section class="section" id="values">
-    <div class="section-head"><div class="eyebrow">What we stand for</div><h2>9 Core Values</h2></div>
+    <div class="band"><h2>Our 9 Core Values</h2></div>
     <div class="values-grid">
         <div class="value-card">Integrity &amp; Loyalty Through Compliance</div>
         <div class="value-card">Accountability</div>
@@ -450,10 +468,7 @@
 </section>
 
 <section class="section" id="faq">
-    <div class="section-head">
-        <div class="eyebrow">FAQ</div>
-        <h2>Questions, answered.</h2>
-    </div>
+    <div class="band"><h2>Frequently Asked Questions</h2></div>
     <div id="faq-list">
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">What is the LSH Training Portal? <span class="chev">&#9660;</span></button>
@@ -465,7 +480,7 @@
         </div>
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">What's in the Knowledge Base? <span class="chev">&#9660;</span></button>
-            <div class="faq-answer"><p>Official LSH SOPs and resources, plus tips, guides and lessons shared by LSH VAs. It's for our team only, so it asks for the team access code — get it from your trainer or team lead.</p></div>
+            <div class="faq-answer"><p>Official LSH SOPs and resources, plus tips, guides and lessons shared by LSH VAs. It's for our team only: open it from the Training Directory once you're logged in, and you're signed in to it already.</p></div>
         </div>
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">How long does training take? <span class="chev">&#9660;</span></button>
@@ -481,7 +496,7 @@
         </div>
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">Do I need to log in here? <span class="chev">&#9660;</span></button>
-            <div class="faq-answer"><p>No. This page is open to everyone: open your program from the Training Directory. Each training program has its own sign-in, so if you can't get into your program, reach out to your batch administrator.</p></div>
+            <div class="faq-answer"><p>Yes, once. Press <b>Log In</b> at the top of this page (or <b>Register</b> first if you're new). After that, your programs, the Simulators and the Knowledge Base open without asking you to sign in again. If you can't get in, reach out to your batch administrator.</p></div>
         </div>
     </div>
 </section>
@@ -619,5 +634,13 @@
 </script>
 
 <script src="/portal-nav.js"></script>
+<script>
+// Log In or Log Out in the header, from who is signed in on this browser (the cookie, via /api/me).
+fetch('/api/me', { credentials: 'include', cache: 'no-store' }).then(r => r.json()).then(d => {
+    if (!d || !d.success) return;
+    document.getElementById('pill-login').hidden = true;
+    document.getElementById('pill-logout').hidden = false;
+}).catch(() => {});
+</script>
 </body>
 </html>
