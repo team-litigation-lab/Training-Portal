@@ -37,16 +37,6 @@
     .idx-logout:hover, .idx-logout.on { color: #fff; }
     .idx-logout.on { font-weight: 800; }
     @media (max-width: 760px) { .idx-top { flex-wrap: wrap; gap: 10px; padding: 14px 16px; } .idx-user { flex-wrap: wrap; gap: 10px 14px; } }
-    /* The admin's tools, under the top bar, in the trainer view's groups (core.html's sidebar). */
-    .idx-admin { background: var(--navy-deep); border-top: 1px solid rgba(255,255,255,0.08); padding: 14px 28px 16px; }
-    .idx-admin-inner { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 28px; }
-    .idx-admin-group { min-width: 0; }
-    .idx-admin-h { font-size: 10.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--orange-soft, #fb923c); margin: 0 0 6px; }
-    .idx-admin-links { display: flex; flex-wrap: wrap; gap: 4px 16px; }
-    .idx-admin-links a { color: rgba(255,255,255,0.72); font-size: 12.5px; font-weight: 600; text-decoration: none; white-space: nowrap; }
-    .idx-admin-links a:hover { color: #fff; }
-    @media (max-width: 1000px) { .idx-admin-inner { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 560px) { .idx-admin { padding: 12px 16px 14px; } .idx-admin-inner { grid-template-columns: 1fr; } }
 
     .idx-wrap { max-width: 1280px; margin: 0 auto; padding: 40px 24px 80px; }
     /* Directory hero — the same navy and orange rings as the home page hero. */
@@ -132,7 +122,6 @@
         <a class="idx-logout" href="/admin-login.html" title="Admin monitoring (sign-in required)">🔒 Admin</a>
     </div>
 </div>
-<nav class="idx-admin" id="idx-admin" aria-label="Admin tools" hidden></nav>
 
 <div class="idx-wrap">
     <div class="idx-head">
@@ -282,36 +271,18 @@
             if (userEl) userEl.innerHTML = `
                 ${PortalNav.html('directory', { back: '/index.html', cls: 'idx-logout' })}
                 <span class="idx-user-name">${escapeHtml(session.fullName || session.username)}</span>
+                <a class="idx-logout" id="idx-reg-link" href="/core.html#registrations" title="Approve new trainee registrations">📝 Registrations <b id="idx-reg-badge" style="background:#f97316;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;display:none"></b></a>
+                <a class="idx-logout" href="/progress.html">📊 Progress &amp; Feedback</a>
+                <a class="idx-logout" href="/attendance.html">🕘 Attendance</a>
+                <a class="idx-logout" href="/referrals.html">🤝 Referrals</a>
+                <a class="idx-logout" href="/orientation.html?track=admin">🧭 Orientation</a>
+                <a class="idx-logout" href="/api/import-registrations" title="Bring existing program and CMS registrations onto the Portal">📥 Import registrations</a>
+                <a class="idx-logout" href="/api/sso-check" title="Does each program accept the Portal's sign-in ticket?">🔐 Sign-in check</a>
+                <a class="idx-logout" href="/api/admin-password-check" title="Does every platform accept the admin password?">🔑 Admin password check</a>
+                <a class="idx-logout" href="/api/ai-usage" title="Today's use of the shared AI budget, flow by flow">🤖 AI usage</a>
+                <a class="idx-logout" href="/simulators/calsim.html?view=scores" title="The earlier drag-and-drop scheduler's submissions. Scores from the Calendaring Simulators are under Recent results on the Simulators page.">📅 Earlier Calendar Scores</a>
                 <a class="idx-logout" href="/core.html#master">Master Control &rarr;</a>
                 <a class="idx-logout" onclick="logoutSession()">Log Out</a>`;
-            // The admin's tools, grouped like the trainer view's sidebar (core.html): Training, People & Access,
-            // Monitoring, Reports & Tools. A Master Control tab opens through its core.html# link.
-            const adminEl = document.getElementById('idx-admin');
-            if (adminEl) {
-                const link = (href, label, title, extra) => `<a href="${href}"${title ? ` title="${title}"` : ''}${extra || ''}>${label}</a>`;
-                const group = (h, links) => `<div class="idx-admin-group"><div class="idx-admin-h">${h}</div><div class="idx-admin-links">${links.join('')}</div></div>`;
-                adminEl.innerHTML = `<div class="idx-admin-inner">
-                    ${group('Training', [
-                        link('/orientation.html?track=admin', "🧭 Trainers' Orientation", 'The Platform Orientation, Trainers & Admins track'),
-                        link('/simulators/calsim.html?view=scores', '📅 Earlier Calendar Scores', "The earlier drag-and-drop scheduler's submissions. Scores from the Calendaring Simulators are under Recent results on the Simulators page.")])}
-                    ${group('People &amp; Access', [
-                        link('/core.html#registrations', '📝 Registrations <b id="idx-reg-badge" style="background:#f97316;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;display:none"></b>', 'Approve new trainee registrations', ' id="idx-reg-link"'),
-                        link('/core.html#users', '👥 Users &amp; Revoke Access'),
-                        link('/core.html#access', '🔑 Program Access')])}
-                    ${group('Monitoring', [
-                        link('/core.html#master', '🧭 Overview'),
-                        link('/core.html#monitoring', '🟢 Who&rsquo;s Online')])}
-                    ${group('Reports &amp; Tools', [
-                        link('/progress.html', '📊 Progress &amp; Feedback'),
-                        link('/attendance.html', '🕘 Attendance'),
-                        link('/referrals.html', '🤝 Referrals'),
-                        link('/api/import-registrations', '📥 Import Registrations', 'Bring existing program and CMS registrations onto the Portal'),
-                        link('/api/sso-check', '🔐 Sign-in Check', "Does each program accept the Portal's sign-in ticket?"),
-                        link('/api/admin-password-check', '🔑 Admin Password Check', 'Does every platform accept the admin password?'),
-                        link('/api/ai-usage', '🤖 AI Usage', "Today's use of the shared AI budget, flow by flow")])}
-                </div>`;
-                adminEl.hidden = false;
-            }
         }
 
         if (session.userType === 'Trainee') {
