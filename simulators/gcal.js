@@ -670,7 +670,7 @@ function renderSide() {
     const side = $('#gc-side'); side.classList.toggle('off', !S.side);
     const box = (c) => `<label><input type="checkbox" data-cal="${c.id}" ${S.hidden[c.id] ? '' : 'checked'}><span class="box" style="border-color:${calColor(c.id)};background:${S.hidden[c.id] ? '#fff' : calColor(c.id)}">${S.hidden[c.id] ? '' : `<svg viewBox="0 0 24 24"><path d="${P.check}"/></svg>`}</span>${esc(c.name)}</label>`;
     side.innerHTML = `<button class="gc-create" data-a="create">${PLUS}Create</button>${miniHtml()}
-        <div class="cals"><h4>My calendars</h4>${GCAL_CALENDARS.filter(c => !c.other).map(box).join('')}<h4>Other calendars</h4>${GCAL_CALENDARS.filter(c => c.other).map(box).join('')}${Sim.isAdmin() && !RV ? '<button class="txt" data-a="cc-open" style="padding:0 6px;height:30px;margin:10px 0 0 2px" title="Choose the colors of the calendars and of the existing schedule, for everyone">🎨 Color coding</button>' : ''}</div>`;
+        <div class="cals"><h4>My calendars</h4>${GCAL_CALENDARS.filter(c => !c.other).map(box).join('')}<h4>Other calendars</h4>${GCAL_CALENDARS.filter(c => c.other).map(box).join('')}<button class="txt" data-a="cc-open" style="padding:0 6px;height:30px;margin:10px 0 0 2px" title="${Sim.isAdmin() && !RV ? 'Choose the colors of the calendars and of the existing schedule, for everyone' : 'What the colors on this calendar mean, and the color to give each appointment you book'}">🎨 Color coding</button></div>`;
     placeScores();   // (📊 Your scores, under Other calendars)
 }
 function layoutDay(evs) {
@@ -990,6 +990,40 @@ function colorDialog() {
         box().outerHTML = body();
     });
 }
+// 🎨 Color coding, as a trainee sees it: the same coding the trainer set up, read-only. It cannot be the dialog above —
+// PUT /api/gcal-schedule is adminOnly, so a trainee has nothing to save — and the colors are shared by everyone, so a
+// trainee changing them would change them for the whole program. What they need is to SEE the scheme: the attorney's
+// rule they are graded half a point on, then the calendars and the existing week exactly as colored for them.
+function colorLegend() {
+    const dot = (hex) => `<span class="cc-dot" style="background:${esc(hex)}"></span>`;
+    const chip = (name) => `<span class="cc-key">${dot(GCAL_COLORS[name] || '#9aa0a6')}${esc(colorName(name))}</span>`;
+    // What a type actually looks like in this week, not what the default would be: a type whose rows carry their own
+    // colors shows each one, so the key never claims a color the trainee cannot see on the grid.
+    const typeColors = (ty) => {
+        const seen = [];
+        ROWS.filter((r) => r.type === ty).forEach((r) => { const c = seedColor(r); if (c && !seen.includes(c)) seen.push(c); });
+        return seen;
+    };
+    const lenRow = (m) => `<div class="cc-row"><span>${m === 60 ? '1 hour' : m + ' minutes'}</span><span class="cc-sw">${chip(LEN_COLOR[m])}</span></div>`;
+    const body = `<div class="cc">
+        <h4>${WW('The attorney’s rule: color each appointment you book by its length')}</h4>
+        ${Object.keys(LEN_COLOR).map((m) => lenRow(+m)).join('')}
+        <h4>Calendars</h4>
+        ${GCAL_CALENDARS.map((c) => `<div class="cc-row"><span>${esc(c.name)}</span><span class="cc-sw">${dot(calColor(c.id))}</span></div>`).join('')}
+        <h4>The existing schedule, by type</h4>
+        ${SCHEDULE_TYPES.map((ty) => {
+            const n = ROWS.filter((r) => r.type === ty).length;
+            if (!n) return '';
+            const cs = typeColors(ty);
+            return `<div class="cc-row"><span>${esc(ty)} <em>${n} in the week</em></span><span class="cc-sw">${cs.length ? cs.map(chip).join('') : dot('#9aa0a6')}</span></div>`;
+        }).join('')}
+        <p class="cc-note">Your trainer sets the colors of the calendars and of the week that is already on them. You color
+            the appointments you book yourself — by length, in the Color box when you create or edit one.</p></div>`;
+    dialog('Color coding', body, () => {}, 'Close');
+    // dialog() always draws a Cancel beside the action. There is nothing to cancel in a
+    // read-only key, and two buttons that both just shut it read as a choice — drop it.
+    const x = gc().lastElementChild.querySelector('[data-x]'); if (x) x.remove();
+}
 function snack(text, canUndo) {
     document.querySelectorAll('.gc-snack').forEach(n => n.remove());
     const el = document.createElement('div'); el.className = 'gc-snack'; el.setAttribute('role', 'status');
@@ -1046,6 +1080,7 @@ function settings(anchor) {
         <label style="display:flex;gap:8px;align-items:center;padding:6px 0"><input type="checkbox" data-set="weekends" ${S.set.weekends ? 'checked' : ''}> Show weekends</label>
         <label style="display:flex;gap:8px;align-items:center;padding:6px 0"><input type="checkbox" data-set="tz2" ${S.set.tz2 ? 'checked' : ''}> Show Manila time too</label>
         <button class="txt" data-a="reset" style="margin-top:6px;padding:0">Start over (clear my calendar)</button>
+        ${Sim.isAdmin() ? '' : '<button class="txt" data-a="cc-open" style="margin-top:2px;padding:0">🎨 Color coding</button>'}
         ${Sim.isAdmin() ? `<button class="txt" data-a="admin-edit" style="margin-top:2px;padding:0">${G.admin ? 'Stop editing the weekly schedule' : '✎ Edit the weekly schedule (everyone)'}</button>
         <button class="txt" data-a="cc-open" style="margin-top:2px;padding:0">🎨 Color coding (everyone)</button>
         <a class="txt" href="${REVIEW_PAGE}" style="display:block;margin-top:2px;padding:0;line-height:36px;text-decoration:none">🖥 Trainee evaluations (live review)</a>` : ''}</div>`);
@@ -1369,7 +1404,7 @@ function bind() {
             check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true), 'tv-skip': () => skipItem(a.dataset.id, true), 'tv-unskip': () => skipItem(a.dataset.id, false), 'to-scores': () => { ev.preventDefault(); toScores(); },
             evals: () => { if (Sim.isAdmin()) { location.href = REVIEW_PAGE; return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
             'submit-eval': () => submitEval(),
-            'cc-open': () => { closeAll(); colorDialog(); },
+            'cc-open': () => { closeAll(); (Sim.isAdmin() && !RV ? colorDialog : colorLegend)(); },
             'cloud-save': () => { save(true); cloudSave(); },
             'cloud-newer': () => { if (confirm('Open the newer copy saved to your account? The changes you made in this tab since then are replaced.')) cloudLoad(true); },
             'eval-open': () => { EV.open = +a.dataset.id; renderPanel(); },

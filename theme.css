@@ -1,0 +1,159 @@
+/* ============================================================================
+   LSH Training Portal — gradient / futuristic accent layer.
+
+   Loaded LAST on every page, after that page's own stylesheet and its inline
+   <style>, so these rules win on source order without needing !important or
+   inflated selectors. That is the whole trick: match the class the page
+   already uses, say it later.
+
+   Deliberately an accent layer, not a repaint. It only touches the surfaces a
+   gradient actually reads on — dark bars and heroes, primary buttons, cards,
+   chips and pills — and never body text, form fields or page backgrounds, so
+   contrast is unchanged everywhere it matters and the Training Directory's
+   photo backdrop still shows through as it did.
+   ========================================================================= */
+
+:root {
+    /* The navy ramp the brand already implies, pushed one step further into
+       blue so a gradient has somewhere to travel. */
+    --g-navy: linear-gradient(135deg, #081226 0%, #132a5c 58%, #1d3f86 100%);
+    --g-navy-soft: linear-gradient(135deg, #0f2148 0%, #16336b 60%, #1d3f86 100%);
+    /* Orange into amber: both carry dark text, so a button keeps its contrast
+       wherever the gradient lands. */
+    --g-accent: linear-gradient(135deg, #f97316 0%, #fb923c 55%, #fbbf24 100%);
+    /* The one genuinely "futuristic" note — a cyan edge light, used only as a
+       hairline or a glow, never as a fill behind text. */
+    --g-edge: linear-gradient(90deg, transparent 0%, #f97316 22%, #38bdf8 62%, transparent 100%);
+    --glow-accent: 0 8px 26px -12px rgba(249, 115, 22, .55);
+    --glow-navy: 0 10px 30px -14px rgba(29, 63, 134, .6);
+    --glow-cyan: 0 0 0 1px rgba(56, 189, 248, .35), 0 8px 26px -14px rgba(56, 189, 248, .45);
+}
+
+/* ---------- dark chrome: top bars, panels, heroes ---------- */
+/* Each gets the navy ramp plus a lit hairline along its bottom edge, which is
+   what reads as "futuristic" at a glance without touching any text colour. */
+.idx-top,
+.sim-top,
+.auth-visual {
+    background-image: var(--g-navy);
+    position: relative;
+}
+.idx-top::after,
+.sim-top::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+    background: var(--g-edge); opacity: .85; pointer-events: none;
+}
+/* core.html's bar is the light one; it gets the hairline, not the ramp. */
+.top-bar-modern { position: relative; }
+.top-bar-modern::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+    background: var(--g-edge); opacity: .55; pointer-events: none;
+}
+
+.idx-head,
+.sim-hero,
+.sim-banner {
+    background-image: var(--g-navy);
+    box-shadow: var(--glow-navy);
+}
+/* A faint cyan bloom in the corner of the big panel, under the content.
+   .sim-hero only: the Directory's .idx-head already spends BOTH pseudo-elements
+   on its orange ring decoration, and reusing ::after there did not add a bloom,
+   it rewrote that ring — the page's width/height survived while this rule's
+   inset/border-radius took over, leaving a 200px rounded box stranded in the
+   hero's top-left corner. Its rings are the same idea anyway. */
+.sim-hero::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+    background: radial-gradient(60% 90% at 88% 6%, rgba(56, 189, 248, .16), transparent 70%);
+}
+.sim-hero > * { position: relative; z-index: 1; }
+
+/* ---------- primary actions ---------- */
+/* Navy-bodied buttons. Their label is orange or white on navy either way, so
+   the ramp cannot cost contrast. */
+.btn-navy,
+.auth-submit,
+.sim-btn.primary,
+.topic-action-btn.primary,
+.cs-wrap .btn-navy {
+    background-image: var(--g-navy-soft);
+    box-shadow: var(--glow-navy);
+    transition: box-shadow .2s ease, transform .12s ease, filter .2s ease;
+}
+.btn-navy:hover,
+.auth-submit:hover,
+.sim-btn.primary:hover,
+.topic-action-btn.primary:hover {
+    background-image: var(--g-navy-soft);
+    box-shadow: var(--glow-cyan);
+    filter: brightness(1.12);
+}
+/* Orange-bodied buttons keep their dark label; amber is lighter than orange,
+   so the far end of the ramp is the higher-contrast end. */
+.btn-primary,
+.sim-btn.orange,
+.sim-banner-go,
+.topic-action-btn.request,
+.cs-wrap .btn-primary {
+    background-image: var(--g-accent);
+    box-shadow: var(--glow-accent);
+    transition: box-shadow .2s ease, transform .12s ease, filter .2s ease;
+}
+.btn-primary:hover,
+.sim-btn.orange:hover,
+.topic-action-btn.request:hover { filter: brightness(1.06); box-shadow: 0 10px 30px -10px rgba(249, 115, 22, .7); }
+
+/* ---------- cards ---------- */
+/* Off-white rather than flat white, with a lit top edge that only appears on
+   hover — the card itself stays calm while a list of them is being read. */
+.sim-card,
+.topic-card,
+.queue-card {
+    background-image: linear-gradient(170deg, #ffffff 0%, #fbfcff 55%, #f4f7fd 100%);
+    position: relative;
+    transition: box-shadow .22s ease, transform .16s ease;
+}
+.sim-card::before,
+.topic-card::before {
+    content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 2px;
+    border-radius: 0 0 2px 2px; background: var(--g-edge);
+    opacity: 0; transition: opacity .22s ease;
+}
+.sim-card:hover::before,
+.topic-card:hover::before { opacity: 1; }
+.sim-card:hover,
+.topic-card:hover { box-shadow: 0 16px 36px -22px rgba(15, 33, 72, .5); transform: translateY(-2px); }
+/* A card for something not built yet should not light up like a live one. */
+.sim-card.soon:hover::before { opacity: .35; }
+
+/* ---------- pills, chips, eyebrows ---------- */
+.pn-pill.on { background-image: var(--g-accent); border-color: transparent; box-shadow: var(--glow-accent); }
+.pn-pill:hover { box-shadow: var(--glow-cyan); }
+.sim-chip.live { background-image: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); }
+.sim-chip.next { background-image: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }
+.sim-chip.input { background-image: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); }
+.sim-chip.plan { background-image: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%); }
+.sim-hero .eyebrow,
+.visual-copy .badge,
+.idx-head .eyebrow {
+    background-image: linear-gradient(135deg, rgba(249, 115, 22, .22) 0%, rgba(56, 189, 248, .16) 100%);
+}
+
+/* ---------- honour a reduced-motion preference ---------- */
+/* The lift and the hairline fade are decoration; someone who has asked for
+   less movement should get the colour without any of it. */
+@media (prefers-reduced-motion: reduce) {
+    .sim-card, .topic-card, .btn-navy, .btn-primary, .auth-submit,
+    .sim-btn.primary, .sim-btn.orange, .topic-action-btn.primary, .topic-action-btn.request {
+        transition: none;
+    }
+    .sim-card:hover, .topic-card:hover { transform: none; }
+}
+
+/* Printed pages drop the gradients: they cost ink and render as flat grey. */
+@media print {
+    .idx-top, .sim-top, .auth-visual, .idx-head, .sim-hero, .sim-banner,
+    .sim-card, .topic-card, .queue-card { background-image: none; box-shadow: none; }
+    .idx-top::after, .sim-top::after, .top-bar-modern::after,
+    .sim-hero::after, .sim-card::before, .topic-card::before { display: none; }
+}
