@@ -110,8 +110,8 @@
     .idx-rings { position: fixed; right: -260px; bottom: -260px; width: 520px; height: 520px; pointer-events: none; z-index: 0; }
     .idx-layout { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(320px, 440px) 1fr; min-height: calc(100vh - 90px); }
     @media (max-width: 1000px) { .idx-layout { grid-template-columns: 1fr; } }
-    .outline-title { margin: 0 0 22px; text-align: center; font-size: clamp(28px, 3.4vw, 44px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; line-height: 1.1;
-        color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,.9); }
+    .outline-title { margin: 0 0 22px; text-align: center; font-size: clamp(17px, 1.6vw, 22px); font-weight: 900; letter-spacing: .07em; text-transform: uppercase; line-height: 1.2;
+        color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,.9); }
     @supports not (-webkit-text-stroke: 1px #fff) { .outline-title { color: #fff; } }
     .idx-tools { background: rgba(255,255,255,.07); padding: 26px 20px 40px; display: flex; flex-direction: column; gap: 18px; }
     .tool-card { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px 14px; border-radius: 16px; text-decoration: none; color: var(--navy);
@@ -132,8 +132,8 @@
     .queue-row { border-top-color: rgba(251,146,60,.3); }
     .topic-group { margin-bottom: 36px; }
     .topic-group-head { justify-content: center; border-bottom: 0; padding-bottom: 0; margin-bottom: 22px; }
-    .topic-group-head h2 { margin: 0; text-align: center; font-size: clamp(26px, 3.2vw, 42px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; line-height: 1.1;
-        color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,.9); }
+    .topic-group-head h2 { margin: 0; text-align: center; font-size: clamp(16px, 1.5vw, 21px); font-weight: 900; letter-spacing: .07em; text-transform: uppercase; line-height: 1.2;
+        color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,.9); }
     .topic-group .topic-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px 26px; }
     .topic-card { align-items: center; text-align: center; gap: 14px; padding: 22px 16px 20px; border-radius: 16px; color: #fff;
         background: rgba(255,255,255,.16); border: 2px solid rgba(139,92,246,.45); box-shadow: 0 10px 24px -16px rgba(0,0,0,.7); }
@@ -148,7 +148,7 @@
     /* ===== Cream page: only the header stays navy ===== */
     body { background: var(--paper); color: var(--navy); }
     .idx-tools { background: #efe8dc; }
-    .outline-title, .topic-group-head h2 { -webkit-text-stroke: 1.5px var(--navy); }
+    .outline-title, .topic-group-head h2 { -webkit-text-stroke: 1.2px var(--navy); }
     @supports not (-webkit-text-stroke: 1px #000) { .outline-title, .topic-group-head h2 { color: var(--navy); } }
     /* the program cards are white, with their gridlines: the navy frame around the card and around its title */
     .topic-card { background: #fff; color: var(--navy); border-color: rgba(15,33,72,.35); box-shadow: 0 14px 28px -18px rgba(15,33,72,.35); }
