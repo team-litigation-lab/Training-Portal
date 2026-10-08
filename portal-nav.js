@@ -69,6 +69,19 @@ const PortalNav = {
             + `<button type="button" class="pn-pill${tv ? ' on' : ''}" onclick="PortalNav.switchView()" title="${tv ? 'Back to the admin view' : 'See the Training Directory as a trainee does'}"${tv ? ' aria-pressed="true"' : ''}>Switch view</button>`
             + `<button type="button" class="pn-pill" onclick="PortalNav.logout()">Logout</button>`;
     },
+    // The trainee top bar on the Training Directory: Blueprint · My Evaluations · Logout (signed out: Log In).
+    traineeHtml(active, opts) {
+        opts = opts || {};
+        const pill = (id, href, label, title) => `<a class="pn-pill${active === id ? ' on' : ''}" href="${href}"${active === id ? ' aria-current="page"' : ''} title="${title}">${label}</a>`;
+        const back = opts.back === false ? '' : `<a class="pn-back" onclick="PortalNav.back('${opts.back || '/index.html'}')" title="Go back">← Back</a>`;
+        return back
+            + pill('home', '/index.html', 'Home', 'The LSH Upskill Hub main page')
+            + pill('orient', '/blueprint.html', 'Blueprint', 'The Platform Blueprint: how the portal works')
+            + (opts.signedIn
+                ? pill('mine', '/simulators/my-evaluations.html', 'My Evaluations', 'Your calendars in progress, submitted, and your trainer’s reports')
+                  + `<button type="button" class="pn-pill" onclick="PortalNav.logout()">Logout</button>`
+                : pill('login', '/trainee-login.html', 'Log In', 'Log in once for every program'));
+    },
     // app.js's logoutSession where the page loads it; otherwise the same steps by hand.
     logout() {
         try { sessionStorage.removeItem('LSH_VIEW_AS'); } catch (e) {}

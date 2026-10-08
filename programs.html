@@ -93,6 +93,58 @@
     .sim-banner-ic { width: 48px; height: 48px; border-radius: 14px; background: rgba(249,115,22,.18); border: 1px solid rgba(253,186,116,.45); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
     .sim-banner-tx { flex: 1; min-width: 0; } .sim-banner-tx b { display: block; font-size: 16px; } .sim-banner-tx span { font-size: 13px; color: #c7d2fe; }
     .sim-banner-go { background: var(--orange); color: #0f172a; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 8px 16px; white-space: nowrap; }
+
+    /* ===== The Training Directory design: dark navy, Training Tools on the left, the programs by practice area on the right ===== */
+    body { background: var(--navy); color: #fff; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .idx-top { position: relative; z-index: 5; gap: 18px; padding: 10px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
+    .idx-brand { flex-shrink: 0; }
+    .idx-logo { height: 66px; width: auto; display: block; }
+    .idx-title { flex: 0 1 auto; margin-right: auto; font-size: clamp(16px, 2vw, 26px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: #fff; white-space: nowrap; }
+    .idx-user { gap: 6px; }
+    .idx-user .pn-pill { font-size: 11.5px !important; padding: 5px 10px !important; }
+    .idx-user .pn-back { font-size: 12px; font-weight: 700; padding: 5px 10px !important; }
+    @media (max-width: 1400px) { .idx-title { white-space: normal; max-width: 9em; line-height: 1.1; } }
+    .idx-user-name { margin: 0 4px; }
+    @media (max-width: 900px) { .idx-top { flex-wrap: wrap; } .idx-title { order: 2; flex-basis: auto; } .idx-user { order: 3; width: 100%; justify-content: flex-start; } }
+    .idx-rings { position: fixed; right: -260px; bottom: -260px; width: 520px; height: 520px; pointer-events: none; z-index: 0; }
+    .idx-layout { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(320px, 440px) 1fr; min-height: calc(100vh - 90px); }
+    @media (max-width: 1000px) { .idx-layout { grid-template-columns: 1fr; } }
+    .outline-title { margin: 0 0 22px; text-align: center; font-size: clamp(28px, 3.4vw, 44px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; line-height: 1.1;
+        color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,.9); }
+    @supports not (-webkit-text-stroke: 1px #fff) { .outline-title { color: #fff; } }
+    .idx-tools { background: rgba(255,255,255,.07); padding: 26px 20px 40px; display: flex; flex-direction: column; gap: 18px; }
+    .tool-card { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px 14px; border-radius: 16px; text-decoration: none; color: var(--navy);
+        border: 4px solid transparent; transition: transform .15s ease, box-shadow .15s ease;
+        background: linear-gradient(#fff, #fff) padding-box, linear-gradient(120deg, #22d3ee, #fde047) border-box; }
+    .tool-card.c2 { background: linear-gradient(#fff, #fff) padding-box, linear-gradient(120deg, #f472b6, #fde047) border-box; }
+    .tool-card:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -14px rgba(0,0,0,.6); }
+    .tool-head { display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .tool-ic { font-size: 30px; line-height: 1; }
+    .tool-name { padding: 3px 16px; border: 2.5px solid var(--navy); color: var(--orange); font-size: 17px; font-weight: 900; letter-spacing: .03em; text-transform: uppercase; text-align: center; }
+    .tool-row { display: flex; align-items: center; gap: 12px; }
+    .tool-desc { flex: 1; font-size: 12.5px; line-height: 1.45; font-weight: 600; color: #1e293b; }
+    .tool-go { flex-shrink: 0; background: var(--navy); color: var(--orange); border-radius: 999px; padding: 8px 16px; font-size: 13px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .idx-main { padding: 26px 32px 60px; min-width: 0; }
+    @media (max-width: 640px) { .idx-main { padding: 22px 16px 50px; } .idx-tools { padding: 22px 16px 30px; } }
+    .queue-card { background: rgba(249,115,22,.10); border-color: rgba(251,146,60,.5); color: #fff; }
+    .queue-card h3 { color: var(--orange-soft); }
+    .queue-row { border-top-color: rgba(251,146,60,.3); }
+    .topic-group { margin-bottom: 36px; }
+    .topic-group-head { justify-content: center; border-bottom: 0; padding-bottom: 0; margin-bottom: 22px; }
+    .topic-group-head h2 { margin: 0; text-align: center; font-size: clamp(26px, 3.2vw, 42px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; line-height: 1.1;
+        color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,.9); }
+    .topic-group .topic-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px 26px; }
+    .topic-card { align-items: center; text-align: center; gap: 14px; padding: 22px 16px 20px; border-radius: 16px; color: #fff;
+        background: rgba(255,255,255,.16); border: 2px solid rgba(139,92,246,.45); box-shadow: 0 10px 24px -16px rgba(0,0,0,.7); }
+    .topic-card h3 { align-self: stretch; padding: 9px 10px; border: 3px solid var(--navy); background: rgba(255,255,255,.04); color: #fff; font-size: 15px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
+    .topic-status { background: rgba(255,255,255,.12) !important; color: rgba(255,255,255,.85) !important; }
+    .topic-status.approved { color: #86efac !important; } .topic-status.pending { color: #fde68a !important; } .topic-status.passed { color: var(--orange-soft) !important; } .topic-status.denied { color: #fca5a5 !important; }
+    .topic-action-btn { margin-top: 0; min-width: 62%; padding: 9px 18px; font-size: 12.5px; letter-spacing: .08em; }
+    .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
+    .topic-action-btn.request { background: var(--orange); color: var(--navy-deep); }
+    .topic-action-btn.disabled { background: rgba(8,18,38,.55); color: rgba(255,255,255,.55); }
+    .pn-trainee-view { position: relative; z-index: 5; }
 </style>
 <script src="/portal-nav.js"></script>
 </head>
@@ -113,49 +165,43 @@
 </script>
 
 <div class="idx-top">
-    <div class="idx-brand">
-        <span class="idx-brand-mark"><img src="/favicon.png" onerror="this.src='data:image/png;base64,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'" alt="LSH Logo"></span>
-        Training Directory
-    </div>
+    <a class="idx-brand" href="/index.html" title="The LSH Upskill Hub main page"><img class="idx-logo" src="/img/logo.png" alt="Legal Support Help"></a>
+    <span class="idx-title">Training Directory</span>
     <div class="idx-user" id="idx-user">
-        <script>document.write(PortalNav.html('directory', { back: '/index.html', cls: 'idx-logout' }));</script>
-        <a class="idx-logout" href="/admin-login.html" title="Admin monitoring (sign-in required)">🔒 Admin</a>
+        <script>document.write(PortalNav.traineeHtml('', { back: '/index.html' }));</script>
+        <a class="pn-pill" href="/admin-login.html" title="Admin monitoring (sign-in required)">Admin</a>
     </div>
 </div>
 
-<div class="idx-wrap">
-    <div class="idx-head">
-        <div class="eyebrow">All Programs</div>
-        <h1 id="idx-heading">Training <span>Directory</span></h1>
-        <p id="idx-subhead">Every LSH training program in one place. Open a program to start. Each program has its own sign-in.</p>
-    </div>
-
-    <div class="sim-banner-row">
-    <a class="sim-banner" href="/simulators.html">
-        <span class="sim-banner-ic">🛠</span>
-        <span class="sim-banner-tx"><b>Simulators</b><span>Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way.</span></span>
-        <span class="sim-banner-go">Open →</span>
-    </a>
-    <a class="sim-banner" href="/kb.html">
-        <span class="sim-banner-ic">📚</span>
-        <span class="sim-banner-tx"><b>Knowledge Base</b><span>Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know.</span></span>
-        <span class="sim-banner-go">Open →</span>
-    </a>
-    <a class="sim-banner" id="ring-banner" href="/api/launch?tool=ringchannel" target="_blank" rel="noopener">
-        <span class="sim-banner-ic">☎</span>
-        <span class="sim-banner-tx"><b>LSH Ring Channel</b><span>Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal.</span></span>
-        <span class="sim-banner-go">Open →</span>
-    </a>
-    <a class="sim-banner" id="cms-banner" href="/api/launch?tool=cms" target="_blank" rel="noopener">
-        <span class="sim-banner-ic">🗂</span>
-        <span class="sim-banner-tx"><b>Case Management System</b><span>The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer.</span></span>
-        <span class="sim-banner-go">Open →</span>
-    </a>
-    </div>
-    <div id="idx-queue-wrap"></div>
-    <div id="idx-topics" class="topic-grid">
-        <div style="grid-column:1/-1; font-size:13px; color:#94a3b8; padding:20px;">Loading programs...</div>
-    </div>
+<svg class="idx-rings" viewBox="0 0 600 600" fill="none" aria-hidden="true"><circle cx="300" cy="300" r="280" stroke="#f97316" stroke-opacity=".35" stroke-width="10"/><circle cx="300" cy="300" r="220" stroke="#fb923c" stroke-opacity=".18" stroke-width="2"/></svg>
+<div class="idx-layout">
+    <aside class="idx-tools" aria-label="Training tools">
+        <h2 class="outline-title">Training Tools</h2>
+        <a class="tool-card c1" href="/simulators.html">
+            <span class="tool-head"><span class="tool-ic">🛠</span><span class="tool-name">Simulators</span></span>
+            <span class="tool-row"><span class="tool-desc">Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program.</span><span class="tool-go">Explore</span></span>
+        </a>
+        <a class="tool-card c2" href="/kb.html">
+            <span class="tool-head"><span class="tool-ic">📚</span><span class="tool-name">Knowledge Base</span></span>
+            <span class="tool-row"><span class="tool-desc">Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know.</span><span class="tool-go">Explore</span></span>
+        </a>
+        <a class="tool-card c1" id="ring-banner" href="/api/launch?tool=ringchannel" target="_blank" rel="noopener">
+            <span class="tool-head"><span class="tool-ic">☎</span><span class="tool-name">LSH Ring Channel</span></span>
+            <span class="tool-row"><span class="tool-desc">Mock calls on your training phone, with your trainer or a 🤖 AI caller: reception, calendar and intake. Use a headset. You are signed in from the Portal.</span><span class="tool-go">Explore</span></span>
+        </a>
+        <a class="tool-card c2" id="cms-banner" href="/api/launch?tool=cms" target="_blank" rel="noopener">
+            <span class="tool-head"><span class="tool-ic">🗂</span><span class="tool-name">Case Management System</span></span>
+            <span class="tool-row"><span class="tool-desc">The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. Your work is saved for your trainer.</span><span class="tool-go">Explore</span></span>
+        </a>
+    </aside>
+    <main class="idx-main">
+        <h1 class="sr-only" id="idx-heading">Training Directory</h1>
+        <p class="sr-only" id="idx-subhead">Every LSH training program in one place.</p>
+        <div id="idx-queue-wrap"></div>
+        <div id="idx-topics" class="topic-grid">
+            <div style="grid-column:1/-1; font-size:13px; color:rgba(255,255,255,.6); padding:20px;">Loading programs...</div>
+        </div>
+    </main>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -278,13 +324,7 @@
 
         if (session.userType === 'Trainee') {
             const userEl = document.getElementById('idx-user');
-            if (userEl) userEl.innerHTML = `
-                ${PortalNav.html('directory', { back: '/index.html', cls: 'idx-logout' })}
-                <span class="idx-user-name">${escapeHtml(session.fullName || session.username)}</span>
-                <a class="idx-logout" onclick="logoutSession()">Log Out</a>`;
-        } else if (session.userType === 'Public') {
-            const userEl = document.getElementById('idx-user');
-            if (userEl) userEl.insertAdjacentHTML('beforeend', `<a class="idx-logout" href="/trainee-login.html">Trainee Log In</a>`);
+            if (userEl) userEl.innerHTML = PortalNav.traineeHtml('', { back: '/index.html', signedIn: true });
         }
 
         const headingEl = document.getElementById('idx-heading');
