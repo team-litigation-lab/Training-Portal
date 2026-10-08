@@ -84,7 +84,7 @@ const Sim = {
             : s.userType === 'Trainee' ? `<span class="who" title="Your results are saved to your account">Practicing as ${Sim.esc(w.name)}${w.batch ? ' · ' + Sim.esc(typeof batchLabel === 'function' ? batchLabel(w.batch) : w.batch) : ''}</span>`
             : `<a class="who" onclick="Sim.askWho(true)" title="Change who is practicing">${w.name ? `Practicing as ${Sim.esc(w.name)}${w.batch ? ' · ' + Sim.esc(w.batch) : ''} ✎` : 'Add your name ✎'}</a>`;
         return `<div class="sim-top">
-            <a class="sim-brand" href="/index.html"><img src="/img/logo.png" alt="Legal Support Help" width="70" height="46"><span>LSH Training Portal<small>Simulators</small></span></a>
+            <a class="sim-brand" href="/index.html?stay=1"><img src="/img/logo.png" alt="Legal Support Help" width="70" height="46"><span>LSH Training Portal<small>Simulators</small></span></a>
             <div class="sim-nav">
                 ${PortalNav.html(active === 'hub' ? 'sims' : '', { back: active === 'hub' ? '/programs.html' : '/simulators.html' })}
                 ${me}
