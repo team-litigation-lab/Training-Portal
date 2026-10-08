@@ -245,7 +245,7 @@
             const users = await res.json();
             const n = (Array.isArray(users) ? users : []).filter(u => u.status === 'Pending' && u.userType === 'Trainee').length;
             const b = document.getElementById('idx-reg-badge');
-            if (b && n > 0) { b.textContent = n; b.style.display = 'inline-block'; }
+            if (b && n > 0) { b.textContent = n; b.classList.add('has'); }
         } catch (e) { /* no badge */ }
     }
     window.showPendingRegistrations = showPendingRegistrations;
@@ -265,24 +265,15 @@
             } catch (e) { /* signed out: the directory shows its public view */ }
         }
         const session = (stored && (stored.userType === 'Admin' || stored.userType === 'Trainee')) ? stored : { userType: 'Public' };
+        // 👁 Switch view: an admin looking at the Directory as a trainee does (no approval queue, no admin heading).
+        const asTrainee = session.userType === 'Admin' && PortalNav.traineeView();
 
         if (session.userType === 'Admin') {
             const userEl = document.getElementById('idx-user');
-            if (userEl) userEl.innerHTML = `
-                ${PortalNav.html('directory', { back: '/index.html', cls: 'idx-logout' })}
-                <span class="idx-user-name">${escapeHtml(session.fullName || session.username)}</span>
-                <a class="idx-logout" id="idx-reg-link" href="/core.html#registrations" title="Approve new trainee registrations">📝 Registrations <b id="idx-reg-badge" style="background:#f97316;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;display:none"></b></a>
-                <a class="idx-logout" href="/progress.html">📊 Progress &amp; Feedback</a>
-                <a class="idx-logout" href="/attendance.html">🕘 Attendance</a>
-                <a class="idx-logout" href="/referrals.html">🤝 Referrals</a>
-                <a class="idx-logout" href="/orientation.html?track=admin">🧭 Orientation</a>
-                <a class="idx-logout" href="/api/import-registrations" title="Bring existing program and CMS registrations onto the Portal">📥 Import registrations</a>
-                <a class="idx-logout" href="/api/sso-check" title="Does each program accept the Portal's sign-in ticket?">🔐 Sign-in check</a>
-                <a class="idx-logout" href="/api/admin-password-check" title="Does every platform accept the admin password?">🔑 Admin password check</a>
-                <a class="idx-logout" href="/api/ai-usage" title="Today's use of the shared AI budget, flow by flow">🤖 AI usage</a>
-                <a class="idx-logout" href="/simulators/calsim.html?view=scores" title="The earlier drag-and-drop scheduler's submissions. Scores from the Calendaring Simulators are under Recent results on the Simulators page.">📅 Earlier Calendar Scores</a>
-                <a class="idx-logout" href="/core.html#master">Master Control &rarr;</a>
-                <a class="idx-logout" onclick="logoutSession()">Log Out</a>`;
+            // One admin bar on every main page (portal-nav.js); everything else is under System Management.
+            if (userEl) userEl.innerHTML = PortalNav.adminHtml('', { back: '/index.html' });
+            if (asTrainee) document.querySelector('.idx-top').insertAdjacentHTML('afterend',
+                `<div class="pn-trainee-view">👁 Trainee view: the Training Directory as trainees see it.<button type="button" onclick="PortalNav.switchView()">Back to the admin view</button></div>`);
         }
 
         if (session.userType === 'Trainee') {
@@ -298,8 +289,8 @@
 
         const headingEl = document.getElementById('idx-heading');
         const subheadEl = document.getElementById('idx-subhead');
-        if (session.userType !== 'Admin' && subheadEl) subheadEl.textContent = 'Every LSH training program in one place. Trainees log in once here, then open each program from this page: no separate sign-in inside it.';
-        if (session.userType === 'Admin') {
+        if ((session.userType !== 'Admin' || asTrainee) && subheadEl) subheadEl.textContent = 'Every LSH training program in one place. Trainees log in once here, then open each program from this page: no separate sign-in inside it.';
+        if (session.userType === 'Admin' && !asTrainee) {
             if (headingEl) headingEl.textContent = 'Training Index — Admin View';
             if (subheadEl) subheadEl.style.display = 'none';
         }
@@ -311,7 +302,7 @@
             __topicsCache = (data.topics || []).map(t => PROGRAM_NAMES[t.key] ? { ...t, name: PROGRAM_NAMES[t.key] } : t);
             EXTRA_PROGRAMS.forEach(x => { if (!__topicsCache.some(t => t.key === x.key)) __topicsCache.push({ ...x }); });
             __accessCache = data.access || [];
-            renderQueue(session);
+            if (!asTrainee) renderQueue(session);
             renderTopics(session);
             startLiveAccess(session);
         } catch (e) {
