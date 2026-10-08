@@ -217,14 +217,11 @@
         display: flex; align-items: center; justify-content: space-between; gap: 20px;
         padding: 14px 28px; background: #fff; border-bottom: 1px solid rgba(15,33,72,0.06);
     }
-    .top-search { flex: 1; max-width: 360px; position: relative; }
-    .top-search input {
-        width: 100%; padding: 10px 16px 10px 38px; border-radius: 999px; border: 1px solid #e2e8f0;
-        font-size: 12.5px; font-family: 'IBM Plex Sans', sans-serif; outline: none; background: #f8fafc;
-    }
-    .top-search input:focus { border-color: var(--orange); background: #fff; }
-    .top-search .icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px; }
-    .top-bar-right { display: flex; align-items: center; gap: 16px; }
+    /* The .top-search box that used to sit on the left of this bar is gone
+       (it was a disabled "coming soon" placeholder). margin-left:auto keeps
+       the right-hand group against the right edge now that justify-content:
+       space-between has only one child left to work with. */
+    .top-bar-right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
     .top-ticker-mini {
         display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: #64748b;
         max-width: 340px; overflow: hidden; white-space: nowrap;

@@ -40,10 +40,6 @@
 
     <!-- CLASSIFICATION / TIME BAR -->
     <div class="top-bar-modern no-print" id="classification-bar">
-        <div class="top-search">
-            <span class="icon">🔍</span>
-            <input type="text" placeholder="Search..." disabled title="Search coming soon">
-        </div>
         <div class="top-bar-right">
             <div class="top-ticker-mini" id="announcement-ticker">
                 <span class="tag" id="announcement-tag">Announcement:</span>
@@ -60,6 +56,10 @@
                     <option value="America/Los_Angeles">Los Angeles (PT)</option>
                 </select>
             </div>
+            <!-- ?stay=1: functions/_middleware.js sends a signed-in person who asks
+                 for /index.html on to /programs.html, so without it this button would
+                 land an admin back on the Training Directory, not the landing page. -->
+            <a href="/index.html?stay=1" style="font-size:11.5px; font-weight:700; color:#64748b; text-decoration:none; white-space:nowrap;" title="The LSH Upskill Hub landing page">&#127968; Main Portal</a>
             <a href="/programs.html" style="font-size:11.5px; font-weight:700; color:#64748b; text-decoration:none; white-space:nowrap;" title="Back to all programs">&larr; Training Index</a>
             <div class="top-user">
                 <div class="top-user-avatar" id="top-user-avatar">--</div>

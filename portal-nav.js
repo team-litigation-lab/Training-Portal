@@ -4,8 +4,11 @@
    they open from the Home page and the Training Directory. Portal pages open in the
    same tab; only the training programs themselves (separate sites) open in a new tab.
    Signed-in admins get one admin bar on every main page instead (PortalNav.adminHtml):
-   Blueprint · System Management · Trainee Monitoring · Attendance ·
-   Referrals · Switch view · Logout. Everything else is on the System Management page (system.html). */
+   🏠 Main Portal · Blueprint · System Management · Trainee Monitoring · Attendance ·
+   Referrals · Switch view · Logout. Everything else is on the System Management page (system.html).
+   Every link to the landing page carries ?stay=1: functions/_middleware.js redirects a
+   signed-in person who asks for /index.html on to /programs.html, so without it a
+   "Main Portal" / "Home" button lands them back on the Training Directory. */
 const PortalNav = {
     LINKS: [
         ['home', '/index.html', 'Home'],
@@ -36,7 +39,7 @@ const PortalNav = {
     // One entry per destination: Master Control's tabs (users, access, who's online) open from Master Control itself,
     // and the Knowledge Base and Ring Channel are banners on the Training Directory.
     SYSTEM_LINKS: [
-        ['/index.html', '🏠 Main Portal', 'The LSH Upskill Hub home page'],
+        ['/index.html?stay=1', '🏠 Main Portal', 'The LSH Upskill Hub landing page'],
         ['/programs.html', '🎓 Training Directory', 'Every training program, plus the Simulators, Knowledge Base, Ring Channel and CMS'],
         ['/core.html#master', '🛡 Master Control', "Users & revoke access, program access, who's online, activity logs and broadcasts: all on one screen"],
         ['/core.html#registrations', '📝 Registrations <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Approve new trainee registrations'],
@@ -59,6 +62,7 @@ const PortalNav = {
         const back = opts.back === false ? '' : `<a class="pn-back" onclick="PortalNav.back('${opts.back || '/programs.html'}')" title="Go back">← Back</a>`;
         const tv = PortalNav.traineeView();
         return back
+            + pill('home', '/index.html?stay=1', '🏠 Main Portal', 'The LSH Upskill Hub landing page')
             + pill('orient', '/blueprint.html?track=admin', 'Blueprint', 'The Platform Blueprint: how the portal works, for screen sharing')
             + pill('sys', '/system.html', 'System Management <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Master Control: access, AI usage, feedback, referrals, GitHub and Cloudflare, the Blueprint')
             + pill('monitor', '/progress.html', 'Trainee Monitoring', "Every trainee's progress and feedback in every program")
@@ -73,7 +77,7 @@ const PortalNav = {
         const pill = (id, href, label, title) => `<a class="pn-pill${active === id ? ' on' : ''}" href="${href}"${active === id ? ' aria-current="page"' : ''} title="${title}">${label}</a>`;
         const back = opts.back === false ? '' : `<a class="pn-back" onclick="PortalNav.back('${opts.back || '/index.html'}')" title="Go back">← Back</a>`;
         return back
-            + pill('home', '/index.html', 'Home', 'The LSH Upskill Hub main page')
+            + pill('home', '/index.html?stay=1', 'Home', 'The LSH Upskill Hub main page')
             + pill('orient', '/blueprint.html', 'Blueprint', 'The Platform Blueprint: how the portal works')
             + (opts.signedIn
                 ? pill('mine', '/simulators/my-evaluations.html', 'My Evaluations', 'Your calendars in progress, submitted, and your trainer’s reports')
