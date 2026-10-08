@@ -98,11 +98,11 @@ How to use it:
 - Deep links: `?track=admin&slide=3`.
 - Links to it: **Platform Orientation** in the home page menu and in the admin bar on every main page. Signed-in admins get the admin track.
 
+To change the content, edit `SLIDES` in `orientation.html`; the PDF is made from the same slides. `.github/scripts/blueprint.cjs` checks it in CI: trainees get the Trainees track only, an admin gets both, and each track downloads as a PDF with every slide and the deploy stamp.
+
 ### 🧭 The admin bar
 
 Every main page (Training Directory, Platform Orientation, Trainee Monitoring, Attendance, Referrals) gives a signed-in admin the same top bar, from `PortalNav.adminHtml` in `portal-nav.js`: **Platform Orientation · System Management ▾ · Trainee Monitoring · Attendance · Referrals · Switch view · Logout**. Everything else (Main Portal, Training Directory, Master Control, Registrations, Users, Program Access, Who’s Online, Simulators, Knowledge Base, Ring Channel, the checks and AI usage) is collated under **System Management**. **Switch view** shows the Training Directory as a trainee sees it (this tab only); press it again to go back. The sign-in pages link back with **← Go to Main Portal**.
-
-To change the content, edit `SLIDES` in `orientation.html`; the PDF is made from the same slides. `.github/scripts/blueprint.cjs` checks it in CI: trainees get the Trainees track only, an admin gets both, and each track downloads as a PDF with every slide and the deploy stamp.
 
 ## Knowledge Base
 
