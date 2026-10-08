@@ -302,11 +302,12 @@
         .sim-hero h1 { font-size: 24px; margin-bottom: 8px; }
         .sim-hero p { font-size: 13.5px; line-height: 1.55; }
         .gc-panel { width: 300px; }
-        /* 📊 a trainee's scores at the bottom of the blue card (gcal.js placeScores): a white card, scrolling when it's long */
+        /* 📊 a trainee's scores at the bottom of the blue card (gcal.js placeScores): a white card, scrolling when it's long.
+           It never shrinks when the rules above it expand (flex-shrink 0): the rules scroll in the space that's left. */
         .sim-hero { display: flex; flex-direction: column; min-height: 0; }
         .sim-hero .eyebrow { align-self: flex-start; }
         .sim-hero .hero-rules-wrap { flex: 1 1 auto; min-height: 80px; max-height: none; margin-right: -8px; padding-right: 8px; }
-        .sim-hero > .gc-scores { margin-top: 12px; flex: 0 1 auto; max-height: 55%; min-height: 0; overflow-y: auto; border: 0; border-radius: 14px; padding: 12px; }
+        .sim-hero > .gc-scores { margin-top: 12px; flex: 0 0 auto; max-height: 55%; min-height: 0; overflow-y: auto; border: 0; border-radius: 14px; padding: 12px; }
         .sim-hero .gc-scores h2 { font-size: 15px; margin-bottom: 8px; }
         .sim-hero .gc-scores p { color: var(--ink2); font-size: 12.5px; line-height: 1.45; max-width: none; }
         .sim-hero .gc-scores .sc-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
