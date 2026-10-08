@@ -53,9 +53,11 @@ const drill = await go(trainee, 'tool=cms&to=drill');
 if (!/&drill=1$/.test(drill.at)) fail(`the CMS drill link broke: ${drill.at}`);
 const kbDrill = await go(trainee, 'tool=kb&to=drill');
 if (/drill=1/.test(kbDrill.at)) fail(`to=drill worked on the Knowledge Base: ${kbDrill.at}`);
-// (The Simulators page has no 🤖 AI call pill any more: its LSH Ring Channel card's Open → reaches 🎧 Practice. The route above still works.)
-// 4. the Portal links to it: the Training Directory, the Simulators hub and Master Control (the home page no longer lists the simulators)
-for (const f of ['programs.html', 'simulators.html', 'core.html']) if (!readFileSync(new URL('../../' + f, import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail(`${f} has no link to LSH Ring Channel`);
+// 4. the Portal links to it: the Training Directory and Master Control (the home page no longer lists the simulators).
+// The Simulators hub no longer carries a Ring Channel card: it duplicated the Directory's own banner, so the hub was
+// the redundant one. Dropping simulators.html from this list is the point of that change, not an oversight — the two
+// places a trainee actually reaches it from are still checked.
+for (const f of ['programs.html', 'core.html']) if (!readFileSync(new URL('../../' + f, import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail(`${f} has no link to LSH Ring Channel`);
 
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-console.log('LSH Ring Channel test passed (trainees and admins open it signed in, admins nowhere else; linked from the Directory, the Simulators hub and Master Control).');
+console.log('LSH Ring Channel test passed (trainees and admins open it signed in, admins nowhere else; linked from the Directory and Master Control).');

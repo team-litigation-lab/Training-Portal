@@ -353,7 +353,24 @@ const server = http.createServer(async (req, res) => {
     if (refused !== 403) fail(`a trainee changing the weekly schedule should be refused (${refused})`);
     const tcol = await tp.evaluate(() => { const b = [...document.querySelectorAll('#gc-main .ev')].find(e => /No Schedule Block/.test(e.textContent)); const bx = document.querySelector('#gc-side .cals .box'); return { ev: b && getComputedStyle(b).backgroundColor, cal: bx && getComputedStyle(bx).borderTopColor, btn: !!document.querySelector('[data-a="cc-open"]') }; });
     if (tcol.ev !== 'rgb(213, 0, 0)' || tcol.cal !== 'rgb(142, 36, 170)') fail('a trainee should see the trainer\'s color coding: ' + JSON.stringify(tcol));
-    if (tcol.btn) fail('a trainee should not be offered the color coding');
+    // A trainee IS offered the color coding now — as the key to what they are looking at,
+    // and to the rule they are graded on. Read-only is the part that matters, so assert it
+    // rather than just dropping the old check: nothing to pick, and nothing saved for
+    // everyone. The write side stays the trainer's (PUT /api/gcal-schedule is adminOnly).
+    if (!tcol.btn) fail('a trainee should be offered the color coding key');
+    const putsBefore = colorPuts.length;
+    await tp.click('#gc-side [data-a="cc-open"]'); await tp.waitForSelector('.gc-dlg .cc');
+    const key = await tp.evaluate(() => ({
+        pickers: document.querySelectorAll('.gc-dlg .cc [data-cc]').length,
+        dots: document.querySelectorAll('.gc-dlg .cc .cc-dot').length,
+        cancel: !!document.querySelector('.gc-dlg [data-x]'),
+    }));
+    if (key.pickers) fail(`a trainee's color coding should be read-only (${key.pickers} swatches to pick)`);
+    if (!key.dots) fail('a trainee\'s color coding should show the colors in use');
+    if (key.cancel) fail('a read-only color key should offer Close alone, with nothing to cancel');
+    await shot(tp, 'gcal-7c-color-key-trainee');
+    await tp.click('.gc-dlg [data-ok]'); await tp.waitForTimeout(300);
+    if (colorPuts.length !== putsBefore) fail('a trainee opening the color key must not save colors for everyone');
     await tp.close();
     // restore
     await page.click('[data-a="admin-reset"]'); await page.click('.gc-dlg [data-ok]'); await page.waitForTimeout(300);
