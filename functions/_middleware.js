@@ -1,4 +1,5 @@
 import { requireSession, getCookie, verifySessionToken, getSiteState, upsertSessionHeartbeat } from './_utils.js';
+import { ticketSession } from './api/ticket-login.js';
 
 // The Simulators are for signed-in LSH people only (the Knowledge Base is its own site, opened through /api/launch?tool=kb). A Portal session is checked BEFORE
 // any of their pages or files are sent, so a visitor without one gets a redirect to the Portal sign-in and nothing else.
@@ -47,6 +48,20 @@ export async function onRequest(context) {
         return new Response(null, { status: 302, headers: { Location: '/admin-login.html', 'Cache-Control': 'no-store' } });
     }
     if (!PROTECTED.some((re) => re.test(path))) return next();
+    // A course opened a simulator with a signed ticket (?ticket=, its js/lsh-tool-links.js): sign the trainee in from it (the same session
+    // as /api/login), then reload the address without the ticket, so they never see the sign-in page. A signed-in admin keeps their
+    // session; a refused or expired ticket goes on as before (an existing session, else the sign-in page).
+    const url = new URL(request.url);
+    if (request.method === 'GET' && url.searchParams.has('ticket')) {
+        const ticket = url.searchParams.get('ticket'); url.searchParams.delete('ticket');
+        const cur = await verifySessionToken(getCookie(request, 'lsh_session'), env.SESSION_SECRET).catch(() => null);
+        if (!(cur && cur.userType === 'Admin')) {
+            try {
+                const out = await ticketSession(env, ticket);
+                if (out.cookie) return new Response(null, { status: 302, headers: { Location: url.pathname + url.search, 'Set-Cookie': out.cookie, 'Cache-Control': 'no-store' } });
+            } catch (e) { /* the usual sign-in */ }
+        }
+    }
     const auth = await requireSession(request, env);
     if (auth.ok && CALL_SIMULATOR.test(path)) {
         const q = new URL(request.url).search.replace(/^\?/, '');
