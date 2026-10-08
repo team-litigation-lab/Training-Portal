@@ -142,8 +142,11 @@ function attemptLogin() {
             // by topic access) rather than straight into core.html — the
             // CM Training dashboard is just one entry a trainee clicks
             // into from there, not the only destination this login serves.
+            // ?next= : the page they asked for before signing in (the Training Directory sends visitors here).
+            let next = '/programs.html';
+            try { const n = new URLSearchParams(location.search).get('next'); if (n && /^\/[A-Za-z0-9._~\/-]*$/.test(n) && !n.startsWith('//')) next = n; } catch (e) { /* the Directory then */ }
             setTimeout(() => {
-                window.location.href = '/programs.html';
+                window.location.href = next;
             }, 900);
         } else {
             if (loginMsgDiv) { loginMsgDiv.className = "auth-msg error"; loginMsgDiv.innerText = data.error || "Login unauthorized."; }

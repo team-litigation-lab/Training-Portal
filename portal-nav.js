@@ -8,7 +8,7 @@
    Referrals · Switch view · Logout. Everything else is on the System Management page (system.html). */
 const PortalNav = {
     LINKS: [
-        ['home', '/index.html?stay=1', 'Home'],
+        ['home', '/index.html', 'Home'],
         ['directory', '/programs.html', 'Training Directory'],
         ['orient', '/blueprint.html', '🧭 Blueprint']
     ],
@@ -36,7 +36,7 @@ const PortalNav = {
     // One entry per destination: Master Control's tabs (users, access, who's online) open from Master Control itself,
     // and the Knowledge Base and Ring Channel are banners on the Training Directory.
     SYSTEM_LINKS: [
-        ['/index.html?stay=1', '🏠 Main Portal', 'The LSH Upskill Hub home page'],
+        ['/index.html', '🏠 Main Portal', 'The LSH Upskill Hub home page'],
         ['/programs.html', '🎓 Training Directory', 'Every training program, plus the Simulators, Knowledge Base, Ring Channel and CMS'],
         ['/core.html#master', '🛡 Master Control', "Users & revoke access, program access, who's online, activity logs and broadcasts: all on one screen"],
         ['/core.html#registrations', '📝 Registrations <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Approve new trainee registrations'],
@@ -73,7 +73,7 @@ const PortalNav = {
         const pill = (id, href, label, title) => `<a class="pn-pill${active === id ? ' on' : ''}" href="${href}"${active === id ? ' aria-current="page"' : ''} title="${title}">${label}</a>`;
         const back = opts.back === false ? '' : `<a class="pn-back" onclick="PortalNav.back('${opts.back || '/index.html'}')" title="Go back">← Back</a>`;
         return back
-            + pill('home', '/index.html?stay=1', 'Home', 'The LSH Upskill Hub main page')
+            + pill('home', '/index.html', 'Home', 'The LSH Upskill Hub main page')
             + pill('orient', '/blueprint.html', 'Blueprint', 'The Platform Blueprint: how the portal works')
             + (opts.signedIn
                 ? pill('mine', '/simulators/my-evaluations.html', 'My Evaluations', 'Your calendars in progress, submitted, and your trainer’s reports')

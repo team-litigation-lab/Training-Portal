@@ -285,10 +285,13 @@
 
     /* ===== Main screen: the dark hero and the three feature cards fill the first screen; everything below is on cream ===== */
     body { background: var(--paper); }
-    .main-screen { display: flex; flex-direction: column; min-height: calc(100vh - 96px); background: var(--navy-deep); }
+    .first-screen { display: flex; flex-direction: column; min-height: 100vh; background: var(--navy-deep); }
+    .main-screen { flex: 1; display: flex; flex-direction: column; min-height: 0; background: var(--navy-deep); }
     .main-screen .hero { flex: 1; display: flex; align-items: center; }
     .main-screen .hero-inner { width: 100%; }
-    .main-screen .stats-strip { padding-bottom: 40px; }
+    .main-screen .stats-strip { padding-bottom: 34px; padding-top: 0; }
+    .main-screen .hero { padding-top: 40px; padding-bottom: 30px; }
+    @media (max-height: 820px) { .brand-logo { height: 62px; } .main-screen .hero { padding-top: 24px; padding-bottom: 18px; } .hero h1 { font-size: clamp(32px, 4.2vw, 48px); } .hero p.lead { margin-bottom: 22px; } .hero-rings { width: 420px; height: 420px; } .file-stack { height: 280px; } }
     /* the rings: a full circle, lower in the hero, not cut off at the edge */
     .hero-rings { top: auto; bottom: 24px; right: 40px; transform: none; width: 520px; height: 520px; }
     @media (max-width: 900px) { .hero-rings { right: -140px; width: 420px; height: 420px; opacity: .45; } }
@@ -307,11 +310,12 @@
 </head>
 <body>
 
+<div class="first-screen">
 <nav>
     <div class="nav-inner">
         <div class="brand"><img class="brand-logo" src="/img/logo.png" alt="Legal Support Help" width="137" height="84"> <span class="brand-title">Legal Support Help Upskill Hub</span></div>
         <div class="nav-pills">
-            <a class="pill" href="/index.html?stay=1" aria-current="page">Home</a>
+            <a class="pill" href="/index.html" aria-current="page">Home</a>
             <button type="button" class="pill" onclick="openReferral()">Got a referral?</button>
             <a class="pill" href="/blueprint.html">Platform Blueprint</a>
             <a class="pill" href="#team">Meet your training team</a>
@@ -382,6 +386,8 @@
             <div><div class="stat-num">Realistic simulators</div></div>
         </div>
     </div>
+</div>
+</div>
 </div>
 
 <section class="section" id="team">
