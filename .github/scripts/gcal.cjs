@@ -20,16 +20,18 @@ const { chromium } = require('playwright');
 const http = require('http'); const fs = require('fs'); const path = require('path'); const { pathToFileURL } = require('url');
 const ROOT = process.cwd();
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
-let saved = null; const results = []; const puts = [];
+let saved = null, savedColors = {}; const results = []; const puts = [], colorPuts = [];
 const server = http.createServer(async (req, res) => {
     const u = new URL(req.url, 'http://x');
     const send = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
     const body = () => new Promise(r => { let b = ''; req.on('data', c => { b += c; }); req.on('end', () => { try { r(JSON.parse(b || '{}')); } catch (e) { r({}); } }); });
     const admin = /role=admin/.test(req.headers.cookie || '');
     if (u.pathname === '/api/gcal-schedule') {
-        if (req.method === 'GET') return send(200, { success: true, rows: saved });
+        if (req.method === 'GET') return send(200, { success: true, rows: saved, colors: savedColors });
         if (!admin) return send(403, { success: false, error: 'Admins only.' });
-        if (req.method === 'PUT') { const b = await body(); const mod = await import(pathToFileURL(path.join(ROOT, 'functions/api/gcal-schedule.js')).href); const c = mod.cleanRows(b.rows); if (c.error) return send(400, { success: false, error: c.error }); saved = c.rows; puts.push(c.rows); return send(200, { success: true, rows: saved }); }
+        if (req.method === 'PUT') { const b = await body(); const mod = await import(pathToFileURL(path.join(ROOT, 'functions/api/gcal-schedule.js')).href);
+            if (b.colors !== undefined && b.rows === undefined) { const cc = mod.cleanColors(b.colors); if (cc.error) return send(400, { success: false, error: cc.error }); savedColors = cc.colors; colorPuts.push(cc.colors); return send(200, { success: true, colors: cc.colors }); }
+            const c = mod.cleanRows(b.rows); if (c.error) return send(400, { success: false, error: c.error }); saved = c.rows; puts.push(c.rows); return send(200, { success: true, rows: saved }); }
         if (req.method === 'DELETE') { saved = null; return send(200, { success: true }); }
     }
     if (u.pathname === '/api/sim-results' && req.method === 'POST') { results.push(await body()); return send(200, { success: true }); }
@@ -320,6 +322,17 @@ const server = http.createServer(async (req, res) => {
     const ga = last.find(r => r.id === 'mon-anderson');
     if (!ga || ga.title !== 'Deposition Preparation: Gerald Anderson (room 2)' || ga.start !== '09:15' || ga.end !== '10:00') fail(`the Admin's edit should be saved for everyone: ${JSON.stringify(ga)}`);
     await shot(page, 'gcal-7-admin');
+    // 🎨 an Admin color-codes the calendars and the existing schedule, for everyone
+    await page.click('#gc-side [data-a="cc-open"]'); await page.waitForSelector('.gc-dlg .cc');
+    await page.click('.gc-dlg [data-cc="cal"][data-k="attorney"][data-v="grape"]');
+    await page.click('.gc-dlg [data-cc="type"][data-k="Blocked Time"][data-v="tomato"]');
+    if (!(await page.$('.gc-dlg [data-cc="type"][data-k="Blocked Time"][data-v="tomato"].on'))) fail('the picked color should be marked in the dialog');
+    await shot(page, 'gcal-7b-color-coding');
+    await page.click('.gc-dlg [data-ok]'); await page.waitForTimeout(500);
+    const cp = colorPuts[colorPuts.length - 1];
+    if (!cp || cp.cal.attorney !== 'grape' || cp.type['Blocked Time'] !== 'tomato') fail('the color coding should be saved for everyone: ' + JSON.stringify(cp));
+    const bg = await page.evaluate(() => { const b = [...document.querySelectorAll('#gc-main .ev')].find(e => /No Schedule Block/.test(e.textContent)); const bx = document.querySelector('#gc-side .cals .box'); return { ev: b && getComputedStyle(b).backgroundColor, cal: bx && getComputedStyle(bx).borderTopColor }; });
+    if (bg.ev !== 'rgb(213, 0, 0)' || bg.cal !== 'rgb(142, 36, 170)') fail('the existing schedule and the calendar should show the trainer\'s colors: ' + JSON.stringify(bg));
     // a trainee now sees it
     const tp = await open();
     await tp.evaluate((d) => { const s = JSON.parse(localStorage.getItem('lsh_gcal:ci trainee')); s.anchor = d; s.view = 'week'; localStorage.setItem('lsh_gcal:ci trainee', JSON.stringify(s)); }, mon);
@@ -327,6 +340,9 @@ const server = http.createServer(async (req, res) => {
     if (!(await tp.locator('#gc-main .ev:has-text("Gerald Anderson (room 2)")').count())) fail('a trainee should see the Admin\'s change to the weekly schedule');
     const refused = await tp.evaluate(async () => (await fetch('/api/gcal-schedule', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: [] }) })).status);
     if (refused !== 403) fail(`a trainee changing the weekly schedule should be refused (${refused})`);
+    const tcol = await tp.evaluate(() => { const b = [...document.querySelectorAll('#gc-main .ev')].find(e => /No Schedule Block/.test(e.textContent)); const bx = document.querySelector('#gc-side .cals .box'); return { ev: b && getComputedStyle(b).backgroundColor, cal: bx && getComputedStyle(bx).borderTopColor, btn: !!document.querySelector('[data-a="cc-open"]') }; });
+    if (tcol.ev !== 'rgb(213, 0, 0)' || tcol.cal !== 'rgb(142, 36, 170)') fail('a trainee should see the trainer\'s color coding: ' + JSON.stringify(tcol));
+    if (tcol.btn) fail('a trainee should not be offered the color coding');
     await tp.close();
     // restore
     await page.click('[data-a="admin-reset"]'); await page.click('.gc-dlg [data-ok]'); await page.waitForTimeout(300);
