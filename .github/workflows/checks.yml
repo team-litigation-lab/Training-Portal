@@ -46,6 +46,8 @@ jobs:
         run: node --no-warnings .github/scripts/ringchannel.mjs
       - name: Graded calls from the CMS count in the trainee's course (the Portal's results and each course's store)
         run: node --no-warnings .github/scripts/call-results.mjs
+      - name: Simulator results count in the trainee's own record and course (the account's name, each course's store)
+        run: node --no-warnings .github/scripts/sim-results.mjs
       - name: Build the Pages Functions without deploying
         run: npx --yes wrangler@3 pages functions build --outdir "$RUNNER_TEMP/dist"
 

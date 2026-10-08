@@ -39,8 +39,10 @@ const Sim = {
     },
     // Who is practicing: { name, batch, program }, typed in this browser (not taken from the account; see claim()).
     whoRaw() { try { return JSON.parse(localStorage.getItem('LSH_SIM_WHO') || '{}') || {}; } catch (e) { return {}; } },
-    // A trainee signed in to the Portal is who they are signed in as: no "Who's practicing?" box, and their name and batch come from the account.
-    who() { const w = Sim.whoRaw(), s = Sim.session(); if (!w.name && s && s.userType === 'Trainee' && (s.fullName || s.username)) return Object.assign({}, w, { name: String(s.fullName || s.username).slice(0, 80), batch: w.batch || String(s.batchId || '').slice(0, 40) }); return w; },
+    // A trainee signed in to the Portal is who they are signed in as: no "Who's practicing?" box, and their name and batch always come from
+    // the account (a name typed earlier in this browser, or passed by a link, never replaces it: their results were saved under that other
+    // name). Only the program (?program=) is kept from the link.
+    who() { const w = Sim.whoRaw(), s = Sim.session(); if (s && s.userType === 'Trainee' && (s.fullName || s.username)) return Object.assign({}, w, { name: String(s.fullName || s.username).slice(0, 80), batch: String(s.batchId || '').slice(0, 40), skipped: false }); return w; },
     setWho(w) { try { localStorage.setItem('LSH_SIM_WHO', JSON.stringify(Object.assign(Sim.whoRaw(), w))); } catch (e) {} },
     // A program can pass who is practicing: /simulators/email.html?program=CM&name=Jane%20Doe&batch=B-2026-014
     fromQuery() {
@@ -79,6 +81,7 @@ const Sim = {
         if (!Sim._asked) { Sim._asked = true; setTimeout(() => Sim.askWho(false), 400); }
         const s = Sim.session(), w = Sim.who(), admin = s.userType === 'Admin';
         const me = admin ? `<span class="who">${Sim.esc(s.fullName || s.username || '')}</span><a onclick="logoutSession()">Log Out</a>`
+            : s.userType === 'Trainee' ? `<span class="who" title="Your results are saved to your account">Practicing as ${Sim.esc(w.name)}${w.batch ? ' · ' + Sim.esc(typeof batchLabel === 'function' ? batchLabel(w.batch) : w.batch) : ''}</span>`
             : `<a class="who" onclick="Sim.askWho(true)" title="Change who is practicing">${w.name ? `Practicing as ${Sim.esc(w.name)}${w.batch ? ' · ' + Sim.esc(w.batch) : ''} ✎` : 'Add your name ✎'}</a>`;
         return `<div class="sim-top">
             <a class="sim-brand" href="/index.html"><img src="/img/logo.png" alt="Legal Support Help" width="70" height="46"><span>LSH Training Portal<small>Simulators</small></span></a>
