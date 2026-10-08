@@ -4,3 +4,14 @@
 !.dev.vars.example
 .env*
 !.env.example
+
+# npm packages. Installed locally and in CI, never committed — an `npm install`
+# for one test script otherwise drops tens of MB of untracked files into the
+# working tree and straight into the next `git add -A`.
+#
+# The contents are excluded rather than the directory itself, because git
+# cannot re-include anything inside an excluded directory: node_modules/.mf/
+# is miniflare's own cache directory and cf.json in it IS tracked in this
+# repo, so it has to stay reachable.
+/node_modules/*
+!/node_modules/.mf/
