@@ -3,9 +3,9 @@
 *{box-sizing:border-box;}
 body{margin:0;font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;background:var(--paper);color:var(--navy);height:auto;overflow:visible;}
 a{color:inherit;}
-.sim-top{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 28px;background:var(--navy-deep);position:sticky;top:0;z-index:30;}
+.sim-top{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 28px;background:var(--navy-deep);position:sticky;top:0;z-index:30;}
 .sim-brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:800;font-size:14px;text-decoration:none;}
-.sim-brand img{height:44px;width:auto;border-radius:0;padding:0;object-fit:contain;background:none;}
+.sim-brand img{width:48px;height:48px;border-radius:7px;padding:3px;box-sizing:border-box;object-fit:contain;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);}  /* the LSH mark in its white square: the same logo on every LSH site */
 .sim-brand small{display:block;font-weight:600;font-size:11px;color:rgba(255,255,255,.55);letter-spacing:.06em;text-transform:uppercase;}
 .sim-nav{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
 .sim-nav a{color:rgba(255,255,255,.7);font-size:12.5px;font-weight:700;text-decoration:none;cursor:pointer;} .sim-nav a:hover, .sim-nav a.on{color:#fff;}
@@ -31,7 +31,7 @@ a{color:inherit;}
 .sim-table{width:100%;border-collapse:collapse;font-size:13px;} .sim-table th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);padding:8px 10px;border-bottom:2px solid var(--line);} .sim-table td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
 .sim-score{display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:28px;border-radius:999px;font-weight:800;font-size:12.5px;background:#f1f5f9;}
 .sim-score.good{background:#f0fdf4;color:var(--ok);} .sim-score.mid{background:#fffbeb;color:#b45309;} .sim-score.low{background:#fef2f2;color:var(--bad);}
-@media(max-width:760px){.sim-top{padding:12px 14px;} .sim-wrap{padding:22px 14px 60px;} .sim-hero{padding:22px 18px;} .sim-hero h1{font-size:24px;}}
+@media(max-width:760px){.sim-top{padding:14px 14px;} .sim-brand img{width:44px;height:44px;} .sim-wrap{padding:22px 14px 60px;} .sim-hero{padding:22px 18px;} .sim-hero h1{font-size:24px;}}
 
 /* who's practicing (no account on the portal) */
 .sim-nav a.who{cursor:pointer;text-decoration:none;}
