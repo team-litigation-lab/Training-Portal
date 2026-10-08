@@ -18,7 +18,8 @@ export async function onRequestPost({ request, env }) {
     }
     let body;
     try { body = await request.json(); } catch (e) { return json({ success: false, error: 'Invalid request body.' }, 400); }
-    const messages = Array.isArray(body.messages) ? body.messages.slice(-MAX_MESSAGES) : [];
+    // only object entries: a stray null/string in the array must be a 400, not a crash in the length count or the gateway
+    const messages = (Array.isArray(body.messages) ? body.messages.slice(-MAX_MESSAGES) : []).filter(m => m && typeof m === 'object');
     if (!messages.length) return json({ success: false, error: 'messages is required.' }, 400);
     const total = (body.system || '').length + messages.reduce((a, m) => a + String(m.text || '').length, 0);
     if (total > MAX_CHARS) return json({ success: false, error: 'Request is too long.' }, 413);

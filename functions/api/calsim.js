@@ -3,7 +3,7 @@ import { json, requireSession } from '../_utils.js';
 // The Calendaring Simulators' saved work (Standard Training, Litigation Week, Executive Week: /simulators/calsim.html).
 // One record per person in D1 (table calsim_records, made on first use):
 //   {v:2, drafts:{scenario:[events]}, autos:[…], submissions:[{scn, at, events, auto}], reviews:{"<scn>|<at>":{score, comment, tasks, by, at}}, external:[…],
-//    gsubs:[{track, at, result, snap}]}   (Google Calendar Simulator submissions: reviewed under reviews["g:<track>|<at>"])
+//    scorecards:{track:[cards]}, excluded:{track:[ids]}, gsubs:[{track, at, result, snap}]}   (Google Calendar Simulator submissions: reviewed under reviews["g:<track>|<at>"])
 //
 //   GET  /api/calsim                 the signed-in person's own record, and who they are
 //   GET  /api/calsim?all=1           (admins) every record with the person's name and batch

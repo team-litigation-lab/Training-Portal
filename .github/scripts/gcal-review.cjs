@@ -23,7 +23,7 @@ const server = http.createServer((req, res) => {
     req.on('data', c => chunks.push(c)); req.on('end', () => {
         const send = (o, code) => { res.writeHead(code || 200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
         if (u.pathname === '/api/calsim') {
-            const me = role === 'admin' ? { username: 'boss', name: 'Trainer', batch: '', admin: true } : { username: 'ci', name: 'Ci Trainee', batch: 'B1', admin: false };
+            const me = ME();
             if (req.method === 'POST') {
                 const b = JSON.parse(Buffer.concat(chunks).toString());
                 if (b.scorecard) {

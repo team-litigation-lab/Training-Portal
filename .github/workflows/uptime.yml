@@ -22,7 +22,7 @@ concurrency:
 jobs:
   uptime:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15   # 9 checks x (20 s fetch + 20 s sleep + 20 s retry) on a bad day can outrun 5 minutes and kill the run before the site-down issue opens
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

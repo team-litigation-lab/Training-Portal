@@ -312,8 +312,9 @@ window.EF = {
         const s = sc(), f = F(), g = grade(s, f);
         const now = s.when.match(/(\d\d\/\d\d\/\d{4}), ([\d:]+ [AP]M)/);
         const stamp = now ? `${now[1]} at ${now[2]}` : '';
-        const ref = s.system === 'federal' ? `ECF-${s.caseNumber.split('-').slice(0, 3).join('-')}-DOC${14 + Math.floor(Math.random() * 3)}` : `ENV-${Math.floor(88000000 + Math.random() * 999999)}`;
-        f.submitted = { stamp, grade: g, ref, docNo: 14, text: docketText(s, f), envelope: ref.replace('ENV-', ''), reviewed: false, newCase: 'CV-2026-00' + Math.floor(5000 + Math.random() * 4000) };
+        const docNo = 14 + Math.floor(Math.random() * 3);   // one number for both the NEF's Document Number and the ECF reference
+        const ref = s.system === 'federal' ? `ECF-${s.caseNumber.split('-').slice(0, 3).join('-')}-DOC${docNo}` : `ENV-${Math.floor(88000000 + Math.random() * 999999)}`;
+        f.submitted = { stamp, grade: g, ref, docNo, text: docketText(s, f), envelope: ref.replace('ENV-', ''), reviewed: false, newCase: 'CV-2026-00' + Math.floor(5000 + Math.random() * 4000) };
         if (s.system === 'federal') Sim.saveResult({ simulator: 'Court E-Filing', scenario: s.title, score: g.total, summary: `NEF ${ref}`, details: { ref, items: g.items.filter(i => i.got < i.max).map(i => i.label) } });
         save(); render();
     },

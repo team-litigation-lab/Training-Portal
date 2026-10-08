@@ -1,4 +1,4 @@
-import { json } from '../_utils.js';
+import { json, sameSecret } from '../_utils.js';
 import { PROGRAMS, DATE, KEY, str, cleanBatch, batchKeyOf, makeKv, checkins, cleanFields, saveRows } from '../_attendance.js';
 
 // The attendance Google Sheet's link to the platform (attendance-sync.gs, in the sheet's Apps Script).
@@ -14,16 +14,10 @@ const noStore = { 'Cache-Control': 'no-store' };
 const etDate = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 const isPreviewHost = (host) => /\.pages\.dev$/.test(host) && host.split('.').length > 3;
 
-function sameKey(a, b) {
-    a = String(a || ''); b = String(b || '');
-    if (!a || a.length !== b.length) return false;
-    let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
-    return r === 0;
-}
 function guard(request, env) {
     if (!env.ATTENDANCE_FEED_KEY) return json({ success: false, error: 'The attendance feed isn’t set up: add the ATTENDANCE_FEED_KEY secret to this Pages project.' }, 404, noStore);
     const h = request.headers.get('Authorization') || '';
-    if (!sameKey(h.startsWith('Bearer ') ? h.slice(7).trim() : '', env.ATTENDANCE_FEED_KEY)) return json({ success: false, error: 'Wrong feed key.' }, 401, noStore);
+    if (!sameSecret(h.startsWith('Bearer ') ? h.slice(7).trim() : '', env.ATTENDANCE_FEED_KEY)) return json({ success: false, error: 'Wrong feed key.' }, 401, noStore);
     if (!env.COURSE_KV) return json({ success: false, error: 'Course data isn’t connected (COURSE_KV).' }, 500, noStore);
     return null;
 }

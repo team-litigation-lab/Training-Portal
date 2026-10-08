@@ -15,12 +15,12 @@ const TraineesCalendars = (function () {
     const when = (t) => { const d = new Date(String(t || '').replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(t || '')) ? '' : 'Z')); return isNaN(d) ? '' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); };
     function cell(p, t) {
         const x = p.tracks[t.id], more = S.extra ? S.extra(p, t.id) : '';
-        if (!x && !more) return '<td style="color:#94a3b8">—</td>';
-        return `<td>${x ? `<a class="sim-btn orange cs-view" style="text-decoration:none;padding:5px 10px;font-size:13px" href="${E(href(p.username, t.id))}">👁 View &amp; score</a>
+        if (!x && !more) return '<td style="padding:8px;vertical-align:top;color:#94a3b8">—</td>';   // the cell carries its own padding: rows() patching a second style attribute onto it dropped the gray
+        return `<td style="padding:8px;vertical-align:top">${x ? `<a class="sim-btn orange cs-view" style="text-decoration:none;padding:5px 10px;font-size:13px" href="${E(href(p.username, t.id))}">👁 View &amp; score</a>
             <div style="font-size:12px;color:#64748b;margin-top:3px">${x.at ? 'Saved ' + E(when(x.at)) : 'Not saved'}${x.card ? ` · 📋 <b style="color:#0b1633">${E(x.card.average)}/5 (${E(x.card.pct)}%)</b>` : ''}</div>` : ''}${more}</td>`;
     }
     function rows() {
-        return S.people.map(p => `<tr data-find="${E((p.name + ' ' + p.batch + ' ' + p.username).toLowerCase())}" style="border-top:1px solid #e5e7eb"><td style="padding:8px"><b>${E(p.name)}</b><div style="font-size:12px;color:#64748b">${E(p.batch || 'No batch')}</div></td>${TRACKS.map(t => cell(p, t).replace('<td', '<td style="padding:8px;vertical-align:top"')).join('')}</tr>`).join('');
+        return S.people.map(p => `<tr data-find="${E((p.name + ' ' + p.batch + ' ' + p.username).toLowerCase())}" style="border-top:1px solid #e5e7eb"><td style="padding:8px"><b>${E(p.name)}</b><div style="font-size:12px;color:#64748b">${E(p.batch || 'No batch')}</div></td>${TRACKS.map(t => cell(p, t)).join('')}</tr>`).join('');
     }
     function filter() { const q = S.q.trim().toLowerCase(); S.box.querySelectorAll('.cs-ttable tbody tr').forEach(tr => { tr.style.display = !q || tr.dataset.find.includes(q) ? '' : 'none'; }); }
     function paint() {

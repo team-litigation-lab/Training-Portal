@@ -290,9 +290,8 @@
     // Shown first on the index, ahead of the progression, with a "Free" badge.
     const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
 
-    // Fixed VA progression order — must match TOPIC_SEQUENCE in
-    // functions/api/topics.js exactly. Duplicated here because a static
-    // page and a Pages Function can't share a module directly. Anything
+    // Fixed VA progression order — display order only now: the topics API
+    // no longer gates by sequence (its old gated copy is gone). Anything
     // NOT in this list (Handouts, Training Tools and Resources, Other
     // Resources) is reference material, not a gated training — always
     // freely requestable regardless of progression.
@@ -405,7 +404,7 @@
     // Archived — old/superseded modules kept in the database (and in any
     // trainee's history) but hidden from the active Training Index. Purely
     // a display-level exclusion; nothing is deleted.
-    const ARCHIVED_TOPICS = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];
+    const ARCHIVED_TOPICS = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];   // keep in step with PA_HIDDEN in app.js (same list; app.js loads into this page's global scope, so the names must differ)
     // Reference cards that aren't on the index either (they were the whole "More Training &
     // Resources" section, all Coming Soon). A program added later still shows up there.
     const HIDDEN_TOPICS = ['HANDOUTS', 'TRAINING TOOLS AND RESOURCES', 'OTHER RESOURCES'];

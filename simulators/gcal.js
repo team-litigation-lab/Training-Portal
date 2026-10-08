@@ -352,7 +352,7 @@ function gradeOpenEvent(e, all, today) {
     const mt = T.consult ? (e.meet ? 'Consultations are phone only: remove the Google Meet link.' : (/phone|call/i.test(where) ? '' : 'Consultations are phone consults: say it’s a phone call (Location: Phone call) and that the attorney will call the client.'))
         : (e.meet || /phone|call/i.test(where) || office ? '' : `Clarify the meeting type: Google Meet for a video call, “Phone call” in Location, or the office (${GCAL_OFFICE}) for in person.`);
     add(!mt, mt || (e.meet ? 'Meeting type: video call, Google Meet added.' : office ? 'Meeting type: in person, at the office.' : 'Meeting type: phone call.'), 1);
-    const tx = plain(e.desc), lo = tx.toLowerCase();
+    const tx = plain(e.desc);
     const dated = (re) => { const m = re.exec(tx); return !!m && datesIn(tx.slice(m.index, m.index + 60)).length > 0; };
     const rest = tx.replace(/\b(name|cb|callback|call ?back|number|phone|dob|dol|date of (birth|loss))\b[^\n]*/gi, ' ').replace(/[\d()/.:+-]+/g, ' ');
     const need = [['the client’s name', name.length > 1 ? hasName(tx, name) : /name/i.test(tx)], ['the callback number', digits(tx).length >= 10],
@@ -362,7 +362,6 @@ function gradeOpenEvent(e, all, today) {
     const got = need.filter(n => n[1]).length;
     pts += 1.5 * got / need.length;
     items.push({ ok: got === need.length, t: got === need.length ? 'Description: name, callback number, DOB, DOL and the reason.' : `The description is missing ${need.filter(n => !n[1]).map(n => n[0]).join(', ')}.` });
-    void lo;
     const rem = (e.notifs || []).some(n => n.m === 'email' && nmins(n) === 1440);
     add(rem, rem ? 'Email reminder a day before.' : 'Add an email notification 1 day before.', 0.5);
     return { pts, max: BOOK_MAX, items };
@@ -822,6 +821,7 @@ function calSelect(id, cur) { return `<select id="${id}" class="fin" aria-label=
 const meetCode = () => { const L = 'abcdefghijkmnopqrstuvwxyz', r = (n) => Array.from({ length: n }, () => L[Math.floor(Math.random() * L.length)]).join(''); return `${r(3)}-${r(4)}-${r(3)}`; };
 function openQuick(temp, rect) {
     closeAll(true);
+    G.qmeet = '';   // each quick card starts clean: a Meet added then cancelled (X / Esc / click outside) must not ride into the next event
     G.temp = temp; renderMain();
     const el = document.createElement('div'); el.className = 'gc-pop'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'New event');
     const when = temp.allDay ? longDate(temp.date) : `${longDate(temp.date)} · ${span(mins(temp.start), mins(temp.end))}`;
@@ -1314,7 +1314,6 @@ const SEEN = 'lsh_gcal_seen';
 const seenFinal = (id) => { try { return (JSON.parse(localStorage.getItem(SEEN) || '[]')).includes(id); } catch (e) { return true; } };
 const markSeen = (id) => { try { const a = JSON.parse(localStorage.getItem(SEEN) || '[]'); if (!a.includes(id)) { a.push(id); localStorage.setItem(SEEN, JSON.stringify(a.slice(-200))); } } catch (e) { /* storage blocked */ } };
 const evWhen = (t) => { try { return new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return t; } };
-const list = (items, cls) => (items || []).length ? `<ul class="ev-l ${cls}">${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="ev-none">None.</p>';
 const reportHtml = (r) => EvalReport.html(r);
 function evalsHtml() {
     if (EV.open != null) {
@@ -1415,11 +1414,10 @@ function bind() {
         const t = ev.target;
         if (t.dataset.set) { S.set[t.dataset.set] = t.type === 'checkbox' ? t.checked : +t.value; save(); renderMain(); return; }
         if (G.ed && t.closest('#gc-ed') && ['ed-date', 'ed-start', 'ed-allday', 'ed-tz', 'ed-rep', 'ed-cal'].includes(t.id)) {
-            const d = G.ed.d, oldS = d.start, oldE = d.end, oldTz = d.tz;
+            const d = G.ed.d, oldS = d.start, oldE = d.end;
             edSync();
             if (t.id === 'ed-start') { const len = mins(oldE) - mins(oldS); d.end = hhmm(Math.min(mins(d.start) + (len > 0 ? len : S.set.dur), 1439)); }
             if (t.id === 'ed-allday' && !d.allDay && !d.start) { d.start = '09:00'; d.end = hhmm(9 * 60 + S.set.dur); }
-            void oldTz;
             drawEditor();
         }
     });
@@ -1444,7 +1442,7 @@ function onKey(ev) {
     if (ev.key === 'Escape') { if (G.meet) return; if (document.querySelector('.gc-dlg')) { document.querySelector('.gc-dlg').remove(); return; } if (G.ed) { G.ed = null; $('#gc-ed').remove(); G.temp = null; renderMain(); return; } closeAll(); if (G.searching) { G.searching = false; G.q = ''; renderHead(); renderMain(); } return; }
     if (typing || G.ed || G.meet || document.querySelector('.gc-dlg') || document.getElementById('sim-who')) return;
     const k = ev.key;
-    const map = { c: () => createAt(S.view === 'day' ? S.anchor : null), t: () => { S.anchor = etNow().date; save(); closeAll(); render(); }, j: () => step(1), n: () => step(1), k: () => step(-1), p: () => step(-1),
+    const map = { c: () => createAt(S.view === 'day' ? S.anchor : null), t: () => { S.anchor = etNow().date; S.mini = S.anchor.slice(0, 7); G.q = ''; G.searching = false; save(); closeAll(); render(); }, j: () => step(1), n: () => step(1), k: () => step(-1), p: () => step(-1),
         d: () => setView('day'), w: () => setView('week'), m: () => setView('month'), a: () => setView('agenda'), '/': () => { G.searching = true; renderHead(); setTimeout(() => { const q = $('#gc-q'); if (q) q.focus(); }, 10); }, '?': () => shortcuts(),
         e: () => { if (G.pop && G.popIid) { const e = findInst(G.popIid); if (e && !e.readOnly) openEditor(e, e); } },
         Delete: () => { if (G.pop && G.popIid) { const e = findInst(G.popIid); if (e && !e.readOnly) { closeAll(); askScope(e, 'delete', (scope) => { removeInst(e, scope); render(); snack('Event deleted', true); }); } } } };

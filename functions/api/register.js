@@ -1,4 +1,4 @@
-import { json, logActivity, hashPassword, isUsernameTombstoned } from '../_utils.js';
+import { json, logActivity, hashPassword, isUsernameTombstoned, MASTER_USERNAME } from '../_utils.js';
 
 const REG_PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]{8,}$/;
 
@@ -38,6 +38,11 @@ export async function onRequestPost({ request, env }) {
             return json({ success: false, error: 'Please enter a valid start of training date.' }, 400);
         }
         normalizedTrainingStartDate = trainingStartDate;
+    }
+
+    // The Master Account has no users row, so the uniqueness check below would let its name through.
+    if (String(username).trim().toLowerCase() === MASTER_USERNAME.toLowerCase()) {
+        return json({ success: false, error: 'That username is reserved.' }, 409);
     }
 
     const existing = await db.prepare(`SELECT id FROM users WHERE username = ?`).bind(username).first();
