@@ -18,15 +18,15 @@
     * { box-sizing: border-box; }
     body {
         margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif; color: var(--navy);
-        /* Flag / scales / gavel backdrop at 15%. The flat --paper colour is
-           laid over the photo at 85% opacity rather than putting the photo
-           itself behind an opacity:.15 layer: one background property, no
-           extra stacking context, so nothing on the page needs a z-index to
-           stay on top of it. background-attachment:fixed keeps the image
-           still while the directory scrolls. */
+        /* Scales-of-justice backdrop at 30%. The flat --paper colour is laid
+           over the photo at 70% opacity rather than putting the photo itself
+           behind an opacity:.30 layer: one background property, no extra
+           stacking context, so nothing on the page needs a z-index to stay on
+           top of it. background-attachment:fixed keeps the image still while
+           the directory scrolls. */
         background:
-            linear-gradient(rgba(250,248,244,.85), rgba(250,248,244,.85)),
-            url('/img/directory-bg.webp') center center / cover no-repeat fixed,
+            linear-gradient(rgba(250,248,244,.70), rgba(250,248,244,.70)),
+            url('/img/directory-bg-scales.webp') center center / cover no-repeat fixed,
             var(--paper);
         /* styles.css (shared with core.html) sets body to height:100vh +
            overflow:hidden — correct for core.html's fixed "app shell" with
@@ -83,7 +83,12 @@
     .topic-group { margin-bottom: 30px; }
     .topic-group-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid rgba(249,115,22,.35); }
     .topic-group-head h2 { font-size: 17px; font-weight: 900; margin: 0; color: var(--navy); letter-spacing: .01em; }
-    .topic-group-head span { font-size: 12px; color: #64748b; font-weight: 600; }
+    /* These section notes sit directly on the body backdrop, not on a card.
+       At 30% the photo's darkest area composites to about rgb(176,175,174),
+       where the old #64748b measured 2.17:1 — under WCAG AA for 12px text.
+       #334155 is the lightest step that clears 4.5:1 (4.73:1) and still reads
+       as a muted grey next to the navy heading. */
+    .topic-group-head span { font-size: 12px; color: #334155; font-weight: 600; }
     @media (max-width: 1000px) { .topic-grid { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 560px) { .topic-grid { grid-template-columns: 1fr; } }
     .topic-card { background: #fff; border-radius: 18px; padding: 20px; border: 1px solid rgba(15,33,72,0.06); box-shadow: 0 6px 18px rgba(15,33,72,0.05); display: flex; flex-direction: column; gap: 12px; }
@@ -326,7 +331,7 @@
             startLiveAccess(session);
         } catch (e) {
             const grid = document.getElementById('idx-topics');
-            if (grid) grid.innerHTML = `<div style="grid-column:1/-1; font-size:13px; color:#b91c1c; padding:20px;">${escapeHtml(e.message)}</div>`;
+            if (grid) grid.innerHTML = `<div style="grid-column:1/-1; font-size:13px; color:#b91c1c; padding:20px; background:#fff; border-radius:12px;">${escapeHtml(e.message)}</div>`;
         }
     }
 
