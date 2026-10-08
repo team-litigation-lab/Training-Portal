@@ -1,6 +1,6 @@
-// The front door: a browser that is already signed in (trainee or admin) goes from the Portal's home and sign-in pages straight to the
-// Training Directory, and only a signed-out one sees a sign-in box. Also /api/me (who is signed in on this browser).
-// Checks: a valid cookie is redirected from /, /index.html, /trainee-login.html and (an admin's only) /admin-login.html; a signed-out
+// The front door: the main page (/) is the Main Portal for everyone; a browser that is already signed in (trainee or admin) goes from
+// the Portal's sign-in pages straight to the Training Directory, and only a signed-out one sees a sign-in box. Also /api/me (who is signed in on this browser).
+// Checks: the main page is never redirected; a valid cookie is redirected from /trainee-login.html and (an admin's only) /admin-login.html; a signed-out
 // visitor on the Training Directory goes to the sign-in and back after it (even with no live heartbeat, and the heartbeat
 // is restarted); no cookie, a revoked account, a locked site and ?stay=1 all get the page; a tampered cookie gets the page.
 // A simulator page opened with a course's ticket (?ticket=) signs the trainee in first (a bad, expired, revoked or admin ticket doesn't).
@@ -40,17 +40,20 @@ const hit = async (pathname, cookie, extra = '') => {
 };
 
 const ann = await cookieFor('ann', 'Trainee'), boss = await cookieFor('boss', 'Admin');
-for (const p of ['/', '/index.html', '/trainee-login.html']) {
+for (const p of ['/', '/index.html']) {
     const r = await hit(p, ann);
-    check(r.status === 302 && r.loc === '/programs.html', `a signed-in trainee on ${p} goes to the Training Directory`);
+    check(r.passed && r.status === 200, `the main page is the Main Portal for a signed-in trainee too (${p})`);
+    const r2 = await hit(p, boss);
+    check(r2.passed && r2.status === 200, `and for a signed-in admin (${p})`);
 }
+let rr = await hit('/trainee-login.html', ann);
+check(rr.status === 302 && rr.loc === '/programs.html', 'a signed-in trainee on the sign-in page goes to the Training Directory');
 let r = await hit('/admin-login.html', ann); check(r.passed && r.status === 200, 'a signed-in trainee gets the admin sign-in (to sign in as an admin)');
 r = await hit('/admin-login', ann); check(r.passed, 'the same at /admin-login (no .html)');
 r = await hit('/admin-login.html', boss); check(r.status === 302 && r.loc === '/programs.html', 'a signed-in admin on the admin sign-in goes to the Training Directory');
-r = await hit('/', boss); check(r.status === 302 && r.loc === '/programs.html', 'a signed-in admin at the front door goes to the Training Directory');
 check(!!sql.prepare(`SELECT 1 FROM heartbeats WHERE username = 'ann'`).get(), 'the heartbeat is restarted (the cookie was valid, the heartbeat had lapsed)');
 r = await hit('/trainee-login.html', ''); check(r.passed && r.status === 200, 'signed out: the sign-in page shows');
-r = await hit('/', 'lsh_session=abc.def'); check(r.passed, 'a tampered cookie gets the page');
+r = await hit('/trainee-login.html', 'lsh_session=abc.def'); check(r.passed, 'a tampered cookie gets the sign-in page');
 r = await hit('/trainee-login.html', ann, '?stay=1'); check(r.passed, '?stay=1 shows the sign-in page (used right after logging out)');
 r = await hit('/trainee-login.html', await cookieFor('gone', 'Trainee')); check(r.passed, 'a revoked account gets the sign-in page');
 r = await hit('/programs.html', ann); check(r.passed, 'the Training Directory itself is not redirected for a signed-in trainee');
@@ -58,7 +61,7 @@ r = await hit('/programs.html', ''); check(r.status === 302 && r.loc === '/train
 r = await hit('/programs', ''); check(r.status === 302 && /trainee-login/.test(r.loc || ''), 'the same at /programs (no .html)');
 r = await hit('/programs.html', boss); check(r.passed, 'an admin opens the Training Directory');
 sql.exec(`UPDATE site_state SET locked = 1`);
-r = await hit('/', ann); check(r.passed, 'a locked site shows the page');
+r = await hit('/trainee-login.html', ann); check(r.passed, 'a locked site shows the sign-in page');
 sql.exec(`UPDATE site_state SET locked = 0`);
 
 // A simulator opened by a course with its signed ticket (?ticket=): the trainee is signed in before the page, and the ticket leaves the address

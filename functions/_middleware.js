@@ -14,11 +14,12 @@ const PROTECTED = [/^\/simulators(\.html)?\/?$/i, /^\/simulators\//i];
 // sign-in (/api/launch?tool=cms&to=calls), with the link's flow, program, line and random call (api/launch.js callsQuery).
 const CALL_SIMULATOR = /^\/simulators\/call(\.html)?\/?$/i;
 
-// Already signed in? Then the Portal's front door and sign-in pages go straight to the Training Directory (the main portal), for a
-// trainee and an admin alike: nobody sees a sign-in box unless they are signed out. This looks at the signed cookie, not the
-// heartbeat (a person coming back from a program, with the Portal tab closed, has a valid cookie and a stale heartbeat), and
-// restarts the heartbeat so the Portal treats them as signed in again. A locked site and a revoked account get the sign-in page.
-const FRONT_DOORS = [/^\/$/, /^\/index(\.html)?\/?$/i, /^\/trainee-login(\.html)?\/?$/i, /^\/admin-login(\.html)?\/?$/i];
+// The main page (/) is the Main Portal for everyone, signed in or not: it is the site's landing page and is never redirected.
+// Only the sign-in pages send a signed-in person on to the Training Directory, so nobody sees a sign-in box while already signed
+// in. This looks at the signed cookie, not the heartbeat (a person coming back from a program, with the Portal tab closed, has a
+// valid cookie and a stale heartbeat), and restarts the heartbeat so the Portal treats them as signed in again. A locked site and
+// a revoked account get the sign-in page.
+const FRONT_DOORS = [/^\/trainee-login(\.html)?\/?$/i, /^\/admin-login(\.html)?\/?$/i];
 async function signedInPerson(request, env) {
     const session = await verifySessionToken(getCookie(request, 'lsh_session'), env.SESSION_SECRET);
     if (!session) return null;
