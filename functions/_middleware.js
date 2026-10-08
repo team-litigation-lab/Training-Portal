@@ -4,7 +4,7 @@ import { requireSession, getCookie, verifySessionToken, getSiteState, upsertSess
 // any of their pages or files are sent, so a visitor without one gets a redirect to the Portal sign-in and nothing else.
 // (Their APIs check the session themselves: functions/_sim-guard.js.)
 // The admin pages: only a signed-in Admin gets them. Everyone else (a trainee, a visitor) is sent to the admin sign-in and receives none of the page.
-const ADMIN_PAGES = [/^\/(core|attendance|progress|referrals)(\.html)?\/?$/i];
+const ADMIN_PAGES = [/^\/(core|attendance|progress|referrals|system)(\.html)?\/?$/i];
 const PROTECTED = [/^\/simulators(\.html)?\/?$/i, /^\/simulators\//i];
 // The Call Simulator is the CMS's (its 📞 Call Simulator panel): a link to the Portal's opens that one, through the Portal's
 // sign-in (/api/launch?tool=cms&to=calls), with the link's flow, program, line and random call (api/launch.js callsQuery).
