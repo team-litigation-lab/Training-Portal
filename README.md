@@ -102,6 +102,12 @@ How to use it:
 
 To change the content, edit `SLIDES` in `blueprint.html`; the PDF is made from the same slides. `.github/scripts/blueprint.cjs` checks it in CI: trainees get the Trainees track only, an admin gets both, and each track downloads as a PDF with every slide and the deploy stamp.
 
+### 🔑 Admin accounts and Master Control
+
+One sign-in opens everything: a trainer registers on the Portal as **Admin / Trainer**, an administrator approves the account, and they sign in at **Admin Login** with their own username and password. That session opens the Training Directory, every program's admin, the Simulators, the Knowledge Base, the Ring Channel, Trainee Monitoring, Attendance, Referrals and **Master Control** (users, registrations, program access, logs, Broadcast & Ping) — no second password anywhere.
+
+The one exception is the **site-wide Lock**, which belongs to the master account, `LSHADMIN123`, whose password is the `MASTER_ADMIN_PASSWORD` secret in Cloudflare (it has no row in the users table). Only a session belonging to it may LOCK, and UNLOCK takes that password since a lock leaves nobody with a valid session. A site with no `MASTER_ADMIN_PASSWORD` says so (`503 MASTER_NOT_SET`) at the Admin Login instead of "incorrect password". `.github/scripts/master-control.mjs` checks this in CI.
+
 ### 🧭 The admin bar
 
 Every main page (Training Directory, Blueprint, Trainee Monitoring, Attendance, Referrals, System Management) gives a signed-in admin the same top bar, from `PortalNav.adminHtml` in `portal-nav.js`: **Blueprint · System Management · Trainee Monitoring · Attendance · Referrals · Switch view · Logout**. **System Management** (`system.html`, admins only) is the Master Control of the platform: six cards — Access Management (Master Control, Registrations with the waiting count, the admin password check), AI Usage Monitoring, Platform Feedback and Update (feedback from trainees, Broadcast & Ping), Referrals, GitHub and Cloudflare Monitoring, and Blueprint Update / Platform Version Control. **Switch view** shows the Training Directory as a trainee sees it (this tab only); press it again to go back. Trainees get **Home · Blueprint · My Evaluations · Logout** on the Directory (`PortalNav.traineeHtml`). **Home** links go to `/index.html?stay=1`, so a signed-in person reaches the main page instead of being sent on to the Directory. The sign-in pages link back with **← Go to Main Portal**.

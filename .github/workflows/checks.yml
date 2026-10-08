@@ -32,6 +32,8 @@ jobs:
         run: node .github/scripts/batch.mjs
       - name: Front door (signed-in trainees and admins go straight to the Training Directory; only a signed-out browser sees a sign-in box)
         run: node --no-warnings .github/scripts/front-door.mjs
+      - name: Master Control (a trainer's own admin account opens it; only the site lock is the master account's)
+        run: node --no-warnings .github/scripts/master-control.mjs
       - name: Calendaring Simulators' saved work (trainee saves, admin-only feedback)
         run: node --no-warnings .github/scripts/calsim.mjs
       - name: Calendar evaluations (submit, AI review, the trainer's live review and final report; trainees see it only once final)
