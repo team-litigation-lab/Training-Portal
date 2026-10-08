@@ -145,6 +145,17 @@
     .topic-action-btn.request { background: var(--orange); color: var(--navy-deep); }
     .topic-action-btn.disabled { background: rgba(8,18,38,.55); color: rgba(255,255,255,.55); }
     .pn-trainee-view { position: relative; z-index: 5; }
+    /* ===== Cream page: only the header stays navy ===== */
+    body { background: var(--paper); color: var(--navy); }
+    .idx-tools { background: #efe8dc; }
+    .outline-title, .topic-group-head h2 { -webkit-text-stroke: 1.5px var(--navy); }
+    @supports not (-webkit-text-stroke: 1px #000) { .outline-title, .topic-group-head h2 { color: var(--navy); } }
+    .topic-card { background: var(--navy); border-color: rgba(15,33,72,.25); box-shadow: 0 14px 28px -18px rgba(15,33,72,.55); }
+    .topic-card h3 { border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.04); }
+    .topic-action-btn.primary { background: var(--navy-deep); }
+    .queue-card { background: #fff7ed; border-color: #fed7aa; color: var(--navy); }
+    .queue-card h3 { color: #9a3412; } .queue-row { border-top-color: #fed7aa; }
+    .idx-rings { opacity: .5; }
     /* every card's status and button sit at the same height, however many lines the title takes */
     .topic-card h3 { box-sizing: border-box; min-height: 80px; line-height: 1.2; display: flex; align-items: center; justify-content: center; }
     .topic-card .topic-status { margin-top: auto; }
@@ -202,7 +213,7 @@
         <p class="sr-only" id="idx-subhead">Every LSH training program in one place.</p>
         <div id="idx-queue-wrap"></div>
         <div id="idx-topics" class="topic-grid">
-            <div style="grid-column:1/-1; font-size:13px; color:rgba(255,255,255,.6); padding:20px;">Loading programs...</div>
+            <div style="grid-column:1/-1; font-size:13px; color:#64748b; padding:20px;">Loading programs...</div>
         </div>
     </main>
 </div>
