@@ -5,7 +5,7 @@ import { ticketSession } from './api/ticket-login.js';
 // any of their pages or files are sent, so a visitor without one gets a redirect to the Portal sign-in and nothing else.
 // (Their APIs check the session themselves: functions/_sim-guard.js.)
 // The admin pages: only a signed-in Admin gets them. Everyone else (a trainee, a visitor) is sent to the admin sign-in and receives none of the page.
-const ADMIN_PAGES = [/^\/(core|attendance|progress|referrals)(\.html)?\/?$/i];
+const ADMIN_PAGES = [/^\/(core|attendance|progress|referrals|system)(\.html)?\/?$/i];
 const PROTECTED = [/^\/simulators(\.html)?\/?$/i, /^\/simulators\//i];
 // The Call Simulator is the CMS's (its 📞 Call Simulator panel): a link to the Portal's opens that one, through the Portal's
 // sign-in (/api/launch?tool=cms&to=calls), with the link's flow, program, line and random call (api/launch.js callsQuery).
@@ -33,7 +33,10 @@ export async function onRequest(context) {
     const path = new URL(request.url).pathname;
     if (request.method === 'GET' && FRONT_DOORS.some((re) => re.test(path)) && !new URL(request.url).searchParams.has('stay')) {
         try {
-            if (await signedInPerson(request, env)) return new Response(null, { status: 302, headers: { Location: '/programs.html', 'Cache-Control': 'no-store' } });
+            // A trainee who wants to sign in as an admin must see the admin sign-in, so only an admin is sent on from it.
+            const person = await signedInPerson(request, env);
+            const adminDoor = /^\/admin-login(\.html)?\/?$/i.test(path);
+            if (person && (!adminDoor || person.userType === 'Admin')) return new Response(null, { status: 302, headers: { Location: '/programs.html', 'Cache-Control': 'no-store' } });
         } catch (e) { /* any trouble: show the page as usual */ }
     }
     if (ADMIN_PAGES.some((re) => re.test(path))) {

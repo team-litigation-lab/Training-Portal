@@ -1,16 +1,16 @@
 /* LSH Training Portal — shared navigation.
-   Every portal page shows the same links (Home, Training Directory, Orientation)
+   Every portal page shows the same links (Home, Training Directory, Blueprint)
    plus a Back button. The Simulators and the Knowledge Base aren't in the top bar:
    they open from the Home page and the Training Directory. Portal pages open in the
    same tab; only the training programs themselves (separate sites) open in a new tab.
    Signed-in admins get one admin bar on every main page instead (PortalNav.adminHtml):
-   Platform Orientation · System Management ▾ · Trainee Monitoring · Attendance ·
-   Referrals · Switch view · Logout. Everything else lives under System Management. */
+   Blueprint · System Management · Trainee Monitoring · Attendance ·
+   Referrals · Switch view · Logout. Everything else is on the System Management page (system.html). */
 const PortalNav = {
     LINKS: [
-        ['home', '/index.html', 'Home'],
+        ['home', '/index.html?stay=1', 'Home'],
         ['directory', '/programs.html', 'Training Directory'],
-        ['orient', '/orientation.html', '🧭 Orientation']
+        ['orient', '/blueprint.html', '🧭 Blueprint']
     ],
     // Inside a course's frame, only the way back to the Simulators hub makes sense.
     EMBEDDED_LINKS: [
@@ -36,7 +36,7 @@ const PortalNav = {
     // One entry per destination: Master Control's tabs (users, access, who's online) open from Master Control itself,
     // and the Knowledge Base and Ring Channel are banners on the Training Directory.
     SYSTEM_LINKS: [
-        ['/index.html', '🏠 Main Portal', 'The LSH Upskill Hub home page'],
+        ['/index.html?stay=1', '🏠 Main Portal', 'The LSH Upskill Hub home page'],
         ['/programs.html', '🎓 Training Directory', 'Every training program, plus the Simulators, Knowledge Base, Ring Channel and CMS'],
         ['/core.html#master', '🛡 Master Control', "Users & revoke access, program access, who's online, activity logs and broadcasts: all on one screen"],
         ['/core.html#registrations', '📝 Registrations <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Approve new trainee registrations'],
@@ -57,17 +57,28 @@ const PortalNav = {
         const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
         const pill = (id, href, label, title) => `<a class="pn-pill${active === id ? ' on' : ''}" href="${href}"${active === id ? ' aria-current="page"' : ''} title="${esc(title)}">${label}</a>`;
         const back = opts.back === false ? '' : `<a class="pn-back" onclick="PortalNav.back('${opts.back || '/programs.html'}')" title="Go back">← Back</a>`;
-        const sys = PortalNav.SYSTEM_LINKS.map(([href, label, title, newTab]) =>
-            `<a role="menuitem" href="${href}"${title ? ` title="${esc(title)}"` : ''}${newTab ? ' target="_blank" rel="noopener"' : ''}>${label}</a>`).join('');
         const tv = PortalNav.traineeView();
         return back
-            + pill('orient', '/orientation.html?track=admin', 'Platform Orientation', 'How the portal works, for screen sharing')
-            + `<span class="pn-sys"><button type="button" class="pn-pill${active === 'sys' ? ' on' : ''}" aria-haspopup="true" aria-expanded="false" onclick="PortalNav.toggleMenu(this, event)">System Management ▾</button><span class="pn-menu" role="menu">${sys}</span></span>`
+            + pill('orient', '/blueprint.html?track=admin', 'Blueprint', 'The Platform Blueprint: how the portal works, for screen sharing')
+            + pill('sys', '/system.html', 'System Management <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Master Control: access, AI usage, feedback, referrals, GitHub and Cloudflare, the Blueprint')
             + pill('monitor', '/progress.html', 'Trainee Monitoring', "Every trainee's progress and feedback in every program")
             + pill('attendance', '/attendance.html', 'Attendance', 'Take and review attendance in every program, batch by batch')
             + pill('referrals', '/referrals.html', 'Referrals', 'People referred from “Got a referral?” on the home page')
             + `<button type="button" class="pn-pill${tv ? ' on' : ''}" onclick="PortalNav.switchView()" title="${tv ? 'Back to the admin view' : 'See the Training Directory as a trainee does'}"${tv ? ' aria-pressed="true"' : ''}>Switch view</button>`
             + `<button type="button" class="pn-pill" onclick="PortalNav.logout()">Logout</button>`;
+    },
+    // The trainee top bar on the Training Directory: Blueprint · My Evaluations · Logout (signed out: Log In).
+    traineeHtml(active, opts) {
+        opts = opts || {};
+        const pill = (id, href, label, title) => `<a class="pn-pill${active === id ? ' on' : ''}" href="${href}"${active === id ? ' aria-current="page"' : ''} title="${title}">${label}</a>`;
+        const back = opts.back === false ? '' : `<a class="pn-back" onclick="PortalNav.back('${opts.back || '/index.html'}')" title="Go back">← Back</a>`;
+        return back
+            + pill('home', '/index.html?stay=1', 'Home', 'The LSH Upskill Hub main page')
+            + pill('orient', '/blueprint.html', 'Blueprint', 'The Platform Blueprint: how the portal works')
+            + (opts.signedIn
+                ? pill('mine', '/simulators/my-evaluations.html', 'My Evaluations', 'Your calendars in progress, submitted, and your trainer’s reports')
+                  + `<button type="button" class="pn-pill" onclick="PortalNav.logout()">Logout</button>`
+                : pill('login', '/trainee-login.html', 'Log In', 'Log in once for every program'));
     },
     // app.js's logoutSession where the page loads it; otherwise the same steps by hand.
     logout() {
@@ -108,7 +119,7 @@ window.addEventListener('scroll', () => PortalNav.closeMenus(), true);
         .pn-menu.open{display:block;}
         .pn-menu a{display:flex !important;align-items:center;gap:6px;padding:8px 12px !important;border-radius:8px;color:#0f2148 !important;font-size:13px !important;font-weight:600 !important;text-decoration:none;white-space:nowrap;}
         .pn-menu a:hover{background:#f1f5f9;}
-        .pn-reg-badge{display:none;background:#f97316;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;}
+        .pn-reg-badge{display:none;margin-left:5px;background:#f97316;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;}
         .pn-reg-badge.has{display:inline-block;}
         .pn-trainee-view{background:#fff7ed;border-bottom:1px solid #fed7aa;color:#9a3412;font-size:13px;font-weight:600;text-align:center;padding:8px 16px;}
         .pn-trainee-view button{margin-left:8px;border:0;background:none;color:#0f2148;font:inherit;font-weight:800;text-decoration:underline;cursor:pointer;}`;
@@ -118,9 +129,10 @@ window.addEventListener('scroll', () => PortalNav.closeMenus(), true);
 // nav bar. If no "← Back" is on the page shortly after it loads (Home excepted), a
 // floating one is added. The Checks workflow also fails any page without one.
 (function () {
-    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html', '/registration.html': '/index.html', '/orientation.html': '/index.html', '/referrals.html': '/core.html', '/attendance.html': '/core.html' };
+    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html', '/registration.html': '/index.html', '/blueprint.html': '/index.html', '/orientation.html': '/index.html', '/referrals.html': '/core.html', '/attendance.html': '/core.html', '/system.html': '/programs.html' };
     function ensureBack() {
-        const path = location.pathname.replace(/\/$/, '/index.html');
+        // Cloudflare serves pages without ".html" too (/, /index, /programs): the main page never gets one.
+        const path = location.pathname.replace(/\/$/, '/index.html').replace(/^(\/[^.]*[^/.])$/, '$1.html');
         if (path === '/index.html' || PortalNav.embedded() || document.querySelector('.pn-back')) return;
         const st = document.createElement('style');
         st.textContent = `.pn-back.pn-float{position:fixed;left:16px;bottom:16px;z-index:9000;background:#0f2148;color:#fff !important;border-color:#0f2148;box-shadow:0 8px 22px -8px rgba(8,18,38,.55);font:700 13px/1 'IBM Plex Sans',Arial,sans-serif;}

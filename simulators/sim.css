@@ -5,7 +5,7 @@ body{margin:0;font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;background:
 a{color:inherit;}
 .sim-top{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 28px;background:var(--navy-deep);position:sticky;top:0;z-index:30;}
 .sim-brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:800;font-size:14px;text-decoration:none;}
-.sim-brand img{width:34px;height:34px;border-radius:0;padding:3px;object-fit:contain;background:#fff;box-sizing:border-box;}
+.sim-brand img{height:44px;width:auto;border-radius:0;padding:0;object-fit:contain;background:none;}
 .sim-brand small{display:block;font-weight:600;font-size:11px;color:rgba(255,255,255,.55);letter-spacing:.06em;text-transform:uppercase;}
 .sim-nav{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
 .sim-nav a{color:rgba(255,255,255,.7);font-size:12.5px;font-weight:700;text-decoration:none;cursor:pointer;} .sim-nav a:hover, .sim-nav a.on{color:#fff;}

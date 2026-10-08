@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Management — LSH Training Portal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/simulators/sim.css">
+<!-- Admin: System Management, the Master Control of the whole platform. Six cards, each opening the tools for one job.
+     The admin bar's "System Management" pill comes here (portal-nav.js). -->
+<style>
+    body { background: var(--navy); }
+    html, body { overflow-x: clip; }
+    .sy-band { margin: -34px calc(50% - 50vw) 26px; padding: 22px 24px; background: var(--navy-mid); border-bottom: 3px solid var(--orange); text-align: center; }
+    .sy-band h1 { margin: 0; color: #fff; font-size: clamp(20px, 2.6vw, 30px); font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+    @media (max-width: 760px) { .sy-band { margin-top: -22px; } }
+    .sy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    @media (max-width: 1000px) { .sy-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 620px) { .sy-grid { grid-template-columns: 1fr; } }
+    .sy-card { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 22px 18px 20px; border-radius: 16px; color: #fff;
+        background: rgba(255,255,255,.12); border: 2px solid rgba(139,92,246,.45); box-shadow: 0 12px 26px -16px rgba(0,0,0,.7); }
+    .sy-ic { font-size: 30px; line-height: 1; }
+    .sy-card h2 { align-self: stretch; margin: 0; padding: 9px 10px; border: 3px solid var(--navy-deep); color: #fff; font-size: 15px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; line-height: 1.3; }
+    .sy-card p { margin: 0; font-size: 13px; line-height: 1.5; color: rgba(255,255,255,.75); flex: 1; }
+    .sy-links { align-self: stretch; display: flex; flex-direction: column; gap: 7px; }
+    .sy-links a { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: 999px; background: var(--navy-deep); color: var(--orange); font-size: 12.5px; font-weight: 800; text-decoration: none; letter-spacing: .02em; }
+    .sy-links a:hover { background: #000c22; box-shadow: 0 0 0 2px var(--orange) inset; }
+    .sy-links a.main { background: var(--orange); color: var(--navy-deep); text-transform: uppercase; letter-spacing: .08em; }
+    .sy-links a.main:hover { background: var(--orange-soft); box-shadow: none; }
+    .sy-badge { display: none; background: #fff; color: var(--navy-deep); border-radius: 999px; padding: 0 7px; font-size: 11px; }
+    .sy-badge.has { display: inline-block; }
+    .sy-note { margin: 22px 0 0; color: rgba(255,255,255,.55); font-size: 12.5px; text-align: center; }
+</style>
+<script src="/portal-nav.js"></script>
+</head>
+<body>
+<script>
+    // Admins only (the server sends everyone else to admin sign-in too: functions/_middleware.js).
+    (function () {
+        try {
+            const raw = sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1');
+            const s = raw && raw !== 'null' ? JSON.parse(raw) : null;
+            if (!s || s.userType !== 'Admin') window.location.replace('/admin-login.html');
+        } catch (e) { window.location.replace('/admin-login.html'); }
+    })();
+</script>
+<div class="sim-top">
+    <a class="sim-brand" href="/programs.html"><img src="/img/logo.png" alt="Legal Support Help" width="70" height="46"><span>LSH Training Portal<small>System Management</small></span></a>
+    <div class="sim-nav">
+        <script>document.write(PortalNav.adminHtml('sys', { back: '/programs.html' }));</script>
+    </div>
+</div>
+<div class="sim-wrap">
+    <section class="sy-band"><h1>Master Control</h1></section>
+    <div class="sy-grid">
+        <section class="sy-card">
+            <span class="sy-ic">🔑</span><h2>Access Management</h2>
+            <p>Approve registrations, revoke or restore users, and choose which programs each trainee can open (and mark them passed).</p>
+            <div class="sy-links">
+                <a class="main" href="/core.html#master">Open Master Control</a>
+                <a href="/core.html#registrations">📝 Registrations <b class="sy-badge" id="sy-reg"></b></a>
+                <a href="/api/admin-password-check" title="Does every platform accept the admin password?">🔐 Admin password check</a>
+            </div>
+        </section>
+        <section class="sy-card">
+            <span class="sy-ic">🤖</span><h2>AI Usage Monitoring</h2>
+            <p>Today's use of the shared AI budget that every LSH platform draws on, flow by flow.</p>
+            <div class="sy-links"><a class="main" href="/api/ai-usage">Open AI usage</a></div>
+        </section>
+        <section class="sy-card">
+            <span class="sy-ic">💬</span><h2>Platform Feedback and Update</h2>
+            <p>What trainees say about the platform and the training (ratings by area and comments), and announcements to everyone with Broadcast &amp; Ping.</p>
+            <div class="sy-links">
+                <a class="main" href="/progress.html">Feedback from trainees</a>
+                <a href="/core.html#master">📣 Broadcast &amp; Ping</a>
+            </div>
+        </section>
+        <section class="sy-card">
+            <span class="sy-ic">🤝</span><h2>Referrals</h2>
+            <p>People referred with "Got a referral?" on the main page: their contact details and CV, a status and a note for each.</p>
+            <div class="sy-links"><a class="main" href="/referrals.html">Open Referrals</a></div>
+        </section>
+        <section class="sy-card">
+            <span class="sy-ic">🛰</span><h2>GitHub and Cloudflare Monitoring</h2>
+            <p>The code behind every LSH platform and its automatic checks on GitHub, and the live sites on Cloudflare.</p>
+            <div class="sy-links">
+                <a class="main" href="https://github.com/team-litigation-lab" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://github.com/team-litigation-lab/Training-Portal/actions" target="_blank" rel="noopener">✅ Portal checks (Actions)</a>
+                <a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">☁ Cloudflare dashboard</a>
+            </div>
+        </section>
+        <section class="sy-card">
+            <span class="sy-ic">🧭</span><h2>Blueprint Update / Platform Version Control</h2>
+            <p>The Platform Blueprint for trainers and trainees (its PDF carries the live version), and the history of every change to the Portal.</p>
+            <div class="sy-links">
+                <a class="main" href="/blueprint.html?track=admin">Open the Blueprint</a>
+                <a href="https://github.com/team-litigation-lab/Training-Portal/commits/main" target="_blank" rel="noopener">🕘 Version history</a>
+            </div>
+        </section>
+    </div>
+    <p class="sy-note">The Training Directory, Simulators, Knowledge Base and Ring Channel open from the Training Directory.</p>
+</div>
+
+<script src="/app.js"></script>
+<script src="/portal.js"></script>
+<script>
+    // Registrations waiting for approval, on the Registrations link.
+    fetch('/api/users', { credentials: 'include' }).then(r => r.ok ? r.json() : []).then(users => {
+        const n = (Array.isArray(users) ? users : []).filter(u => u.status === 'Pending' && u.userType === 'Trainee').length;
+        if (!n) return;
+        ['sy-reg', 'idx-reg-badge'].forEach(id => { const b = document.getElementById(id); if (b) { b.textContent = n; b.classList.add('has'); } });
+    }).catch(() => {});
+</script>
+</body>
+</html>

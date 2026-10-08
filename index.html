@@ -162,8 +162,8 @@
     @media (max-width: 760px) { .stats-inner.three { grid-template-columns: 1fr; } }
     .stats-inner .stat-num { font-size: 18px; line-height: 1.3; }
     .stats-inner .stat-ring { background: none; }
-    .nav-pills { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-    .nav-pills .pill { font: inherit; font-size: 12px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; color: var(--orange); background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.28); border-radius: 12px; padding: 8px 12px; text-decoration: none; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+    .nav-pills { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .nav-pills .pill { font: inherit; font-size: 11.5px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; color: #fff; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.28); border-radius: 12px; padding: 8px 10px; text-decoration: none; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
     .nav-pills .pill:hover { background: rgba(255,255,255,0.14); border-color: var(--orange); }
     @media (max-width: 900px) { .nav-inner { flex-direction: column; gap: 12px; align-items: flex-start; } .nav-pills { justify-content: flex-start; } }
     footer .footer-inner { justify-content: space-between; }
@@ -267,25 +267,42 @@
     .footer-bottom { max-width: 1180px; margin: 0 auto; border-top: 1px solid rgba(15,33,72,0.06); padding: 16px 0; font-size: 11.5px; color: var(--slate); text-align: center; }
     .footer-bottom em { color: #94a3b8; }
 
-    /* ===== ONE THEME ACROSS THE PAGE: the hero's dark navy under every section ===== */
-    body { background: var(--navy-deep); color: #fff; }
-    .section { border-top: 1px solid rgba(255,255,255,0.06); }
-    .section-head h2, .sub-head { color: #fff; }
-    .section-head p { color: rgba(255,255,255,0.62); }
-    .founder-text p, .about-text p, .vm-body p { color: rgba(255,255,255,0.82); }
-    .founder-photo, .about-imgs img { box-shadow: 0 24px 50px -24px rgba(0,0,0,.7); }
-    .name-pill { background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.22); }
-    .org-card, .vm-tag { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); box-shadow: none; }
-    .value-card { background: rgba(255,255,255,0.05); border: 1.5px solid rgba(249,115,22,0.7); }
-    .faq-item { border-bottom-color: rgba(255,255,255,0.1); }
-    .faq-question { color: #fff; }
-    .faq-answer p { color: rgba(255,255,255,0.66); }
-    footer { border-top: 1px solid rgba(255,255,255,0.08); background: var(--navy-deep); }
-    footer .foot-brand { color: #fff; }
-    .footer-bottom { color: rgba(255,255,255,0.58); }
-    .footer-bottom a, .footer-bottom em { color: rgba(255,255,255,0.75); }
-    .social-link { background: rgba(255,255,255,0.08); }
-    .social-link:hover { background: var(--orange); color: var(--navy-deep); }
+    /* Section bands ("segregators"): a full-width navy bar, the title in white capitals, a thin orange rule under it. */
+    html, body { overflow-x: clip; }
+    .section > .band { margin: -96px calc(50% - 50vw) 52px; padding: 22px 24px; background: var(--navy-mid); border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 3px solid var(--orange); text-align: center; }
+    .band h2 { margin: 0; color: #fff; font-size: clamp(20px, 2.6vw, 30px); font-weight: 900; letter-spacing: .12em; text-transform: uppercase; line-height: 1.2; }
+    .section { border-top: 0 !important; }
+    @media (max-width: 760px) { .section > .band { padding: 16px 16px; } .band h2 { letter-spacing: .08em; } }
+    /* Log In / Log Out: one of the two shows, from /api/me. */
+    .nav-pills .pill.pill-auth { background: var(--orange); border-color: var(--orange); color: #fff !important; }
+    .nav-pills .pill.pill-auth:hover { background: var(--orange-soft); }
+    .pill[hidden] { display: none !important; }
+    /* Footer: the copyright line in italics, the three icons in orange. */
+    footer .footer-bottom { font-style: italic; margin: 0; }
+    .social-link, .social-link:hover { background: transparent !important; color: var(--navy) !important; }
+    .social-link:hover { opacity: .8; }
+    .social-link svg { width: 24px; height: 24px; }
+
+    /* ===== Main screen: the dark hero and the three feature cards fill the first screen; everything below is on cream ===== */
+    body { background: var(--paper); }
+    .main-screen { display: flex; flex-direction: column; min-height: calc(100vh - 96px); background: var(--navy-deep); }
+    .main-screen .hero { flex: 1; display: flex; align-items: center; }
+    .main-screen .hero-inner { width: 100%; }
+    .main-screen .stats-strip { padding-bottom: 40px; }
+    /* the rings: a full circle, lower in the hero, not cut off at the edge */
+    .hero-rings { top: auto; bottom: 24px; right: 40px; transform: none; width: 520px; height: 520px; }
+    @media (max-width: 900px) { .hero-rings { right: -140px; width: 420px; height: 420px; opacity: .45; } }
+    /* org chart arrows in light gray */
+    .org-arrow, .org-stem, .org-branch i { background: #aab4c3; }
+    .org-branch { border-top-color: #aab4c3; }
+    .org-arrow::after, .org-branch i::after, .org-stem::after { border-top-color: #aab4c3 !important; }
+    /* CLIENTS / VA in black, on a light tag */
+    .vm-tag { background: #fff; border: 2px solid rgba(15,33,72,.15); color: #000; }
+    /* footer back on cream */
+    footer { background: var(--paper); border-top: 1px solid rgba(15,33,72,.1); }
+    footer .footer-bottom { color: var(--slate); }
+    .founder-text .btn-ghost-dark { color: var(--navy) !important; border-color: var(--navy) !important; }
+    .founder-text .btn-ghost-dark:hover { background: var(--navy) !important; color: #fff !important; }
 </style>
 </head>
 <body>
@@ -294,16 +311,20 @@
     <div class="nav-inner">
         <div class="brand"><img class="brand-logo" src="/img/logo.png" alt="Legal Support Help" width="137" height="84"> <span class="brand-title">Legal Support Help Upskill Hub</span></div>
         <div class="nav-pills">
+            <a class="pill" href="/index.html?stay=1" aria-current="page">Home</a>
             <button type="button" class="pill" onclick="openReferral()">Got a referral?</button>
-            <a class="pill" href="/orientation.html">Platform Orientation</a>
+            <a class="pill" href="/blueprint.html">Platform Blueprint</a>
             <a class="pill" href="#team">Meet your training team</a>
             <a class="pill" href="#faq">FAQs</a>
             <a class="pill" href="/admin-login.html" title="Admin monitoring (sign-in required)">Admin</a>
             <a class="pill" href="#about">About</a>
+            <a class="pill pill-auth" id="pill-login" href="/trainee-login.html">Log In</a>
+            <button type="button" class="pill pill-auth" id="pill-logout" onclick="PortalNav.logout()" hidden>Log Out</button>
         </div>
     </div>
 </nav>
 
+<div class="main-screen">
 <section class="hero">
     <svg class="hero-rings" viewBox="0 0 640 640" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="320" cy="320" r="300" stroke="#f97316" stroke-width="1.5"/>
@@ -364,7 +385,7 @@
 </div>
 
 <section class="section" id="team">
-    <div class="section-head"><div class="eyebrow">The people behind your training</div><h2>Meet the training team.</h2></div>
+    <div class="band"><h2>Meet the training team</h2></div>
     <div class="org">
         <div class="org-card"><img src="/img/team/gwen.jpg" alt="Gwen Paiso-Adams" width="96" height="96" loading="lazy"><div><div class="org-name">Gwen Paiso-Adams</div><div class="org-role">General Manager</div></div></div>
         <div class="org-arrow" aria-hidden="true"></div>
@@ -380,7 +401,7 @@
 </section>
 
 <section class="section" id="about">
-    <div class="section-head"><div class="eyebrow">About</div><h2>About LSH</h2></div>
+    <div class="band"><h2>About Legal Support Help</h2></div>
     <div class="founder-block" id="founder">
         <h3 class="sub-head">Meet our Founder</h3>
         <div class="founder-grid">
@@ -410,7 +431,7 @@
 </section>
 
 <section class="section" id="vision">
-    <div class="section-head"><div class="eyebrow">Where we are going</div><h2>Mission and Vision</h2></div>
+    <div class="band"><h2>Mission and Vision</h2></div>
     <div class="vm-grid">
         <div class="vm-col">
             <div class="vm-tag" aria-label="Clients"><span>C</span><span>L</span><span>I</span><span>E</span><span>N</span><span>T</span><span>S</span></div>
@@ -434,7 +455,7 @@
 </section>
 
 <section class="section" id="values">
-    <div class="section-head"><div class="eyebrow">What we stand for</div><h2>9 Core Values</h2></div>
+    <div class="band"><h2>Our 9 Core Values</h2></div>
     <div class="values-grid">
         <div class="value-card">Integrity &amp; Loyalty Through Compliance</div>
         <div class="value-card">Accountability</div>
@@ -449,10 +470,7 @@
 </section>
 
 <section class="section" id="faq">
-    <div class="section-head">
-        <div class="eyebrow">FAQ</div>
-        <h2>Questions, answered.</h2>
-    </div>
+    <div class="band"><h2>Frequently Asked Questions</h2></div>
     <div id="faq-list">
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">What is the LSH Training Portal? <span class="chev">&#9660;</span></button>
@@ -464,7 +482,7 @@
         </div>
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">What's in the Knowledge Base? <span class="chev">&#9660;</span></button>
-            <div class="faq-answer"><p>Official LSH SOPs and resources, plus tips, guides and lessons shared by LSH VAs. It's for our team only, so it asks for the team access code — get it from your trainer or team lead.</p></div>
+            <div class="faq-answer"><p>Official LSH SOPs and resources, plus tips, guides and lessons shared by LSH VAs. It's for our team only: open it from the Training Directory once you're logged in, and you're signed in to it already.</p></div>
         </div>
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">How long does training take? <span class="chev">&#9660;</span></button>
@@ -480,7 +498,7 @@
         </div>
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">Do I need to log in here? <span class="chev">&#9660;</span></button>
-            <div class="faq-answer"><p>This page is open to everyone. To train, log in once at the Trainee Log In (or claim your account first if it was brought over from your program), then open your programs from the Training Directory — you won't be asked to sign in again inside each one. If you can't get in, reach out to your batch administrator.</p></div>
+            <div class="faq-answer"><p>Yes, once. Press <b>Log In</b> at the top of this page (or <b>Register</b> first if you're new). After that, your programs, the Simulators and the Knowledge Base open without asking you to sign in again. If you can't get in, reach out to your batch administrator.</p></div>
         </div>
     </div>
 </section>
@@ -511,17 +529,17 @@
     .rf-card label { display: block; font-size: 12.5px; font-weight: 700; color: #334155; }
     .rf-card label i { font-style: normal; font-weight: 500; color: var(--slate); }
     .rf-card input[type=text], .rf-card input[type=email], .rf-card input[type=tel], .rf-card input[type=url], .rf-card textarea {
-        display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 14px; color: var(--navy); border: 1px solid #cbd5e1; border-radius: 10px; padding: 9px 11px; background: #fff; }
+        display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 14px; color: var(--navy); border: 1px solid #aab4c3; border-radius: 10px; padding: 9px 11px; background: #fff; }
     .rf-card textarea { min-height: 70px; resize: vertical; }
     .rf-card input:focus, .rf-card textarea:focus { outline: 2px solid var(--orange); outline-offset: 0; border-color: var(--orange); }
-    .rf-file { margin-top: 4px; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 12px; font-size: 13px; color: var(--slate); background: #faf8f4; }
+    .rf-file { margin-top: 4px; border: 1.5px dashed #aab4c3; border-radius: 12px; padding: 12px; font-size: 13px; color: var(--slate); background: #faf8f4; }
     .rf-file input { font: inherit; font-size: 13px; max-width: 100%; }
     .rf-consent { display: flex !important; gap: 10px; align-items: flex-start; font-weight: 600 !important; margin-top: 14px; line-height: 1.45; }
     .rf-consent input { margin-top: 3px; width: 16px; height: 16px; flex: 0 0 auto; }
     .rf-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
     .rf-err { display: none; margin-top: 12px; font-size: 13.5px; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 9px 12px; }
     .rf-acts { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
-    .rf-cancel { font: inherit; font-weight: 700; font-size: 14px; padding: 11px 20px; border-radius: 999px; border: 1px solid #cbd5e1; background: #fff; color: var(--navy); cursor: pointer; }
+    .rf-cancel { font: inherit; font-weight: 700; font-size: 14px; padding: 11px 20px; border-radius: 999px; border: 1px solid #aab4c3; background: #fff; color: var(--navy); cursor: pointer; }
     .rf-done { text-align: center; padding: 18px 6px 6px; }
     .rf-done .big { font-size: 44px; }
 </style>
@@ -618,5 +636,13 @@
 </script>
 
 <script src="/portal-nav.js"></script>
+<script>
+// Log In or Log Out in the header, from who is signed in on this browser (the cookie, via /api/me).
+fetch('/api/me', { credentials: 'include', cache: 'no-store' }).then(r => r.json()).then(d => {
+    if (!d || !d.success) return;
+    document.getElementById('pill-login').hidden = true;
+    document.getElementById('pill-logout').hidden = false;
+}).catch(() => {});
+</script>
 </body>
 </html>

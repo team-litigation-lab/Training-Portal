@@ -31,7 +31,9 @@ The signed-in portal: Training Directory, dashboard, progress, attendance, orien
 | `app.js` | 2853 | Core dashboard script: session/heartbeat, view switching, Master Control (users, registrations, logs, monitoring, program access), activities/lectures/submissions CRUD, grading, PDF reports, leaderboard/progress, toasts, celebration. |
 | `attendance.html` | 364 | Admin attendance per program/batch/day: debounced autosave with retry, batch summaries, CSV export, Google Sheet sync setup helper. |
 | `core.html` | 1058 | Admin dashboard (CM Training workspace + Master Control): sidebars, views, modals, overlays (pause/alert/lock), deck/lecture viewer panes, hash deep links into Master Control tabs. |
-| `orientation.html` | 387 | Platform Orientation slide deck (trainee + admin tracks) for screen sharing, with print CSS and Blueprint PDF export. |
+| `blueprint.html` | 387 | Platform Blueprint slide deck (trainee + admin tracks) for screen sharing, with print CSS and PDF export — the former Platform Orientation. |
+| `orientation.html` | 15 | Stub pointing the old Orientation URL at /blueprint.html. |
+| `system.html` | 119 | System Management page (admin). |
 | `portal-nav.js` | 139 | Shared nav: PortalNav.html/adminHtml top bars, System Management menu, trainee-view switch, logout, injected styles, floating Back-button safety net. |
 | `portal.js` | 843 | Public-portal runtime: registration/login, password validation, input filters, sound engine, full-screen alert, site lock/pause UI, pings, and the consolidated /api/live poller. |
 | `programs.html` | 569 | Training Directory: grouped program cards with access request/approve flow, SSO launch wake-up, admin queue, client-side certificate PDF. |

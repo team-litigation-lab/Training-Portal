@@ -138,7 +138,7 @@ function renderPeoplePane() {
             <select onchange="P.status=this.value;render()" aria-label="Status">${[['active', 'Approved'], ['Pending', 'Pending approval'], ['all', 'All statuses']].map(([k, l]) => `<option value="${k}" ${P.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
             <select onchange="P.batch=this.value;render()" aria-label="Batch">${batchOptions(P.batch)}</select>
             <select onchange="P.sort=this.value;render()" aria-label="Sort">${[['recent', 'Last active'], ['behind', 'Furthest behind'], ['progress', 'Most progress'], ['kc', 'Knowledge Check avg'], ['drafts', 'Feedback drafts to review'], ['name', 'Name']].map(([k, l]) => `<option value="${k}" ${P.sort === k ? 'selected' : ''}>Sort: ${l}</option>`).join('')}</select>
-            <input type="search" placeholder="Search name or batch…" value="${esc(P.q)}" oninput="P.q=this.value;renderTable()">
+            <input type="search" placeholder="Search Batch or Trainee Name" value="${esc(P.q)}" oninput="P.q=this.value;renderTable()">
             <button onclick="exportCsv()">⬇ CSV</button>
             <button onclick="load(true)">↻ Refresh</button>
         </div>
@@ -171,14 +171,16 @@ function renderTable() {
     const list = rows(), groups = {};
     list.forEach(p => { (groups[batchOf(p)] = groups[batchOf(p)] || []).push(p); });
     const keys = Object.keys(groups).sort((a, b) => (a === '') - (b === '') || b.localeCompare(a, undefined, { numeric: true }));
-    el.innerHTML = keys.length ? keys.map(b => {
-        const ps = groups[b], closed = !!P.closed[b];
+    // The latest batch is featured (open); older ones are folded until clicked.
+    el.innerHTML = keys.length ? keys.map((b, i) => {
+        const ps = groups[b], closed = P.closed[b] !== undefined ? !!P.closed[b] : (i > 0 && !P.q);
         const done = Math.round(ps.reduce((a, p) => a + p.done, 0) / ps.length * 100);
         const last = ps.map(p => p.lastActive).filter(Boolean).sort().pop();
-        return `<section class="pg-batch">
-            <div class="pg-batch-hd" onclick="P.closed[${esc(JSON.stringify(b))}]=!P.closed[${esc(JSON.stringify(b))}];renderTable()">
-                <span class="pg-caret">${closed ? '▸' : '▾'}</span><b>📁 ${esc(batchName(b))}</b>
+        return `<section class="pg-batch${i === 0 ? ' latest' : ''}">
+            <div class="pg-batch-hd" onclick="P.closed[${esc(JSON.stringify(b))}]=${!closed};renderTable()" aria-expanded="${!closed}">
+                <span class="pg-caret">${closed ? '▸' : '▾'}</span><b class="pg-batch-pill">${esc(batchName(b))}</b>${i === 0 ? '<span class="pg-latest">Latest batch</span>' : ''}
                 <span class="pg-muted">${ps.length} trainee${ps.length === 1 ? '' : 's'} · avg completion ${done}% · last active ${esc(ago(last))}</span>
+                <a class="pg-att" href="/attendance.html" onclick="event.stopPropagation()" title="This batch's attendance logs">🕘 Attendance logs →</a>
                 ${b && !PREVIEW ? `<button class="pg-arch-btn" onclick="event.stopPropagation();archiveBatch(${esc(JSON.stringify(b))})">📦 Archive batch</button>` : ''}
             </div>
             ${closed ? '' : `<div class="sim-card" style="padding:0;"><div class="sim-table-wrap"><table class="sim-table pg-table">${TABLE_HEAD}<tbody>${traineeRows(ps)}</tbody></table></div></div>`}

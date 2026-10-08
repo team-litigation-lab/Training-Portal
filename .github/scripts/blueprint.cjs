@@ -1,4 +1,4 @@
-// Orientation and its PDFs (orientation.html with lsh-blueprint.js, the Blueprint engine every LSH platform shares).
+// The Blueprint (formerly the Platform Orientation) and its PDFs (blueprint.html with lsh-blueprint.js, the Blueprint engine every LSH platform shares).
 // Static files; jsPDF served from node_modules in place of cdnjs.
 // Checks: a visitor or trainee gets the Trainees track only (no tab to the Trainers & Admins track, even with
 // ?track=admin); a signed-in Admin gets both tracks and starts on the admin one; ⬇ Download PDF saves the track
@@ -45,7 +45,7 @@ function inspect(buf) {
         await page.route(/cdnjs\.cloudflare\.com\/ajax\/libs\/jspdf\/4\.2\.1\/jspdf\.umd\.min\.js/, r => r.fulfill({ contentType: 'text/javascript', body: JSPDF }));
         await page.route(/fonts\.(googleapis|gstatic)\.com/, r => r.fulfill({ contentType: 'text/css', body: '' }));
         if (session) await page.addInitScript((s) => sessionStorage.setItem('LSH_SESSION_V1', JSON.stringify(s)), session);
-        await page.goto(base + '/orientation.html' + q, { waitUntil: 'load' }); await page.waitForTimeout(500);
+        await page.goto(base + '/blueprint.html' + q, { waitUntil: 'load' }); await page.waitForTimeout(500);
         return page;
     };
     const pdfOf = async (page) => { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#orPdf')]); return { name: dl.suggestedFilename(), ...inspect(fs.readFileSync(await dl.path())) }; };
@@ -135,5 +135,5 @@ function inspect(buf) {
 
     await browser.close(); server.close();
     if (failures.length) { console.log(`\n${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-    console.log(`Orientation test passed (trainees get the Trainees track only; an Admin gets both; each track downloads as a PDF with every slide and the deploy stamp; numbered Cover, then 1 / n to n / n, as the page: trainees ${st.slides} slides, admins ${st.adminSlides}).`);
+    console.log(`Blueprint test passed (trainees get the Trainees track only; an Admin gets both; each track downloads as a PDF with every slide and the deploy stamp; numbered Cover, then 1 / n to n / n, as the page: trainees ${st.slides} slides, admins ${st.adminSlides}).`);
 })().catch(e => { console.error(e); process.exit(1); });

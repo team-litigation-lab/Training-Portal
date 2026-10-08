@@ -1,6 +1,6 @@
 // The front door: a browser that is already signed in (trainee or admin) goes from the Portal's home and sign-in pages straight to the
 // Training Directory, and only a signed-out one sees a sign-in box. Also /api/me (who is signed in on this browser).
-// Checks: a valid cookie is redirected from /, /index.html, /trainee-login.html and /admin-login.html (even with no live heartbeat, and the heartbeat
+// Checks: a valid cookie is redirected from /, /index.html, /trainee-login.html and (an admin's only) /admin-login.html (even with no live heartbeat, and the heartbeat
 // is restarted); no cookie, a revoked account, a locked site and ?stay=1 all get the page; a tampered cookie gets the page.
 // A simulator page opened with a course's ticket (?ticket=) signs the trainee in first (a bad, expired, revoked or admin ticket doesn't).
 // Run: node --no-warnings .github/scripts/front-door.mjs   (from the repository root)
@@ -39,11 +39,13 @@ const hit = async (pathname, cookie, extra = '') => {
 };
 
 const ann = await cookieFor('ann', 'Trainee'), boss = await cookieFor('boss', 'Admin');
-for (const p of ['/', '/index.html', '/trainee-login.html', '/admin-login.html']) {
+for (const p of ['/', '/index.html', '/trainee-login.html']) {
     const r = await hit(p, ann);
     check(r.status === 302 && r.loc === '/programs.html', `a signed-in trainee on ${p} goes to the Training Directory`);
 }
-let r = await hit('/admin-login.html', boss); check(r.status === 302 && r.loc === '/programs.html', 'a signed-in admin on the admin sign-in goes to the Training Directory');
+let r = await hit('/admin-login.html', ann); check(r.passed && r.status === 200, 'a signed-in trainee gets the admin sign-in (to sign in as an admin)');
+r = await hit('/admin-login', ann); check(r.passed, 'the same at /admin-login (no .html)');
+r = await hit('/admin-login.html', boss); check(r.status === 302 && r.loc === '/programs.html', 'a signed-in admin on the admin sign-in goes to the Training Directory');
 r = await hit('/', boss); check(r.status === 302 && r.loc === '/programs.html', 'a signed-in admin at the front door goes to the Training Directory');
 check(!!sql.prepare(`SELECT 1 FROM heartbeats WHERE username = 'ann'`).get(), 'the heartbeat is restarted (the cookie was valid, the heartbeat had lapsed)');
 r = await hit('/trainee-login.html', ''); check(r.passed && r.status === 200, 'signed out: the sign-in page shows');
