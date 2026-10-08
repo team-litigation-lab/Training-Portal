@@ -97,9 +97,9 @@
     /* ===== The Training Directory design: dark navy, Training Tools on the left, the programs by practice area on the right ===== */
     body { background: var(--navy); color: #fff; }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-    .idx-top { position: relative; z-index: 5; gap: 18px; padding: 10px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
+    .idx-top { position: relative; z-index: 5; gap: 18px; padding: 14px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
     .idx-brand { flex-shrink: 0; }
-    .idx-logo { height: 66px; width: auto; display: block; }
+    .idx-logo { width: 60px; height: 60px; display: block; background: #fff; padding: 3px; box-sizing: border-box; border-radius: 7px; object-fit: contain; box-shadow: 0 1px 3px rgba(0,0,0,.25); }  /* the LSH mark in its white square: the same logo on every LSH site */
     .idx-title { flex: 0 1 auto; margin-right: auto; font-size: clamp(16px, 2vw, 26px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: #fff; white-space: nowrap; }
     .idx-user { gap: 6px; }
     .idx-user .pn-pill { font-size: 11.5px !important; padding: 5px 10px !important; }
@@ -165,7 +165,7 @@
 </script>
 
 <div class="idx-top">
-    <a class="idx-brand" href="/index.html?stay=1" title="The LSH Upskill Hub main page"><img class="idx-logo" src="/img/logo.png" alt="Legal Support Help"></a>
+    <a class="idx-brand" href="/index.html?stay=1" title="The LSH Upskill Hub main page"><img class="idx-logo" src="/favicon.png" alt="Legal Support Help"></a>
     <span class="idx-title">Training Directory</span>
     <div class="idx-user" id="idx-user">
         <script>document.write(PortalNav.traineeHtml('', { back: '/index.html' }));</script>
