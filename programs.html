@@ -17,13 +17,29 @@
     }
     * { box-sizing: border-box; }
     body {
-        margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif; background: var(--paper); color: var(--navy);
+        margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif; color: var(--navy);
+        /* Flag / scales / gavel backdrop at 15%. The flat --paper colour is
+           laid over the photo at 85% opacity rather than putting the photo
+           itself behind an opacity:.15 layer: one background property, no
+           extra stacking context, so nothing on the page needs a z-index to
+           stay on top of it. background-attachment:fixed keeps the image
+           still while the directory scrolls. */
+        background:
+            linear-gradient(rgba(250,248,244,.85), rgba(250,248,244,.85)),
+            url('/img/directory-bg.webp') center center / cover no-repeat fixed,
+            var(--paper);
         /* styles.css (shared with core.html) sets body to height:100vh +
            overflow:hidden — correct for core.html's fixed "app shell" with
            its own internally-scrolling panels, but this page has no such
            inner scroll container, so inheriting that rule blocked the
            whole page from scrolling at all. Restored to normal flow. */
         height: auto; overflow: visible;
+    }
+    /* background-attachment:fixed is the one that misbehaves on iOS Safari
+       (the image jumps or renders at the wrong scale while scrolling), so
+       phones get a scrolling backdrop instead. */
+    @media (max-width: 860px) {
+        body { background-attachment: scroll, scroll; }
     }
 
     .idx-top { display: flex; align-items: center; justify-content: space-between; padding: 16px 28px; background: var(--navy-deep); }
