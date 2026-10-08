@@ -14,7 +14,7 @@ const BATCH_RE = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,39}$/;
 const NAME_RE = /^[\p{L}][\p{L}\p{M} .'\-]{0,59}$/u;
 
 export async function onRequestPost({ request, env }) {
-    const auth = await requireSession(request, env, { adminOnly: true, master: true });
+    const auth = await requireSession(request, env, { adminOnly: true });
     if (!auth.ok) return auth.response;
     const { session } = auth;
     const db = env.DB;

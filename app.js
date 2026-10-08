@@ -288,57 +288,10 @@ function refreshSiteState() {
 function openAdminDashboard() {
     const session = getSession();
     if (!session || session.userType !== 'Admin') return;
-    // Master Control is LSHADMIN123's: a trainer's admin account types that password once per sign-in (functions/api/master-unlock.js).
-    ensureMasterUnlocked().then((ok) => {
-        if (!ok) return;
-        document.getElementById('master-control-page').classList.add('open');
-        __currentViewLabel = MC_TAB_LABELS.overview;
-        loadUsersData();
-        loadOverviewStats();
-    });
-}
-
-async function ensureMasterUnlocked() {
-    try {
-        const res = await fetch('/api/master-unlock', { credentials: 'include', cache: 'no-store' });
-        const data = await res.json();
-        if (data && data.unlocked) return true;
-    } catch (e) { /* ask below; the server checks again on every Master Control request */ }
-    return askMasterPassword();
-}
-
-// A small card over the page: the LSHADMIN123 password, or Cancel.
-function askMasterPassword() {
-    return new Promise((resolve) => {
-        const back = document.createElement('div');
-        back.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(8,18,38,.62);display:flex;align-items:center;justify-content:center;padding:16px;';
-        back.innerHTML = `<form style="background:#fff;color:#0f2148;width:100%;max-width:380px;border-radius:18px;padding:24px;box-shadow:0 30px 70px -20px rgba(0,0,0,.5);font-family:inherit">
-            <div style="font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#f97316">Master Control</div>
-            <h2 style="margin:6px 0 6px;font-size:20px;font-weight:900">Enter the LSHADMIN123 password</h2>
-            <p style="margin:0 0 14px;font-size:13.5px;color:#64748b;line-height:1.5">Master Control (users, access, logs, broadcasts, site lock) is for the master account. Your own admin account opens everything else.</p>
-            <input type="password" autocomplete="current-password" placeholder="Master password" style="display:block;width:100%;box-sizing:border-box;font:inherit;font-size:14px;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px">
-            <div data-err style="display:none;margin-top:10px;font-size:13px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:8px 10px"></div>
-            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
-                <button type="button" data-cancel style="font:inherit;font-weight:700;padding:9px 18px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;color:#0f2148;cursor:pointer">Cancel</button>
-                <button type="submit" style="font:inherit;font-weight:800;padding:9px 18px;border-radius:999px;border:0;background:#0f2148;color:#f97316;cursor:pointer">Unlock</button>
-            </div></form>`;
-        document.body.appendChild(back);
-        const form = back.querySelector('form'), input = form.querySelector('input'), err = form.querySelector('[data-err]');
-        const done = (ok) => { back.remove(); resolve(ok); };
-        form.querySelector('[data-cancel]').onclick = () => done(false);
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            err.style.display = 'none';
-            try {
-                const res = await fetch('/api/master-unlock', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: input.value }) });
-                const data = await res.json().catch(() => ({}));
-                if (data.success) return done(true);
-                err.textContent = data.error || 'That password was not accepted.';
-            } catch (x) { err.textContent = 'Network error. Try again.'; }
-            err.style.display = 'block'; input.select();
-        };
-        setTimeout(() => input.focus(), 30);
-    });
+    document.getElementById('master-control-page').classList.add('open');
+    __currentViewLabel = MC_TAB_LABELS.overview;
+    loadUsersData();
+    loadOverviewStats();
 }
 
 // Locking is restricted to the Master Account, which now logs in normally

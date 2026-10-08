@@ -130,7 +130,7 @@ export async function upsertSessionHeartbeat(db, { username, fullName, batchId, 
  * endpoint that returns or mutates real data — never trust a
  * username/batchId/userType sent in the request body or query string.
  */
-export async function requireSession(request, env, { adminOnly = false, master = false } = {}) {
+export async function requireSession(request, env, { adminOnly = false } = {}) {
     const token = getCookie(request, 'lsh_session');
     const payload = await verifySessionToken(token, env.SESSION_SECRET);
     if (!payload) {
@@ -154,29 +154,10 @@ export async function requireSession(request, env, { adminOnly = false, master =
     if (!liveUser || liveUser.status !== 'Approved') {
         return { ok: false, response: json({ success: false, error: 'Your access has been revoked.', code: 'ACCESS_REVOKED' }, 401) };
     }
-    if ((adminOnly || master) && payload.userType !== 'Admin') {
+    if (adminOnly && payload.userType !== 'Admin') {
         return { ok: false, response: json({ success: false, error: 'Admin access required.' }, 403) };
     }
-    // Master Control: the Master Account itself, or an admin who typed its password in this sign-in (/api/master-unlock).
-    if (master && !(await masterUnlocked(request, env, payload))) {
-        return { ok: false, response: json({ success: false, error: 'Master Control needs the LSHADMIN123 password.', code: 'MASTER_REQUIRED' }, 403) };
-    }
     return { ok: true, session: payload };
-}
-
-/* Master Control unlock: an admin types the Master Account's password once (/api/master-unlock); a signed lsh_master cookie
-   then opens Master Control for the rest of that sign-in only (it names the admin and their session's start, so a new
-   sign-in, or another person in the same browser, has to type it again). */
-export const MASTER_COOKIE = 'lsh_master';
-export async function masterUnlocked(request, env, session) {
-    if (!session) return false;
-    if (session.username === MASTER_USERNAME) return true;
-    const m = await verifySessionToken(getCookie(request, MASTER_COOKIE), env.SESSION_SECRET);
-    return !!(m && m.master === true && m.by === session.username && m.sessIat === session.iat);
-}
-export async function masterCookie(env, session) {
-    const token = await createSessionToken({ master: true, by: session.username, sessIat: session.iat }, env.SESSION_SECRET);
-    return `${MASTER_COOKIE}=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=43200`;
 }
 
 export async function getSiteState(db) {

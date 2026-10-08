@@ -13,7 +13,7 @@ import { json, requireSession } from '../_utils.js';
 // timestamp column the table has (timestamp or created_at), so this doesn't
 // depend on how the table was first created.
 export async function onRequestGet({ request, env }) {
-    const auth = await requireSession(request, env, { adminOnly: true, master: true });
+    const auth = await requireSession(request, env, { adminOnly: true });
     if (!auth.ok) return auth.response;
     const url = new URL(request.url);
     const limit = Math.min(parseInt(url.searchParams.get('limit'), 10) || 500, 2000);

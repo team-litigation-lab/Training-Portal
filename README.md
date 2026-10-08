@@ -104,15 +104,9 @@ To change the content, edit `SLIDES` in `blueprint.html`; the PDF is made from t
 
 ### 🔑 Admin accounts and Master Control
 
-One sign-in opens everything: a trainer registers on the Portal as **Admin / Trainer**, an administrator approves the account, and they sign in at **Admin Login** with their own username and password. That session opens the Training Directory, every program's admin, the Simulators, the Knowledge Base, the Ring Channel, Trainee Monitoring, Attendance and Referrals, with no second password anywhere.
+One sign-in opens everything: a trainer registers on the Portal as **Admin / Trainer**, an administrator approves the account, and they sign in at **Admin Login** with their own username and password. That session opens the Training Directory, every program's admin, the Simulators, the Knowledge Base, the Ring Channel, Trainee Monitoring, Attendance, Referrals and **Master Control** (users, registrations, program access, logs, Broadcast & Ping) — no second password anywhere.
 
-**Master Control** is the one exception. Its screens and APIs (users, registrations, program access, activity and server logs, Broadcast & Ping, the site lock, imports) are the master account's, `LSHADMIN123`, whose password is the `MASTER_ADMIN_PASSWORD` secret in Cloudflare — it has no row in the users table.
-
-- Signed in as `LSHADMIN123`: Master Control opens straight away.
-- Signed in with a trainer's own admin account: opening Master Control asks for the master password once. `POST /api/master-unlock` checks it and sets a signed `lsh_master` cookie naming that admin and that sign-in, so the rest of the session is open. A new sign-in, or another person in the same browser, types it again. Wrong tries count toward the same 10-in-10-minutes limit as the sign-in.
-- On the server, those endpoints pass `{ adminOnly: true, master: true }` to `requireSession` and answer `403 MASTER_REQUIRED` without it, so hiding a button is never the only guard.
-- A site with no `MASTER_ADMIN_PASSWORD` says so (`503 MASTER_NOT_SET`) instead of "incorrect password", on both the Admin Login and the unlock.
-- `.github/scripts/master-control.mjs` checks all of this in CI.
+The one exception is the **site-wide Lock**, which belongs to the master account, `LSHADMIN123`, whose password is the `MASTER_ADMIN_PASSWORD` secret in Cloudflare (it has no row in the users table). Only a session belonging to it may LOCK, and UNLOCK takes that password since a lock leaves nobody with a valid session. A site with no `MASTER_ADMIN_PASSWORD` says so (`503 MASTER_NOT_SET`) at the Admin Login instead of "incorrect password". `.github/scripts/master-control.mjs` checks this in CI.
 
 ### 🧭 The admin bar
 

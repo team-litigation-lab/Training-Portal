@@ -7,7 +7,7 @@ import { json, logActivity, requireSession, MASTER_USERNAME } from '../_utils.js
 // the account) — this endpoint only ever moves a row between Approved and
 // Suspended, and never touches Pending/Rejected rows or deletes anything.
 export async function onRequestPost({ request, env }) {
-    const auth = await requireSession(request, env, { adminOnly: true, master: true });
+    const auth = await requireSession(request, env, { adminOnly: true });
     if (!auth.ok) return auth.response;
     const { session } = auth;
     const db = env.DB;

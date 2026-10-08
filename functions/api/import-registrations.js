@@ -132,7 +132,7 @@ export async function runImport(env, { dryRun }) {
 }
 
 export async function onRequestPost({ request, env }) {
-    const auth = await requireSession(request, env, { adminOnly: true, master: true });
+    const auth = await requireSession(request, env, { adminOnly: true });
     if (!auth.ok) return auth.response;
     const body = await request.json().catch(() => ({}));
     try {
@@ -143,7 +143,7 @@ export async function onRequestPost({ request, env }) {
 }
 
 export async function onRequestGet({ request, env }) {
-    const auth = await requireSession(request, env, { adminOnly: true, master: true });
+    const auth = await requireSession(request, env, { adminOnly: true });
     if (!auth.ok) return auth.response;
     return new Response(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Import registrations</title></head>
 <body style="font-family:Arial,Helvetica,sans-serif;background:#081226;color:#fff;max-width:760px;margin:0 auto;padding:40px 20px">
