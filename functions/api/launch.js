@@ -34,12 +34,14 @@ export const SSO_TOOLS = {
 export const ADMIN_TICKET_TOOLS = ['ringchannel'];
 const TICKET_TTL_MS = 5 * 60 * 1000;
 // Where inside a program or tool a link lands (?to=): a program's own Live Roleplay, the CMS Front Desk Drill, or the CMS
-// Call Simulator (to=calls: every platform's Call Simulator opens there, on the tab and line the link names, callsQuery).
-// Only these are allowed, so a link can't send anyone anywhere else.
-const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1', tool: 'cms' }, calls: { tool: 'cms' } };
-function landing(to, isTool, params) {
+// Call Simulator (to=calls: every platform's Call Simulator opens there, on the tab and line the link names, callsQuery),
+// or LSH Ring Channel's 🎧 Practice (to=aicall: an AI caller rings the trainee) or console (to=console: a trainer sends AI callers).
+// Only these are allowed, and each only on its own tool, so a link can't send anyone anywhere else.
+const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1', tool: 'cms' }, calls: { tool: 'cms' },
+    aicall: { hash: '#/practice', tool: 'ringchannel' }, console: { hash: '#/console', tool: 'ringchannel' } };
+function landing(to, isTool, params, tool) {
     const l = Object.prototype.hasOwnProperty.call(LANDINGS, to) ? LANDINGS[to] : null;
-    if (!l || (l.tool && !isTool) || (!l.tool && isTool)) return { query: '', hash: '' };
+    if (!l || (l.tool && (!isTool || l.tool !== tool)) || (!l.tool && isTool)) return { query: '', hash: '' };
     if (to === 'calls') return { query: '&' + callsQuery(params), hash: '' };
     return { query: l.query || '', hash: l.hash || '' };
 }
@@ -118,10 +120,11 @@ async function launch({ request, env }) {
         // Ring Channel has no sign-in of its own: an administrator opens its console as themselves.
         if (isTool && ADMIN_TICKET_TOOLS.includes(tool)) {
             const ticket = await makeTicket(secret, { admin: true, name: String(auth.session.fullName || auth.session.username || 'Trainer').trim() });
-            return Response.redirect(`${target}?ticket=${ticket}`, 302);
+            const to = landing(params.get('to') || '', isTool, params, tool);
+            return Response.redirect(`${target}?ticket=${ticket}${to.hash}`, 302);
         }
         // Administrators type the admin password on every other platform: no ticket signs them in, they land on that platform's password prompt.
-        const to = landing(params.get('to') || '', isTool, params);
+        const to = landing(params.get('to') || '', isTool, params, tool);
         return Response.redirect(`${target}?admin=1${to.query}${to.hash}`, 302);
     }
     if (auth.session.userType !== 'Trainee') return page(403, 'Not available', 'This account can\'t open programs.');
@@ -138,6 +141,6 @@ async function launch({ request, env }) {
     }
 
     const ticket = await makeTicket(secret, { first: user.first_name.trim(), last: user.last_name.trim(), batch: String(user.batch_id || '').trim() });
-    const to = landing(params.get('to') || '', isTool, params);
+    const to = landing(params.get('to') || '', isTool, params, tool);
     return Response.redirect(`${target}?ticket=${ticket}${to.query}${to.hash}`, 302);
 }
