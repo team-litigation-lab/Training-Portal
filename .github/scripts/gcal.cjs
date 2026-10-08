@@ -128,6 +128,12 @@ const server = http.createServer(async (req, res) => {
         const og = GCAL.checkOpen(st, today), ob = GCAL.checkOpen(bad, today);
         out.open = { score: og.score, n: og.results.length, changed: og.changed.length, missed: og.results.flatMap(r => r.items.filter(i => !i.ok).map(i => r.head + ': ' + i.t)),
             bad: ob.results.find(r => r.id.startsWith(b0.id)).items.filter(i => !i.ok).map(i => i.t) };
+        // one half-point mistake (the color, or the reminder) is never free on Standard Training: the max matches what the checks add up to
+        const noColor = JSON.parse(JSON.stringify(st)); noColor.events[0].color = '';
+        const noRem = JSON.parse(JSON.stringify(st)); noRem.events[0].notifs = [];
+        const oc = GCAL.checkOpen(noColor, today), orm = GCAL.checkOpen(noRem, today);
+        out.half = { colorScore: oc.score, colorRight: oc.right, remScore: orm.score, remRight: orm.right, max: og.results[0].max };
+        out.colors = [GCAL.lengthColor(30), GCAL.lengthColor(45), GCAL.lengthColor(60), GCAL.lengthColor(20)];
         // a move made a cancellation; the cancellation done for every week; an appointment nobody asked about moved
         const odd = JSON.parse(JSON.stringify(st));
         const mv = reqs.find(q => q.id === 'move-charles'), cn = reqs.find(q => q.id === 'cancel-bell');
@@ -145,8 +151,13 @@ const server = http.createServer(async (req, res) => {
     if (grading.bad.pts > 1.5) fail(`a booking with every mistake should score almost nothing (${grading.bad.pts})`);
     const om = grading.open.bad.join(' | ');
     if (grading.open.score !== 100 || grading.open.n !== 5 || grading.open.changed !== 2) fail(`Standard Training's check: the right bookings should score 100 (5 appointments, the move and cancel listed): ${JSON.stringify(grading.open).slice(0, 500)}`);
-    for (const [re, what] of [[/not the Attorney’s Calendar/, 'calendar'], [/title should start with the request type/, 'title'], [/time zone/, 'time zone'], [/description is missing/, 'description'], [/email notification 1 day before/, 'reminder']])
+    for (const [re, what] of [[/not the Attorney’s Calendar/, 'calendar'], [/title should start with the request type/, 'title'], [/time zone/, 'time zone'], [/is colored/, 'color'], [/description is missing/, 'description'], [/email notification 1 day before/, 'reminder']])
         if (!re.test(om)) fail(`Standard Training's check should flag the ${what}: ${om}`);
+    // the color rule is pinned to its colors, and a half-point mistake is never free (the max is what the checks add up to)
+    if (grading.colors.join() !== 'tangerine,blueberry,tomato,') fail(`30/45/60 minutes should be Tangerine/Blueberry/Tomato (and 20 none): ${grading.colors.join()}`);
+    if (grading.half.max !== 10.5) fail(`Standard Training should grade an appointment out of 10.5, what its checks add up to (${grading.half.max})`);
+    if (!(grading.half.colorScore < 100) || grading.half.colorRight !== 4) fail(`a wrong or missing color should cost points on Standard Training: ${JSON.stringify(grading.half)}`);
+    if (!(grading.half.remScore < 100) || grading.half.remRight !== 4) fail(`a missing email reminder should cost points on Standard Training: ${JSON.stringify(grading.half)}`);
     if (!grading.odd.move || grading.odd.move.pts > 3 || !grading.odd.cancel || grading.odd.cancel.pts !== 5 || grading.odd.penalty !== 5 || !/Gerald Anderson/.test(grading.odd.extra.join()))
         fail(`a move made a deletion, a cancellation for every week, and an unasked change: ${JSON.stringify(grading.odd).slice(0, 400)}`);
 
