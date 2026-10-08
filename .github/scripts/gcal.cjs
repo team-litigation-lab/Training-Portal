@@ -12,7 +12,7 @@
 //   - the page: quick create, the event page (Google Meet, location, description, an email reminder a day
 //     before, the Attorney's Calendar), the event card and the mock Google Meet, drag to move, delete and undo,
 //     moving one week of the attorney's appointment ("This event"), Month / Schedule / search, Check my calendar
-//     (saved as 'Google Calendar'), the rules panel; no sideways scroll on a phone;
+//     (saved as 'Google Calendar'), the rules in the blue card (no rules button); no sideways scroll on a phone;
 //   - an Admin edits the weekly schedule for everyone (saved through /api/gcal-schedule; a trainee then sees
 //     it), and restores it; a trainee can't change it (the API refuses).
 // Usage: node .github/scripts/gcal.cjs   (from the repository root; needs playwright)
@@ -166,7 +166,7 @@ const server = http.createServer(async (req, res) => {
     // 📖 the blue card holds Standard Training's attorney's rules (in place of the page's intro), open on a wide screen
     const heroR = await page.evaluate(() => { const d = document.getElementById('hero-rules'), h = document.querySelector('.sim-hero');
         return { inHero: !!(d && h.contains(d)), open: !!(d && d.open), summary: d ? d.querySelector('summary').textContent : '', text: h.innerText, rule: GCAL_RULES.scheduling[0], note: GCAL_RULES.notes[0] }; });
-    if (!heroR.inHero || !heroR.open || !/The attorney’s rules · Standard Training/.test(heroR.summary) || !heroR.text.includes(heroR.rule) || !heroR.text.includes(heroR.note) || /as in Google Calendar/.test(heroR.text)) fail(`the blue card should hold Standard Training's rules: ${JSON.stringify(Object.assign({}, heroR, { text: heroR.text.slice(0, 200) }))}`);
+    if (!heroR.inHero || !heroR.open || heroR.summary.trim() !== '📖 The attorney’s rules' || !heroR.text.includes(heroR.rule) || !heroR.text.includes(heroR.note) || /as in Google Calendar/.test(heroR.text)) fail(`the blue card should hold Standard Training's rules: ${JSON.stringify(Object.assign({}, heroR, { text: heroR.text.slice(0, 200) }))}`);
     if (!/Color each appointment by its length: 30 minutes Tangerine, 45 minutes Blueberry, 1 hour Tomato/.test(heroR.text)) fail('the attorney\'s rules should carry the color rule (30 min Tangerine, 45 Blueberry, 1 hour Tomato)');
     // quick create: click Wednesday 1:00 PM in this week (a free slot)
     const wed = await page.evaluate((m) => GCAL.addDays(m, 2), mon);
@@ -252,30 +252,56 @@ const server = http.createServer(async (req, res) => {
     if (/attorney’s rules|attorney's rules|Check my calendar/i.test(railTxt)) fail('the bar under the calendar still has rules / check buttons: ' + railTxt);
     await page.click('#gc-scores [data-a="check"]'); await page.waitForSelector('.res-ring');
     await shot(page, 'gcal-5-checked');
-    // the score is in 📊 Your scores, not in the side panel (which stays on the rules): on a wide screen (1440px) at the bottom
-    // of the blue card on the left, a white card that scrolls when it's long
-    const where = () => page.evaluate(() => { const g = document.getElementById('gc'), sc = document.getElementById('gc-scores'), ring = document.querySelector('.res-ring'), hero = document.querySelector('.sim-hero');
-        const s = sc.getBoundingClientRect(), h = hero.getBoundingClientRect();
-        return { inScores: !!(ring && sc.contains(ring)), inHero: sc.parentNode === hero, atBottom: Math.abs(h.bottom - s.bottom) < 40 && s.top > h.top + 200, below: s.top >= g.getBoundingClientRect().bottom - 1,
-            fits: s.bottom <= h.bottom + 1, scrolls: getComputedStyle(sc).overflowY, panel: (document.getElementById('gc-panel') || {}).innerText || '', head: (sc.querySelector('h2') || {}).textContent || '', text: sc.innerText }; });
+    // the score is in 📊 Your scores, not in the side panel (which stays closed): a card in the calendar's left sidebar, under
+    // Other calendars, not in the blue card. Nothing of the sidebar goes: Create, the month calendar and the calendars stay on top,
+    // and Check my calendar does not scroll the sidebar away from them.
+    await page.waitForTimeout(500);
+    const where = () => page.evaluate(() => { const g = document.getElementById('gc'), sc = document.getElementById('gc-scores'), ring = document.querySelector('.res-ring'), side = document.getElementById('gc-side'), cals = side.querySelector('.cals');
+        const s = sc.getBoundingClientRect();
+        return { inScores: !!(ring && sc.contains(ring)), inSide: sc.parentNode === side, underCals: !!cals && sc.previousElementSibling === cals, inHero: !!document.querySelector('.sim-hero #gc-scores'), below: s.top >= g.getBoundingClientRect().bottom - 1,
+            google: !!side.querySelector('[data-a="create"]') && !!side.querySelector('.mini') && side.querySelectorAll('input[data-cal]').length >= 3, top: side.scrollTop,
+            panel: (document.getElementById('gc-panel') || {}).innerText || '', head: (sc.querySelector('h2') || {}).textContent || '', text: sc.innerText }; });
     let placed = await where();
-    if (!placed.inScores || !placed.inHero || !placed.atBottom || !placed.fits || placed.scrolls !== 'auto' || /checked/i.test(placed.panel) || placed.panel.trim() || !/Your scores/.test(placed.head)) fail(`on a wide screen the check's score should be at the bottom of the blue card, with the side panel closed: ${JSON.stringify(Object.assign({}, placed, { panel: placed.panel.slice(0, 80), text: placed.text.slice(0, 80) }))}`);
+    if (!placed.inScores || !placed.inSide || !placed.underCals || placed.inHero || !placed.google || placed.top !== 0 || placed.panel.trim() || !/Your scores/.test(placed.head) || /Your calendar, checked/i.test(placed.text)) fail(`the check's score should be a card in the calendar's sidebar under Other calendars, the sidebar's Create, month calendar and calendars kept on top: ${JSON.stringify(Object.assign({}, placed, { panel: placed.panel.slice(0, 80), text: placed.text.slice(0, 80) }))}`);
     // "The attorney's appointments you changed" is not shown (the check keeps them for the evaluation)
     if (/appointments you changed/i.test(placed.text) || /appointments you changed/.test(fs.readFileSync(path.join(ROOT, 'simulators/gcal.js'), 'utf8'))) fail('the scores still list the attorney\'s appointments you changed');
-    // narrower (the blue card on top): the scores are below the calendar; wider again, back in the card
+    // the sidebar is drawn again on a change (another month in the small calendar): the scores stay in it
+    await page.click('[data-a="mini-next"]'); await page.waitForTimeout(200);
+    placed = await where();
+    if (!placed.inSide || !placed.underCals || !placed.google) fail(`after the sidebar is drawn again the scores should still be under Other calendars: ${JSON.stringify({ inSide: placed.inSide, underCals: placed.underCals, google: placed.google })}`);
+    await page.click('[data-a="mini-prev"]');
+    // 1300px: the sidebar is still a column, so the scores stay in it; the rules in the blue card (on top) fold to a line
     await page.setViewportSize({ width: 1300, height: 1000 }); await page.waitForTimeout(300);
     placed = await where();
-    if (placed.inHero || !placed.below || !placed.inScores) fail(`at 1300px the scores should be below the calendar: ${JSON.stringify({ inHero: placed.inHero, below: placed.below })}`);
+    if (!placed.inSide || !placed.underCals) fail(`at 1300px the scores should still be in the sidebar: ${JSON.stringify({ inSide: placed.inSide, underCals: placed.underCals })}`);
     const folded = await page.evaluate(() => ({ open: (document.getElementById('hero-rules') || { open: true }).open, h: document.querySelector('.sim-hero').getBoundingClientRect().height }));
     if (folded.open || folded.h > 200) fail(`at 1300px the rules in the blue card should fold to a line: ${JSON.stringify(folded)}`);
+    // 860px (the sidebar a drawer): below the calendar
+    await page.setViewportSize({ width: 860, height: 1000 }); await page.waitForTimeout(300);
+    placed = await where();
+    if (placed.inSide || !placed.below || !placed.inScores) fail(`at 860px (the sidebar a drawer) the scores should be below the calendar: ${JSON.stringify({ inSide: placed.inSide, below: placed.below })}`);
     await page.setViewportSize({ width: 1440, height: 1000 }); await page.waitForTimeout(300);
     placed = await where();
-    if (!placed.inHero || !placed.atBottom) fail(`back at 1440px the scores should be in the blue card again: ${JSON.stringify({ inHero: placed.inHero, atBottom: placed.atBottom })}`);
+    if (!placed.inSide || !placed.underCals) fail(`back at 1440px the scores should be in the sidebar again: ${JSON.stringify({ inSide: placed.inSide, underCals: placed.underCals })}`);
     if (!(await page.evaluate(() => !!(document.getElementById('hero-rules') || {}).open))) fail('back at 1440px the rules in the blue card should be open again');
+    // the sidebar hidden (☰): the scores are below the calendar; shown again: back under Other calendars
+    await page.click('[data-a="side"]'); await page.waitForTimeout(200);
+    placed = await where();
+    if (placed.inSide || !placed.below) fail(`with the sidebar hidden the scores should be below the calendar: ${JSON.stringify({ inSide: placed.inSide, below: placed.below })}`);
+    await page.click('[data-a="side"]'); await page.waitForTimeout(200);
+    placed = await where();
+    if (!placed.inSide || !placed.underCals) fail(`with the sidebar shown again the scores should be back in it: ${JSON.stringify({ inSide: placed.inSide, underCals: placed.underCals })}`);
     const res = results[results.length - 1];
     if (!res || res.simulator !== 'Google Calendar' || typeof res.score !== 'number' || !res.who || res.who.name !== 'CI Trainee') fail(`Check my calendar should save the score: ${JSON.stringify(res).slice(0, 200)}`);
     await page.close();
 
+    {   // a calendar with nothing booked, checked: only the score
+        const ep = await open({ name: 'CI Empty' });
+        await ep.click('#gc-scores [data-a="check"]'); await ep.waitForSelector('.res-ring');
+        const et = await ep.evaluate(() => document.getElementById('gc-scores').innerText);
+        if (!/0%/.test(et) || /Your calendar, checked/i.test(et) || /no appointments on the calendar/i.test(et)) fail(`an empty calendar's scores should show only the score: ${et.slice(0, 200)}`);
+        await ep.close();
+    }
     // a phone: no sideways scroll
     page = await open({ viewport: { width: 390, height: 844 } });
     if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) fail('on a phone the page scrolls sideways');
@@ -369,9 +395,9 @@ const server = http.createServer(async (req, res) => {
         if (!/Calendar requests/i.test(cr.head) || cr.cards !== 7 || !/Calendar requests/.test(cr.rail)) fail(`${track}: the Calendar requests panel should list the 7 callers: ${JSON.stringify(cr)}`);
         // 📖 the blue card holds this track's own rules
         const hr = await tp.evaluate(() => { const d = document.getElementById('hero-rules'); return { open: !!(d && d.open), summary: d ? d.querySelector('summary').textContent : '', text: d ? d.innerText : '', rules: GCAL_RULES.collect.concat(GCAL_RULES.scheduling) }; });
-        const want = track === 'cm' ? /The attorney’s rules · Litigation Week/ : /The executive’s rules · Executive Week/;
+        const want = track === 'cm' ? /^📖 The attorney’s rules$/ : /^📖 The executive’s rules$/;
         const missing = hr.rules.filter(x => !hr.text.includes(track === 'ea' ? x.replace(/attorney/g, 'executive').replace(/Attorney/g, 'Executive') : x));
-        if (!hr.open || !want.test(hr.summary) || missing.length) fail(`${track}: the blue card should hold this track's rules: ${JSON.stringify({ open: hr.open, summary: hr.summary, missing })}`);
+        if (!hr.open || !want.test(hr.summary.trim()) || missing.length) fail(`${track}: the blue card should hold this track's rules: ${JSON.stringify({ open: hr.open, summary: hr.summary, missing })}`);
         if (track === 'ea') {   // the executive's wording is only the page's own fixed text: what the trainee types is never reworded, and no DOB / DOL is asked
             await tp.keyboard.press('c'); await tp.waitForSelector('#ed-title', { timeout: 5000 });
             const ph = await tp.evaluate(() => document.getElementById('ed-desc').getAttribute('data-ph'));
