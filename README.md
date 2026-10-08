@@ -82,13 +82,13 @@ The **Got a referral?** button on the home page (in the hero, next to *See how i
 - Listing, downloading, updating and deleting are admin-only.
 - Data is in D1 `TRAINING_DB`, created on first use: `referrals` holds the details, `referral_files` holds the CV in 1 MB parts (the portal has no file bucket, and a D1 value is capped at 2 MB), and `referral_rate` holds the rate limit.
 
-## 🧭 Orientation
+## 🧭 Blueprint
 
-**`/orientation.html`** is the Platform Orientation for the portal: a slide deck made for screen sharing in Google Meet. It shows nothing private: no passwords, access codes or trainee data.
+**`/blueprint.html`** is the Platform Blueprint (formerly the Platform Orientation; `/orientation.html` forwards here): a slide deck made for screen sharing in Google Meet. It shows nothing private: no passwords, access codes or trainee data.
 
 It has two tracks, switched at the top of the page:
-- **Trainees** (8 slides): what the portal is, the Training Directory, signing in inside each program, what's inside a program, the Simulators, the Knowledge Base, good habits, and first steps.
-- **Trainers & Admins** (8 slides, signed-in admins only: trainees never see this track or its tab): admin sign-in, the Directory's admin view (access queue, Mark Passed, Manually Grant Access), Master Control (monitoring, Broadcast & Ping, Access Control, activities and grading), Progress & Feedback, program admin, Knowledge Base review and simulator scores, and a daily checklist.
+- **Trainees** (8 slides): what the portal is, registering and the one log in, the Training Directory (Request Access, Enter Program, certificates), what's inside a program, the Simulators, the Knowledge Base, good habits, and first steps.
+- **Trainers & Admins** (8 slides, signed-in admins only: trainees never see this track or its tab): the admin bar, the Directory's admin view (topic requests, Switch view), System Management, Trainee Monitoring, Attendance, program admin, Knowledge Base review / referrals / calendar reviews, and a daily checklist.
 
 How to use it:
 - Keys: ← → (or Page Up / Page Down / Space) change slides, and **F** toggles full screen.
@@ -96,13 +96,13 @@ How to use it:
 - **Numbering:** the PDF's cover is the Cover, then its pages are `1 / 8` to `8 / 8` (headed "1 of 8" to "8 of 8"), the same as the page's own counter. The cover isn't counted, so nothing says 9.
 - **🖨 Print** prints the current track, one slide per page.
 - Deep links: `?track=admin&slide=3`.
-- Links to it: **Platform Orientation** in the home page menu and in the admin bar on every main page. Signed-in admins get the admin track.
+- Links to it: **Blueprint** in the main page header and in the admin bar on every main page. Signed-in admins get the admin track.
 
-To change the content, edit `SLIDES` in `orientation.html`; the PDF is made from the same slides. `.github/scripts/blueprint.cjs` checks it in CI: trainees get the Trainees track only, an admin gets both, and each track downloads as a PDF with every slide and the deploy stamp.
+To change the content, edit `SLIDES` in `blueprint.html`; the PDF is made from the same slides. `.github/scripts/blueprint.cjs` checks it in CI: trainees get the Trainees track only, an admin gets both, and each track downloads as a PDF with every slide and the deploy stamp.
 
 ### 🧭 The admin bar
 
-Every main page (Training Directory, Platform Orientation, Trainee Monitoring, Attendance, Referrals) gives a signed-in admin the same top bar, from `PortalNav.adminHtml` in `portal-nav.js`: **Platform Orientation · System Management ▾ · Trainee Monitoring · Attendance · Referrals · Switch view · Logout**. Everything else (Main Portal, Training Directory, Master Control, Registrations, Users, Program Access, Who’s Online, Simulators, Knowledge Base, Ring Channel, the checks and AI usage) is collated under **System Management**. **Switch view** shows the Training Directory as a trainee sees it (this tab only); press it again to go back. The sign-in pages link back with **← Go to Main Portal**.
+Every main page (Training Directory, Blueprint, Trainee Monitoring, Attendance, Referrals) gives a signed-in admin the same top bar, from `PortalNav.adminHtml` in `portal-nav.js`: **Blueprint · System Management ▾ · Trainee Monitoring · Attendance · Referrals · Switch view · Logout**. Everything else (Main Portal, Training Directory, Master Control, Registrations, Users, Program Access, Who’s Online, Simulators, Knowledge Base, Ring Channel, the checks and AI usage) is collated under **System Management**. **Switch view** shows the Training Directory as a trainee sees it (this tab only); press it again to go back. The sign-in pages link back with **← Go to Main Portal**.
 
 ## Knowledge Base
 

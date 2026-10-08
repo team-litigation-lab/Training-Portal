@@ -147,75 +147,74 @@ const PROGRAMS_LIVE = 'Standard Foundational Training, CM Training and EA / PA T
 const SLIDES = {
 trainee: [
 { k: 'Welcome', h: 'One portal for all of your LSH training', body: `
-    <p class="or-lead">The LSH Training Portal is the master portal. It's the front door to every LSH training program, plus the practice tools and resources that all programs share.</p>
-    <div class="or-flow"><span>Portal home</span><i>→</i><span>Training Directory</span><i>→</i><span>Your program</span><i>+</i><span class="alt">Simulators</span><span class="alt">Knowledge Base</span></div>
+    <p class="or-lead">The Legal Support Help Upskill Hub is the master portal: the front door to every LSH training program, plus the practice tools and resources all programs share.</p>
+    <div class="or-flow"><span>Main page</span><i>→</i><span>Log In</span><i>→</i><span>Training Directory</span><i>→</i><span>Your program</span><i>+</i><span class="alt">Simulators</span><span class="alt">Knowledge Base</span></div>
     <ul class="pts">
-        <li><b>Training Directory:</b> every LSH program in one place. Open yours from here.</li>
-        <li><b>Your program:</b> where your lessons, activities, progress and certificate live. Each program has its own sign-in.</li>
-        <li><b>Simulators:</b> practice calls, calendaring, email, docketing, medical records requests and court e-filing.</li>
-        <li><b>Knowledge Base:</b> the firm's official SOPs, plus tips and guides from other LSH VAs.</li>
+        <li><b>One log in:</b> sign in once on the portal. Your programs, the Simulators and the Knowledge Base open without asking you to sign in again.</li>
+        <li><b>Training Directory:</b> every LSH program in one place, with the training tools beside it.</li>
+        <li><b>Your program:</b> your lessons, activities, scores, feedback and certificate.</li>
+        <li><b>Simulators</b> and the <b>Knowledge Base:</b> practice real work, and look up the SOPs.</li>
     </ul>` },
+{ k: 'Logging in', h: 'Register once, then log in once', body: `
+    <ul class="pts">
+        <li>New to LSH? Press <b>Register</b> on the log-in page and choose a username and password. An admin approves your registration and gives you your <b>Batch ID</b>.</li>
+        <li>After that, press <b>Log In</b> on the main page and use your username and password. You land on the Training Directory.</li>
+        <li>You won't be asked to sign in again inside a program, a simulator or the Knowledge Base: the portal signs you in for you.</li>
+        <li>Your progress is saved to your account, not your browser, so you can pick up on any computer.</li>
+    </ul>
+    <p class="or-note">Log-in details for work tools (email, CMS, time tracker) are never posted on the portal. Your trainer shares them privately.</p>
+    <div class="or-go"><a class="btn pri" href="/trainee-login.html">Go to Log In</a></div>` },
 { k: 'Training Directory', h: 'Find your program in the Training Directory', body: `
-    <p class="or-lead">Open <b>Training Directory</b> from the portal's top menu (or <b>Browse Trainings</b>). It lists every program LSH runs.</p>
+    <p class="or-lead">The Training Directory lists every LSH program, with the training tools (Simulators, Knowledge Base, LSH Ring Channel, Case Management System) beside it.</p>
     <div class="or-grid">
-        <div class="or-card"><b>Available → Open Program</b><span>The program is live. It opens in a new tab.</span></div>
-        <div class="or-card"><b>Coming Soon</b><span>Listed so you can see what's next; it isn't open yet.</span></div>
-        <div class="or-card"><b>Free</b><span>Free Upskill Programs are pinned at the top and marked Free.</span></div>
-        <div class="or-card"><b>Simulators &amp; Knowledge Base</b><span>The two cards at the top of the Directory open them.</span></div>
+        <div class="or-card"><b>Request Access</b><span>Ask for a program; it shows <b>Awaiting Admin Approval</b> until a trainer approves it.</span></div>
+        <div class="or-card"><b>Enter Program</b><span>Once approved, the program opens in a new tab, already signed in.</span></div>
+        <div class="or-card"><b>Completed</b><span>When your trainer marks you passed, <b>Download Certificate</b> appears on that program.</span></div>
+        <div class="or-card"><b>Coming Soon · Free</b><span>Programs on the way are listed; the Free Upskill Programs are pinned at the top.</span></div>
     </div>
     <p class="or-note">Programs open now: ${PROGRAMS_LIVE}.</p>
     <div class="or-go"><a class="btn pri" href="/programs.html">Open the Training Directory</a></div>` },
-{ k: 'Signing in', h: 'Each program has its own sign-in', body: `
-    <p class="or-lead">You don't sign in on this portal. You sign in inside your program.</p>
-    <ul class="pts">
-        <li>Enter your <b>name</b> and your <b>Batch ID</b> exactly as your trainer gave them to you.</li>
-        <li>Your trainer <b>approves</b> your sign-in. After that, you go straight in.</li>
-        <li>Your progress is <b>saved to your account</b>, not your browser. Sign in on any computer and pick up where you left off.</li>
-        <li>Use the same name and Batch ID every time. Your progress, scores and certificate follow them.</li>
-    </ul>
-    <p class="or-note">Log-in details for work tools (email, CMS, time tracker) are never posted on the portal. Your trainer shares them privately.</p>` },
 { k: 'Inside a program', h: 'What you do inside your program', body: `
     <div class="or-grid">
         <div class="or-card"><b>📚 Lessons</b><span>Slides you move through one at a time, with Full screen. Your trainer opens each lesson or day for your batch.</span></div>
         <div class="or-card"><b>▶ Videos &amp; files</b><span>Lecture videos and documents open right on the page, or in a new tab.</span></div>
-        <div class="or-card"><b>🧪 Practice</b><span>Activities, practice labs and checks, depending on the program. Your work saves as you go.</span></div>
+        <div class="or-card"><b>🧪 Practice</b><span>Activities, Knowledge Checks and practice labs. Your work saves as you go.</span></div>
         <div class="or-card"><b>🎯 Trainer feedback</b><span>Your trainer's notes on your work: strengths, areas to build and what to focus on next.</span></div>
         <div class="or-card"><b>💬 Your feedback</b><span>Rate the lessons and the training. You can send it anonymously.</span></div>
         <div class="or-card"><b>🎓 Certificate</b><span>Unlocks when you complete the program.</span></div>
     </div>` },
 { k: 'Simulators', h: 'Practice on the Simulators', body: `
-    <p class="or-lead">The Simulators let you practice real work safely, with fictional cases, and get a score and feedback.</p>
+    <p class="or-lead">The Simulators let you practice real work safely, with fictional cases, and send your scores to your trainer.</p>
     <div class="or-grid">
-        <div class="or-card"><b>📞 Call Simulator</b><span>In the CMS: a caller phones in; answer by voice or typing, then get a scored debrief. Practice or graded, on every program’s lines.</span></div>
-        <div class="or-card"><b>📅 Google Calendar · 🗓 Calendaring</b><span>Book callers’ appointments on the attorney’s calendar, and sort out a busy week under real rules.</span></div>
-        <div class="or-card"><b>✉️ Email Workspace &amp; 📨 Email Replies</b><span>Triage a practice inbox, and answer emails like you would at work.</span></div>
+        <div class="or-card"><b>📞 Call Simulator · ☎ LSH Ring Channel</b><span>Take a call in the CMS and get a scored debrief, or answer trainer-led and 🤖 AI mock calls on a real phone line.</span></div>
+        <div class="or-card"><b>📆 Calendaring Simulators</b><span>Google Calendar for your program: book and manage the attorney's week, then <b>Submit to trainer</b> for review.</span></div>
+        <div class="or-card"><b>✉️ Email Simulators</b><span>Triage a practice inbox, and answer emails like you would at work.</span></div>
         <div class="or-card"><b>⚖️ Docket · 🗂 Records · 🏛 E-Filing</b><span>Docket court deadlines, request medical records and bills, and file with the court.</span></div>
     </div>
-    <ul class="pts" style="margin-top:16px;">
-        <li>The first time, enter your <b>name and Batch ID</b> ("Who's practicing?") so your scores reach your trainer. Opening a simulator from inside your program fills them in for you.</li>
-    </ul>
+    <p class="or-note">You're already signed in, so every run is saved under your name and batch. <b>My recent results</b> on the Simulators page shows your scores.</p>
     <div class="or-go"><a class="btn pri" href="/simulators.html">Open the Simulators</a></div>` },
 { k: 'Knowledge Base', h: 'Look things up in the Knowledge Base', body: `
     <p class="or-lead">The Knowledge Base is where LSH VAs find the firm's SOPs and share what they know. It's for the team only.</p>
     <ul class="pts">
-        <li>Sign in with the <b>team access code</b> (your trainer gives it to you) and your name. Your browser stays signed in for 30 days.</li>
-        <li><b>Official</b> SOPs and resources, each with its original file to download.</li>
-        <li><b>From the team:</b> tips, how-to guides, checklists and templates. Mark them 👍 Helpful, or reply with your own experience.</li>
-        <li>Share your own. An admin reviews every post before it's published. Add a profile so people know who wrote it.</li>
+        <li>Open it from the Training Directory: the portal signs you in, so there's no access code to type.</li>
+        <li><b>Featured</b>, <b>Library</b>, <b>Glossary</b> and <b>SOPs</b>, each official SOP with its original file to download.</li>
+        <li><b>From the team:</b> tips, how-to guides and templates. Mark them 👍 Helpful, or comment with your own experience.</li>
+        <li><b>Contribute</b> your own. An admin reviews every post before it's published; your contributor profile shows who wrote it.</li>
     </ul>
     <div class="or-go"><a class="btn pri" href="/api/launch?tool=kb">Open the Knowledge Base</a></div>` },
 { k: 'Good habits', h: 'Tips for a smooth training', body: `
     <ul class="pts">
         <li>Use <b>Google Chrome</b>, and keep the portal and your program open in separate tabs.</li>
-        <li>Most links open in a <b>new tab</b>, so you never lose your place.</li>
-        <li><b>Never share passwords</b> in chat, notes or the Knowledge Base. The portal doesn't need them.</li>
-        <li>Can't get into your program, or something looks wrong? Message your <b>trainer or batch administrator</b> with your name, Batch ID and a screenshot.</li>
+        <li>Most links open in a <b>new tab</b>, so you never lose your place. <b>← Back</b> on every page takes you up one level.</li>
+        <li><b>Never share passwords</b> in chat, notes or the Knowledge Base.</li>
+        <li><b>Log Out</b> when you're done on a shared computer.</li>
+        <li>Can't get into a program, or something looks wrong? Message your <b>trainer or batch administrator</b> with your name, Batch ID and a screenshot.</li>
     </ul>` },
 { k: 'Ready', h: "You're ready: your first steps", body: `
     <ol class="or-check">
-        <li>Bookmark the LSH Training Portal.</li>
-        <li>Open the <b>Training Directory</b> and click <b>Open Program</b> on your program.</li>
-        <li>Sign in with your name and Batch ID, and wait for your trainer's approval.</li>
+        <li>Bookmark the Legal Support Help Upskill Hub.</li>
+        <li><b>Log In</b> (or <b>Register</b> first, and wait for approval).</li>
+        <li>In the <b>Training Directory</b>, request your program, then press <b>Enter Program</b> once it's approved.</li>
         <li>Start your first open lesson.</li>
         <li>Try a <b>Simulator</b>, and look around the <b>Knowledge Base</b>.</li>
     </ol>
@@ -223,66 +222,66 @@ trainee: [
 ],
 admin: [
 { k: 'The admin side', h: 'Running training from the master portal', body: `
-    <p class="or-lead">Trainers and admins sign in to the portal to monitor every batch, communicate with trainees, and review what they share.</p>
-    <div class="or-flow"><span>🔒 Admin sign-in</span><i>→</i><span>Training Directory (admin view)</span><i>→</i><span>Master Control</span><span class="alt">📊 Progress &amp; Feedback</span><span class="alt">📚 Knowledge Base review</span></div>
+    <p class="or-lead">Trainers and admins sign in to the portal to run every batch, monitor trainees, and review what they share.</p>
+    <div class="or-flow"><span>🔒 Admin sign-in</span><i>→</i><span>Training Directory (admin view)</span><i>→</i><span>Trainee Monitoring</span><span class="alt">System Management</span><span class="alt">Attendance</span></div>
     <ul class="pts">
-        <li>Sign in with <b>🔒 Admin</b>, in the top menu of the home page and the Training Directory.</li>
-        <li>Once signed in, the Directory's top bar links to <b>Master Control</b>, <b>Progress &amp; Feedback</b>, the <b>Knowledge Base</b> and the <b>Simulators</b>.</li>
-        <li>Each program also has its own <b>🛡 Admin</b>, for running that program day to day.</li>
+        <li>Sign in with <b>Admin</b> in the main page header.</li>
+        <li>Every main page then has the same admin bar: <b>Blueprint · System Management ▾ · Trainee Monitoring · Attendance · Referrals · Switch view · Logout</b>.</li>
+        <li>The portal signs you in to each program's admin, the Knowledge Base and the Simulators: one admin password everywhere.</li>
     </ul>` },
 { k: 'Training Directory', h: 'The Training Directory, admin view', body: `
     <ul class="pts">
-        <li>The heading changes to <b>Training Index — Admin View</b>. Every built program opens directly for you (<b>Enter Program</b>).</li>
-        <li><b>Access queue:</b> approve or deny program access requests, and <b>Mark Passed</b> when a trainee completes a program. Passed trainees can download that program's certificate.</li>
-        <li><b>Manually Grant Access</b> gives a trainee a program without a request, skipping the progression order.</li>
-    </ul>
-    <p class="or-note">Trainees don't sign in here. They see Available / Coming Soon and open programs directly.</p>` },
-{ k: 'Master Control', h: 'Master Control: see who is active and reach everyone', body: `
+        <li>Every built program opens directly for you with <b>Enter Program</b>.</li>
+        <li><b>Pending Topic Requests:</b> approve or deny trainees' program requests. Approved programs turn into Enter Program for the trainee without a refresh.</li>
+        <li>Mark a trainee <b>passed</b> in System Management → <b>Program Access</b> when they complete a program; they can then download its certificate from the Directory.</li>
+        <li><b>Switch view</b> shows the Directory exactly as a trainee sees it (this tab only); press it again to come back.</li>
+    </ul>` },
+{ k: 'System Management', h: 'System Management: everything else in one menu', body: `
     <div class="or-grid">
-        <div class="or-card"><b>Overview</b><span>Totals, users online in the last 60 seconds, pending registrations, and the site-wide status.</span></div>
-        <div class="or-card"><b>Registrations</b><span>Approve sign-ups from the login screen; approving issues the Batch ID.</span></div>
-        <div class="or-card"><b>Monitoring &amp; Activity Logs</b><span>Who is online, what they did last, and a timestamped audit trail of log-ins, uploads, submissions and grading.</span></div>
-        <div class="or-card"><b>Broadcast &amp; Ping</b><span>A scrolling ticker announcement; a full-screen alert (optional image, color, duration or schedule); an instant ping with an alert tone.</span></div>
-        <div class="or-card"><b>Access Control</b><span>Pause activity, or lock the page, for everyone on the portal workspace at once.</span></div>
+        <div class="or-card"><b>🛡 Master Control</b><span>Users, program access, who's online, activity logs, Broadcast &amp; Ping, and pausing or locking the workspace.</span></div>
+        <div class="or-card"><b>📝 Registrations</b><span>Approve new sign-ups; approving issues the trainee's Batch ID.</span></div>
+        <div class="or-card"><b>👥 Users · 🔑 Program Access</b><span>Revoke access, or change which programs a trainee can open.</span></div>
+        <div class="or-card"><b>🛠 Simulators · 📚 KB · ☎ Ring Channel</b><span>Open each tool already signed in as an admin.</span></div>
+        <div class="or-card"><b>🔐 Checks · 🤖 AI Usage</b><span>Sign-in and admin password checks across platforms, and today's use of the shared AI budget.</span></div>
     </div>` },
-{ k: 'Master Control', h: 'Master Control: content and grading', body: `
+{ k: 'Trainee Monitoring', h: 'Trainee Monitoring: every trainee on one page', body: `
     <ul class="pts">
-        <li><b>Trainee Progress Tracker</b> and <b>Live Leaderboard:</b> completion, pending checks and grades by trainee and Batch ID.</li>
-        <li><b>Manage Decks &amp; Activities:</b> add an activity (it starts as a draft), publish or unpublish it, and archive it when it's done. The archive keeps its record.</li>
-        <li><b>Recorded Lectures:</b> embed YouTube or Google Drive links, so the portal doesn't store large videos.</li>
-        <li><b>Submitted Activities &amp; Grading:</b> review each trainee's answers and release a grade with feedback.</li>
-    </ul>` },
-{ k: 'Progress & Feedback', h: 'Progress & Feedback: every trainee on one page', body: `
-    <ul class="pts">
-        <li><b>A tab per program</b> (Standard Foundational Training, EA / PA, CM), with trainees grouped by batch.</li>
-        <li>For each trainee: days completed, Knowledge Check and practice averages, trainer feedback sent or still in draft, their own feedback, <b>simulator practice</b>, and when they were last active.</li>
+        <li><b>A tab per program</b>, with trainees grouped by batch, the latest batch first.</li>
+        <li>For each trainee: days completed, Knowledge Check and practice averages, trainer feedback, their own feedback, <b>simulator scores</b>, and when they were last active.</li>
         <li>Click a trainee for the full record. Filter, sort by "furthest behind", search, and download a <b>CSV</b>.</li>
-        <li><b>📦 Archive batch</b> when a batch finishes: its records are kept (and saved to Google Drive once Drive is set up), and it can be restored.</li>
-        <li><b>💬 Feedback from trainees</b> shows ratings by area and comments; anonymous feedback stays anonymous.</li>
+        <li><b>📦 Archive batch</b> when a batch finishes: its records are kept and can be restored.</li>
+        <li><b>💬 Feedback from trainees</b> shows ratings and comments; anonymous feedback stays anonymous.</li>
     </ul>` },
-{ k: 'Inside each program', h: 'Program admin: running the day', body: `
-    <p class="or-lead">Each program's own <b>🛡 Admin</b> (with that program's trainer sign-in) is where you run it:</p>
+{ k: 'Attendance', h: 'Attendance, batch by batch', body: `
     <ul class="pts">
-        <li><b>Approve</b> trainees who sign in with their name and Batch ID.</li>
-        <li><b>Open lessons</b> or days for a batch when you're ready to teach them (in programs that use it).</li>
+        <li>Take and review attendance in every program from <b>Attendance</b> in the admin bar.</li>
+        <li>Pick the batch and the day; the training shown is the one the batch is on, and it can be changed for the batch or one trainee.</li>
+        <li>Attendance logs stay with the batch and show in Trainee Monitoring.</li>
+    </ul>
+    <div class="or-go"><a class="btn pri" href="/attendance.html">Open Attendance</a></div>` },
+{ k: 'Inside each program', h: 'Program admin: running the day', body: `
+    <p class="or-lead">Each program's own <b>🛡 Admin</b> is where you run it day to day:</p>
+    <ul class="pts">
+        <li><b>Open lessons</b> or days for a batch when you're ready to teach them.</li>
         <li>Run the live session in <b>🖥 Presenter view</b>, and check what trainees see with <b>👁 Trainee view</b>.</li>
-        <li>Write each trainee's <b>trainer feedback</b>, and read what trainees send you.</li>
+        <li>Grade activities, and write each trainee's <b>trainer feedback</b>.</li>
     </ul>
     <p class="or-note">Credentials are never posted on the platform. Share log-in details with trainees privately.</p>` },
-{ k: 'Knowledge Base, Referrals & Simulators', h: 'Knowledge Base review, referrals and simulator scores', body: `
+{ k: 'Knowledge Base, Referrals & Simulators', h: 'Knowledge Base review, referrals and simulator reviews', body: `
     <div class="or-grid">
-        <div class="or-card"><b>📚 Review &amp; settings</b><span>Set or change the team access code (changing it signs everyone out). Approve posts, replies and profile changes, or send a post back with a note. Feature, hide, edit or delete posts.</span></div>
-        <div class="or-card"><b>🤝 Referrals</b><span>People referred with "Got a referral?" on the home page: their contact details and CV. Set a status, keep a note, and delete a referral when it's no longer needed.</span></div>
-        <div class="or-card"><b>🛠 Simulator scores</b><span>Trainees' runs are saved under their name and batch, and show in Progress &amp; Feedback next to their program record.</span></div>
+        <div class="or-card"><b>📚 Knowledge Base review</b><span>Approve posts, comments and profile changes, or send a post back with a note. Feature, archive, mark obsolete, edit or delete articles.</span></div>
+        <div class="or-card"><b>🤝 Referrals</b><span>People referred with "Got a referral?" on the main page: contact details and CV. Set a status, keep a note, delete when done.</span></div>
+        <div class="or-card"><b>📆 Calendar reviews</b><span>Trainees' Google Calendar submissions come to you for review; your result shows at the bottom of their requests panel.</span></div>
+        <div class="or-card"><b>🛠 Simulator scores</b><span>Every run is saved under the trainee's name and batch, and shows in Trainee Monitoring.</span></div>
     </div>` },
 { k: 'Daily workflow', h: 'Your daily checklist', body: `
     <ol class="or-check">
-        <li>Approve new sign-ins in your program's Admin, and any registrations in Master Control.</li>
-        <li>Open today's lessons for the batch.</li>
+        <li>Approve new registrations and program requests.</li>
+        <li>Take attendance, and open today's lessons for the batch.</li>
         <li>Post an announcement in Broadcast &amp; Ping if the batch needs it.</li>
-        <li>Grade submitted activities, and write trainer feedback.</li>
-        <li>Check Progress &amp; Feedback for anyone falling behind.</li>
-        <li>Review new Knowledge Base posts and replies, and any new referrals.</li>
+        <li>Grade activities and calendar submissions, and write trainer feedback.</li>
+        <li>Check Trainee Monitoring for anyone falling behind.</li>
+        <li>Review new Knowledge Base posts and comments, and any new referrals.</li>
     </ol>` }
 ]
 };
