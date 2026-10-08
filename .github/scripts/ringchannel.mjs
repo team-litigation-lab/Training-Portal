@@ -42,6 +42,18 @@ for (const q of ['tool=cms', 'tool=kb', 'program=' + encodeURIComponent(Object.k
 // 3. signed out: no way in
 const o = await go(null);
 if (o.status !== 401) fail(`a signed-out launch: ${o.status} ${o.at}`);
+// 3b. ?to=aicall lands a trainee on its 🤖 AI call (🎧 Practice), ?to=console an admin on the console; neither works on another tool
+const tp = await go(trainee, 'tool=ringchannel&to=aicall');
+if (!/^https:\/\/lshringchannel\.legalsupporthelp\.workers\.dev\/\?ticket=[^#&]+#\/practice$/.test(tp.at)) fail(`a trainee's AI call link: ${tp.at}`);
+const ac = await go(admin, 'tool=ringchannel&to=console');
+if (!/\?ticket=[^#&]+#\/console$/.test(ac.at)) fail(`an admin's console link: ${ac.at}`);
+const wrong = await go(trainee, 'tool=cms&to=aicall');
+if (/#\/practice/.test(wrong.at)) fail(`to=aicall worked on the CMS: ${wrong.at}`);
+const drill = await go(trainee, 'tool=cms&to=drill');
+if (!/&drill=1$/.test(drill.at)) fail(`the CMS drill link broke: ${drill.at}`);
+const kbDrill = await go(trainee, 'tool=kb&to=drill');
+if (/drill=1/.test(kbDrill.at)) fail(`to=drill worked on the Knowledge Base: ${kbDrill.at}`);
+if (!readFileSync(new URL('../../simulators.html', import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel&to=aicall')) fail('simulators.html has no 🤖 AI call link');
 // 4. the Portal links to it: the Training Directory, the Simulators hub and Master Control (the home page no longer lists the simulators)
 for (const f of ['programs.html', 'simulators.html', 'core.html']) if (!readFileSync(new URL('../../' + f, import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail(`${f} has no link to LSH Ring Channel`);
 

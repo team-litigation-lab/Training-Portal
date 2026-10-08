@@ -12,7 +12,7 @@
 //   - the page: quick create, the event page (Google Meet, location, description, an email reminder a day
 //     before, the Attorney's Calendar), the event card and the mock Google Meet, drag to move, delete and undo,
 //     moving one week of the attorney's appointment ("This event"), Month / Schedule / search, Check my calendar
-//     (saved as 'Google Calendar'), the rules panel; no sideways scroll on a phone;
+//     (saved as 'Google Calendar'), the rules in the blue card (no rules button); no sideways scroll on a phone;
 //   - an Admin edits the weekly schedule for everyone (saved through /api/gcal-schedule; a trainee then sees
 //     it), and restores it; a trainee can't change it (the API refuses).
 // Usage: node .github/scripts/gcal.cjs   (from the repository root; needs playwright)
@@ -20,16 +20,18 @@ const { chromium } = require('playwright');
 const http = require('http'); const fs = require('fs'); const path = require('path'); const { pathToFileURL } = require('url');
 const ROOT = process.cwd();
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
-let saved = null; const results = []; const puts = [];
+let saved = null, savedColors = {}; const results = []; const puts = [], colorPuts = [];
 const server = http.createServer(async (req, res) => {
     const u = new URL(req.url, 'http://x');
     const send = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
     const body = () => new Promise(r => { let b = ''; req.on('data', c => { b += c; }); req.on('end', () => { try { r(JSON.parse(b || '{}')); } catch (e) { r({}); } }); });
     const admin = /role=admin/.test(req.headers.cookie || '');
     if (u.pathname === '/api/gcal-schedule') {
-        if (req.method === 'GET') return send(200, { success: true, rows: saved });
+        if (req.method === 'GET') return send(200, { success: true, rows: saved, colors: savedColors });
         if (!admin) return send(403, { success: false, error: 'Admins only.' });
-        if (req.method === 'PUT') { const b = await body(); const mod = await import(pathToFileURL(path.join(ROOT, 'functions/api/gcal-schedule.js')).href); const c = mod.cleanRows(b.rows); if (c.error) return send(400, { success: false, error: c.error }); saved = c.rows; puts.push(c.rows); return send(200, { success: true, rows: saved }); }
+        if (req.method === 'PUT') { const b = await body(); const mod = await import(pathToFileURL(path.join(ROOT, 'functions/api/gcal-schedule.js')).href);
+            if (b.colors !== undefined && b.rows === undefined) { const cc = mod.cleanColors(b.colors); if (cc.error) return send(400, { success: false, error: cc.error }); savedColors = cc.colors; colorPuts.push(cc.colors); return send(200, { success: true, colors: cc.colors }); }
+            const c = mod.cleanRows(b.rows); if (c.error) return send(400, { success: false, error: c.error }); saved = c.rows; puts.push(c.rows); return send(200, { success: true, rows: saved }); }
         if (req.method === 'DELETE') { saved = null; return send(200, { success: true }); }
     }
     if (u.pathname === '/api/sim-results' && req.method === 'POST') { results.push(await body()); return send(200, { success: true }); }
@@ -108,6 +110,7 @@ const server = http.createServer(async (req, res) => {
             if (R.kind === 'move') { st.ex[`s:${q.row}@${q.orig}`] = { date: e.date, start: e.start, end: e.end }; return; }
             const [m, d, y] = R.dob.split('/');
             st.events.push({ id: 'ev-' + q.id, cal: 'attorney', title: `${R.type} – ${R.name}`, date: e.date, start: e.start, end: e.end, allDay: false, tz: 'America/New_York', repeat: 'none',
+                color: GCAL.lengthColor(GCAL.mins(e.end) - GCAL.mins(e.start)),   // the attorney's color rule: 30 min Tangerine, 45 Blueberry, 1 hour Tomato
                 location: R.meeting === 'office' ? GCAL_OFFICE : R.meeting === 'phone' ? 'Phone' : '', meet: R.meeting === 'video' ? 'abc-defg-hij' : '',
                 desc: `Name: ${R.name}<br>CB Number: ${R.cb}<br>DOB: ${R.dob}<br>DOL: ${R.dol}<br>Notes: ${R.notesNeed.map(g => g[0]).join(', ')}`, guests: [], notifs: [{ m: 'email', v: 1, u: 'days' }], busy: true });
             void m; void d; void y;
@@ -125,6 +128,12 @@ const server = http.createServer(async (req, res) => {
         const og = GCAL.checkOpen(st, today), ob = GCAL.checkOpen(bad, today);
         out.open = { score: og.score, n: og.results.length, changed: og.changed.length, missed: og.results.flatMap(r => r.items.filter(i => !i.ok).map(i => r.head + ': ' + i.t)),
             bad: ob.results.find(r => r.id.startsWith(b0.id)).items.filter(i => !i.ok).map(i => i.t) };
+        // one half-point mistake (the color, or the reminder) is never free on Standard Training: the max matches what the checks add up to
+        const noColor = JSON.parse(JSON.stringify(st)); noColor.events[0].color = '';
+        const noRem = JSON.parse(JSON.stringify(st)); noRem.events[0].notifs = [];
+        const oc = GCAL.checkOpen(noColor, today), orm = GCAL.checkOpen(noRem, today);
+        out.half = { colorScore: oc.score, colorRight: oc.right, remScore: orm.score, remRight: orm.right, max: og.results[0].max };
+        out.colors = [GCAL.lengthColor(30), GCAL.lengthColor(45), GCAL.lengthColor(60), GCAL.lengthColor(20)];
         // a move made a cancellation; the cancellation done for every week; an appointment nobody asked about moved
         const odd = JSON.parse(JSON.stringify(st));
         const mv = reqs.find(q => q.id === 'move-charles'), cn = reqs.find(q => q.id === 'cancel-bell');
@@ -137,13 +146,18 @@ const server = http.createServer(async (req, res) => {
     });
     if (grading.good.score !== 100) fail(`a plan made the right way should score 100 (got ${grading.good.score}): ${grading.good.missed.join(' | ')}`);
     const miss = grading.bad.missed.join(' | ');
-    for (const re of [/not the Attorney’s Calendar/, /title should be/, /time zone/i, /Lunch Break/, /Tuesdays and Thursdays/, /isn’t a time the caller can do/, /Length/, /phone only|remove the Google Meet/, /description is missing/, /email notification/])
+    for (const re of [/not the Attorney’s Calendar/, /title should be/, /time zone/i, /Lunch Break/, /Tuesdays and Thursdays/, /isn’t a time the caller can do/, /Length/, /is colored Tomato/, /phone only|remove the Google Meet/, /description is missing/, /email notification/])
         if (!re.test(miss)) fail(`a booking with mistakes should be marked for ${re}: ${miss}`);
     if (grading.bad.pts > 1.5) fail(`a booking with every mistake should score almost nothing (${grading.bad.pts})`);
     const om = grading.open.bad.join(' | ');
     if (grading.open.score !== 100 || grading.open.n !== 5 || grading.open.changed !== 2) fail(`Standard Training's check: the right bookings should score 100 (5 appointments, the move and cancel listed): ${JSON.stringify(grading.open).slice(0, 500)}`);
-    for (const [re, what] of [[/not the Attorney’s Calendar/, 'calendar'], [/title should start with the request type/, 'title'], [/time zone/, 'time zone'], [/description is missing/, 'description'], [/email notification 1 day before/, 'reminder']])
+    for (const [re, what] of [[/not the Attorney’s Calendar/, 'calendar'], [/title should start with the request type/, 'title'], [/time zone/, 'time zone'], [/is colored/, 'color'], [/description is missing/, 'description'], [/email notification 1 day before/, 'reminder']])
         if (!re.test(om)) fail(`Standard Training's check should flag the ${what}: ${om}`);
+    // the color rule is pinned to its colors, and a half-point mistake is never free (the max is what the checks add up to)
+    if (grading.colors.join() !== 'tangerine,blueberry,tomato,') fail(`30/45/60 minutes should be Tangerine/Blueberry/Tomato (and 20 none): ${grading.colors.join()}`);
+    if (grading.half.max !== 10.5) fail(`Standard Training should grade an appointment out of 10.5, what its checks add up to (${grading.half.max})`);
+    if (!(grading.half.colorScore < 100) || grading.half.colorRight !== 4) fail(`a wrong or missing color should cost points on Standard Training: ${JSON.stringify(grading.half)}`);
+    if (!(grading.half.remScore < 100) || grading.half.remRight !== 4) fail(`a missing email reminder should cost points on Standard Training: ${JSON.stringify(grading.half)}`);
     if (!grading.odd.move || grading.odd.move.pts > 3 || !grading.odd.cancel || grading.odd.cancel.pts !== 5 || grading.odd.penalty !== 5 || !/Gerald Anderson/.test(grading.odd.extra.join()))
         fail(`a move made a deletion, a cancellation for every week, and an unasked change: ${JSON.stringify(grading.odd).slice(0, 400)}`);
 
@@ -163,7 +177,8 @@ const server = http.createServer(async (req, res) => {
     // 📖 the blue card holds Standard Training's attorney's rules (in place of the page's intro), open on a wide screen
     const heroR = await page.evaluate(() => { const d = document.getElementById('hero-rules'), h = document.querySelector('.sim-hero');
         return { inHero: !!(d && h.contains(d)), open: !!(d && d.open), summary: d ? d.querySelector('summary').textContent : '', text: h.innerText, rule: GCAL_RULES.scheduling[0], note: GCAL_RULES.notes[0] }; });
-    if (!heroR.inHero || !heroR.open || !/The attorney’s rules · Standard Training/.test(heroR.summary) || !heroR.text.includes(heroR.rule) || !heroR.text.includes(heroR.note) || /as in Google Calendar/.test(heroR.text)) fail(`the blue card should hold Standard Training's rules: ${JSON.stringify(Object.assign({}, heroR, { text: heroR.text.slice(0, 200) }))}`);
+    if (!heroR.inHero || !heroR.open || heroR.summary.trim() !== '📖 The attorney’s rules' || !heroR.text.includes(heroR.rule) || !heroR.text.includes(heroR.note) || /as in Google Calendar/.test(heroR.text)) fail(`the blue card should hold Standard Training's rules: ${JSON.stringify(Object.assign({}, heroR, { text: heroR.text.slice(0, 200) }))}`);
+    if (!/Color each appointment by its length: 30 minutes Tangerine, 45 minutes Blueberry, 1 hour Tomato/.test(heroR.text)) fail('the attorney\'s rules should carry the color rule (30 min Tangerine, 45 Blueberry, 1 hour Tomato)');
     // quick create: click Wednesday 1:00 PM in this week (a free slot)
     const wed = await page.evaluate((m) => GCAL.addDays(m, 2), mon);
     const colBox = await page.locator(`#gc-main .wk-col[data-d="${wed}"]`).boundingBox();
@@ -243,35 +258,61 @@ const server = http.createServer(async (req, res) => {
     await page.click('[data-a="search"]'); await page.fill('#gc-q', 'magsaysay'); await page.waitForTimeout(200);
     if (!/Discovery Conference: Ramon Magsaysay/.test(await page.textContent('#gc-main'))) fail('search should find Ramon Magsaysay');
     await page.click('[data-a="search-x"]'); await page.click('[data-a="views"]'); await page.click('[data-a="view"][data-v="week"]');
-    // the rules, then Check my calendar
-    await page.click('[data-a="panel"][data-p="rules"]');
-    if (!/New client consults are only scheduled on Tuesdays and Thursdays/.test(await page.textContent('#gc-panel'))) fail('the rules panel should list the attorney\'s rules');
-    await page.click('#gc-rail [data-a="check"]'); await page.waitForSelector('.res-ring');
+    // the bar has no rules or check buttons (the rules live in the blue card, Check my calendar with 📊 Your scores)
+    const railTxt = await page.textContent('#gc-rail');
+    if (/attorney’s rules|attorney's rules|Check my calendar/i.test(railTxt)) fail('the bar under the calendar still has rules / check buttons: ' + railTxt);
+    await page.click('#gc-scores [data-a="check"]'); await page.waitForSelector('.res-ring');
     await shot(page, 'gcal-5-checked');
-    // the score is in 📊 Your scores, not in the side panel (which stays on the rules): on a wide screen (1440px) at the bottom
-    // of the blue card on the left, a white card that scrolls when it's long
-    const where = () => page.evaluate(() => { const g = document.getElementById('gc'), sc = document.getElementById('gc-scores'), ring = document.querySelector('.res-ring'), hero = document.querySelector('.sim-hero');
-        const s = sc.getBoundingClientRect(), h = hero.getBoundingClientRect();
-        return { inScores: !!(ring && sc.contains(ring)), inHero: sc.parentNode === hero, atBottom: Math.abs(h.bottom - s.bottom) < 40 && s.top > h.top + 200, below: s.top >= g.getBoundingClientRect().bottom - 1,
-            fits: s.bottom <= h.bottom + 1, scrolls: getComputedStyle(sc).overflowY, panel: (document.getElementById('gc-panel') || {}).innerText || '', head: (sc.querySelector('h2') || {}).textContent || '', text: sc.innerText }; });
+    // the score is in 📊 Your scores, not in the side panel (which stays closed): a card in the calendar's left sidebar, under
+    // Other calendars, not in the blue card. Nothing of the sidebar goes: Create, the month calendar and the calendars stay on top,
+    // and Check my calendar does not scroll the sidebar away from them.
+    await page.waitForTimeout(500);
+    const where = () => page.evaluate(() => { const g = document.getElementById('gc'), sc = document.getElementById('gc-scores'), ring = document.querySelector('.res-ring'), side = document.getElementById('gc-side'), cals = side.querySelector('.cals');
+        const s = sc.getBoundingClientRect();
+        return { inScores: !!(ring && sc.contains(ring)), inSide: sc.parentNode === side, underCals: !!cals && sc.previousElementSibling === cals, inHero: !!document.querySelector('.sim-hero #gc-scores'), below: s.top >= g.getBoundingClientRect().bottom - 1,
+            google: !!side.querySelector('[data-a="create"]') && !!side.querySelector('.mini') && side.querySelectorAll('input[data-cal]').length >= 3, top: side.scrollTop,
+            panel: (document.getElementById('gc-panel') || {}).innerText || '', head: (sc.querySelector('h2') || {}).textContent || '', text: sc.innerText }; });
     let placed = await where();
-    if (!placed.inScores || !placed.inHero || !placed.atBottom || !placed.fits || placed.scrolls !== 'auto' || /checked/i.test(placed.panel) || !/Your scores/.test(placed.head) || !/New client consults/.test(placed.panel)) fail(`on a wide screen the check's score should be at the bottom of the blue card, not in the side panel: ${JSON.stringify(Object.assign({}, placed, { panel: placed.panel.slice(0, 80), text: placed.text.slice(0, 80) }))}`);
+    if (!placed.inScores || !placed.inSide || !placed.underCals || placed.inHero || !placed.google || placed.top !== 0 || placed.panel.trim() || !/Your scores/.test(placed.head) || /Your calendar, checked/i.test(placed.text)) fail(`the check's score should be a card in the calendar's sidebar under Other calendars, the sidebar's Create, month calendar and calendars kept on top: ${JSON.stringify(Object.assign({}, placed, { panel: placed.panel.slice(0, 80), text: placed.text.slice(0, 80) }))}`);
     // "The attorney's appointments you changed" is not shown (the check keeps them for the evaluation)
     if (/appointments you changed/i.test(placed.text) || /appointments you changed/.test(fs.readFileSync(path.join(ROOT, 'simulators/gcal.js'), 'utf8'))) fail('the scores still list the attorney\'s appointments you changed');
-    // narrower (the blue card on top): the scores are below the calendar; wider again, back in the card
+    // the sidebar is drawn again on a change (another month in the small calendar): the scores stay in it
+    await page.click('[data-a="mini-next"]'); await page.waitForTimeout(200);
+    placed = await where();
+    if (!placed.inSide || !placed.underCals || !placed.google) fail(`after the sidebar is drawn again the scores should still be under Other calendars: ${JSON.stringify({ inSide: placed.inSide, underCals: placed.underCals, google: placed.google })}`);
+    await page.click('[data-a="mini-prev"]');
+    // 1300px: the sidebar is still a column, so the scores stay in it; the rules in the blue card (on top) fold to a line
     await page.setViewportSize({ width: 1300, height: 1000 }); await page.waitForTimeout(300);
     placed = await where();
-    if (placed.inHero || !placed.below || !placed.inScores) fail(`at 1300px the scores should be below the calendar: ${JSON.stringify({ inHero: placed.inHero, below: placed.below })}`);
+    if (!placed.inSide || !placed.underCals) fail(`at 1300px the scores should still be in the sidebar: ${JSON.stringify({ inSide: placed.inSide, underCals: placed.underCals })}`);
     const folded = await page.evaluate(() => ({ open: (document.getElementById('hero-rules') || { open: true }).open, h: document.querySelector('.sim-hero').getBoundingClientRect().height }));
     if (folded.open || folded.h > 200) fail(`at 1300px the rules in the blue card should fold to a line: ${JSON.stringify(folded)}`);
+    // 860px (the sidebar a drawer): below the calendar
+    await page.setViewportSize({ width: 860, height: 1000 }); await page.waitForTimeout(300);
+    placed = await where();
+    if (placed.inSide || !placed.below || !placed.inScores) fail(`at 860px (the sidebar a drawer) the scores should be below the calendar: ${JSON.stringify({ inSide: placed.inSide, below: placed.below })}`);
     await page.setViewportSize({ width: 1440, height: 1000 }); await page.waitForTimeout(300);
     placed = await where();
-    if (!placed.inHero || !placed.atBottom) fail(`back at 1440px the scores should be in the blue card again: ${JSON.stringify({ inHero: placed.inHero, atBottom: placed.atBottom })}`);
+    if (!placed.inSide || !placed.underCals) fail(`back at 1440px the scores should be in the sidebar again: ${JSON.stringify({ inSide: placed.inSide, underCals: placed.underCals })}`);
     if (!(await page.evaluate(() => !!(document.getElementById('hero-rules') || {}).open))) fail('back at 1440px the rules in the blue card should be open again');
+    // the sidebar hidden (☰): the scores are below the calendar; shown again: back under Other calendars
+    await page.click('[data-a="side"]'); await page.waitForTimeout(200);
+    placed = await where();
+    if (placed.inSide || !placed.below) fail(`with the sidebar hidden the scores should be below the calendar: ${JSON.stringify({ inSide: placed.inSide, below: placed.below })}`);
+    await page.click('[data-a="side"]'); await page.waitForTimeout(200);
+    placed = await where();
+    if (!placed.inSide || !placed.underCals) fail(`with the sidebar shown again the scores should be back in it: ${JSON.stringify({ inSide: placed.inSide, underCals: placed.underCals })}`);
     const res = results[results.length - 1];
     if (!res || res.simulator !== 'Google Calendar' || typeof res.score !== 'number' || !res.who || res.who.name !== 'CI Trainee') fail(`Check my calendar should save the score: ${JSON.stringify(res).slice(0, 200)}`);
     await page.close();
 
+    {   // a calendar with nothing booked, checked: only the score
+        const ep = await open({ name: 'CI Empty' });
+        await ep.click('#gc-scores [data-a="check"]'); await ep.waitForSelector('.res-ring');
+        const et = await ep.evaluate(() => document.getElementById('gc-scores').innerText);
+        if (!/0%/.test(et) || /Your calendar, checked/i.test(et) || /no appointments on the calendar/i.test(et)) fail(`an empty calendar's scores should show only the score: ${et.slice(0, 200)}`);
+        await ep.close();
+    }
     // a phone: no sideways scroll
     page = await open({ viewport: { width: 390, height: 844 } });
     if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) fail('on a phone the page scrolls sideways');
@@ -292,6 +333,17 @@ const server = http.createServer(async (req, res) => {
     const ga = last.find(r => r.id === 'mon-anderson');
     if (!ga || ga.title !== 'Deposition Preparation: Gerald Anderson (room 2)' || ga.start !== '09:15' || ga.end !== '10:00') fail(`the Admin's edit should be saved for everyone: ${JSON.stringify(ga)}`);
     await shot(page, 'gcal-7-admin');
+    // 🎨 an Admin color-codes the calendars and the existing schedule, for everyone
+    await page.click('#gc-side [data-a="cc-open"]'); await page.waitForSelector('.gc-dlg .cc');
+    await page.click('.gc-dlg [data-cc="cal"][data-k="attorney"][data-v="grape"]');
+    await page.click('.gc-dlg [data-cc="type"][data-k="Blocked Time"][data-v="tomato"]');
+    if (!(await page.$('.gc-dlg [data-cc="type"][data-k="Blocked Time"][data-v="tomato"].on'))) fail('the picked color should be marked in the dialog');
+    await shot(page, 'gcal-7b-color-coding');
+    await page.click('.gc-dlg [data-ok]'); await page.waitForTimeout(500);
+    const cp = colorPuts[colorPuts.length - 1];
+    if (!cp || cp.cal.attorney !== 'grape' || cp.type['Blocked Time'] !== 'tomato') fail('the color coding should be saved for everyone: ' + JSON.stringify(cp));
+    const bg = await page.evaluate(() => { const b = [...document.querySelectorAll('#gc-main .ev')].find(e => /No Schedule Block/.test(e.textContent)); const bx = document.querySelector('#gc-side .cals .box'); return { ev: b && getComputedStyle(b).backgroundColor, cal: bx && getComputedStyle(bx).borderTopColor }; });
+    if (bg.ev !== 'rgb(213, 0, 0)' || bg.cal !== 'rgb(142, 36, 170)') fail('the existing schedule and the calendar should show the trainer\'s colors: ' + JSON.stringify(bg));
     // a trainee now sees it
     const tp = await open();
     await tp.evaluate((d) => { const s = JSON.parse(localStorage.getItem('lsh_gcal:ci trainee')); s.anchor = d; s.view = 'week'; localStorage.setItem('lsh_gcal:ci trainee', JSON.stringify(s)); }, mon);
@@ -299,6 +351,9 @@ const server = http.createServer(async (req, res) => {
     if (!(await tp.locator('#gc-main .ev:has-text("Gerald Anderson (room 2)")').count())) fail('a trainee should see the Admin\'s change to the weekly schedule');
     const refused = await tp.evaluate(async () => (await fetch('/api/gcal-schedule', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: [] }) })).status);
     if (refused !== 403) fail(`a trainee changing the weekly schedule should be refused (${refused})`);
+    const tcol = await tp.evaluate(() => { const b = [...document.querySelectorAll('#gc-main .ev')].find(e => /No Schedule Block/.test(e.textContent)); const bx = document.querySelector('#gc-side .cals .box'); return { ev: b && getComputedStyle(b).backgroundColor, cal: bx && getComputedStyle(bx).borderTopColor, btn: !!document.querySelector('[data-a="cc-open"]') }; });
+    if (tcol.ev !== 'rgb(213, 0, 0)' || tcol.cal !== 'rgb(142, 36, 170)') fail('a trainee should see the trainer\'s color coding: ' + JSON.stringify(tcol));
+    if (tcol.btn) fail('a trainee should not be offered the color coding');
     await tp.close();
     // restore
     await page.click('[data-a="admin-reset"]'); await page.click('.gc-dlg [data-ok]'); await page.waitForTimeout(300);
@@ -331,6 +386,7 @@ const server = http.createServer(async (req, res) => {
                 const e = plan[q.id];
                 if (R.kind === 'move') { st.ex[`s:${q.row}@${q.orig}`] = { date: e.date, start: e.start, end: e.end }; return; }
                 st.events.push({ id: 'ev-' + q.id, cal: 'attorney', title: `${R.type} – ${R.name}`, date: e.date, start: e.start, end: e.end, allDay: false, tz: 'America/New_York', repeat: 'none',
+                    color: GCAL.lengthColor(GCAL.mins(e.end) - GCAL.mins(e.start)),   // the attorney's color rule: 30 min Tangerine, 45 Blueberry, 1 hour Tomato
                     location: R.meeting === 'office' ? GCAL_OFFICE : R.meeting === 'phone' ? 'Phone' : '', meet: R.meeting === 'video' ? 'abc-defg-hij' : '',
                     desc: `Name: ${R.name}<br>CB Number: ${R.cb}${R.dob ? `<br>DOB: ${R.dob}` : ''}${R.dol ? `<br>DOL: ${R.dol}` : ''}${R.org ? `<br>Company: ${R.org}` : ''}<br>Notes: ${R.notesNeed.map(g => g[0]).join(', ')}`, guests: [], notifs: [{ m: 'email', v: 1, u: 'days' }], busy: true }); });
             const good = GCAL.checkPlan(st, reqs, today);
@@ -350,9 +406,9 @@ const server = http.createServer(async (req, res) => {
         if (!/Calendar requests/i.test(cr.head) || cr.cards !== 7 || !/Calendar requests/.test(cr.rail)) fail(`${track}: the Calendar requests panel should list the 7 callers: ${JSON.stringify(cr)}`);
         // 📖 the blue card holds this track's own rules
         const hr = await tp.evaluate(() => { const d = document.getElementById('hero-rules'); return { open: !!(d && d.open), summary: d ? d.querySelector('summary').textContent : '', text: d ? d.innerText : '', rules: GCAL_RULES.collect.concat(GCAL_RULES.scheduling) }; });
-        const want = track === 'cm' ? /The attorney’s rules · Litigation Week/ : /The executive’s rules · Executive Week/;
+        const want = track === 'cm' ? /^📖 The attorney’s rules$/ : /^📖 The executive’s rules$/;
         const missing = hr.rules.filter(x => !hr.text.includes(track === 'ea' ? x.replace(/attorney/g, 'executive').replace(/Attorney/g, 'Executive') : x));
-        if (!hr.open || !want.test(hr.summary) || missing.length) fail(`${track}: the blue card should hold this track's rules: ${JSON.stringify({ open: hr.open, summary: hr.summary, missing })}`);
+        if (!hr.open || !want.test(hr.summary.trim()) || missing.length) fail(`${track}: the blue card should hold this track's rules: ${JSON.stringify({ open: hr.open, summary: hr.summary, missing })}`);
         if (track === 'ea') {   // the executive's wording is only the page's own fixed text: what the trainee types is never reworded, and no DOB / DOL is asked
             await tp.keyboard.press('c'); await tp.waitForSelector('#ed-title', { timeout: 5000 });
             const ph = await tp.evaluate(() => document.getElementById('ed-desc').getAttribute('data-ph'));

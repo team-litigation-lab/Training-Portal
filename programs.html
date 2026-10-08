@@ -30,7 +30,6 @@
     .idx-brand { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 800; font-size: 14px; }
     .idx-brand-mark { width: 34px; height: 34px; border-radius: 0; background: #fff; padding: 3px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
     .idx-brand-mark img { width: 100%; height: 100%; object-fit: contain; }
-    .idx-logo { height: 46px; width: auto; display: block; }
     .idx-user { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
     @media (max-width: 640px) { .idx-top { flex-wrap: wrap; gap: 10px; padding: 14px 16px; } .idx-user { justify-content: flex-start; gap: 6px 14px; } }
     .idx-user-name { color: rgba(255,255,255,0.85); font-size: 12.5px; font-weight: 700; }
@@ -115,7 +114,7 @@
 
 <div class="idx-top">
     <div class="idx-brand">
-        <img class="idx-logo" src="/img/logo.png" alt="Legal Support Help" width="70" height="46">
+        <span class="idx-brand-mark"><img src="/favicon.png" onerror="this.src='data:image/png;base64,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'" alt="LSH Logo"></span>
         Training Directory
     </div>
     <div class="idx-user" id="idx-user">
@@ -144,7 +143,7 @@
     </a>
     <a class="sim-banner" id="ring-banner" href="/api/launch?tool=ringchannel" target="_blank" rel="noopener">
         <span class="sim-banner-ic">☎</span>
-        <span class="sim-banner-tx"><b>LSH Ring Channel</b><span>Live mock calls with your trainer: your training phone rings, you answer, take the note, and the call is recorded and graded. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal.</span></span>
+        <span class="sim-banner-tx"><b>LSH Ring Channel</b><span>Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="cms-banner" href="/api/launch?tool=cms" target="_blank" rel="noopener">
@@ -246,7 +245,7 @@
             const users = await res.json();
             const n = (Array.isArray(users) ? users : []).filter(u => u.status === 'Pending' && u.userType === 'Trainee').length;
             const b = document.getElementById('idx-reg-badge');
-            if (b && n > 0) { b.textContent = n; b.style.display = 'inline-block'; }
+            if (b && n > 0) { b.textContent = n; b.classList.add('has'); }
         } catch (e) { /* no badge */ }
     }
     window.showPendingRegistrations = showPendingRegistrations;
@@ -266,24 +265,15 @@
             } catch (e) { /* signed out: the directory shows its public view */ }
         }
         const session = (stored && (stored.userType === 'Admin' || stored.userType === 'Trainee')) ? stored : { userType: 'Public' };
+        // 👁 Switch view: an admin looking at the Directory as a trainee does (no approval queue, no admin heading).
+        const asTrainee = session.userType === 'Admin' && PortalNav.traineeView();
 
         if (session.userType === 'Admin') {
             const userEl = document.getElementById('idx-user');
-            if (userEl) userEl.innerHTML = `
-                ${PortalNav.html('directory', { back: '/index.html', cls: 'idx-logout' })}
-                <span class="idx-user-name">${escapeHtml(session.fullName || session.username)}</span>
-                <a class="idx-logout" id="idx-reg-link" href="/core.html#registrations" title="Approve new trainee registrations">📝 Registrations <b id="idx-reg-badge" style="background:#f97316;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;display:none"></b></a>
-                <a class="idx-logout" href="/progress.html">📊 Progress &amp; Feedback</a>
-                <a class="idx-logout" href="/attendance.html">🕘 Attendance</a>
-                <a class="idx-logout" href="/referrals.html">🤝 Referrals</a>
-                <a class="idx-logout" href="/blueprint.html?track=admin">🧭 Blueprint</a>
-                <a class="idx-logout" href="/api/import-registrations" title="Bring existing program and CMS registrations onto the Portal">📥 Import registrations</a>
-                <a class="idx-logout" href="/api/sso-check" title="Does each program accept the Portal's sign-in ticket?">🔐 Sign-in check</a>
-                <a class="idx-logout" href="/api/admin-password-check" title="Does every platform accept the admin password?">🔑 Admin password check</a>
-                <a class="idx-logout" href="/api/ai-usage" title="Today's use of the shared AI budget, flow by flow">🤖 AI usage</a>
-                <a class="idx-logout" href="/simulators/calsim.html?view=scores" title="The earlier drag-and-drop scheduler's submissions. Scores from the Calendaring Simulators are under Recent results on the Simulators page.">📅 Earlier Calendar Scores</a>
-                <a class="idx-logout" href="/core.html#master">Master Control &rarr;</a>
-                <a class="idx-logout" onclick="logoutSession()">Log Out</a>`;
+            // One admin bar on every main page (portal-nav.js); everything else is under System Management.
+            if (userEl) userEl.innerHTML = PortalNav.adminHtml('', { back: '/index.html' });
+            if (asTrainee) document.querySelector('.idx-top').insertAdjacentHTML('afterend',
+                `<div class="pn-trainee-view">👁 Trainee view: the Training Directory as trainees see it.<button type="button" onclick="PortalNav.switchView()">Back to the admin view</button></div>`);
         }
 
         if (session.userType === 'Trainee') {
@@ -299,8 +289,8 @@
 
         const headingEl = document.getElementById('idx-heading');
         const subheadEl = document.getElementById('idx-subhead');
-        if (session.userType !== 'Admin' && subheadEl) subheadEl.textContent = 'Every LSH training program in one place. Trainees log in once here, then open each program from this page: no separate sign-in inside it.';
-        if (session.userType === 'Admin') {
+        if ((session.userType !== 'Admin' || asTrainee) && subheadEl) subheadEl.textContent = 'Every LSH training program in one place. Trainees log in once here, then open each program from this page: no separate sign-in inside it.';
+        if (session.userType === 'Admin' && !asTrainee) {
             if (headingEl) headingEl.textContent = 'Training Index — Admin View';
             if (subheadEl) subheadEl.style.display = 'none';
         }
@@ -312,7 +302,7 @@
             __topicsCache = (data.topics || []).map(t => PROGRAM_NAMES[t.key] ? { ...t, name: PROGRAM_NAMES[t.key] } : t);
             EXTRA_PROGRAMS.forEach(x => { if (!__topicsCache.some(t => t.key === x.key)) __topicsCache.push({ ...x }); });
             __accessCache = data.access || [];
-            renderQueue(session);
+            if (!asTrainee) renderQueue(session);
             renderTopics(session);
             startLiveAccess(session);
         } catch (e) {

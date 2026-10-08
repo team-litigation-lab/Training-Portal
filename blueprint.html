@@ -370,6 +370,9 @@ async function downloadTrackPdf() {
     await LSHBlueprint.pdf(track === 'admin' ? 'trainer' : 'trainee');
 }
 if (!isAdmin()) { delete SLIDES.admin; document.querySelectorAll('.or-tabs').forEach(t => t.hidden = true); }
+// A signed-in admin gets the same admin bar as every other main page (portal-nav.js).
+// (portal-nav.js loads after this script, so this waits for the page.)
+if (isAdmin()) document.addEventListener('DOMContentLoaded', () => document.querySelectorAll('.or-links').forEach(n => { n.innerHTML = PortalNav.adminHtml('orient', { back: '/programs.html' }); }));
 
 (function init() {
     const q = new URLSearchParams(location.search);

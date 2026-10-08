@@ -96,9 +96,13 @@ How to use it:
 - **Numbering:** the PDF's cover is the Cover, then its pages are `1 / 8` to `8 / 8` (headed "1 of 8" to "8 of 8"), the same as the page's own counter. The cover isn't counted, so nothing says 9.
 - **🖨 Print** prints the current track, one slide per page.
 - Deep links: `?track=admin&slide=3`.
-- Links to it: **Orientation** in the home page menu, and **🧭 Orientation** in the Training Directory's top bar. Signed-in admins get the admin track.
+- Links to it: **Platform Orientation** in the home page menu and in the admin bar on every main page. Signed-in admins get the admin track.
 
 To change the content, edit `SLIDES` in `orientation.html`; the PDF is made from the same slides. `.github/scripts/blueprint.cjs` checks it in CI: trainees get the Trainees track only, an admin gets both, and each track downloads as a PDF with every slide and the deploy stamp.
+
+### 🧭 The admin bar
+
+Every main page (Training Directory, Platform Orientation, Trainee Monitoring, Attendance, Referrals) gives a signed-in admin the same top bar, from `PortalNav.adminHtml` in `portal-nav.js`: **Platform Orientation · System Management ▾ · Trainee Monitoring · Attendance · Referrals · Switch view · Logout**. Everything else (Main Portal, Training Directory, Master Control, Registrations, Users, Program Access, Who’s Online, Simulators, Knowledge Base, Ring Channel, the checks and AI usage) is collated under **System Management**. **Switch view** shows the Training Directory as a trainee sees it (this tab only); press it again to go back. The sign-in pages link back with **← Go to Main Portal**.
 
 ## Knowledge Base
 
@@ -119,6 +123,7 @@ The Portal links to it from the Training Directory's banners, the home page's Si
 
 Ring Channel has **no sign-in of its own**: everyone opens it from here.
 - **Trainees** land on their phone, signed in with the short-lived signed ticket (their name and batch). Any signed-in, approved trainee can open it (no program access to request).
+- **🤖 AI calls:** `?to=aicall` lands a trainee on Ring Channel's 🎧 Practice (an AI caller rings them), and `?to=console` lands a trainer on the console, where **🤖 AI caller** on the dialer sends one to a trainee. The 🛠 Simulators hub links both, on the Ring Channel card and the Call Simulator card.
 - **Admins** land on its console as trainers, under their Portal name, with a ticket `{ r: 'a', n: name }`. Ring Channel is the only place an admin ticket signs anyone in (`ADMIN_TICKET_TOOLS` in `functions/api/launch.js`); every other platform still asks admins for the admin password.
 - **Checking tickets:** Ring Channel checks them with `PORTAL_SSO_SECRET` if it has the secret; otherwise it asks this Portal's `/api/verify-ticket` (which returns the admin's name), like the CMS. Each ticket works there only once.
 

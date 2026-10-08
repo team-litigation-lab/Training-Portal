@@ -48,10 +48,10 @@
         border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     .nav-inner {
-        max-width: 1180px; margin: 0 auto; padding: 18px 24px;
+        max-width: none; margin: 0; padding: 10px 32px;
         display: flex; align-items: center; justify-content: space-between;
     }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; color: #fff; }
+    .brand { display: flex; align-items: center; gap: 14px; font-weight: 800; font-size: 16px; color: #fff; }
     .brand-mark {
         width: 36px; height: 36px; border-radius: 0;
         background: #fff; padding: 3px; box-sizing: border-box;
@@ -59,8 +59,9 @@
         overflow: hidden; flex-shrink: 0;
     }
     .brand-mark img { width: 100%; height: 100%; object-fit: contain; }
-    .brand-logo { height: 52px; width: auto; display: block; }
-    .brand-title { font-size: 15px; font-weight: 800; letter-spacing: .01em; white-space: nowrap; }
+    .brand-logo { height: 84px; width: auto; display: block; }
+    @media (max-width: 760px) { .brand-logo { height: 60px; } .brand .brand-title { font-size: 15px; white-space: normal; } }
+    .brand-title { font-size: 18px; font-weight: 800; letter-spacing: .01em; white-space: nowrap; }
     .nav-links { display: flex; gap: 28px; align-items: center; }
     .nav-links a { color: rgba(255,255,255,0.7); font-size: 13.5px; font-weight: 600; text-decoration: none; transition: color 0.15s ease; }
     .nav-links a:hover { color: #fff; }
@@ -143,6 +144,7 @@
     .file-card .tag.orange { background: rgba(249, 115, 22, 0.22); color: var(--orange-soft); }
     .file-card .tag.navy { background: rgba(255,255,255,0.12); color: #fff; }
     .file-card .tag.green { background: rgba(34, 197, 94, 0.18); color: #4ade80; }
+    .file-card .tag.blue { background: rgba(96, 165, 250, 0.2); color: #93c5fd; }
     .file-card .title { font-weight: 700; font-size: 14px; color: #fff; margin-bottom: 6px; }
     .file-card .meta { font-size: 12px; color: rgba(255,255,255,0.5); }
     .file-card.c1 { top: 0px; left: 30px; z-index: 3; animation-delay: 0s; }
@@ -186,26 +188,33 @@
 
 
     /* ===== FOUNDER, TEAM, ABOUT, VISION, VALUES ===== */
-    section[id], .founder-block { scroll-margin-top: 84px; }
-    .founder-block { margin-top: 72px; }
+    section[id], .founder-block, .history-block { scroll-margin-top: 112px; }
+    .history-block { margin-top: 72px; }
+    .vlf-link { font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+    .vlf-link:hover { color: var(--orange-soft); }
     .sub-head { font-size: clamp(22px, 2.6vw, 30px); font-weight: 800; letter-spacing: -0.01em; color: var(--navy); margin: 0; }
     .founder-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 44px; align-items: start; margin-top: 36px; }
     .founder-photo { width: 100%; height: auto; border-radius: 18px; box-shadow: 0 24px 50px -24px rgba(15,33,72,.45); }
     .founder-text p { font-size: 16.5px; line-height: 1.75; color: var(--navy); margin: 0 0 16px; }
     .name-pill { display: inline-block; font-size: 22px; font-weight: 800; color: var(--orange); background: var(--navy); border-radius: 14px; padding: 12px 24px; margin-bottom: 20px; }
     .hl { color: var(--orange); }
-    .org { max-width: 1060px; margin: 40px auto 0; display: flex; flex-direction: column; align-items: center; }
+    .org { max-width: 1132px; margin: 40px auto 0; display: flex; flex-direction: column; align-items: center; }
     .org-card { display: flex; align-items: center; gap: 16px; background: var(--navy); color: #fff; border-radius: 18px; border: 2px solid rgba(255,255,255,.18); padding: 12px 22px 12px 12px; min-width: 330px; box-sizing: border-box; box-shadow: 0 16px 34px -20px rgba(15,33,72,.6); }
     .org-card img { width: 96px; height: 96px; object-fit: cover; border-radius: 12px; flex: none; background: #fff; }
     .org-name { font-size: 17px; font-weight: 800; color: var(--orange); line-height: 1.25; }
     .org-role { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: rgba(255,255,255,.85); margin-top: 5px; line-height: 1.35; }
     .org-arrow { width: 2px; height: 34px; background: var(--orange); position: relative; margin: 0 auto; }
     .org-arrow::after { content: ''; position: absolute; left: -5px; bottom: -2px; border: 6px solid transparent; border-top: 9px solid var(--orange); border-bottom: 0; }
-    .org-branch { position: relative; width: 66%; height: 34px; border-top: 2px solid var(--orange); margin-top: 18px; }
+    .org-stem { width: 2px; height: 18px; background: var(--orange); margin: 0 auto; }
+    .org-branch { position: relative; width: 66%; height: 34px; border-top: 2px solid var(--orange); }
     .org-branch i { position: absolute; top: -2px; width: 2px; height: 34px; background: var(--orange); }
+    .org-branch i::after { content: ''; position: absolute; left: -5px; bottom: -2px; border: 6px solid transparent; border-top: 9px solid var(--orange); border-bottom: 0; }
     .org-branch i:nth-child(1) { left: 0; } .org-branch i:nth-child(2) { left: calc(50% - 1px); } .org-branch i:nth-child(3) { right: 0; }
     .org-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; width: 100%; }
-    .org-row .org-card { min-width: 0; }
+    .org-row .org-card { min-width: 0; padding-right: 16px; gap: 14px; }
+    .org-row .org-card img { width: 80px; height: 80px; }
+    .org-row .org-name { white-space: nowrap; font-size: 16px; }
+    @media (max-width: 1100px) { .org-row .org-name { font-size: 14.5px; } .org-row .org-card img { width: 68px; height: 68px; } }
     .about-grid { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: 44px; align-items: center; margin-top: 36px; }
     .about-imgs { display: grid; gap: 14px; }
     .about-imgs img { width: 100%; height: auto; border-radius: 14px; box-shadow: 0 18px 40px -22px rgba(15,33,72,.5); }
@@ -221,7 +230,9 @@
     @media (max-width: 860px) {
         .founder-grid, .about-grid, .vm-grid { grid-template-columns: 1fr; }
         .org-row, .values-grid { grid-template-columns: 1fr; }
-        .org-branch { display: none; } .org-row { margin-top: 14px; } .org-card { min-width: 0; width: 100%; }
+        .org-branch { display: none; } .org-row { margin-top: 0; } .org-card { min-width: 0; width: 100%; }
+        .org-stem { height: 34px; position: relative; } .org-stem::after { content: ''; position: absolute; left: -5px; bottom: -2px; border: 6px solid transparent; border-top: 9px solid var(--orange); border-bottom: 0; }
+        .org-row .org-name { white-space: normal; }
     }
 
     /* ===== FAQ ===== */
@@ -280,7 +291,7 @@
 
 <nav>
     <div class="nav-inner">
-        <div class="brand"><img class="brand-logo" src="/img/logo.png" alt="Legal Support Help" width="86" height="56"> <span class="brand-title">Legal Support Help Upskill Hub</span></div>
+        <div class="brand"><img class="brand-logo" src="/img/logo.png" alt="Legal Support Help" width="137" height="84"> <span class="brand-title">Legal Support Help Upskill Hub</span></div>
         <div class="nav-pills">
             <a class="pill" href="/index.html" aria-current="page">Home</a>
             <button type="button" class="pill" onclick="openReferral()">Got a referral?</button>
@@ -312,7 +323,6 @@
             <p class="tagline reveal d2">Accelerate your growth into a high-impact Legal Support Specialist.</p>
             <p class="lead reveal d3">Master Key Practice areas with structured learning. Access guided modules and on-demand lectures with live progress tracking - guiding you from foundational basics to advanced specialization.</p>
             <div class="hero-ctas reveal d4">
-                <a href="#about" class="btn-ghost-dark">How it works</a>
                 <a href="/programs.html" class="btn-primary">Access Training Directory</a>
             </div>
         </div>
@@ -328,7 +338,7 @@
                 <div class="meta">Score: 100 / 100</div>
             </div>
             <div class="file-card c3">
-                <span class="tag navy">Mass Tort</span>
+                <span class="tag blue">Mass Tort</span>
                 <div class="title">Case Digest Walkthrough</div>
                 <div class="meta">18 min lecture</div>
             </div>
@@ -360,6 +370,7 @@
         <div class="org-card"><img src="/img/team/gwen.jpg" alt="Gwen Paiso-Adams" width="96" height="96" loading="lazy"><div><div class="org-name">Gwen Paiso-Adams</div><div class="org-role">General Manager</div></div></div>
         <div class="org-arrow" aria-hidden="true"></div>
         <div class="org-card"><img src="/img/team/martin.jpg" alt="Martin Anthony Gan" width="96" height="96" loading="lazy"><div><div class="org-name">Martin Anthony “Matt” Gan</div><div class="org-role">Training Specialist and Coordinator</div></div></div>
+        <div class="org-stem" aria-hidden="true"></div>
         <div class="org-branch" aria-hidden="true"><i></i><i></i><i></i></div>
         <div class="org-row">
             <div class="org-card"><img src="/img/team/michelle.jpg" alt="Michelle Velarde" width="96" height="96" loading="lazy"><div><div class="org-name">Michelle “Mitch” Velarde</div><div class="org-role">Training Facilitator</div></div></div>
@@ -370,50 +381,54 @@
 </section>
 
 <section class="section" id="about">
-    <div class="section-head"><div class="eyebrow">About</div><h2>About Legal Support Help.</h2></div>
-    <div class="about-grid">
-        <div class="about-imgs">
-            <img src="/img/timeline-1.jpg" alt="LSH history timeline, 2018 to 2022" width="900" height="496" loading="lazy">
-            <img src="/img/timeline-2.jpg" alt="LSH history timeline, December 2022 to 2025" width="900" height="506" loading="lazy">
-        </div>
-        <div class="about-text">
-            <p>Legal Support Help (LSH) was established to assist professionals (e.g. Attorneys) and businesses (e.g. Law Firms, Medical Facilities) in delegating highly administrative, routine, and time-consuming tasks to reclaim their time and be more productive and efficient in both their professional and personal priorities. Founded in 2018.</p>
-            <p>Officially registered in Las Vegas, Nevada. 100% remote. Setting standards in legal and medical VA outsourcing. Providing law firm standard training to qualified virtual assistants. Making outsourcing processes faster for potential clients. Providing better virtual assistant services at affordable prices to clients.</p>
-        </div>
-    </div>
+    <div class="section-head"><div class="eyebrow">About</div><h2>About LSH</h2></div>
     <div class="founder-block" id="founder">
-        <h3 class="sub-head">Meet our founder.</h3>
+        <h3 class="sub-head">Meet our Founder</h3>
         <div class="founder-grid">
             <img class="founder-photo" src="/img/founder.jpg" alt="Sandy Van, Esq., CEO of Legal Support Help" width="760" height="815" loading="lazy">
             <div class="founder-text">
                 <div class="name-pill">CEO Sandy Van, Esq.</div>
                 <p>Attorney Sandy Van is the CEO of Legal Support Help, a virtual staffing agency that sources, trains, and onboards high-performing Virtual Assistants for law firms and medical facilities nationwide.</p>
-                <p>She is also the founder and managing partner of <b class="hl">Van Law Firm Injury and Accident Attorneys</b>, where she leads a team specializing in personal injury, mass tort, and sexual abuse litigation.</p>
+                <p>She is also the founder and managing partner of <a class="hl vlf-link" href="https://www.vanlawfirm.com/" target="_blank" rel="noopener">Van Law Firm Injury and Accident Attorneys</a>, where she leads a team specializing in personal injury, mass tort, and sexual abuse litigation.</p>
                 <p>With over 15 years of legal experience and more than a decade in real estate, Attorney Van combines deep industry expertise with operational excellence. She has managed hundreds of multi-skilled Virtual Assistants, featured in Inc.com, and frequently speaks at industry conventions, events, and podcasts.</p>
+                <a class="btn-ghost-dark" href="https://www.vanlawfirm.com/" target="_blank" rel="noopener">Visit Van Law Firm ↗</a>
+            </div>
+        </div>
+    </div>
+    <div class="history-block" id="history">
+        <h3 class="sub-head">Our History</h3>
+        <div class="about-grid">
+            <div class="about-imgs">
+                <img src="/img/timeline-1.jpg" alt="LSH history timeline, 2018 to 2022" width="900" height="496" loading="lazy">
+                <img src="/img/timeline-2.jpg" alt="LSH history timeline, December 2022 to 2025" width="900" height="506" loading="lazy">
+            </div>
+            <div class="about-text">
+                <p>Legal Support Help (LSH) was established to assist professionals (e.g. Attorneys) and businesses (e.g. Law Firms, Medical Facilities) in delegating highly administrative, routine, and time-consuming tasks to reclaim their time and be more productive and efficient in both their professional and personal priorities. Founded in 2018.</p>
+                <p>Officially registered in Las Vegas, Nevada. 100% remote. Setting standards in legal and medical VA outsourcing. Providing law firm standard training to qualified virtual assistants. Making outsourcing processes faster for potential clients. Providing better virtual assistant services at affordable prices to clients.</p>
             </div>
         </div>
     </div>
 </section>
 
 <section class="section" id="vision">
-    <div class="section-head"><div class="eyebrow">Where we are going</div><h2>Vision and mission.</h2></div>
+    <div class="section-head"><div class="eyebrow">Where we are going</div><h2>Mission and Vision</h2></div>
     <div class="vm-grid">
         <div class="vm-col">
             <div class="vm-tag" aria-label="Clients"><span>C</span><span>L</span><span>I</span><span>E</span><span>N</span><span>T</span><span>S</span></div>
             <div class="vm-body">
-                <h3>Vision</h3>
-                <p>To be the leading and most trusted provider of pre-trained, multi-skilled virtual assistants, empowering law firms, medical facilities, and businesses to grow and thrive. By setting the standard for reliable, efficient, and cost-effective virtual support without compromising quality, we help our clients achieve sustainable, long-term success.</p>
                 <h3>Mission</h3>
                 <p>To empower law firms, medical facilities, and businesses to grow and thrive by providing pre-trained, multi-skilled virtual assistants who deliver reliable, efficient, and cost-effective virtual support, with fast onboarding and flexible staffing solutions.</p>
+                <h3>Vision</h3>
+                <p>To be the leading and most trusted provider of pre-trained, multi-skilled virtual assistants, empowering law firms, medical facilities, and businesses to grow and thrive. By setting the standard for reliable, efficient, and cost-effective virtual support without compromising quality, we help our clients achieve sustainable, long-term success.</p>
             </div>
         </div>
         <div class="vm-col">
             <div class="vm-tag" aria-label="Virtual assistants"><span>V</span><span>A</span></div>
             <div class="vm-body">
-                <h3>Vision</h3>
-                <p>To become the leading and most trusted staffing agency for aspiring virtual assistants by providing and delivering industry-standard quality training, structured onboarding, and reliable operational support. By providing a strong operational backbone, we empower virtual assistants to grow their careers and enhance their quality of life.</p>
                 <h3>Mission</h3>
                 <p>To empower aspiring virtual assistants by equipping them with foundational knowledge and essential skills, enabling them to become multi-skilled virtual assistants who are competitive and can thrive in both legal and business environments.</p>
+                <h3>Vision</h3>
+                <p>To become the leading and most trusted staffing agency for aspiring virtual assistants by providing and delivering industry-standard quality training, structured onboarding, and reliable operational support. By providing a strong operational backbone, we empower virtual assistants to grow their careers and enhance their quality of life.</p>
             </div>
         </div>
     </div>
