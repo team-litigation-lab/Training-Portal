@@ -119,6 +119,7 @@ The Portal links to it from the Training Directory's banners, the home page's Si
 
 Ring Channel has **no sign-in of its own**: everyone opens it from here.
 - **Trainees** land on their phone, signed in with the short-lived signed ticket (their name and batch). Any signed-in, approved trainee can open it (no program access to request).
+- **🤖 AI calls:** `?to=aicall` lands a trainee on Ring Channel's 🎧 Practice (an AI caller rings them), and `?to=console` lands a trainer on the console, where **🤖 AI caller** on the dialer sends one to a trainee. The 🛠 Simulators hub links both, on the Ring Channel card and the Call Simulator card.
 - **Admins** land on its console as trainers, under their Portal name, with a ticket `{ r: 'a', n: name }`. Ring Channel is the only place an admin ticket signs anyone in (`ADMIN_TICKET_TOOLS` in `functions/api/launch.js`); every other platform still asks admins for the admin password.
 - **Checking tickets:** Ring Channel checks them with `PORTAL_SSO_SECRET` if it has the secret; otherwise it asks this Portal's `/api/verify-ticket` (which returns the admin's name), like the CMS. Each ticket works there only once.
 
