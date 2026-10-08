@@ -1,5 +1,5 @@
 /* LSH Training Portal — shared navigation.
-   Every portal page shows the same links (Home, Training Directory, Orientation)
+   Every portal page shows the same links (Home, Training Directory, Blueprint)
    plus a Back button. The Simulators and the Knowledge Base aren't in the top bar:
    they open from the Home page and the Training Directory. Portal pages open in the
    same tab; only the training programs themselves (separate sites) open in a new tab. */
@@ -7,7 +7,7 @@ const PortalNav = {
     LINKS: [
         ['home', '/index.html', 'Home'],
         ['directory', '/programs.html', 'Training Directory'],
-        ['orient', '/orientation.html', '🧭 Orientation']
+        ['orient', '/blueprint.html', '🧭 Blueprint']
     ],
     // Inside a course's frame, only the way back to the Simulators hub makes sense.
     EMBEDDED_LINKS: [
@@ -40,7 +40,7 @@ const PortalNav = {
 // nav bar. If no "← Back" is on the page shortly after it loads (Home excepted), a
 // floating one is added. The Checks workflow also fails any page without one.
 (function () {
-    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html', '/registration.html': '/index.html', '/orientation.html': '/index.html', '/referrals.html': '/core.html', '/attendance.html': '/core.html' };
+    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html', '/registration.html': '/index.html', '/blueprint.html': '/index.html', '/orientation.html': '/index.html', '/referrals.html': '/core.html', '/attendance.html': '/core.html' };
     function ensureBack() {
         const path = location.pathname.replace(/\/$/, '/index.html');
         if (path === '/index.html' || PortalNav.embedded() || document.querySelector('.pn-back')) return;
