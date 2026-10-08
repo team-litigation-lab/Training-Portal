@@ -110,9 +110,14 @@ const textToHtml = (s) => esc(s).replace(/\n/g, '<br>');
 let ROWS = GCAL_ATTORNEY.map(r => Object.assign({}, r));
 const rowById = (id) => ROWS.find(r => r.id === id);
 const calOf = (id) => GCAL_CALENDARS.find(c => c.id === id) || GCAL_CALENDARS[1];
-const seedColor = (r) => r.color || (r.type === 'Blocked Time' ? (/review/i.test(r.title) ? 'blueberry' : 'graphite') : r.type === 'Phone Call' ? 'tangerine' : r.type === 'Internal Meeting' ? 'basil' : '');
+// 🎨 The trainer's color coding (saved with the schedule, /api/gcal-schedule colors): a color for a calendar and a color for each type of appointment in the
+// existing schedule. An appointment's own color wins over its type's, which wins over the default below; an event's own color wins over its calendar's.
+const CC = { cal: {}, type: {} }, SCHEDULE_TYPES = ['Blocked Time', 'Phone Call', 'Client Meeting', 'Internal Meeting', 'Other'];
+const setCC = (c) => { CC.cal = Object.assign({}, c && c.cal); CC.type = Object.assign({}, c && c.type); };
+const calColor = (id) => GCAL_COLORS[CC.cal[id]] || calOf(id).color;
+const seedColor = (r) => r.color || CC.type[r.type] || (r.type === 'Blocked Time' ? (/review/i.test(r.title) ? 'blueberry' : 'graphite') : r.type === 'Phone Call' ? 'tangerine' : r.type === 'Internal Meeting' ? 'basil' : '');
 const guessType = (t) => (/block|lunch|daily case/i.test(t) || (TRK && /board|travel|focus|briefing/i.test(t))) ? 'Blocked Time' : /conference/i.test(t) ? 'Internal Meeting' : /preparation|strategy|settlement meeting|deposition/i.test(t) ? 'Client Meeting' : 'Phone Call';
-const colorOf = (e) => (e.color && GCAL_COLORS[e.color]) || calOf(e.cal).color;
+const colorOf = (e) => (e.color && GCAL_COLORS[e.color]) || calColor(e.cal);
 // The attorney's color rule: the trainee colors each appointment by its length (30 minutes Tangerine, 45 Blueberry, 1 hour Tomato).
 const LEN_COLOR = { 30: 'tangerine', 45: 'blueberry', 60: 'tomato' };
 const lengthColor = (m) => LEN_COLOR[m] || '';
@@ -663,9 +668,9 @@ function miniHtml() {
 }
 function renderSide() {
     const side = $('#gc-side'); side.classList.toggle('off', !S.side);
-    const box = (c) => `<label><input type="checkbox" data-cal="${c.id}" ${S.hidden[c.id] ? '' : 'checked'}><span class="box" style="border-color:${c.color};background:${S.hidden[c.id] ? '#fff' : c.color}">${S.hidden[c.id] ? '' : `<svg viewBox="0 0 24 24"><path d="${P.check}"/></svg>`}</span>${esc(c.name)}</label>`;
+    const box = (c) => `<label><input type="checkbox" data-cal="${c.id}" ${S.hidden[c.id] ? '' : 'checked'}><span class="box" style="border-color:${calColor(c.id)};background:${S.hidden[c.id] ? '#fff' : calColor(c.id)}">${S.hidden[c.id] ? '' : `<svg viewBox="0 0 24 24"><path d="${P.check}"/></svg>`}</span>${esc(c.name)}</label>`;
     side.innerHTML = `<button class="gc-create" data-a="create">${PLUS}Create</button>${miniHtml()}
-        <div class="cals"><h4>My calendars</h4>${GCAL_CALENDARS.filter(c => !c.other).map(box).join('')}<h4>Other calendars</h4>${GCAL_CALENDARS.filter(c => c.other).map(box).join('')}</div>`;
+        <div class="cals"><h4>My calendars</h4>${GCAL_CALENDARS.filter(c => !c.other).map(box).join('')}<h4>Other calendars</h4>${GCAL_CALENDARS.filter(c => c.other).map(box).join('')}${Sim.isAdmin() && !RV ? '<button class="txt" data-a="cc-open" style="padding:0 6px;height:30px;margin:10px 0 0 2px" title="Choose the colors of the calendars and of the existing schedule, for everyone">🎨 Color coding</button>' : ''}</div>`;
 }
 function layoutDay(evs) {
     evs = evs.slice().sort((a, b) => mins(a.start) - mins(b.start) || mins(b.end) - mins(a.end));
@@ -958,6 +963,31 @@ function dialog(title, body, ok, okLabel) {
     el.querySelector('[data-ok]').onclick = () => { el.remove(); ok(el); };
     el.onclick = (e) => { if (e.target === el) el.remove(); };
 }
+// 🎨 Color coding (a trainer's, for everyone): the calendars and the existing schedule's types of appointment, each a swatch of Google's event colors, or its default.
+function colorDialog() {
+    if (!Sim.isAdmin()) return;
+    const pick = { cal: Object.assign({}, CC.cal), type: Object.assign({}, CC.type) };
+    const sw = (grp, key, now, dflt) => `<span class="cc-sw" role="radiogroup" aria-label="Color of ${esc(key)}"><button type="button" class="cc-def ${now ? '' : 'on'}" data-cc="${grp}" data-k="${esc(key)}" data-v="" title="The default" aria-label="Default" aria-checked="${!now}" role="radio" style="background:${esc(dflt)}"></button>${Object.keys(GCAL_COLORS).map(c => `<button type="button" class="${now === c ? 'on' : ''}" data-cc="${grp}" data-k="${esc(key)}" data-v="${c}" title="${c}" aria-label="${c}" aria-checked="${now === c}" role="radio" style="background:${GCAL_COLORS[c]}"></button>`).join('')}</span>`;
+    const body = () => `<div class="cc"><h4>Calendars</h4>${GCAL_CALENDARS.map(c => `<div class="cc-row"><span>${esc(c.name)}</span>${sw('cal', c.id, pick.cal[c.id] || '', c.color)}</div>`).join('')}
+        <h4>The existing schedule, by type</h4>${SCHEDULE_TYPES.map(ty => { const n = ROWS.filter(r => r.type === ty).length; return `<div class="cc-row"><span>${esc(ty)} <em>${n} in the week</em></span>${sw('type', ty, pick.type[ty] || '', '#9aa0a6')}</div>`; }).join('')}
+        <p class="cc-note">Applies to everyone on this simulator. An appointment you colored yourself keeps its own color; a person’s own events keep theirs. The first swatch is the default.</p>
+        <button type="button" class="txt" data-cc-clear style="padding:0 6px;height:28px">Clear all colors</button></div>`;
+    dialog('Color coding', body(), async () => {
+        try {
+            const res = await Sim.fetchRetry(API_SCHEDULE, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ colors: pick }) });
+            const d = await res.json().catch(() => ({}));
+            if (!res.ok || !d.success) { snack(d.error || 'The colors weren’t saved. Try again.'); return; }
+            setCC(d.colors); closeAll(); render(); snack('Color coding saved for everyone');
+        } catch (e) { snack('The colors weren’t saved (no connection).'); }
+    }, 'Save');
+    const el = gc().lastElementChild, box = () => el.querySelector('.cc');
+    el.addEventListener('click', (ev) => {
+        const b = ev.target.closest('[data-cc]'), clr = ev.target.closest('[data-cc-clear]');
+        if (b) { if (b.dataset.v) pick[b.dataset.cc][b.dataset.k] = b.dataset.v; else delete pick[b.dataset.cc][b.dataset.k]; }
+        else if (clr) { pick.cal = {}; pick.type = {}; } else return;
+        box().outerHTML = body();
+    });
+}
 function snack(text, canUndo) {
     document.querySelectorAll('.gc-snack').forEach(n => n.remove());
     const el = document.createElement('div'); el.className = 'gc-snack'; el.setAttribute('role', 'status');
@@ -1015,6 +1045,7 @@ function settings(anchor) {
         <label style="display:flex;gap:8px;align-items:center;padding:6px 0"><input type="checkbox" data-set="tz2" ${S.set.tz2 ? 'checked' : ''}> Show Manila time too</label>
         <button class="txt" data-a="reset" style="margin-top:6px;padding:0">Start over (clear my calendar)</button>
         ${Sim.isAdmin() ? `<button class="txt" data-a="admin-edit" style="margin-top:2px;padding:0">${G.admin ? 'Stop editing the weekly schedule' : '✎ Edit the weekly schedule (everyone)'}</button>
+        <button class="txt" data-a="cc-open" style="margin-top:2px;padding:0">🎨 Color coding (everyone)</button>
         <a class="txt" href="${REVIEW_PAGE}" style="display:block;margin-top:2px;padding:0;line-height:36px;text-decoration:none">🖥 Trainee evaluations (live review)</a>` : ''}</div>`);
 }
 
@@ -1129,6 +1160,7 @@ async function liveStart(again) {
         RV.savedAt = dr.updatedAt || null;
         try {   // the weekly schedule as an Admin set it, before the check
             const sch = await (await Sim.fetchRetry(API_SCHEDULE, { credentials: 'include' })).json();
+            if (sch && sch.success && sch.colors) setCC(sch.colors);
             if (sch && sch.success && Array.isArray(sch.rows) && sch.rows.length && sch.rows.every(r => r && r.id && r.title && /^\d\d:\d\d$/.test(r.start))) ROWS = sch.rows;
         } catch (e) { /* the schedule as it came */ }
         const c = dr.data, keep = S ? { view: S.view, anchor: S.anchor, mini: S.mini } : {};
@@ -1332,6 +1364,7 @@ function bind() {
             check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true), 'tv-skip': () => skipItem(a.dataset.id, true), 'tv-unskip': () => skipItem(a.dataset.id, false), 'to-scores': () => { ev.preventDefault(); toScores(); },
             evals: () => { if (Sim.isAdmin()) { location.href = REVIEW_PAGE; return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
             'submit-eval': () => submitEval(),
+            'cc-open': () => { closeAll(); colorDialog(); },
             'cloud-save': () => { save(true); cloudSave(); },
             'cloud-newer': () => { if (confirm('Open the newer copy saved to your account? The changes you made in this tab since then are replaced.')) cloudLoad(true); },
             'eval-open': () => { EV.open = +a.dataset.id; renderPanel(); },
@@ -1488,9 +1521,12 @@ async function start() {
     if (!Sim.isAdmin()) { loadEvals(); cloudLoad(); }   // My evaluations (a badge when a final report is waiting); the calendar saved to their account
     // the weekly schedule as an Admin set it (if they did)
     Sim.fetchRetry(API_SCHEDULE, { credentials: 'include' }).then(r => r.json()).then(data => {
+        let redraw = false;
+        if (data && data.success && data.colors) { const was = JSON.stringify(CC); setCC(data.colors); redraw = JSON.stringify(CC) !== was; }   // 🎨 the trainer's color coding
         if (data && data.success && Array.isArray(data.rows) && data.rows.length && data.rows.every(r => r && r.id && r.title && /^\d\d:\d\d$/.test(r.start))) {
-            ROWS = data.rows; S.reqs = S.reqs.filter(q => q && (q.row == null || rowById(q.row))); render();
+            ROWS = data.rows; S.reqs = S.reqs.filter(q => q && (q.row == null || rowById(q.row))); redraw = true;
         }
+        if (redraw) render();
     }).catch(() => { /* the schedule as it came */ });
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
