@@ -267,26 +267,6 @@
     .footer-bottom { max-width: 1180px; margin: 0 auto; border-top: 1px solid rgba(15,33,72,0.06); padding: 16px 0; font-size: 11.5px; color: var(--slate); text-align: center; }
     .footer-bottom em { color: #94a3b8; }
 
-    /* ===== ONE THEME ACROSS THE PAGE: the hero's dark navy under every section ===== */
-    body { background: var(--navy-deep); color: #fff; }
-    .section { border-top: 1px solid rgba(255,255,255,0.06); }
-    .section-head h2, .sub-head { color: #fff; }
-    .section-head p { color: rgba(255,255,255,0.62); }
-    .founder-text p, .about-text p, .vm-body p { color: rgba(255,255,255,0.82); }
-    .founder-photo, .about-imgs img { box-shadow: 0 24px 50px -24px rgba(0,0,0,.7); }
-    .name-pill { background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.22); }
-    .org-card, .vm-tag { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); box-shadow: none; }
-    .value-card { background: rgba(255,255,255,0.05); border: 1.5px solid rgba(249,115,22,0.7); }
-    .faq-item { border-bottom-color: rgba(255,255,255,0.1); }
-    .faq-question { color: #fff; }
-    .faq-answer p { color: rgba(255,255,255,0.66); }
-    footer { border-top: 1px solid rgba(255,255,255,0.08); background: var(--navy-deep); }
-    footer .foot-brand { color: #fff; }
-    .footer-bottom { color: rgba(255,255,255,0.58); }
-    .footer-bottom a, .footer-bottom em { color: rgba(255,255,255,0.75); }
-    .social-link { background: rgba(255,255,255,0.08); }
-    .social-link:hover { background: var(--orange); color: var(--navy-deep); }
-
     /* Section bands ("segregators"): a full-width navy bar, the title in white capitals, a thin orange rule under it. */
     html, body { overflow-x: clip; }
     .section > .band { margin: -96px calc(50% - 50vw) 52px; padding: 22px 24px; background: var(--navy-mid); border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 3px solid var(--orange); text-align: center; }
@@ -302,6 +282,27 @@
     .social-link, .social-link:hover { background: transparent !important; color: var(--orange) !important; }
     .social-link:hover { opacity: .8; }
     .social-link svg { width: 24px; height: 24px; }
+
+    /* ===== Main screen: the dark hero and the three feature cards fill the first screen; everything below is on cream ===== */
+    body { background: var(--paper); }
+    .main-screen { display: flex; flex-direction: column; min-height: calc(100vh - 96px); background: var(--navy-deep); }
+    .main-screen .hero { flex: 1; display: flex; align-items: center; }
+    .main-screen .hero-inner { width: 100%; }
+    .main-screen .stats-strip { padding-bottom: 40px; }
+    /* the rings: a full circle, lower in the hero, not cut off at the edge */
+    .hero-rings { top: auto; bottom: 24px; right: 40px; transform: none; width: 520px; height: 520px; }
+    @media (max-width: 900px) { .hero-rings { right: -140px; width: 420px; height: 420px; opacity: .45; } }
+    /* org chart arrows in light gray */
+    .org-arrow, .org-stem, .org-branch i { background: #aab4c3; }
+    .org-branch { border-top-color: #aab4c3; }
+    .org-arrow::after, .org-branch i::after, .org-stem::after { border-top-color: #aab4c3 !important; }
+    /* CLIENTS / VA in black, on a light tag */
+    .vm-tag { background: #fff; border: 2px solid rgba(15,33,72,.15); color: #000; }
+    /* footer back on cream */
+    footer { background: var(--paper); border-top: 1px solid rgba(15,33,72,.1); }
+    footer .footer-bottom { color: var(--slate); }
+    .founder-text .btn-ghost-dark { color: var(--navy) !important; border-color: var(--navy) !important; }
+    .founder-text .btn-ghost-dark:hover { background: var(--navy) !important; color: #fff !important; }
 </style>
 </head>
 <body>
@@ -323,6 +324,7 @@
     </div>
 </nav>
 
+<div class="main-screen">
 <section class="hero">
     <svg class="hero-rings" viewBox="0 0 640 640" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="320" cy="320" r="300" stroke="#f97316" stroke-width="1.5"/>
@@ -528,17 +530,17 @@
     .rf-card label { display: block; font-size: 12.5px; font-weight: 700; color: #334155; }
     .rf-card label i { font-style: normal; font-weight: 500; color: var(--slate); }
     .rf-card input[type=text], .rf-card input[type=email], .rf-card input[type=tel], .rf-card input[type=url], .rf-card textarea {
-        display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 14px; color: var(--navy); border: 1px solid #cbd5e1; border-radius: 10px; padding: 9px 11px; background: #fff; }
+        display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 14px; color: var(--navy); border: 1px solid #aab4c3; border-radius: 10px; padding: 9px 11px; background: #fff; }
     .rf-card textarea { min-height: 70px; resize: vertical; }
     .rf-card input:focus, .rf-card textarea:focus { outline: 2px solid var(--orange); outline-offset: 0; border-color: var(--orange); }
-    .rf-file { margin-top: 4px; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 12px; font-size: 13px; color: var(--slate); background: #faf8f4; }
+    .rf-file { margin-top: 4px; border: 1.5px dashed #aab4c3; border-radius: 12px; padding: 12px; font-size: 13px; color: var(--slate); background: #faf8f4; }
     .rf-file input { font: inherit; font-size: 13px; max-width: 100%; }
     .rf-consent { display: flex !important; gap: 10px; align-items: flex-start; font-weight: 600 !important; margin-top: 14px; line-height: 1.45; }
     .rf-consent input { margin-top: 3px; width: 16px; height: 16px; flex: 0 0 auto; }
     .rf-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
     .rf-err { display: none; margin-top: 12px; font-size: 13.5px; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 9px 12px; }
     .rf-acts { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
-    .rf-cancel { font: inherit; font-weight: 700; font-size: 14px; padding: 11px 20px; border-radius: 999px; border: 1px solid #cbd5e1; background: #fff; color: var(--navy); cursor: pointer; }
+    .rf-cancel { font: inherit; font-weight: 700; font-size: 14px; padding: 11px 20px; border-radius: 999px; border: 1px solid #aab4c3; background: #fff; color: var(--navy); cursor: pointer; }
     .rf-done { text-align: center; padding: 18px 6px 6px; }
     .rf-done .big { font-size: 44px; }
 </style>

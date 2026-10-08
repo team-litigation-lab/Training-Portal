@@ -131,7 +131,8 @@ window.addEventListener('scroll', () => PortalNav.closeMenus(), true);
 (function () {
     const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html', '/registration.html': '/index.html', '/blueprint.html': '/index.html', '/orientation.html': '/index.html', '/referrals.html': '/core.html', '/attendance.html': '/core.html', '/system.html': '/programs.html' };
     function ensureBack() {
-        const path = location.pathname.replace(/\/$/, '/index.html');
+        // Cloudflare serves pages without ".html" too (/, /index, /programs): the main page never gets one.
+        const path = location.pathname.replace(/\/$/, '/index.html').replace(/^(\/[^.]*[^/.])$/, '$1.html');
         if (path === '/index.html' || PortalNav.embedded() || document.querySelector('.pn-back')) return;
         const st = document.createElement('style');
         st.textContent = `.pn-back.pn-float{position:fixed;left:16px;bottom:16px;z-index:9000;background:#0f2148;color:#fff !important;border-color:#0f2148;box-shadow:0 8px 22px -8px rgba(8,18,38,.55);font:700 13px/1 'IBM Plex Sans',Arial,sans-serif;}
