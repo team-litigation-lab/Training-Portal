@@ -1,4 +1,4 @@
-import { json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME, verifyMasterCredentials, loginBlocked, loginFailed } from '../_utils.js';
+import { json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME, verifyMasterCredentials, normalizePassword, loginBlocked, loginFailed } from '../_utils.js';
 
 export async function onRequestPost({ request, env }) {
     const db = env.DB;
@@ -66,6 +66,10 @@ export async function onRequestPost({ request, env }) {
         }
 
         if (username === MASTER_USERNAME) {
+            // No secret on this site: say so, instead of "incorrect" (no password could ever work until it is set).
+            if (!normalizePassword(env.MASTER_ADMIN_PASSWORD)) {
+                return json({ success: false, code: 'MASTER_NOT_SET', error: "The master admin password isn't set up on this site yet. In Cloudflare, add MASTER_ADMIN_PASSWORD (Settings → Variables and Secrets) and redeploy." }, 503);
+            }
             if (!verifyMasterCredentials(env, username, password)) {
                 return await wrong();
             }
