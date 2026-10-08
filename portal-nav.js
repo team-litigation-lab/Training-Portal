@@ -1,16 +1,16 @@
 /* LSH Training Portal — shared navigation.
-   Every portal page shows the same links (Home, Training Directory, Orientation)
+   Every portal page shows the same links (Home, Training Directory, Blueprint)
    plus a Back button. The Simulators and the Knowledge Base aren't in the top bar:
    they open from the Home page and the Training Directory. Portal pages open in the
    same tab; only the training programs themselves (separate sites) open in a new tab.
    Signed-in admins get one admin bar on every main page instead (PortalNav.adminHtml):
-   Platform Orientation · System Management ▾ · Trainee Monitoring · Attendance ·
+   Blueprint · System Management ▾ · Trainee Monitoring · Attendance ·
    Referrals · Switch view · Logout. Everything else lives under System Management. */
 const PortalNav = {
     LINKS: [
         ['home', '/index.html', 'Home'],
         ['directory', '/programs.html', 'Training Directory'],
-        ['orient', '/orientation.html', '🧭 Orientation']
+        ['orient', '/blueprint.html', '🧭 Blueprint']
     ],
     // Inside a course's frame, only the way back to the Simulators hub makes sense.
     EMBEDDED_LINKS: [
@@ -61,7 +61,7 @@ const PortalNav = {
             `<a role="menuitem" href="${href}"${title ? ` title="${esc(title)}"` : ''}${newTab ? ' target="_blank" rel="noopener"' : ''}>${label}</a>`).join('');
         const tv = PortalNav.traineeView();
         return back
-            + pill('orient', '/orientation.html?track=admin', 'Platform Orientation', 'How the portal works, for screen sharing')
+            + pill('orient', '/blueprint.html?track=admin', 'Blueprint', 'The Platform Blueprint: how the portal works, for screen sharing')
             + `<span class="pn-sys"><button type="button" class="pn-pill${active === 'sys' ? ' on' : ''}" aria-haspopup="true" aria-expanded="false" onclick="PortalNav.toggleMenu(this, event)">System Management ▾</button><span class="pn-menu" role="menu">${sys}</span></span>`
             + pill('monitor', '/progress.html', 'Trainee Monitoring', "Every trainee's progress and feedback in every program")
             + pill('attendance', '/attendance.html', 'Attendance', 'Take and review attendance in every program, batch by batch')
@@ -118,7 +118,7 @@ window.addEventListener('scroll', () => PortalNav.closeMenus(), true);
 // nav bar. If no "← Back" is on the page shortly after it loads (Home excepted), a
 // floating one is added. The Checks workflow also fails any page without one.
 (function () {
-    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html', '/registration.html': '/index.html', '/orientation.html': '/index.html', '/referrals.html': '/core.html', '/attendance.html': '/core.html' };
+    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html', '/registration.html': '/index.html', '/blueprint.html': '/index.html', '/orientation.html': '/index.html', '/referrals.html': '/core.html', '/attendance.html': '/core.html' };
     function ensureBack() {
         const path = location.pathname.replace(/\/$/, '/index.html');
         if (path === '/index.html' || PortalNav.embedded() || document.querySelector('.pn-back')) return;

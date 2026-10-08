@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blueprint — LSH Training Portal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!--
+  Platform Blueprint (formerly the Platform Orientation) for the LSH Training Portal (the master portal).
+  A slide deck for screen sharing (Google Meet), in two tracks:
+    • Trainees: the portal, the Training Directory, program sign-in, Simulators, Knowledge Base.
+    • Trainers & Admins: admin sign-in, the Directory's admin view, Master Control,
+      Progress & Feedback, program admin, Knowledge Base review, the daily workflow.
+  Public page: nothing private is shown (no passwords, access codes or trainee data).
+  Slides are in SLIDES below. Deep link: /blueprint.html?track=admin&slide=3 (/orientation.html forwards here)
+  Keys: ← → (or Page Up / Page Down / Space), F for full screen.
+-->
+<style>
+    :root {
+        --navy: #0f2148; --navy-deep: #081226; --navy-mid: #132a5c;
+        --orange: #f97316; --orange-soft: #fb923c; --orange-pale: #fff7ed;
+        --slate: #64748b; --paper: #faf8f4; --paper-warm: #f5f0e8; --line: rgba(15,33,72,.1);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif; background: var(--paper); color: var(--navy); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; }
+
+    .or-bar { background: var(--navy-deep); color: #fff; }
+    .or-bar-in { max-width: 1240px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .or-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; text-decoration: none; }
+    .or-brand img { height: 42px; width: auto; border-radius: 0; }
+    .or-brand small { display: block; font-size: 11px; font-weight: 600; color: #fdba74; letter-spacing: .08em; text-transform: uppercase; }
+    .or-links { display: flex; gap: 14px; margin-left: auto; font-size: 13px; font-weight: 600; flex-wrap: wrap; }
+    .or-links a { text-decoration: none; color: rgba(255,255,255,.78); }
+    .or-links a:hover { color: #fdba74; }
+
+    .or-wrap { max-width: 1240px; margin: 0 auto; padding: 22px 16px 40px; }
+    .or-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+    .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--orange); }
+    .or-head h1 { margin: 4px 0 0; font-size: clamp(24px, 3.2vw, 32px); font-weight: 900; letter-spacing: -.01em; }
+    .or-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .or-tabs { display: inline-flex; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
+    .or-tabs button { border: 0; background: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--slate); padding: 7px 14px; border-radius: 999px; cursor: pointer; }
+    .or-tabs button.on { background: var(--navy); color: #fff; }
+    .btn { font: inherit; font-size: 13px; font-weight: 700; border-radius: 10px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--navy); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { border-color: var(--orange); }
+    .btn.pri { background: var(--orange); border-color: var(--orange); color: #111827; }
+    .btn:disabled { opacity: .4; cursor: default; border-color: var(--line); }
+    .or-tip { font-size: 12.5px; color: var(--slate); }
+
+    .or-stage { background: #fff; border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 24px 50px -30px rgba(8,18,38,.45); overflow: hidden; display: flex; flex-direction: column; }
+    .or-stage:fullscreen { border-radius: 0; border: 0; justify-content: center; background: var(--paper); }
+    .or-stage:fullscreen .or-slide { max-width: 1240px; width: 100%; margin: 0 auto; }
+    .or-slide { display: none; position: relative; padding: clamp(22px, 4vw, 48px) clamp(18px, 4.5vw, 56px) 30px; min-height: 520px; }
+    .or-slide.on { display: block; }
+    .or-kicker { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; font-weight: 700; color: var(--orange); letter-spacing: .06em; text-transform: uppercase; }
+    .or-slide h2 { font-size: clamp(24px, 3.4vw, 38px); font-weight: 900; letter-spacing: -.015em; margin: 8px 0 12px; line-height: 1.12; }
+    .or-lead { font-size: clamp(15px, 1.6vw, 18px); line-height: 1.6; color: #334155; max-width: 72ch; margin: 0 0 20px; }
+    .or-slide ul.pts { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; max-width: 900px; }
+    .or-slide ul.pts li { position: relative; padding-left: 26px; font-size: clamp(14.5px, 1.45vw, 16.5px); line-height: 1.55; color: #1e293b; }
+    .or-slide ul.pts li::before { content: ""; position: absolute; left: 4px; top: .6em; width: 9px; height: 9px; border-radius: 3px; background: var(--orange); }
+    .or-slide b { color: var(--navy); }
+    .or-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 22px; }
+    .or-flow span { background: var(--navy); color: #fff; font-weight: 700; font-size: 14px; border-radius: 12px; padding: 10px 14px; }
+    .or-flow span.alt { background: var(--orange-pale); color: var(--navy); border: 1px solid #fed7aa; }
+    .or-flow i { font-style: normal; color: var(--orange); font-weight: 900; }
+    .or-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 12px; margin-top: 4px; }
+    .or-card { border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; background: #fbfaf7; }
+    .or-card b { display: block; font-size: 15px; margin-bottom: 4px; }
+    .or-card span { font-size: 13.5px; color: #475569; line-height: 1.5; display: block; }
+    .or-note { margin-top: 18px; font-size: 13.5px; color: #7c2d12; background: var(--orange-pale); border: 1px solid #fed7aa; border-radius: 12px; padding: 10px 14px; max-width: 900px; }
+    .or-go { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .or-check { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; max-width: 900px; counter-reset: c; }
+    .or-check li { counter-increment: c; display: flex; gap: 12px; align-items: baseline; font-size: clamp(14.5px, 1.45vw, 16.5px); line-height: 1.5; }
+    .or-check li::before { content: counter(c); flex: 0 0 28px; height: 28px; border-radius: 50%; background: var(--navy); color: #fff; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
+    .or-mark { position: absolute; right: 22px; bottom: 16px; width: 34px; height: 34px; opacity: .5; border-radius: 8px; }
+
+    .or-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-top: 1px solid var(--line); background: #fff; }
+    .or-dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .or-dots button { width: 10px; height: 10px; border-radius: 50%; border: 0; background: #cbd5e1; padding: 0; cursor: pointer; }
+    .or-dots button.on { background: var(--orange); width: 24px; border-radius: 6px; }
+    .or-count { font-size: 12.5px; color: var(--slate); font-weight: 600; white-space: nowrap; }
+
+    @media (max-width: 640px) {
+        .or-slide { min-height: 0; }
+        .or-controls { flex-wrap: wrap; }
+        .or-dots { order: 3; width: 100%; }
+        .or-links { margin-left: 0; }
+    }
+    @media print {
+        @page { size: letter landscape; margin: 0.4in; }
+        body { background: #fff; }
+        .or-bar, .or-head, .or-controls { display: none !important; }
+        .or-wrap { padding: 0; max-width: none; }
+        .or-stage { border: 0; box-shadow: none; border-radius: 0; }
+        .or-slide { display: block !important; min-height: 0; page-break-after: always; break-after: page; padding: 0.2in 0.1in; }
+        .or-slide:last-child { page-break-after: auto; break-after: auto; }
+        .or-slide:not([data-track~="print"]) { display: none !important; }
+    }
+</style>
+</head>
+<body>
+
+<div class="or-bar"><div class="or-bar-in">
+    <a class="or-brand" href="/"><img src="/img/logo.png" alt="Legal Support Help" width="70" height="46"><span>LSH Training Portal<small>Blueprint</small></span></a>
+    <nav class="or-links">
+        <a href="/">Home</a>
+        <a href="/programs.html">Training Directory</a>
+    </nav>
+</div></div>
+
+<main class="or-wrap">
+    <div class="or-head">
+        <div>
+            <div class="eyebrow">Platform Blueprint · for screen sharing</div>
+            <h1>🧭 Welcome to the LSH Training Portal</h1>
+        </div>
+        <div class="or-tools">
+            <div class="or-tabs" role="tablist" aria-label="Blueprint track">
+                <button type="button" role="tab" data-track="trainee" onclick="setTrack('trainee')">Trainees</button>
+                <button type="button" role="tab" data-track="admin" onclick="setTrack('admin')">Trainers &amp; Admins</button>
+            </div>
+            <button type="button" class="btn" onclick="toggleFull()" title="Full screen (F)">⛶ Full screen</button>
+            <button type="button" class="btn" onclick="window.print()" title="Print or save this track as a PDF">🖨 Print</button>
+            <button type="button" class="btn pri" id="orPdf" onclick="downloadTrackPdf()" title="Download this track as a PDF, made from the live site">⬇ Download PDF</button>
+        </div>
+    </div>
+    <p class="or-tip" style="margin:-4px 0 14px;">Share this tab in Google Meet: nothing private is shown here. Use ← → to move between slides.</p>
+
+    <section class="or-stage" id="orStage" aria-live="polite">
+        <div id="orSlides"></div>
+        <div class="or-controls">
+            <button type="button" class="btn" id="orPrev" onclick="go(-1)">← Previous</button>
+            <div class="or-dots" id="orDots"></div>
+            <span class="or-count" id="orCount"></span>
+            <button type="button" class="btn pri" id="orNext" onclick="go(1)">Next →</button>
+        </div>
+    </section>
+</main>
+
+<script>
+const PROGRAMS_LIVE = 'Standard Foundational Training, CM Training and EA / PA Training';
+
+const SLIDES = {
+trainee: [
+{ k: 'Welcome', h: 'One portal for all of your LSH training', body: `
+    <p class="or-lead">The Legal Support Help Upskill Hub is the master portal: the front door to every LSH training program, plus the practice tools and resources all programs share.</p>
+    <div class="or-flow"><span>Main page</span><i>→</i><span>Log In</span><i>→</i><span>Training Directory</span><i>→</i><span>Your program</span><i>+</i><span class="alt">Simulators</span><span class="alt">Knowledge Base</span></div>
+    <ul class="pts">
+        <li><b>One log in:</b> sign in once on the portal. Your programs, the Simulators and the Knowledge Base open without asking you to sign in again.</li>
+        <li><b>Training Directory:</b> every LSH program in one place, with the training tools beside it.</li>
+        <li><b>Your program:</b> your lessons, activities, scores, feedback and certificate.</li>
+        <li><b>Simulators</b> and the <b>Knowledge Base:</b> practice real work, and look up the SOPs.</li>
+    </ul>` },
+{ k: 'Logging in', h: 'Register once, then log in once', body: `
+    <ul class="pts">
+        <li>New to LSH? Press <b>Register</b> on the log-in page and choose a username and password. An admin approves your registration and gives you your <b>Batch ID</b>.</li>
+        <li>After that, press <b>Log In</b> on the main page and use your username and password. You land on the Training Directory.</li>
+        <li>You won't be asked to sign in again inside a program, a simulator or the Knowledge Base: the portal signs you in for you.</li>
+        <li>Your progress is saved to your account, not your browser, so you can pick up on any computer.</li>
+    </ul>
+    <p class="or-note">Log-in details for work tools (email, CMS, time tracker) are never posted on the portal. Your trainer shares them privately.</p>
+    <div class="or-go"><a class="btn pri" href="/trainee-login.html">Go to Log In</a></div>` },
+{ k: 'Training Directory', h: 'Find your program in the Training Directory', body: `
+    <p class="or-lead">The Training Directory lists every LSH program, with the training tools (Simulators, Knowledge Base, LSH Ring Channel, Case Management System) beside it.</p>
+    <div class="or-grid">
+        <div class="or-card"><b>Request Access</b><span>Ask for a program; it shows <b>Awaiting Admin Approval</b> until a trainer approves it.</span></div>
+        <div class="or-card"><b>Enter Program</b><span>Once approved, the program opens in a new tab, already signed in.</span></div>
+        <div class="or-card"><b>Completed</b><span>When your trainer marks you passed, <b>Download Certificate</b> appears on that program.</span></div>
+        <div class="or-card"><b>Coming Soon · Free</b><span>Programs on the way are listed; the Free Upskill Programs are pinned at the top.</span></div>
+    </div>
+    <p class="or-note">Programs open now: ${PROGRAMS_LIVE}.</p>
+    <div class="or-go"><a class="btn pri" href="/programs.html">Open the Training Directory</a></div>` },
+{ k: 'Inside a program', h: 'What you do inside your program', body: `
+    <div class="or-grid">
+        <div class="or-card"><b>📚 Lessons</b><span>Slides you move through one at a time, with Full screen. Your trainer opens each lesson or day for your batch.</span></div>
+        <div class="or-card"><b>▶ Videos &amp; files</b><span>Lecture videos and documents open right on the page, or in a new tab.</span></div>
+        <div class="or-card"><b>🧪 Practice</b><span>Activities, Knowledge Checks and practice labs. Your work saves as you go.</span></div>
+        <div class="or-card"><b>🎯 Trainer feedback</b><span>Your trainer's notes on your work: strengths, areas to build and what to focus on next.</span></div>
+        <div class="or-card"><b>💬 Your feedback</b><span>Rate the lessons and the training. You can send it anonymously.</span></div>
+        <div class="or-card"><b>🎓 Certificate</b><span>Unlocks when you complete the program.</span></div>
+    </div>` },
+{ k: 'Simulators', h: 'Practice on the Simulators', body: `
+    <p class="or-lead">The Simulators let you practice real work safely, with fictional cases, and send your scores to your trainer.</p>
+    <div class="or-grid">
+        <div class="or-card"><b>📞 Call Simulator · ☎ LSH Ring Channel</b><span>Take a call in the CMS and get a scored debrief, or answer trainer-led and 🤖 AI mock calls on a real phone line.</span></div>
+        <div class="or-card"><b>📆 Calendaring Simulators</b><span>Google Calendar for your program: book and manage the attorney's week, then <b>Submit to trainer</b> for review.</span></div>
+        <div class="or-card"><b>✉️ Email Simulators</b><span>Triage a practice inbox, and answer emails like you would at work.</span></div>
+        <div class="or-card"><b>⚖️ Docket · 🗂 Records · 🏛 E-Filing</b><span>Docket court deadlines, request medical records and bills, and file with the court.</span></div>
+    </div>
+    <p class="or-note">You're already signed in, so every run is saved under your name and batch. <b>My recent results</b> on the Simulators page shows your scores.</p>
+    <div class="or-go"><a class="btn pri" href="/simulators.html">Open the Simulators</a></div>` },
+{ k: 'Knowledge Base', h: 'Look things up in the Knowledge Base', body: `
+    <p class="or-lead">The Knowledge Base is where LSH VAs find the firm's SOPs and share what they know. It's for the team only.</p>
+    <ul class="pts">
+        <li>Open it from the Training Directory: the portal signs you in, so there's no access code to type.</li>
+        <li><b>Featured</b>, <b>Library</b>, <b>Glossary</b> and <b>SOPs</b>, each official SOP with its original file to download.</li>
+        <li><b>From the team:</b> tips, how-to guides and templates. Mark them 👍 Helpful, or comment with your own experience.</li>
+        <li><b>Contribute</b> your own. An admin reviews every post before it's published; your contributor profile shows who wrote it.</li>
+    </ul>
+    <div class="or-go"><a class="btn pri" href="/api/launch?tool=kb">Open the Knowledge Base</a></div>` },
+{ k: 'Good habits', h: 'Tips for a smooth training', body: `
+    <ul class="pts">
+        <li>Use <b>Google Chrome</b>, and keep the portal and your program open in separate tabs.</li>
+        <li>Most links open in a <b>new tab</b>, so you never lose your place. <b>← Back</b> on every page takes you up one level.</li>
+        <li><b>Never share passwords</b> in chat, notes or the Knowledge Base.</li>
+        <li><b>Log Out</b> when you're done on a shared computer.</li>
+        <li>Can't get into a program, or something looks wrong? Message your <b>trainer or batch administrator</b> with your name, Batch ID and a screenshot.</li>
+    </ul>` },
+{ k: 'Ready', h: "You're ready: your first steps", body: `
+    <ol class="or-check">
+        <li>Bookmark the Legal Support Help Upskill Hub.</li>
+        <li><b>Log In</b> (or <b>Register</b> first, and wait for approval).</li>
+        <li>In the <b>Training Directory</b>, request your program, then press <b>Enter Program</b> once it's approved.</li>
+        <li>Start your first open lesson.</li>
+        <li>Try a <b>Simulator</b>, and look around the <b>Knowledge Base</b>.</li>
+    </ol>
+    <div class="or-go"><a class="btn pri" href="/programs.html">Go to the Training Directory</a></div>` }
+],
+admin: [
+{ k: 'The admin side', h: 'Running training from the master portal', body: `
+    <p class="or-lead">Trainers and admins sign in to the portal to run every batch, monitor trainees, and review what they share.</p>
+    <div class="or-flow"><span>🔒 Admin sign-in</span><i>→</i><span>Training Directory (admin view)</span><i>→</i><span>Trainee Monitoring</span><span class="alt">System Management</span><span class="alt">Attendance</span></div>
+    <ul class="pts">
+        <li>Sign in with <b>Admin</b> in the main page header.</li>
+        <li>Every main page then has the same admin bar: <b>Blueprint · System Management ▾ · Trainee Monitoring · Attendance · Referrals · Switch view · Logout</b>.</li>
+        <li>The portal signs you in to each program's admin, the Knowledge Base and the Simulators: one admin password everywhere.</li>
+    </ul>` },
+{ k: 'Training Directory', h: 'The Training Directory, admin view', body: `
+    <ul class="pts">
+        <li>Every built program opens directly for you with <b>Enter Program</b>.</li>
+        <li><b>Pending Topic Requests:</b> approve or deny trainees' program requests. Approved programs turn into Enter Program for the trainee without a refresh.</li>
+        <li>Mark a trainee <b>passed</b> in System Management → <b>Program Access</b> when they complete a program; they can then download its certificate from the Directory.</li>
+        <li><b>Switch view</b> shows the Directory exactly as a trainee sees it (this tab only); press it again to come back.</li>
+    </ul>` },
+{ k: 'System Management', h: 'System Management: everything else in one menu', body: `
+    <div class="or-grid">
+        <div class="or-card"><b>🛡 Master Control</b><span>Users, program access, who's online, activity logs, Broadcast &amp; Ping, and pausing or locking the workspace.</span></div>
+        <div class="or-card"><b>📝 Registrations</b><span>Approve new sign-ups; approving issues the trainee's Batch ID.</span></div>
+        <div class="or-card"><b>👥 Users · 🔑 Program Access</b><span>Revoke access, or change which programs a trainee can open.</span></div>
+        <div class="or-card"><b>🛠 Simulators · 📚 KB · ☎ Ring Channel</b><span>Open each tool already signed in as an admin.</span></div>
+        <div class="or-card"><b>🔐 Checks · 🤖 AI Usage</b><span>Sign-in and admin password checks across platforms, and today's use of the shared AI budget.</span></div>
+    </div>` },
+{ k: 'Trainee Monitoring', h: 'Trainee Monitoring: every trainee on one page', body: `
+    <ul class="pts">
+        <li><b>A tab per program</b>, with trainees grouped by batch, the latest batch first.</li>
+        <li>For each trainee: days completed, Knowledge Check and practice averages, trainer feedback, their own feedback, <b>simulator scores</b>, and when they were last active.</li>
+        <li>Click a trainee for the full record. Filter, sort by "furthest behind", search, and download a <b>CSV</b>.</li>
+        <li><b>📦 Archive batch</b> when a batch finishes: its records are kept and can be restored.</li>
+        <li><b>💬 Feedback from trainees</b> shows ratings and comments; anonymous feedback stays anonymous.</li>
+    </ul>` },
+{ k: 'Attendance', h: 'Attendance, batch by batch', body: `
+    <ul class="pts">
+        <li>Take and review attendance in every program from <b>Attendance</b> in the admin bar.</li>
+        <li>Pick the batch and the day; the training shown is the one the batch is on, and it can be changed for the batch or one trainee.</li>
+        <li>Attendance logs stay with the batch and show in Trainee Monitoring.</li>
+    </ul>
+    <div class="or-go"><a class="btn pri" href="/attendance.html">Open Attendance</a></div>` },
+{ k: 'Inside each program', h: 'Program admin: running the day', body: `
+    <p class="or-lead">Each program's own <b>🛡 Admin</b> is where you run it day to day:</p>
+    <ul class="pts">
+        <li><b>Open lessons</b> or days for a batch when you're ready to teach them.</li>
+        <li>Run the live session in <b>🖥 Presenter view</b>, and check what trainees see with <b>👁 Trainee view</b>.</li>
+        <li>Grade activities, and write each trainee's <b>trainer feedback</b>.</li>
+    </ul>
+    <p class="or-note">Credentials are never posted on the platform. Share log-in details with trainees privately.</p>` },
+{ k: 'Knowledge Base, Referrals & Simulators', h: 'Knowledge Base review, referrals and simulator reviews', body: `
+    <div class="or-grid">
+        <div class="or-card"><b>📚 Knowledge Base review</b><span>Approve posts, comments and profile changes, or send a post back with a note. Feature, archive, mark obsolete, edit or delete articles.</span></div>
+        <div class="or-card"><b>🤝 Referrals</b><span>People referred with "Got a referral?" on the main page: contact details and CV. Set a status, keep a note, delete when done.</span></div>
+        <div class="or-card"><b>📆 Calendar reviews</b><span>Trainees' Google Calendar submissions come to you for review; your result shows at the bottom of their requests panel.</span></div>
+        <div class="or-card"><b>🛠 Simulator scores</b><span>Every run is saved under the trainee's name and batch, and shows in Trainee Monitoring.</span></div>
+    </div>` },
+{ k: 'Daily workflow', h: 'Your daily checklist', body: `
+    <ol class="or-check">
+        <li>Approve new registrations and program requests.</li>
+        <li>Take attendance, and open today's lessons for the batch.</li>
+        <li>Post an announcement in Broadcast &amp; Ping if the batch needs it.</li>
+        <li>Grade activities and calendar submissions, and write trainer feedback.</li>
+        <li>Check Trainee Monitoring for anyone falling behind.</li>
+        <li>Review new Knowledge Base posts and comments, and any new referrals.</li>
+    </ol>` }
+]
+};
+
+let track = 'trainee', idx = 0;
+const $ = id => document.getElementById(id);
+
+function renderTrack() {
+    const list = SLIDES[track];
+    $('orSlides').innerHTML = list.map((s, i) => `
+        <article class="or-slide" data-track="print" aria-label="Slide ${i + 1} of ${list.length}">
+            <div class="or-kicker">${String(i + 1).padStart(2, '0')} · ${s.k}</div>
+            <h2>${s.h}</h2>
+            ${s.body}
+            <img class="or-mark" src="/favicon.png" alt="">
+        </article>`).join('');
+    $('orDots').innerHTML = list.map((s, i) => `<button type="button" title="${s.k}" aria-label="Slide ${i + 1}: ${s.k}" onclick="show(${i})"></button>`).join('');
+    document.querySelectorAll('.or-tabs button').forEach(b => { const on = b.dataset.track === track; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+    document.title = (track === 'admin' ? 'Trainer Blueprint' : 'Blueprint') + ' — LSH Training Portal';
+}
+function show(i) {
+    const list = SLIDES[track];
+    idx = Math.max(0, Math.min(i, list.length - 1));
+    document.querySelectorAll('.or-slide').forEach((el, k) => el.classList.toggle('on', k === idx));
+    document.querySelectorAll('.or-dots button').forEach((el, k) => el.classList.toggle('on', k === idx));
+    $('orPrev').disabled = idx === 0;
+    $('orNext').disabled = idx === list.length - 1;
+    $('orCount').textContent = `${idx + 1} / ${list.length}`;
+    const q = new URLSearchParams(location.search);
+    q.set('track', track); q.set('slide', idx + 1);
+    history.replaceState(null, '', location.pathname + '?' + q);
+}
+function go(d) { show(idx + d); }
+function setTrack(t) { if (!SLIDES[t]) return; track = t; renderTrack(); show(0); }
+function toggleFull() {
+    const el = $('orStage');
+    if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(() => {});
+    else if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+}
+document.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input, textarea, select')) return;
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); go(1); }
+    else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(-1); }
+    else if (e.key === 'f' || e.key === 'F') toggleFull();
+});
+
+/* ---------- 🧭 Who sees which track, and the PDF (README → 🧭 Blueprint) ----------
+   Trainees (and visitors) get the Trainees track only; the Trainers & Admins track is for a signed-in Admin.
+   ⬇ Download PDF makes a real-text PDF of the track that's showing with lsh-blueprint.js (the same Blueprint engine
+   as every LSH platform), from the slides deployed right now, stamped with the deploy and the date. */
+function isAdmin() {
+    try { const s = JSON.parse(sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1') || 'null'); return !!(s && s.userType === 'Admin'); }
+    catch (e) { return false; }
+}
+// a slide as the Blueprint's { icon, title, points, where, tip }: its lead, list items, cards and notes, as text
+function asBlueprint(list, name) {
+    const text = (el) => el.textContent.replace(/\s+/g, ' ').trim();
+    const cut = (t) => t.length > 190 ? t.slice(0, 187).replace(/\s+\S*$/, '') + '…' : t;
+    return { name, sub: name === 'Trainee blueprint' ? 'The LSH Training Portal: how to find and use your training' : 'The LSH Training Portal: running training from the admin side',
+        slides: list.map(sl => {
+            const d = document.createElement('div'); d.innerHTML = sl.body;
+            const pts = [];
+            d.querySelectorAll('.or-lead, li, .or-card, .or-note').forEach(el => {
+                if (el.classList.contains('or-card')) { const b = el.querySelector('b'), sp = el.querySelector('span'); pts.push((b ? text(b) : '') + (sp ? ': ' + text(sp) : '')); }
+                else if (!el.closest('.or-card')) pts.push(text(el));
+            });
+            return { icon: '', title: sl.h.replace(/<[^>]+>/g, ''), points: pts.filter(Boolean).slice(0, 5).map(cut) };
+        }) };
+}
+let ver = null;
+function version() {
+    if (!ver) ver = fetch(location.pathname, { method: 'HEAD', cache: 'no-store' })
+        .then(r => { const t = (r.headers.get('etag') || '').replace(/^W\//, '').replace(/[^A-Za-z0-9]/g, ''); return t ? 'deploy ' + t.slice(0, 8) : ''; }).catch(() => '');
+    return ver;
+}
+window.LSH_BLUEPRINT = {
+    product: 'LSH Training Portal', site: 'LSH Training Portal', file: 'LSH_Training_Portal', logo: '/lsh-logo-dark.png',
+    get trainee() { return asBlueprint(SLIDES.trainee, 'Trainee blueprint'); },
+    get trainer() { return asBlueprint(SLIDES.admin, 'Trainer blueprint'); },
+    role: () => (isAdmin() ? 'trainer' : 'trainee'),
+    version
+};
+async function downloadTrackPdf() {
+    if (!window.LSHBlueprint) return;
+    await LSHBlueprint.pdf(track === 'admin' ? 'trainer' : 'trainee');
+}
+if (!isAdmin()) { delete SLIDES.admin; document.querySelectorAll('.or-tabs').forEach(t => t.hidden = true); }
+// A signed-in admin gets the same admin bar as every other main page (portal-nav.js).
+// (portal-nav.js loads after this script, so this waits for the page.)
+if (isAdmin()) document.addEventListener('DOMContentLoaded', () => document.querySelectorAll('.or-links').forEach(n => { n.innerHTML = PortalNav.adminHtml('orient', { back: '/programs.html' }); }));
+
+(function init() {
+    const q = new URLSearchParams(location.search);
+    if (SLIDES[q.get('track')]) track = q.get('track');
+    else if (isAdmin() && !q.get('track')) track = 'admin';
+    renderTrack();
+    show((parseInt(q.get('slide'), 10) || 1) - 1);
+})();
+</script>
+<script src="/lsh-blueprint.js"></script>
+<script src="/portal-nav.js"></script>
+</body>
+</html>
