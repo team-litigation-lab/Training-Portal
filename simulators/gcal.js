@@ -143,7 +143,7 @@ const RV = RVQ.indexOf('|') > 0 ? { user: RVQ.slice(0, RVQ.indexOf('|')), at: RV
     : TVQ ? { user: TVQ, live: true, sub: null, review: null, name: '', batch: '', savedAt: null, empty: false, cards: [] } : null;
 const SUBKEY = (at) => 'g:' + GT + '|' + at;
 const MINE = { data: null, me: null };                  // the signed-in trainee's record
-const BOOK_MAX = CFG.exact ? 11.5 : 10;   // Standard Training scores a booking out of 10 as it always did; the clones out of what the checks add up to
+const BOOK_MAX = CFG.exact ? 11.5 : 10.5;   // what the checks add up to (gradeBookEvent 11.5; gradeOpenEvent, Standard Training's grader, 10.5 — a lower max would hand back the half-point checks: color, time zone, the reminder)
 // The executive's wording (EA / PA track): the page's own fixed texts say "executive" where the attorney's say "attorney". Only fixed
 // texts go through WW(); anything the trainee typed or a caller said is never reworded. Standard and Case Management are unchanged.
 const WW = (t) => !CFG.who ? t : String(t).replace(/Attorney['’]s Calendar/g, CFG.who.cal).replace(/Attorney(['’]s)?/g, (m, p) => 'Executive' + (p || '')).replace(/attorney(['’]s)?/g, (m, p) => 'executive' + (p || ''));
@@ -1253,6 +1253,7 @@ function evalPayload() {
     const appointments = all.filter(e => !e.seed && e.cal !== 'holidays').map(e => ({ title: e.title, calendar: calOf(e.cal).name, date: e.date, day: DAYN[wd(e.date)],
         time: e.allDay ? 'all day' : span(mins(e.start), mins(e.end)), timeZone: (TZS.find(z => z[0] === (e.tz || ET)) || [0, e.tz])[1], location: e.location || '',
         googleMeet: !!e.meet, description: plain(e.desc).slice(0, 1500), guests: (e.guests || []).map(g => g.email || g).slice(0, 10),
+        color: e.color ? colorName(e.color) : 'none (the calendar’s color)',   // the attorney's color rule: the AI review checks it per appointment
         notifications: (e.notifs || []).map(n => `${n.m} ${n.v} ${n.u} before`) }));
     // The calendar itself, as the trainee left it, for the trainer's view: three weeks from this week's Monday,
     // the attorney's appointments (with this trainee's moves and cancellations) and the trainee's own events.
