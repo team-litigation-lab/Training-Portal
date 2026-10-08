@@ -99,28 +99,35 @@
     .role-switch a:hover { color: var(--navy); }
 
 /* ---------------------------------------------------------------------------
-   admin-login.html only (<body class="auth-compact-right">): the sign-in card
-   moves to the lower RIGHT and shrinks by roughly a quarter. The navy rings
-   panel takes the left side instead. trainee-login.html keeps the original
-   lower-left layout, which is why none of this touches the shared rules above.
+   Both sign-in pages (<body class="auth-compact-right">): a small card in the
+   lower RIGHT corner, over the navy rings panel.
+
+   The panel is the page here, not a column beside one. The two-column version
+   of this gave the card its own full-height paper column, and a 250px card at
+   the bottom of it left most of that column empty — the blank space above the
+   box. Letting the panel fill the viewport and floating the card over its
+   corner removes the empty column rather than trying to shrink it, and it
+   behaves the same at every width, so there is no breakpoint at which the box
+   moves somewhere else.
    --------------------------------------------------------------------------- */
-    /* The two-column layout is bounded to 861px and up ON PURPOSE. The shared
-       collapse rule below 860px is a bare `.auth-shell`, so a plain
-       `body.auth-compact-right .auth-shell` would outrank it at every width and
-       keep the two columns on a phone. The rings panel still hides there, so
-       what was left was a dead 1fr column: the card squeezed into ~137px with
-       an empty gap beside it. Scoping the declaration to the width it is meant
-       for is what stops it leaking down. */
-    @media (min-width: 861px) {
-        /* The form side loses its order:-1, so the visual panel (first in the
-           markup) lands in the 1fr column on the left and the narrower form
-           column sits on the right. */
-        body.auth-compact-right .auth-shell { grid-template-columns: 1fr minmax(0, 330px); }
-        body.auth-compact-right .auth-form-side {
-            order: 0; align-items: flex-end; justify-content: flex-end; padding: 40px 32px 44px;
-        }
+    body.auth-compact-right .auth-shell {
+        display: block; position: relative; min-height: 100vh;
     }
-    body.auth-compact-right .auth-card { max-width: 250px; }
+    /* Full bleed, behind everything, at every width — this is the background now. */
+    body.auth-compact-right .auth-visual {
+        display: flex; position: absolute; inset: 0; z-index: 0;
+    }
+    body.auth-compact-right .auth-form-side {
+        position: relative; z-index: 1; order: 0; min-height: 100vh;
+        display: flex; align-items: flex-end; justify-content: flex-end;
+        padding: 40px 32px 44px;
+    }
+    /* The card floats on the panel now, so it has to bring its own surface:
+       on paper it needed none. */
+    body.auth-compact-right .auth-card {
+        max-width: 250px; background: #fff; border-radius: 16px;
+        padding: 22px 20px; box-shadow: 0 24px 60px -20px rgba(8, 18, 38, .65);
+    }
 
     /* ~25-30% smaller throughout, so the card reads as compact rather than
        just narrow: a 250px card with full-size type would look cramped. */
@@ -142,17 +149,24 @@
        box, so match it to the compact scale here too. */
     body.auth-compact-right #unlock-error { font-size: 10.5px; padding: 8px 11px; border-radius: 8px; margin-bottom: 12px; }
 
-    /* With the rings panel gone there is nothing left for a full viewport of
-       height to hold, and min-height:100vh + align-items:flex-end pushed the
-       card to the bottom of an otherwise empty screen — a tall blank gap above
-       it. Sizing the shell to its content removes that gap; the card stays on
-       the right, just at the top of the page instead of the bottom of a
-       viewport-tall column. */
+    /* Narrow: the headline and the footer line would wrap into a wall of text
+       behind the card, so the panel keeps only its rings and the way back. The
+       card itself stays exactly where it is — same corner, every width. */
     @media (max-width: 860px) {
-        body.auth-compact-right .auth-shell { min-height: 0; }
+        body.auth-compact-right .auth-visual { padding: 20px; }
+        body.auth-compact-right .visual-copy,
+        body.auth-compact-right .visual-foot { display: none; }
         body.auth-compact-right .auth-form-side {
-            align-items: flex-start; justify-content: flex-end; padding: 28px 20px 32px;
+            align-items: flex-end; justify-content: flex-end; padding: 24px 18px 28px;
         }
+    }
+    /* A short window (a laptop with the browser half-height, or landscape on a
+       phone) is the one case where the card can be taller than the viewport.
+       Let the page scroll then instead of clipping the Log in button. */
+    @media (max-height: 520px) {
+        body.auth-compact-right .auth-shell,
+        body.auth-compact-right .auth-form-side { min-height: 0; }
+        body.auth-compact-right .auth-visual { position: fixed; }
     }
 
     /* show-password.js wraps each password box and drops an inline-styled
