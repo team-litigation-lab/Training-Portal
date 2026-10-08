@@ -32,21 +32,15 @@ const PortalNav = {
         const back = opts.back === false ? '' : `<a class="pn-back${cls}" onclick="PortalNav.back('${opts.back || '/index.html'}')" title="Go back">← Back</a>`;
         return back + links.map(([id, href, label]) => `<a class="${active === id ? 'on' : ''}${cls}" href="${href}"${active === id ? ' aria-current="page"' : ''}>${label}</a>`).join('');
     },
-    // Everything an admin uses less often, collated under ⚙ System Management: [href, label, title, opens in a new tab]
+    // Everything an admin uses less often, collated under ⚙ System Management: [href, label, title, opens in a new tab].
+    // One entry per destination: Master Control's tabs (users, access, who's online) open from Master Control itself,
+    // and the Knowledge Base and Ring Channel are banners on the Training Directory.
     SYSTEM_LINKS: [
         ['/index.html', '🏠 Main Portal', 'The LSH Upskill Hub home page'],
-        ['/programs.html', '🎓 Training Directory', 'Every training program'],
-        ['/core.html#master', '🛡 Master Control', 'Users, access, monitoring, logs and broadcasts'],
+        ['/programs.html', '🎓 Training Directory', 'Every training program, plus the Simulators, Knowledge Base, Ring Channel and CMS'],
+        ['/core.html#master', '🛡 Master Control', "Users & revoke access, program access, who's online, activity logs and broadcasts: all on one screen"],
         ['/core.html#registrations', '📝 Registrations <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Approve new trainee registrations'],
-        ['/core.html#users', '👥 Users & Revoke Access', ''],
-        ['/core.html#access', '🔑 Program Access', ''],
-        ['/core.html#monitoring', '🟢 Who’s Online', ''],
         ['/simulators.html', '🛠 Simulators', ''],
-        ['/simulators/calsim.html?view=scores', '📅 Earlier Calendar Scores', "The earlier drag-and-drop scheduler's submissions. Scores from the Calendaring Simulators are under Recent results on the Simulators page."],
-        ['/api/launch?tool=kb', '📚 Knowledge Base', 'Review VA posts and manage the Knowledge Base'],
-        ['/api/launch?tool=ringchannel', '☎ Ring Channel', 'The trainer console for live mock calls (trainer passphrase)', true],
-        ['/api/import-registrations', '📥 Import Registrations', "Bring existing program and CMS registrations onto the Portal"],
-        ['/api/sso-check', '🔐 Sign-in Check', "Does each program accept the Portal's sign-in ticket?"],
         ['/api/admin-password-check', '🔑 Admin Password Check', 'Does every platform accept the admin password?'],
         ['/api/ai-usage', '🤖 AI Usage', "Today's use of the shared AI budget, flow by flow"]
     ],
