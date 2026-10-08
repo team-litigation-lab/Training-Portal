@@ -16,7 +16,8 @@
      dealt if it can be done under the rules (solve()).
    • Check my calendar (checkPlan): each request is marked against the attorney's rules (GCAL_RULES): the
      Attorney's Calendar, the title, Eastern time, a free slot with 15-minute buffers and no lunch or blocks,
-     the caller's times, the length cap, phone/video/office, the description (name, callback, DOB, DOL,
+     the caller's times, the length cap, the color for its length (30 minutes Tangerine, 45 Blueberry, 1 hour
+     Tomato), phone/video/office, the description (name, callback, DOB, DOL,
      reason), and an email reminder a day before; moves and cancellations too; changing appointments no one
      asked about costs points. The score is saved with Sim.saveResult ('Google Calendar').
    • Everything is kept in this browser (localStorage, one calendar per trainee name).
@@ -112,6 +113,10 @@ const calOf = (id) => GCAL_CALENDARS.find(c => c.id === id) || GCAL_CALENDARS[1]
 const seedColor = (r) => r.color || (r.type === 'Blocked Time' ? (/review/i.test(r.title) ? 'blueberry' : 'graphite') : r.type === 'Phone Call' ? 'tangerine' : r.type === 'Internal Meeting' ? 'basil' : '');
 const guessType = (t) => (/block|lunch|daily case/i.test(t) || (TRK && /board|travel|focus|briefing/i.test(t))) ? 'Blocked Time' : /conference/i.test(t) ? 'Internal Meeting' : /preparation|strategy|settlement meeting|deposition/i.test(t) ? 'Client Meeting' : 'Phone Call';
 const colorOf = (e) => (e.color && GCAL_COLORS[e.color]) || calOf(e.cal).color;
+// The attorney's color rule: the trainee colors each appointment by its length (30 minutes Tangerine, 45 Blueberry, 1 hour Tomato).
+const LEN_COLOR = { 30: 'tangerine', 45: 'blueberry', 60: 'tomato' };
+const lengthColor = (m) => LEN_COLOR[m] || '';
+const colorName = (c) => c ? c[0].toUpperCase() + c.slice(1) : '';
 const isBlock = (e) => e.seed && e.type === 'Blocked Time';
 const isNewConsult = (e) => Object.keys(GCAL_TYPES).some(t => GCAL_TYPES[t].newClient && new RegExp('^\\s*' + t.split(':').map(x => rx(x.trim())).join('\\W+'), 'i').test(e.title || ''));
 const nmins = (n) => (+n.v || 0) * ({ minutes: 1, hours: 60, days: 1440, weeks: 10080 }[n.u] || 1);
@@ -133,7 +138,7 @@ const RV = RVQ.indexOf('|') > 0 ? { user: RVQ.slice(0, RVQ.indexOf('|')), at: RV
     : TVQ ? { user: TVQ, live: true, sub: null, review: null, name: '', batch: '', savedAt: null, empty: false, cards: [] } : null;
 const SUBKEY = (at) => 'g:' + GT + '|' + at;
 const MINE = { data: null, me: null };                  // the signed-in trainee's record
-const BOOK_MAX = CFG.exact ? 11 : 10;   // Standard Training scores a booking out of 10 as it always did; the clones out of what the checks add up to
+const BOOK_MAX = CFG.exact ? 11.5 : 10;   // Standard Training scores a booking out of 10 as it always did; the clones out of what the checks add up to
 // The executive's wording (EA / PA track): the page's own fixed texts say "executive" where the attorney's say "attorney". Only fixed
 // texts go through WW(); anything the trainee typed or a caller said is never reworded. Standard and Case Management are unchanged.
 const WW = (t) => !CFG.who ? t : String(t).replace(/Attorney['’]s Calendar/g, CFG.who.cal).replace(/Attorney(['’]s)?/g, (m, p) => 'Executive' + (p || '')).replace(/attorney(['’]s)?/g, (m, p) => 'executive' + (p || ''));
@@ -289,6 +294,8 @@ function gradeBookEvent(e, q, R, all, today) {
     add(inWin, inWin ? 'A time the caller can do.' : `It isn’t a time the caller can do (${R.sameDay ? 'today or the next business day' : availText(q, R)}).`, 1);
     const dur = mins(e.end) - mins(e.start);
     add(!e.allDay && dur >= 15 && dur <= T.max, `Length: ${e.allDay ? 'all day' : dur + ' minutes'} (at most ${T.max} for a ${R.type}).`, 1);
+    const wantC = lengthColor(dur) || lengthColor(T.max);
+    add((e.color || '') === wantC, (e.color || '') === wantC ? `Color: ${colorName(wantC)}, right for its length.` : `A ${lengthColor(dur) ? dur + '-minute' : T.max + '-minute'} appointment is colored ${colorName(wantC)} (30 minutes Tangerine, 45 Blueberry, 1 hour Tomato)${e.color ? `; it’s ${colorName(e.color)}` : ''}.`, 0.5);
     const where = `${e.location || ''} ${plain(e.desc)}`;
     let mt = '';
     if (R.meeting === 'video') mt = e.meet ? '' : 'It’s a video call: add Google Meet video conferencing.';
@@ -334,6 +341,8 @@ function gradeOpenEvent(e, all, today) {
     add(!probs.length, probs.length ? probs.join(' ') : 'The slot follows the attorney’s rules (free, 15-minute buffers, hours).', 3);
     const dur = mins(e.end) - mins(e.start);
     add(!e.allDay && dur >= 15 && dur <= T.max, `Length: ${e.allDay ? 'all day' : dur + ' minutes'} (at most ${T.max}${type ? ' for a ' + type : ''}).`, 1);
+    const wantC = lengthColor(dur) || lengthColor(T.max);
+    add((e.color || '') === wantC, (e.color || '') === wantC ? `Color: ${colorName(wantC)}, right for its length.` : `A ${lengthColor(dur) ? dur + '-minute' : T.max + '-minute'} appointment is colored ${colorName(wantC)} (30 minutes Tangerine, 45 Blueberry, 1 hour Tomato)${e.color ? `; it’s ${colorName(e.color)}` : ''}.`, 0.5);
     const where = `${e.location || ''} ${plain(e.desc)}`, office = new RegExp(rx(GCAL_OFFICE.split(/[,\s]+/).slice(0, 2).join(' ')) + '|office', 'i').test(e.location || '');
     const mt = T.consult ? (e.meet ? 'Consultations are phone only: remove the Google Meet link.' : (/phone|call/i.test(where) ? '' : 'Consultations are phone consults: say it’s a phone call (Location: Phone call) and that the attorney will call the client.'))
         : (e.meet || /phone|call/i.test(where) || office ? '' : `Clarify the meeting type: Google Meet for a video call, “Phone call” in Location, or the office (${GCAL_OFFICE}) for in person.`);
@@ -361,7 +370,7 @@ function checkOpen(st, today) {
     Object.keys(st.ex).forEach(k => { const m = /^s:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(k); const r = m && rowById(m[1]); if (r) changed.push(st.ex[k].del ? `${r.title} on ${shortDate(m[2])}: cancelled` : `${r.title} on ${shortDate(m[2])}: moved to ${shortDate(st.ex[k].date || m[2])} ${tl(mins(st.ex[k].start || r.start))}`); });
     Object.keys(st.sx).forEach(id => { const r = rowById(id); if (r) changed.push(`${r.title}: changed for every week`); });
     const got = out.reduce((a, r) => a + r.pts, 0), max = out.reduce((a, r) => a + r.max, 0);
-    return { score: max ? Math.round(got / max * 100) : 0, results: out, extra: [], changed, penalty: 0, right: out.filter(r => r.pts >= r.max - 0.01).length, open: true };
+    return { score: max ? Math.min(100, Math.round(got / max * 100)) : 0, results: out, extra: [], changed, penalty: 0, right: out.filter(r => r.pts >= r.max - 0.01).length, open: true };
 }
 const checkNow = () => OPEN ? checkOpen(S, S.today) : checkPlan(S, S.reqs, S.today);
 function checkPlan(st, reqs, today) {
@@ -739,14 +748,14 @@ function renderMainInner() {
     if (S.view === 'agenda') { main.innerHTML = `<div class="ag">${agendaHtml(instances(S.anchor, addDays(S.anchor, 30)), 'Nothing planned')}</div>`; return; }
     renderWeek(viewDays());
 }
-// The tools, in a bar along the bottom of the calendar: the callers' requests (not on Standard Training; the rules are in the blue card),
-// Check my calendar, My evaluations; then the save status, 💾 Save and 📤 Submit for evaluation.
+// The tools, in a bar along the bottom of the calendar: the callers' requests (not on Standard Training) and My evaluations;
+// then the save status, 💾 Save and 📤 Submit for evaluation. (The attorney's rules live in the blue card on the left, and
+// Check my calendar sits with 📊 Your scores: no buttons for them here.)
 function renderRail() {
     const open = S.reqs.filter(q => !q.done).length;
     const b = (on, attrs, icon, label, badge) => `<button class="rb ${on ? 'on' : ''}" ${attrs}>${ic(icon)}<span>${label}</span>${badge ? `<span class="badge">${badge}</span>` : ''}</button>`;
     $('#gc-rail').innerHTML = `<div class="rb-group">
             ${OPEN ? '' : b(S.panel === 'requests', 'data-a="panel" data-p="requests"', 'req', 'Calendar requests', open)}
-            ${b(S.panel === 'result' || (S.result && S.panel === 'requests'), 'data-a="check"', 'grade', 'Check my calendar')}
             ${Sim.isAdmin() ? `<a class="rb" id="gc-evals-link" href="${REVIEW_PAGE}" title="Trainee Evaluations: the submissions with their AI review, and your trainees' calendars">${ic('notes')}<span>Trainee evaluations</span></a>`   // (a trainer goes to the Trainee Evaluations page: a plain link, in this tab, like every Portal page)
                 : b(S.panel === 'evals', 'data-a="evals"', 'notes', 'My evaluations', EV.ready)}</div>
         <div class="rb-group rb-end">${cloudHtml()}${Sim.isAdmin() || RV ? '' : '<button class="blue" data-a="submit-eval">📤 Submit for evaluation</button>'}</div>`;
@@ -1154,7 +1163,7 @@ function liveCheckHTML() {
     const r0 = S.result, skip = RV.skip || new Set(), kept = r0.results.filter(x => !skip.has(x.id)), gone = r0.results.filter(x => skip.has(x.id));
     const got = kept.reduce((a, x) => a + x.pts, 0), max = kept.reduce((a, x) => a + x.max, 0);
     const r = Object.assign({}, r0, { results: kept, right: kept.filter(x => x.pts >= x.max - 0.01).length,
-        score: r0.open ? (max ? Math.round(got / max * 100) : 0) : Math.max(0, Math.min(100, Math.round((max ? got / max * 100 : 100) - (r0.penalty || 0)))) });
+        score: r0.open ? (max ? Math.min(100, Math.round(got / max * 100)) : 0) : Math.max(0, Math.min(100, Math.round((max ? got / max * 100 : 100) - (r0.penalty || 0)))) });
     return checkSection(r, true, 'Their calendar, checked (automated)')
         + (gone.length ? `<div class="res-r" id="tv-removed"><h5><span>Removed from this review (${gone.length})</span><span></span></h5><ul>${gone.map(x => `<li><span>${esc(x.head)}</span> <button class="txt" data-a="tv-unskip" data-id="${esc(x.id)}">↩ Put back</button></li>`).join('')}</ul></div>` : '');
 }
@@ -1174,9 +1183,10 @@ function renderScores() {
     if (RV && RV.live) { box.innerHTML = liveScoresHTML(); return; }
     if (RV) { box.innerHTML = ''; return; }   // (a review still loading)
     const side = myScorecardBox() + mySubBox();
+    const btn = `<div style="margin:2px 0 10px"><button class="blue" data-a="check">Check my calendar</button></div>`;
     const check = S.result ? checkSection(S.result)
-        : `<div id="gc-check"><p class="lead">Click <b>Check my calendar</b> (in the bar under the calendar) to check ${OPEN ? 'your appointments' : 'what the callers asked for'} against the ${WW('attorney’s')} rules. Your score shows here.</p></div>`;
-    box.innerHTML = `<h2>📊 Your scores</h2><div class="sc-grid${side ? '' : ' one'}"><div>${check}</div>${side ? `<div>${side}</div>` : ''}</div>`;
+        : `<div id="gc-check"><p class="lead">Click <b>Check my calendar</b> to check ${OPEN ? 'your appointments' : 'what the callers asked for'} against the ${WW('attorney’s')} rules. Your score shows here.</p></div>`;
+    box.innerHTML = `<h2>📊 Your scores</h2>${btn}<div class="sc-grid${side ? '' : ' one'}"><div>${check}</div>${side ? `<div>${side}</div>` : ''}</div>`;
 }
 async function saveScorecard() {
     const C = window.CalScorecard; if (!C) return;
@@ -1468,7 +1478,7 @@ function onUp(ev) {
 }
 
 /* ---------- start ---------- */
-window.GCAL = { solve, checkPlan, checkOpen, slotProblems, concretize, instancesOf, dealRequests, simToday, trimPayload, datesIn, addDays, weekStart, rows: () => ROWS, setRows: (r) => { ROWS = r; } };
+window.GCAL = { solve, checkPlan, checkOpen, slotProblems, concretize, instancesOf, dealRequests, simToday, trimPayload, datesIn, addDays, weekStart, lengthColor, mins, rows: () => ROWS, setRows: (r) => { ROWS = r; } };
 async function start() {
     if (!document.getElementById('app')) return;
     await Sim.restore();   // opened in a new tab: the cookie says who is signed in (an admin must not be treated as a trainee), and the heartbeat starts

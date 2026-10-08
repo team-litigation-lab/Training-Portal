@@ -102,7 +102,8 @@ const GCAL_STD_RULES = {
         'Preparation, strategy, and settlement meetings are max 45 minutes.',
         'Conference meetings are max 1 hour.',
         'Attorney requires 15-minute buffer before and after every meeting.',
-        'Same-day bookings require attorney approval.'
+        'Same-day bookings require attorney approval.',
+        'Color each appointment by its length: 30 minutes Tangerine, 45 minutes Blueberry, 1 hour Tomato.'
     ],
     collect: ['Name', 'Callback Number', 'Date of Birth (DOB)', 'Date of Loss (DOL)'],
     title: 'Use the request type and the client’s name, e.g. Client Consultation: New PI Case – Jane Doe.'
@@ -250,7 +251,8 @@ const GCAL_CM_RULES = {
         'Deposition preparation, settlement conferences and discovery conferences are max 1 hour.',
         'Video calls (experts, mediation prep) need a Google Meet link; phone calls do not.',
         'Attorney requires 15-minute buffer before and after every meeting.',
-        'Same-day bookings require attorney approval.'
+        'Same-day bookings require attorney approval.',
+        'Color each appointment by its length: 30 minutes Tangerine, 45 minutes Blueberry, 1 hour Tomato.'
     ],
     collect: GCAL_STD_RULES.collect,
     title: 'Use the request type and the client’s name, e.g. Case Status Update – Jane Doe.'
@@ -366,7 +368,8 @@ const GCAL_EA_RULES = {
         'Strategy meetings are max 1 hour.',
         'Interviews and press calls are on video: add a Google Meet link.',
         'Executive requires 15-minute buffer before and after every meeting.',
-        'Same-day bookings require the executive’s approval.'
+        'Same-day bookings require the executive’s approval.',
+        'Color each appointment by its length: 30 minutes Tangerine, 45 minutes Blueberry, 1 hour Tomato.'
     ],
     collect: ['Name', 'Callback Number', 'Company / Organization', 'Purpose of the meeting'],
     title: 'Use the request type and the person’s name, e.g. Candidate Interview – Jane Doe.'

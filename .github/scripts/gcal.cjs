@@ -108,6 +108,7 @@ const server = http.createServer(async (req, res) => {
             if (R.kind === 'move') { st.ex[`s:${q.row}@${q.orig}`] = { date: e.date, start: e.start, end: e.end }; return; }
             const [m, d, y] = R.dob.split('/');
             st.events.push({ id: 'ev-' + q.id, cal: 'attorney', title: `${R.type} – ${R.name}`, date: e.date, start: e.start, end: e.end, allDay: false, tz: 'America/New_York', repeat: 'none',
+                color: GCAL.lengthColor(GCAL.mins(e.end) - GCAL.mins(e.start)),   // the attorney's color rule: 30 min Tangerine, 45 Blueberry, 1 hour Tomato
                 location: R.meeting === 'office' ? GCAL_OFFICE : R.meeting === 'phone' ? 'Phone' : '', meet: R.meeting === 'video' ? 'abc-defg-hij' : '',
                 desc: `Name: ${R.name}<br>CB Number: ${R.cb}<br>DOB: ${R.dob}<br>DOL: ${R.dol}<br>Notes: ${R.notesNeed.map(g => g[0]).join(', ')}`, guests: [], notifs: [{ m: 'email', v: 1, u: 'days' }], busy: true });
             void m; void d; void y;
@@ -137,7 +138,7 @@ const server = http.createServer(async (req, res) => {
     });
     if (grading.good.score !== 100) fail(`a plan made the right way should score 100 (got ${grading.good.score}): ${grading.good.missed.join(' | ')}`);
     const miss = grading.bad.missed.join(' | ');
-    for (const re of [/not the Attorney’s Calendar/, /title should be/, /time zone/i, /Lunch Break/, /Tuesdays and Thursdays/, /isn’t a time the caller can do/, /Length/, /phone only|remove the Google Meet/, /description is missing/, /email notification/])
+    for (const re of [/not the Attorney’s Calendar/, /title should be/, /time zone/i, /Lunch Break/, /Tuesdays and Thursdays/, /isn’t a time the caller can do/, /Length/, /is colored Tomato/, /phone only|remove the Google Meet/, /description is missing/, /email notification/])
         if (!re.test(miss)) fail(`a booking with mistakes should be marked for ${re}: ${miss}`);
     if (grading.bad.pts > 1.5) fail(`a booking with every mistake should score almost nothing (${grading.bad.pts})`);
     const om = grading.open.bad.join(' | ');
@@ -164,6 +165,7 @@ const server = http.createServer(async (req, res) => {
     const heroR = await page.evaluate(() => { const d = document.getElementById('hero-rules'), h = document.querySelector('.sim-hero');
         return { inHero: !!(d && h.contains(d)), open: !!(d && d.open), summary: d ? d.querySelector('summary').textContent : '', text: h.innerText, rule: GCAL_RULES.scheduling[0], note: GCAL_RULES.notes[0] }; });
     if (!heroR.inHero || !heroR.open || heroR.summary.trim() !== '📖 The attorney’s rules' || !heroR.text.includes(heroR.rule) || !heroR.text.includes(heroR.note) || /as in Google Calendar/.test(heroR.text)) fail(`the blue card should hold Standard Training's rules: ${JSON.stringify(Object.assign({}, heroR, { text: heroR.text.slice(0, 200) }))}`);
+    if (!/Color each appointment by its length: 30 minutes Tangerine, 45 minutes Blueberry, 1 hour Tomato/.test(heroR.text)) fail('the attorney\'s rules should carry the color rule (30 min Tangerine, 45 Blueberry, 1 hour Tomato)');
     // quick create: click Wednesday 1:00 PM in this week (a free slot)
     const wed = await page.evaluate((m) => GCAL.addDays(m, 2), mon);
     const colBox = await page.locator(`#gc-main .wk-col[data-d="${wed}"]`).boundingBox();
@@ -243,11 +245,10 @@ const server = http.createServer(async (req, res) => {
     await page.click('[data-a="search"]'); await page.fill('#gc-q', 'magsaysay'); await page.waitForTimeout(200);
     if (!/Discovery Conference: Ramon Magsaysay/.test(await page.textContent('#gc-main'))) fail('search should find Ramon Magsaysay');
     await page.click('[data-a="search-x"]'); await page.click('[data-a="views"]'); await page.click('[data-a="view"][data-v="week"]');
-    // the rules are in the blue card only: the bar has no rules button (a calendar saved with the rules panel open opens closed)
-    const bar = await page.evaluate(() => ({ rail: document.getElementById('gc-rail').innerText, btn: !!document.querySelector('[data-p="rules"]') }));
-    if (/rules/i.test(bar.rail) || bar.btn) fail(`the bar under the calendar should have no rules button: ${JSON.stringify(bar)}`);
-    // then Check my calendar
-    await page.click('#gc-rail [data-a="check"]'); await page.waitForSelector('.res-ring');
+    // the bar has no rules or check buttons (the rules live in the blue card, Check my calendar with 📊 Your scores)
+    const railTxt = await page.textContent('#gc-rail');
+    if (/attorney’s rules|attorney's rules|Check my calendar/i.test(railTxt)) fail('the bar under the calendar still has rules / check buttons: ' + railTxt);
+    await page.click('#gc-scores [data-a="check"]'); await page.waitForSelector('.res-ring');
     await shot(page, 'gcal-5-checked');
     // the score is in 📊 Your scores, not in the side panel (which stays closed): a card in the calendar's left sidebar, under
     // Other calendars, not in the blue card. Nothing of the sidebar goes: Create, the month calendar and the calendars stay on top,
@@ -294,7 +295,7 @@ const server = http.createServer(async (req, res) => {
 
     {   // a calendar with nothing booked, checked: only the score
         const ep = await open({ name: 'CI Empty' });
-        await ep.click('#gc-rail [data-a="check"]'); await ep.waitForSelector('.res-ring');
+        await ep.click('#gc-scores [data-a="check"]'); await ep.waitForSelector('.res-ring');
         const et = await ep.evaluate(() => document.getElementById('gc-scores').innerText);
         if (!/0%/.test(et) || /Your calendar, checked/i.test(et) || /no appointments on the calendar/i.test(et)) fail(`an empty calendar's scores should show only the score: ${et.slice(0, 200)}`);
         await ep.close();
@@ -358,6 +359,7 @@ const server = http.createServer(async (req, res) => {
                 const e = plan[q.id];
                 if (R.kind === 'move') { st.ex[`s:${q.row}@${q.orig}`] = { date: e.date, start: e.start, end: e.end }; return; }
                 st.events.push({ id: 'ev-' + q.id, cal: 'attorney', title: `${R.type} – ${R.name}`, date: e.date, start: e.start, end: e.end, allDay: false, tz: 'America/New_York', repeat: 'none',
+                    color: GCAL.lengthColor(GCAL.mins(e.end) - GCAL.mins(e.start)),   // the attorney's color rule: 30 min Tangerine, 45 Blueberry, 1 hour Tomato
                     location: R.meeting === 'office' ? GCAL_OFFICE : R.meeting === 'phone' ? 'Phone' : '', meet: R.meeting === 'video' ? 'abc-defg-hij' : '',
                     desc: `Name: ${R.name}<br>CB Number: ${R.cb}${R.dob ? `<br>DOB: ${R.dob}` : ''}${R.dol ? `<br>DOL: ${R.dol}` : ''}${R.org ? `<br>Company: ${R.org}` : ''}<br>Notes: ${R.notesNeed.map(g => g[0]).join(', ')}`, guests: [], notifs: [{ m: 'email', v: 1, u: 'days' }], busy: true }); });
             const good = GCAL.checkPlan(st, reqs, today);
