@@ -1,6 +1,7 @@
 // The front door: a browser that is already signed in (trainee or admin) goes from the Portal's home and sign-in pages straight to the
 // Training Directory, and only a signed-out one sees a sign-in box. Also /api/me (who is signed in on this browser).
-// Checks: a valid cookie is redirected from /, /index.html, /trainee-login.html and (an admin's only) /admin-login.html (even with no live heartbeat, and the heartbeat
+// Checks: a valid cookie is redirected from /, /index.html, /trainee-login.html and (an admin's only) /admin-login.html; a signed-out
+// visitor on the Training Directory goes to the sign-in and back after it (even with no live heartbeat, and the heartbeat
 // is restarted); no cookie, a revoked account, a locked site and ?stay=1 all get the page; a tampered cookie gets the page.
 // A simulator page opened with a course's ticket (?ticket=) signs the trainee in first (a bad, expired, revoked or admin ticket doesn't).
 // Run: node --no-warnings .github/scripts/front-door.mjs   (from the repository root)
@@ -52,7 +53,10 @@ r = await hit('/trainee-login.html', ''); check(r.passed && r.status === 200, 's
 r = await hit('/', 'lsh_session=abc.def'); check(r.passed, 'a tampered cookie gets the page');
 r = await hit('/trainee-login.html', ann, '?stay=1'); check(r.passed, '?stay=1 shows the sign-in page (used right after logging out)');
 r = await hit('/trainee-login.html', await cookieFor('gone', 'Trainee')); check(r.passed, 'a revoked account gets the sign-in page');
-r = await hit('/programs.html', ann); check(r.passed, 'the Training Directory itself is not redirected');
+r = await hit('/programs.html', ann); check(r.passed, 'the Training Directory itself is not redirected for a signed-in trainee');
+r = await hit('/programs.html', ''); check(r.status === 302 && r.loc === '/trainee-login.html?next=%2Fprograms.html', `a signed-out visitor on the Training Directory goes to the sign-in: ${r.status} ${r.loc}`);
+r = await hit('/programs', ''); check(r.status === 302 && /trainee-login/.test(r.loc || ''), 'the same at /programs (no .html)');
+r = await hit('/programs.html', boss); check(r.passed, 'an admin opens the Training Directory');
 sql.exec(`UPDATE site_state SET locked = 1`);
 r = await hit('/', ann); check(r.passed, 'a locked site shows the page');
 sql.exec(`UPDATE site_state SET locked = 0`);
