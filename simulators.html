@@ -23,42 +23,12 @@
     .hub-card.soon { background: #fbfaf7; }
     .hub-sec { margin: 34px 0 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
     .hub-sec h2 { margin: 0; font-size: 20px; font-weight: 800; }
-    .hub-links { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 10px; }
-    .hub-links .sim-btn { text-align: left; text-decoration: none; justify-content: flex-start; }
-
-    /* ===== The Simulators page design: dark navy, "SIMULATORS" down the left, white cards with gradient borders ===== */
-    body { background: var(--navy); }
-    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-    .hub-rings { position: fixed; right: -260px; bottom: -260px; width: 560px; height: 560px; pointer-events: none; z-index: 0; }
-    .hub-layout { position: relative; z-index: 1; display: grid; grid-template-columns: 92px 1fr; min-height: calc(100vh - 70px); }
-    .hub-side { background: rgba(255,255,255,.08); display: flex; justify-content: center; padding: 30px 0; }
-    .hub-vtitle { writing-mode: vertical-rl; text-orientation: upright; font-size: 46px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; line-height: 1;
-        color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,.9); position: sticky; top: 90px; align-self: flex-start; }
-    @media (max-width: 760px) { .hub-layout { grid-template-columns: 1fr; } .hub-side { padding: 18px 0 0; background: none; } .hub-vtitle { writing-mode: horizontal-tb; font-size: 30px; letter-spacing: .1em; position: static; } }
-    .hub-grid { grid-template-columns: repeat(2, 1fr); gap: 22px 26px; }
-    @media (max-width: 900px) { .hub-grid { grid-template-columns: 1fr; } }
-    .hub-card { position: relative; border: 4px solid transparent; border-radius: 16px; box-shadow: 0 12px 26px -16px rgba(0,0,0,.6);
-        background: linear-gradient(#fff, #fff) padding-box, linear-gradient(120deg, #22d3ee, #fde047) border-box; }
-    .hub-card:nth-child(4n+1), .hub-card:nth-child(4n) { background: linear-gradient(#fff, #fff) padding-box, linear-gradient(120deg, #f472b6, #fde047) border-box; }
-    .hub-card.soon { background: linear-gradient(#f8fafc, #f8fafc) padding-box, linear-gradient(120deg, #cbd5e1, #e2e8f0) border-box; }
-    .hub-card > .sim-chip { position: absolute; top: 12px; right: 12px; }
-    .hub-head { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 70px; }
-    .hub-card .icon { width: auto; height: auto; background: none; font-size: 30px; border-radius: 0; }
-    .hub-card h3 { padding: 3px 14px; border: 2.5px solid var(--navy); color: var(--orange); font-size: 16px; font-weight: 900; letter-spacing: .03em; text-transform: uppercase; text-align: center; }
-    .hub-card p { color: #1e293b; font-weight: 500; font-size: 13px; }
-    .hub-go { background: var(--navy) !important; color: var(--orange) !important; border-color: var(--navy) !important; border-radius: 999px !important; font-weight: 900 !important; letter-spacing: .08em; text-transform: uppercase; padding: 8px 18px !important; }
-    .hub-sec h2 { color: #fff; }
-    .hub-sec .sim-muted { color: rgba(255,255,255,.6); }
-    @media (max-width: 560px) { .hub-head { padding: 22px 0 0; flex-wrap: wrap; } }
 </style>
 </head>
 <body>
 <div id="topbar"></div>
-<svg class="hub-rings" viewBox="0 0 600 600" fill="none" aria-hidden="true"><circle cx="300" cy="300" r="280" stroke="#f97316" stroke-opacity=".3" stroke-width="10"/><circle cx="300" cy="300" r="200" stroke="#fb923c" stroke-opacity=".16" stroke-width="2"/></svg>
-<div class="hub-layout">
-<aside class="hub-side" aria-hidden="true"><span class="hub-vtitle">Simulators</span></aside>
 <div class="sim-wrap">
-    <section class="sim-hero sr-only">
+    <section class="sim-hero">
         <div class="eyebrow">Shared across every program</div>
         <h1>Simulators</h1>
         <p>Hands-on tools every LSH program can use — Case Management, EA/PA and the specialised trainings. Pick a simulator, work a realistic scenario, and get a scored debrief. Your results are saved to your account.</p>
@@ -69,7 +39,6 @@
     <div class="hub-sec"><h2 id="results-title">My recent results</h2><span class="sim-muted" style="font-size:12.5px;" id="results-note"></span></div>
     <div class="sim-card" id="results"><div class="sim-loading">Loading results…</div></div>
 </div>
-</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="/app.js"></script>
@@ -78,13 +47,11 @@
 <script src="/simulators/sim.js"></script>
 <script>
     const SIMULATORS = [
-        { id: 'call', icon: '📞', title: 'Call Simulator', status: 'live', href: '/api/launch?tool=cms&to=calls', links: [['☎ On a real phone line: 🤖 AI caller in LSH Ring Channel', '/api/launch?tool=ringchannel&to=aicall']], uses: 'Standard · CM · PD · EA/PA · all programs',
+        { id: 'call', icon: '📞', title: 'Call Simulator', status: 'live', href: '/api/launch?tool=cms&to=calls', uses: 'Standard · CM · PD · EA/PA · all programs',
           desc: 'Real phone calls, in the CMS (it opens there, already signed in): it rings, the caller speaks, you answer out loud or type, then get a scored debrief. Every program\'s lines, each with Practice and Graded calls: Standard Training\'s Reception, Calendar Management and Intake Mock Calls on the Training Library files; Case Management (the John Doe file); Property Damage (the Angela Carter claim); EA / PA (Elias Thorne: executive, gatekeeping, legal operations, lifestyle, intake and outreach calls). Graded calls count in your course.' },
         { id: 'ringchannel', icon: '☎', title: 'LSH Ring Channel', status: 'live', href: '/api/launch?tool=ringchannel', uses: 'Standard · trainer-led and 🤖 AI mock calls',
-          links: [['🤖 Take an AI call (the AI plays the caller)', '/api/launch?tool=ringchannel&to=aicall'], ['🎛 Trainers: send AI callers to trainees', '/api/launch?tool=ringchannel&to=console']],
           desc: 'Live mock calls with your trainer over a real training phone (VOIP, in the browser). Your trainer dials your desk extension and plays the caller; you answer, use Hold, Transfer and the case files, and take the message, calendar or intake note. Every call is recorded (you can play it back) and graded on the Reception, Calendar Management or Intake Mock Calls Metrics, with your trainer\'s review. Practice calls with an AI caller too. It opens already signed in; use a headset.' },
         { id: 'calsim', icon: '📆', title: 'Calendaring Simulators', status: 'live', href: '/simulators/calsim.html', uses: 'Foundational · CM · EA/PA',
-          links: [['🎓 Standard Training: Google Calendar Simulator', '/simulators/calsim.html?track=standard'], ['⚖️ Litigation Week · Case Management', '/simulators/calsim.html?track=cm'], ['🏢 Executive Week · EA / PA', '/simulators/calsim.html?track=ea'], ['🗓 Conflicts week', '/simulators/calendar.html']],
           desc: 'All the calendaring practice in one place: the Google Calendar Simulator for each program. 🎓 Standard Training (Foundational · Calendar Management), ⚖️ Litigation Week (Case Management) and 🏢 Executive Week (EA / PA). Callers ask for appointments: book them on the attorney\'s (or executive\'s) calendar under the rules, with the right title, description, Google Meet for video calls and an email reminder a day before, move or cancel what they ask, then check your calendar. Scores are saved for your trainer.' },
         { id: 'chat', icon: '💬', title: 'Chat Simulator', status: 'next', uses: 'All programs',
           desc: 'Written client and team conversations (portal chat, SMS, Teams-style) with tone, accuracy and confidentiality graded. Coming next.' },
@@ -104,12 +71,11 @@
         Sim.label('Simulators');
         document.getElementById('hub-grid').innerHTML = SIMULATORS.map(s => `
             <div class="sim-card hub-card ${s.status === 'live' ? '' : 'soon'}">
-                <span class="sim-chip ${CHIP[s.status][0]}">${CHIP[s.status][1]}</span>
-                <div class="hub-head"><span class="icon">${s.icon}</span><h3>${Sim.esc(s.title)}</h3></div>
+                <div class="row" style="margin-top:0;"><span class="icon">${s.icon}</span><span class="sim-chip ${CHIP[s.status][0]}">${CHIP[s.status][1]}</span></div>
+                <h3>${Sim.esc(s.title)}</h3>
                 <p>${Sim.esc(s.desc)}</p>
-                ${s.links ? `<div class="hub-links">${(s.id === 'calsim' ? s.links.concat([Sim.isAdmin() ? ['🖥 Trainee Evaluations (trainer review and feedback)', '/simulators/gcal-review.html'] : ['📋 My Evaluations: my calendars and my reports', '/simulators/my-evaluations.html']]) : s.links).map(l => `<a class="sim-btn ghost" href="${l[1]}">${Sim.esc(l[0])}</a>`).join('')}</div>` : ''}
                 <div class="row"><span class="uses">${Sim.esc(s.uses)}</span>
-                    ${s.href ? `<a class="sim-btn primary hub-go" href="${s.href}">Explore</a>` : `<button class="sim-btn ghost hub-go" disabled>Not yet</button>`}</div>
+                    ${s.href ? `<a class="sim-btn primary" href="${s.href}">Open →</a>` : `<button class="sim-btn ghost" disabled>Not yet</button>`}</div>
             </div>`).join('');
     }
 
