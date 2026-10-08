@@ -149,7 +149,7 @@ async function gsList(only) {
             <h3 style="margin:0;color:#0b1633;font-size:19px">${t.icon} ${Sim.esc(t.title)}</h3><p style="margin:0;color:#475569;font-size:14px;flex:1">${Sim.esc(t.desc)}</p>
             ${reviewHTML(t.id)}
             <div><a class="sim-btn orange" style="text-decoration:none" href="${Sim.esc(go(t.id))}">📅 Open →</a></div></div>`).join('')}</div>
-        ${me.admin ? '<p style="margin:14px 0 0;color:#64748b;font-size:13.5px">Your trainees’ calendars, to view and score, are under <a id="cs-evals" href="/simulators/gcal-review.html" title="Trainee Evaluations: what trainees submit for evaluation, with the AI review and your feedback, and your trainees’ calendars.">📋 Trainee Evaluations</a>; their scores from these simulators are under <a href="/simulators.html#results">Recent results</a> on the Simulators page, and the earlier drag-and-drop scheduler’s submissions under <a href="/simulators/calsim.html?view=scores" title="The earlier drag-and-drop scheduler’s submissions.">📊 Earlier scheduler scores</a>.</p>' : ''}</div>`;
+        ${me.admin ? '<p style="margin:14px 0 0;color:#64748b;font-size:13.5px">Your trainees’ calendars, to view and score, are under <a id="cs-evals" href="/simulators/gcal-review.html" title="Trainee Evaluations: what trainees submit for evaluation, with the AI review and your feedback, and your trainees’ calendars.">📋 Trainee Evaluations</a>; their scores from these simulators are under <a href="/simulators.html#results">Recent results</a> on the Simulators page.</p>' : ''}</div>`;
 })();
 </script>
 </body>
