@@ -1,4 +1,4 @@
-import { json } from '../_utils.js';
+import { json, sameSecret } from '../_utils.js';
 import { ensureEmailTable } from '../_email.js';
 
 // Postmark inbound webhook for Email Replies (/simulators/email-replies.html).
@@ -7,13 +7,6 @@ import { ensureEmailTable } from '../_email.js';
 // Practice emails go out with Reply-To <inbound>+<token>@inbound.postmarkapp.com,
 // so Postmark hands us the token as MailboxHash. The Email Replies page polls
 // /api/email-practice?token=… and scores the reply.
-function sameSecret(a, b) {
-    a = String(a || ''); b = String(b || '');
-    if (!a || !b || a.length !== b.length) return false;
-    let diff = 0;
-    for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-    return diff === 0;
-}
 
 export async function onRequestPost({ request, env }) {
     const key = new URL(request.url).searchParams.get('key');

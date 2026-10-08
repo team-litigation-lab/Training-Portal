@@ -1,4 +1,4 @@
-import { json, getCookie, verifySessionToken, requireSession, upsertSessionHeartbeat, HEARTBEAT_GRACE_SECONDS } from '../_utils.js';
+import { json, getCookie, verifySessionToken, requireSession, upsertSessionHeartbeat, HEARTBEAT_GRACE_SECONDS, MASTER_USERNAME } from '../_utils.js';
 
 export async function onRequestGet({ request, env }) {
     // Who's currently online, their real name, and which case they're
@@ -33,9 +33,13 @@ export async function onRequestPost({ request, env }) {
         return json({ success: false, error: 'Not authenticated.', code: 'NOT_AUTHENTICATED' }, 401);
     }
 
-    const liveUser = await env.DB.prepare(`SELECT status FROM users WHERE username = ?`).bind(session.username).first();
-    if (!liveUser || liveUser.status !== 'Approved') {
-        return json({ success: false, error: 'Your access has been revoked.', code: 'ACCESS_REVOKED' }, 401);
+    // The Master Account has no users row by design (login.js): skip the
+    // revocation check for it, as requireSession, me.js and _middleware.js do.
+    if (session.username !== MASTER_USERNAME) {
+        const liveUser = await env.DB.prepare(`SELECT status FROM users WHERE username = ?`).bind(session.username).first();
+        if (!liveUser || liveUser.status !== 'Approved') {
+            return json({ success: false, error: 'Your access has been revoked.', code: 'ACCESS_REVOKED' }, 401);
+        }
     }
 
     const db = env.DB;

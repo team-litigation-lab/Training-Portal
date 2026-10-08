@@ -88,7 +88,7 @@
 // The attendance Google Sheet: its 🕘 Platform Attendance menu (attendance-sync.gs) fills a
 // "Platform Attendance" tab from /api/attendance-feed every 15 minutes.
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1zs7lqZiHaDYef3XymhoK9cUj2SV-AR3_IgWRUA1iRn8/edit';
-const PROGRAM_ORDER = ['ft', 'eapa', 'cm', 'pd', 'md'];
+const PROGRAM_ORDER = ['ft', 'eapa', 'cm', 'pd', 'md'];   // keep in step with PROGRAM_ORDER (and the label fallback) in progress-records.js
 // The attendance sheet's statuses and colors (the same as the courses' js/attendance.js).
 const STATUSES = [
     { label: 'Present', bg: '#11734b', fg: '#ffffff' }, { label: 'Late', bg: '#d4edbc', fg: '#11734b' }, { label: 'Late with Notif', bg: '#e6cff2', fg: '#5a3286' },

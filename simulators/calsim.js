@@ -156,13 +156,13 @@ function renderPage(){
   const s = scn();
   const tk = trackOf();
   const carry = location.search.replace(/[?&](track|view)=[^&]*/g, "").replace(/^&/, "?");
-  const tabs = C.TRACKS.map(x => `<button class="cs-tab ${x.id === tk.id ? "active" : ""}" onclick="FTCalSim.open('${x.id}')">${x.icon} ${e(x.title)} <i>${e(x.where)}</i></button>`).join("")
-    + `</div>` + (C.SCENARIOS.filter(x => x.track === tk.id).length > 1 ? `<div class="cs-tabs cs-weeks">` + C.SCENARIOS.map((x, i) => x.track === tk.id ? `<button class="cs-tab cs-wk ${i === S.scn ? "active" : ""}" onclick="FTCalSim.pick(${i})">${e(x.title)} <i>${e(x.level)}</i></button>` : "").join("") : "");
-  if(!open()) return `<div class="cs-wrap"><h1>📅 Calendaring Simulators</h1><div class="card" style="padding:20px;">🔒 This simulator opens with Lesson ${LESSON}, Calendaring &amp; Appointment Setting.</div></div>`;
+  const trackTabs = C.TRACKS.map(x => `<button class="cs-tab ${x.id === tk.id ? "active" : ""}" onclick="FTCalSim.open('${x.id}')">${x.icon} ${e(x.title)} <i>${e(x.where)}</i></button>`).join("");
+  // the week tabs are their own balanced row (splicing a bare </div> into the string left single-week tracks with a stray close)
+  const weekTabs = C.SCENARIOS.filter(x => x.track === tk.id).length > 1 ? `<div class="cs-tabs cs-weeks">` + C.SCENARIOS.map((x, i) => x.track === tk.id ? `<button class="cs-tab cs-wk ${i === S.scn ? "active" : ""}" onclick="FTCalSim.pick(${i})">${e(x.title)} <i>${e(x.level)}</i></button>` : "").join("") + `</div>` : "";
   return `<div class="cs-wrap"><div class="cs-top"><div><h1>📅 Calendaring Simulators</h1>
       <p class="cs-lead">Build the week in a Google Calendar style, run the automated review, then submit it to your trainer.</p></div>
       <div><button class="btn btn-ghost btn-sm" onclick="location.href='/simulators.html'">← Simulators</button></div></div>
-    <div class="cs-tabs">${tabs}</div>
+    <div class="cs-tabs">${trackTabs}</div>${weekTabs}
     <p class="cs-blurb">${e(tk.blurb)}</p>
     <p class="cs-also">Also in Calendaring: <a href="/simulators/gcal.html${carry}">📞 Google Calendar Simulator</a> (book callers’ appointments) · <a href="/simulators/calendar.html${carry}">🗓 Conflicts week</a> (CM · EA/PA)</p>
     <div class="card cs-brief">${e(s.brief)}</div>
@@ -359,25 +359,13 @@ window.FTCalSim = {
   // open the scheduler on a track (its first week), or where it was
   open(track){ if(track){ const i = C.SCENARIOS.findIndex(x => x.track === track); if(i >= 0 && i !== S.scn) setScn(i); } render(); }
 };
-// The cards of the Calendaring Simulators on the Simulators page (js/ft-simulators.js): one per track, with the trainee's scores.
-window.FTCalSimLoad = function(){ if(isTrainee() && !S.data && !S.loading) load(); };
-
-/* ---------- results from the connected simulators (Portal, CMS) ---------- */
-window.addEventListener("message", ev => {
-  const d = ev.data;
-  if(!d || d.type !== "lsh-sim-result" || d.sim !== "calendar" || !isTrainee()) return;
-  if(ev.origin !== new URL(PORTAL).origin && ev.origin !== new URL(CMS).origin) return;
-  const score = Number(d.score), max = Number(d.max);
-  if(!isFinite(score) || !isFinite(max) || max <= 0 || score < 0 || score > max) return;
-  const add = () => { S.data.external.push({title:String(d.title || "Calendaring Simulator").slice(0, 80), source:ev.origin, score, max, at:new Date().toISOString()});
-    if(S.data.external.length > 30) S.data.external = S.data.external.slice(-30); queueSave(); if(state.view === "calsim") repaint(); };
-  if(S.data) add(); else load().then(add);
-});
 
 /* ---------- admin: every trainee's submitted calendars, and the trainer's review ---------- */
 const A = {rows:null, loading:false, open:{}, closed:{}, view:{}};
 // ?track=standard|litigation|executive: each program's trainers open just their own track (Standard, Case Management, EA / PA)
-const FILT = (C.TRACKS.find(x => x.id === new URLSearchParams(location.search).get("track")) || {}).id || "";
+const FILT = (() => { const t = new URLSearchParams(location.search).get("track");   // the portal links say cm / ea (calsim.html, simulators.html); the week ids here say litigation / executive
+    const want = ({ cm: "litigation", ea: "executive" })[String(t || "").toLowerCase()] || t;
+    return (C.TRACKS.find(x => x.id === want) || {}).id || ""; })();
 const inTrack = id => { const s = C.SCENARIOS.find(q => q.id === id); return !!s && (!FILT || s.track === FILT); };
 const subsOf = x => x.d.submissions.filter(z => inTrack(z.scn));
 async function loadAdmin(){
@@ -501,12 +489,12 @@ body.cs-dragging,body.cs-dragging *{cursor:grabbing!important;user-select:none!i
 .cs-more{padding:14px 18px;} .cs-more p{margin:4px 0 10px;font-size:13.5px;color:var(--ink-soft);} .cs-more a{text-decoration:none;}
 .cs-admin{padding:16px 18px;} .cs-atts{margin:6px 0 10px 18px;} .cs-att-ext{font-size:13px;margin:4px 0;}
 .cs-sub,.cs-sub *{text-transform:none;letter-spacing:normal;} .cs-sub{border:1px solid var(--line,#e5e7eb);border-radius:10px;padding:8px 12px;margin:6px 0;} .cs-sub-hd{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;} .cs-sub .cs-gridwrap{margin:8px 0;}
-.cs-ro{background:#039be5;color:#fff;border:1px solid #0288d1;z-index:3;} .cs-flag{color:#b91c1c;font-weight:700;} .cs-result{background:var(--card,#fff);border:1px solid var(--line,#e5e7eb);border-left:6px solid #f97316;border-radius:12px;padding:14px 16px;margin:0 0 14px;} .cs-result.ok{border-left-color:#16a34a;}
+.cs-ro{background:#039be5;color:#fff;border:1px solid #0288d1;z-index:3;} .cs-result{background:var(--card,#fff);border:1px solid var(--line,#e5e7eb);border-left:6px solid #f97316;border-radius:12px;padding:14px 16px;margin:0 0 14px;} .cs-result.ok{border-left-color:#16a34a;}
 .cs-score{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px;} .cs-score b{font-size:32px;color:var(--navy);} .cs-score span{font-weight:700;color:var(--ink-soft);}
 .cs-item{border-top:1px solid var(--line,#e5e7eb);padding:8px 0;font-size:13.5px;} .cs-item-hd{display:flex;gap:6px;align-items:baseline;} .cs-item-hd span{margin-left:auto;font-weight:700;color:var(--ink-soft);white-space:nowrap;}
 .cs-item.ok .cs-item-hd{color:#166534;} .cs-item.bad .cs-item-hd{color:#991b1b;} .cs-item ul{margin:4px 0 0 22px;padding:0;color:#7f1d1d;font-size:13px;} .cs-tnote{margin-top:4px;font-size:13px;color:#14532d;background:#f0fdf4;border-radius:6px;padding:4px 8px;}
 .cs-review ul{margin:6px 0 0 20px;padding:0;font-size:13px;color:#14532d;} .cs-rv-ts{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px;} .cs-rv-t{display:flex;flex-direction:column;gap:2px;font-size:12px;font-weight:700;color:var(--ink-soft);} .cs-rv-t input{padding:6px 8px;font:inherit;font-weight:400;}
-.cs-evlist{margin:6px 0 10px 18px;padding:0;font-size:13px;} .cs-rv{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin:8px 0 4px;} .cs-rv label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;color:var(--ink-soft);} .cs-rv input{width:90px;padding:6px 8px;} .cs-rv-c{flex:1 1 280px;} .cs-rv textarea{width:100%;padding:6px 8px;font:inherit;}
+.cs-rv{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin:8px 0 4px;} .cs-rv label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;color:var(--ink-soft);} .cs-rv input{width:90px;padding:6px 8px;} .cs-rv-c{flex:1 1 280px;} .cs-rv textarea{width:100%;padding:6px 8px;font:inherit;}
 .cs-blurb{margin:0 0 12px;font-size:13.5px;color:var(--ink-soft);max-width:820px;} .cs-weeks{margin-top:-4px;} .cs-wk{font-size:12.5px;padding:6px 14px;} .cs-et{font-size:11px;color:var(--ink-soft);} .cs-chip{background:#e0f2fe;color:#075985;margin-left:4px;}
 .cs-modal{position:fixed;inset:0;z-index:9800;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px;}
 .cs-dlg{width:min(460px,100%);background:#fff;border-radius:16px;padding:18px 20px;box-shadow:0 24px 60px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:12px;}

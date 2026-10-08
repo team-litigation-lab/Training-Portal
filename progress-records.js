@@ -3,7 +3,7 @@
 // (/api/program-progress?program=<id>) and lists its trainees batch by batch.
 // A batch can be archived (hidden, its records kept in a snapshot) and
 // reopened or restored from the "Archived batches" list.
-const PROGRAM_ORDER = ['ft', 'eapa', 'cm', 'pd', 'md'];
+const PROGRAM_ORDER = ['ft', 'eapa', 'cm', 'pd', 'md'];   // keep in step with PROGRAM_ORDER (and the label fallback) in attendance.html
 const P = { data: null, cache: {}, snaps: {}, tab: 'people', program: (() => { try { return localStorage.getItem('pg-program') || 'ft'; } catch (e) { return 'ft'; } })(),
     status: 'active', batch: '', q: '', sort: 'recent', open: {}, closed: {}, archOpen: false,
     fb: { day: '', status: '', batch: '', q: '' } };
@@ -387,8 +387,13 @@ async function load(force) {
         const data = await res.json().catch(() => ({}));
         if (res.status === 401 || res.status === 403) { window.location.replace('/admin-login.html'); return; }
         if (!res.ok || !data.success) throw new Error(data.error || `Couldn’t load the records (${res.status}).`);
-        if (!(data.programs || []).some(p => p.id === id)) { P.program = (data.programs && data.programs[0] && data.programs[0].id) || id; }
-        P.programs = data.programs; P.cache[P.program] = data;
+        if (!(data.programs || []).some(p => p.id === id)) {   // the requested program is gone: switch to the first live one and fetch it
+            const first = data.programs && data.programs[0] && data.programs[0].id;
+            P.programs = data.programs;
+            if (first && first !== id) { P.program = first; load(); }
+            return;
+        }
+        P.programs = data.programs; P.cache[id] = data;   // keyed by the program this request fetched, not the tab selected when the response lands
         if (P.program === id) { P.data = data; render(); }
     } catch (e) {
         document.getElementById('app').innerHTML = `<div class="sim-card"><div class="sim-error">${esc(e.message)}</div></div>`;

@@ -20,7 +20,6 @@ a{color:inherit;}
 .sim-btn.primary{background:var(--navy);color:var(--orange);} .sim-btn.primary:hover{background:var(--navy-mid);}
 .sim-btn.orange{background:var(--orange);color:#0f172a;} .sim-btn.orange:hover{background:var(--orange-soft);}
 .sim-btn.ghost{background:#fff;color:var(--navy);border:1px solid #cbd5e1;} .sim-btn.ghost:hover{border-color:var(--navy);}
-.sim-btn.danger{background:#dc2626;color:#fff;}
 .sim-btn[disabled]{opacity:.5;cursor:default;}
 .sim-chip{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:4px 10px;}
 .sim-chip.live{background:#f0fdf4;color:var(--ok);} .sim-chip.next{background:#eff6ff;color:#1d4ed8;} .sim-chip.input{background:#fff7ed;color:#9a3412;} .sim-chip.plan{background:#f1f5f9;color:var(--slate);}

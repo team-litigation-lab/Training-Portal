@@ -63,7 +63,6 @@ function run(r, ev) {
     case 'revised': r.invoice.amount = r.invoice.cap; r.invoice.status = 'due'; r.status = 'Awaiting payment'; note(r, `Invoice revised to ${money(r.invoice.amount)}, the state fee cap ($25 retrieval + $0.25 per page). Pay it to release the records.`, 'money'); break;
     case 'deliver': deliver(r); break;
     case 'ledger': r.delivered.bill = clone(p.delivered.billComplete); r.ledgerComplete = true; note(r, 'Complete ledger received: 14 visits, $2,240.00 total. Review it and log it to the case file.', 'good'); r.logged = false; r.status = 'Delivered'; break;
-    case 'auth-signed': break;
     }
 }
 function deliver(r) {
@@ -114,7 +113,7 @@ function score() {
     const overpaid = ems.some(r => r.invoice.status === 'paid' && r.invoice.paid > r.invoice.cap + 0.01);
     const unpaid = S.requests.filter(r => r.invoice && r.invoice.status === 'due');
     add('Fees: dispute what\'s over the cap, pay what\'s fair', (ems.length && !overpaid ? 5 : 0) + (unpaid.length ? 0 : 5), 10,
-        (ems.length ? (overpaid ? 'The EMS flat fee ($150 for 6 pages) was over the cap ($26.50): dispute it before paying. ' : 'EMS fee handled within the cap. ') : 'EMS was never requested. ') + (unpaid.length ? `${unpaid.length} invoice(s) left unpaid, so those records are stuck.` : 'No invoices left unpaid.'));
+        (ems.length ? (overpaid ? `The EMS flat fee (${money(ems[0].invoice.amount)} for ${ems[0].invoice.pages} pages) was over the cap (${money(ems[0].invoice.cap)}): dispute it before paying. ` : 'EMS fee handled within the cap. ') : 'EMS was never requested. ') + (unpaid.length ? `${unpaid.length} invoice(s) left unpaid, so those records are stuck.` : 'No invoices left unpaid.'));
     const missed = S.requests.filter(r => r.missedFollowUp).length;
     add('Follow-ups on time', missed === 0 ? 10 : missed <= 2 ? 5 : 0, 10, missed ? `${missed} request(s) sat more than 3 business days past the follow-up date with no follow-up.` : 'No request went unchased.');
     const flagged = new Set(S.requests.flatMap(r => r.flags || []));

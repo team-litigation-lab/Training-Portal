@@ -29,6 +29,14 @@ function constantTimeEqual(a, b) {
     for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
     return diff === 0;
 }
+/** Constant-time comparison of two secret STRINGS (never ===, which leaks length/prefix timing).
+ *  An empty string matches nothing — a missing header can never equal an unset secret.
+ *  The one shared copy: ai-gateway, call-results, email-inbound and attendance-feed all use it. */
+export function sameSecret(a, b) {
+    const enc = new TextEncoder();
+    const x = enc.encode(String(a || '')), y = enc.encode(String(b || ''));
+    return x.length > 0 && constantTimeEqual(x, y);
+}
 
 /* =====================================================================
    SESSION TOKENS
@@ -150,9 +158,15 @@ export async function requireSession(request, env, { adminOnly = false } = {}) {
     if (!alive) {
         return { ok: false, response: json({ success: false, error: 'Session expired.', code: 'SESSION_EXPIRED' }, 401) };
     }
-    const liveUser = await env.DB.prepare(`SELECT status FROM users WHERE username = ?`).bind(payload.username).first();
-    if (!liveUser || liveUser.status !== 'Approved') {
-        return { ok: false, response: json({ success: false, error: 'Your access has been revoked.', code: 'ACCESS_REVOKED' }, 401) };
+    // The Master Account logs in normally (login.js) but has no users row by
+    // design, so the revocation check below would 401 every one of its calls
+    // — and with it site-state.js's LOCK, which only a Master session may
+    // reach. Skip it for Master, as me.js and _middleware.js already do.
+    if (payload.username !== MASTER_USERNAME) {
+        const liveUser = await env.DB.prepare(`SELECT status FROM users WHERE username = ?`).bind(payload.username).first();
+        if (!liveUser || liveUser.status !== 'Approved') {
+            return { ok: false, response: json({ success: false, error: 'Your access has been revoked.', code: 'ACCESS_REVOKED' }, 401) };
+        }
     }
     if (adminOnly && payload.userType !== 'Admin') {
         return { ok: false, response: json({ success: false, error: 'Admin access required.' }, 403) };
@@ -180,16 +194,14 @@ export function isMaster(session) {
 }
 
 /**
- * Verifies Master Account credentials for Lock/Unlock — the ONLY two
- * actions the Master Account is used for now that it can no longer
- * complete a normal login (see login.js). Checked against
- * env.MASTER_ADMIN_PASSWORD (a Cloudflare Pages secret), never against the
- * users table — the Master Account has no row there and no session is ever
- * created for it, so there's nothing in the DB to check against. This is
- * also why Lock's own gate can no longer be isMaster(session): a session
- * can never belong to Master, so that check would make Lock unreachable
- * by anyone. Instead, any admin can open the Lock confirmation step, but
- * only Master's own credentials succeed here.
+ * Verifies Master Account credentials. The Master Account logs in normally
+ * through the Admin Portal (login.js builds its session without a users
+ * row), and these credentials are re-confirmed for Lock (a "sudo"-style
+ * extra step) and checked directly for Unlock, which runs without a
+ * session. Checked against env.MASTER_ADMIN_PASSWORD (a Cloudflare Pages
+ * secret), never against the users table — the Master Account has no row
+ * there, which is why requireSession, heartbeat.js, me.js and
+ * _middleware.js all skip the users-table status check for it.
  */
 export function verifyMasterCredentials(env, username, password) {
     if (username !== MASTER_USERNAME) return false;
