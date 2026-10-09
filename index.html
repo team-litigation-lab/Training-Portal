@@ -238,6 +238,45 @@
         min-height: calc(100vh - var(--nav-h, 105px) - var(--anchor-gap));
         display: flex; flex-direction: column; justify-content: center;
     }
+    /* About Legal Support Help: the founder and the history read as one subject,
+       so from a desktop width they sit next to each other on a single screen
+       instead of taking one each. #about becomes the grid itself — the band
+       spans both columns and the two blocks fall into place either side — so
+       nothing in the markup had to move.
+       Everything inside is tightened to the half-width it now has: the photo
+       takes four parts to the text's six, the type steps down, and the two
+       timelines stay abreast because they read left to right as one sequence.
+       The pair runs about 1649px stacked against the 789px a 900px-tall window
+       leaves, so the trimming is the point, not decoration.
+       Below 1100px there is not enough width for two readable columns and this
+       whole block is skipped: the stacked layout underneath is unchanged. */
+    @media (min-width: 1100px) {
+        #about {
+            min-height: calc(100vh - var(--nav-h, 105px) - var(--anchor-gap));
+            display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            grid-template-rows: auto auto; align-content: center; column-gap: clamp(32px, 3.4vw, 56px);
+        }
+        #about > .band { grid-column: 1 / -1; }
+        /* it was a screen of its own; now it is a column of one */
+        #about .history-block { margin-top: 0; min-height: 0; display: block; }
+        #about .founder-block { min-width: 0; }
+        #about .sub-head { font-size: clamp(19px, 1.5vw, 24px); }
+        #about .founder-grid { grid-template-columns: minmax(0, 4fr) minmax(0, 6fr); gap: clamp(16px, 1.5vw, 24px); margin-top: 16px; align-items: start; }
+        #about .name-pill { font-size: clamp(14px, 1.15vw, 17px); padding: 8px 16px; margin-bottom: 12px; }
+        #about .founder-text p { font-size: clamp(12.5px, .95vw, 14px); line-height: 1.6; margin: 0 0 10px; }
+        #about .founder-text .btn-ghost-dark { font-size: 12.5px; padding: 8px 16px; }
+        #about .about-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; margin-top: 16px; }
+        #about .about-imgs { grid-template-columns: 1fr 1fr; gap: 12px; }
+        #about .about-text p { font-size: clamp(12.5px, .95vw, 14px); line-height: 1.6; margin: 0 0 10px; }
+        #about .about-text p:last-child, #about .founder-text p:last-child { margin-bottom: 0; }
+        /* A short window has less to give than a narrow one, and the founder
+           column is the taller of the two, so that is what gives way. */
+        @media (max-height: 860px) {
+            #about .founder-text p, #about .about-text p { font-size: 12.5px; line-height: 1.55; margin-bottom: 8px; }
+            #about .sub-head { font-size: 19px; }
+            #about .name-pill { font-size: 14px; padding: 6px 13px; margin-bottom: 9px; }
+        }
+    }
     .vlf-link { font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
     .vlf-link:hover { color: var(--orange-soft); }
     .sub-head { font-size: clamp(22px, 2.6vw, 30px); font-weight: 800; letter-spacing: -0.01em; color: var(--navy); margin: 0; }
@@ -310,7 +349,15 @@
        abreast need more of the row than the text does, hence 7fr/5fr. */
     .about-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 36px; align-items: center; margin-top: 28px; }
     .about-imgs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; }
-    .about-imgs img { width: 100%; height: auto; border-radius: 14px; box-shadow: 0 18px 40px -22px rgba(15,33,72,.5); }
+    /* Each timeline carries its own title hard against its left edge: "LSH History
+       Timeline" starts at pixel 5 of a 900px-wide file, so by the time the image is
+       drawn here that margin is under 2px — while border-radius stays a flat 14px
+       whatever the image is scaled to. The corner curve was cutting the L off.
+       The radius goes on a mount around the image rather than on the image, so the
+       corner rounds the matte and every pixel of the timeline, title included,
+       survives. padding on a replaced element insets the picture inside the
+       painted background, which is exactly a photo mount. */
+    .about-imgs img { width: 100%; height: auto; box-sizing: border-box; padding: 4px; background: #fff; border-radius: 14px; box-shadow: 0 18px 40px -22px rgba(15,33,72,.5); }
     /* The tilt was a flourish on a stacked pair; side by side at this width the
        corners of the two would run into each other, so it goes. */
     .about-text p { font-size: 15.5px; line-height: 1.7; }
