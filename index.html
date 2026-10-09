@@ -200,7 +200,15 @@
        the other. --nav-h is measured from the nav in script below, so the gap is
        the same everywhere; the literal here is only the pre-script fallback. */
     section[id], .founder-block, .history-block { scroll-margin-top: calc(var(--nav-h, 105px) + var(--anchor-gap)); }
-    .history-block { margin-top: 72px; }
+    /* One screen of its own, like #team: the two timelines and the text that
+       explains them belong together, and the block was running past the fold
+       with the images stacked. The section's own anchor offset already clears
+       the sticky nav, so the height to fill is the viewport minus that. */
+    .history-block {
+        margin-top: 72px;
+        min-height: calc(100vh - var(--nav-h, 105px) - var(--anchor-gap));
+        display: flex; flex-direction: column; justify-content: center;
+    }
     .vlf-link { font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
     .vlf-link:hover { color: var(--orange-soft); }
     .sub-head { font-size: clamp(22px, 2.6vw, 30px); font-weight: 800; letter-spacing: -0.01em; color: var(--navy); margin: 0; }
@@ -268,11 +276,16 @@
         #team { padding-bottom: 20px; }
     }
     @media (max-width: 1100px) { .org-row .org-name { font-size: 14.5px; } .org-row .org-card img { width: 60px; height: 60px; } }
-    .about-grid { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: 44px; align-items: center; margin-top: 36px; }
-    .about-imgs { display: grid; gap: 14px; }
+    /* The timelines read left-to-right as one sequence (2018-2022, then
+       2022-2025), so they sit side by side rather than stacked. Two of them
+       abreast need more of the row than the text does, hence 7fr/5fr. */
+    .about-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 36px; align-items: center; margin-top: 28px; }
+    .about-imgs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; }
     .about-imgs img { width: 100%; height: auto; border-radius: 14px; box-shadow: 0 18px 40px -22px rgba(15,33,72,.5); }
-    .about-imgs img:first-child { transform: rotate(-3deg); }
-    .about-text p { font-size: 16.5px; line-height: 1.8; color: var(--navy); margin: 0 0 18px; }
+    /* The tilt was a flourish on a stacked pair; side by side at this width the
+       corners of the two would run into each other, so it goes. */
+    .about-text p { font-size: 15.5px; line-height: 1.7; }
+    .about-text p { color: var(--navy); margin: 0 0 16px; }
     .vm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px; margin-top: 36px; }
     .vm-col { display: flex; gap: 20px; align-items: stretch; }
     .vm-tag { flex: none; width: 54px; border-radius: 16px; background: var(--navy); border: 2px solid rgba(255,255,255,.18); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--orange); font-weight: 900; font-size: 24px; }
@@ -283,6 +296,8 @@
     .value-card { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 104px; padding: 18px 20px; border-radius: 16px; background: var(--navy); border: 2px solid var(--orange); color: #fff; font-size: 18px; font-weight: 800; line-height: 1.35; }
     @media (max-width: 860px) {
         .founder-grid, .about-grid, .vm-grid { grid-template-columns: 1fr; }
+        .about-imgs { grid-template-columns: 1fr; }
+        .history-block { min-height: 0; display: block; }
         .org-row, .values-grid { grid-template-columns: 1fr; }
         .org-branch { display: none; } .org-row { margin-top: 0; } .org-card { min-width: 0; width: 100%; }
         .org-stem { height: 34px; position: relative; } .org-stem::after { content: ''; position: absolute; left: -5px; bottom: -2px; border: 6px solid transparent; border-top: 9px solid var(--orange); border-bottom: 0; }
