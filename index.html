@@ -219,28 +219,54 @@
         /* Wider than a text section: the chart is three cards across and was
            being held to .section's 1180px, which is why raising .org's own
            max-width alone did nothing. */
-        max-width: 1420px;
+        max-width: 1580px;
         --sec-pad-top: 54px; padding-bottom: 40px;
         min-height: calc(100vh - var(--nav-h, 105px) - var(--anchor-gap));
         display: flex; flex-direction: column;
     }
     #team .org { margin-top: auto; margin-bottom: auto; }
-    .org { max-width: 1340px; margin: 26px auto 0; display: flex; flex-direction: column; align-items: center; }
-    .org-card { display: flex; align-items: center; gap: 17px; background: var(--navy); color: #fff; border-radius: 20px; border: 2px solid rgba(255,255,255,.18); padding: 13px 26px 13px 13px; min-width: 392px; box-sizing: border-box; box-shadow: 0 16px 34px -20px rgba(15,33,72,.6); }
-    .org-card img { width: 92px; height: 92px; object-fit: cover; border-radius: 12px; flex: none; background: #fff; }
-    .org-name { font-size: 19.5px; font-weight: 800; color: var(--orange); line-height: 1.25; }
-    .org-role { font-size: 14.5px; letter-spacing: .04em; text-transform: uppercase; color: rgba(255,255,255,.85); margin-top: 5px; line-height: 1.35; }
-    .org-arrow { width: 2px; height: 30px; background: var(--orange); position: relative; margin: 0 auto; }
+    .org { max-width: 1500px; margin: 26px auto 0; display: flex; flex-direction: column; align-items: center; }
+    .org-card { display: flex; align-items: center; gap: 20px; background: var(--navy); color: #fff; border-radius: 22px; border: 2px solid rgba(255,255,255,.18); padding: 15px 30px 15px 15px; min-width: 470px; box-sizing: border-box; box-shadow: 0 16px 34px -20px rgba(15,33,72,.6); }
+    .org-card img { width: 128px; height: 128px; object-fit: cover; border-radius: 12px; flex: none; background: #fff; }
+    .org-name { font-size: 22px; font-weight: 800; color: var(--orange); line-height: 1.25; }
+    .org-role { font-size: 16px; letter-spacing: .04em; text-transform: uppercase; color: rgba(255,255,255,.85); margin-top: 5px; line-height: 1.35; }
+    .org-arrow { width: 2px; height: 32px; background: var(--orange); position: relative; margin: 0 auto; }
     .org-arrow::after { content: ''; position: absolute; left: -5px; bottom: -2px; border: 6px solid transparent; border-top: 9px solid var(--orange); border-bottom: 0; }
     .org-stem { width: 2px; height: 16px; background: var(--orange); margin: 0 auto; }
-    .org-branch { position: relative; width: 66%; height: 30px; border-top: 2px solid var(--orange); }
-    .org-branch i { position: absolute; top: -2px; width: 2px; height: 30px; background: var(--orange); }
+    .org-branch { position: relative; width: 66%; height: 32px; border-top: 2px solid var(--orange); }
+    .org-branch i { position: absolute; top: -2px; width: 2px; height: 32px; background: var(--orange); }
     .org-branch i::after { content: ''; position: absolute; left: -5px; bottom: -2px; border: 6px solid transparent; border-top: 9px solid var(--orange); border-bottom: 0; }
     .org-branch i:nth-child(1) { left: 0; } .org-branch i:nth-child(2) { left: calc(50% - 1px); } .org-branch i:nth-child(3) { right: 0; }
-    .org-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; width: 100%; }
-    .org-row .org-card { min-width: 0; padding-right: 20px; gap: 16px; }
-    .org-row .org-card img { width: 78px; height: 78px; }
-    .org-row .org-name { white-space: nowrap; font-size: 18px; }
+    .org-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; width: 100%; }
+    .org-row .org-card { min-width: 0; padding-right: 22px; gap: 18px; }
+    .org-row .org-card img { width: 112px; height: 112px; }
+    .org-row .org-name { white-space: nowrap; font-size: 20px; }
+    /* The chart is sized for a tall window; on a short one it would run past the
+       fold, and #team's whole point is to be one screen. These steps shrink the
+       photos (which drive the row heights) and tighten the spacing. Every size
+       here stays under the sharpness ceiling: the smallest source is 278px on
+       its short side, and object-fit:cover on a square box needs box x DPR to
+       fit inside that, so 139px is the most a 2x screen can show without
+       upscaling — these are all well below it. */
+    @media (max-height: 820px) {
+        .org { margin-top: 18px; }
+        .org-card { min-width: 430px; padding: 12px 26px 12px 12px; }
+        .org-card img { width: 104px; height: 104px; }
+        .org-row .org-card img { width: 92px; height: 92px; }
+        .org-name { font-size: 20px; } .org-role { font-size: 15px; }
+        .org-row .org-name { font-size: 18.5px; }
+        #team { padding-bottom: 28px; }
+    }
+    @media (max-height: 745px) {
+        .org { margin-top: 12px; }
+        .org-card { min-width: 400px; padding: 10px 22px 10px 10px; }
+        .org-card img { width: 92px; height: 92px; }
+        .org-row .org-card img { width: 80px; height: 80px; }
+        .org-name { font-size: 18.5px; } .org-role { font-size: 14px; }
+        .org-row .org-name { font-size: 17px; }
+        .org-arrow, .org-branch, .org-branch i { height: 24px; }
+        #team { padding-bottom: 20px; }
+    }
     @media (max-width: 1100px) { .org-row .org-name { font-size: 14.5px; } .org-row .org-card img { width: 60px; height: 60px; } }
     .about-grid { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: 44px; align-items: center; margin-top: 36px; }
     .about-imgs { display: grid; gap: 14px; }
@@ -428,15 +454,15 @@
 <section class="section" id="team">
     <div class="band"><h2>Meet the training team</h2></div>
     <div class="org">
-        <div class="org-card"><img src="/img/team/gwen.jpg" alt="Gwen Paiso-Adams" width="96" height="96" loading="lazy"><div><div class="org-name">Gwen Paiso-Adams</div><div class="org-role">General Manager</div></div></div>
+        <div class="org-card"><img src="/img/team/gwen.jpg" alt="Gwen Paiso-Adams" width="320" height="320" loading="lazy"><div><div class="org-name">Gwen Paiso-Adams</div><div class="org-role">General Manager</div></div></div>
         <div class="org-arrow" aria-hidden="true"></div>
-        <div class="org-card"><img src="/img/team/martin.jpg" alt="Martin Anthony Gan" width="96" height="96" loading="lazy"><div><div class="org-name">Martin Anthony “Matt” Gan</div><div class="org-role">Training Specialist and Coordinator</div></div></div>
+        <div class="org-card"><img src="/img/team/martin.jpg" alt="Martin Anthony Gan" width="320" height="320" loading="lazy"><div><div class="org-name">Martin Anthony “Matt” Gan</div><div class="org-role">Training Specialist and Coordinator</div></div></div>
         <div class="org-stem" aria-hidden="true"></div>
         <div class="org-branch" aria-hidden="true"><i></i><i></i><i></i></div>
         <div class="org-row">
-            <div class="org-card"><img src="/img/team/michelle.jpg" alt="Michelle Velarde" width="96" height="96" loading="lazy"><div><div class="org-name">Michelle “Mitch” Velarde</div><div class="org-role">Training Facilitator</div></div></div>
-            <div class="org-card"><img src="/img/team/john.jpg" alt="John Dela Cruz" width="96" height="96" loading="lazy"><div><div class="org-name">John “Mikee” Dela Cruz</div><div class="org-role">Upskill Coach</div></div></div>
-            <div class="org-card"><img src="/img/team/lei.jpg" alt="Lei Lee Ann Abut" width="96" height="96" loading="lazy"><div><div class="org-name">Lei Lee Ann “Lei” Abut</div><div class="org-role">Learning and Development Specialist / Upskill Coach</div></div></div>
+            <div class="org-card"><img src="/img/team/michelle.jpg" alt="Michelle Velarde" width="320" height="320" loading="lazy"><div><div class="org-name">Michelle “Mitch” Velarde</div><div class="org-role">Training Facilitator</div></div></div>
+            <div class="org-card"><img src="/img/team/john.jpg" alt="John Dela Cruz" width="320" height="320" loading="lazy"><div><div class="org-name">John “Mikee” Dela Cruz</div><div class="org-role">Upskill Coach</div></div></div>
+            <div class="org-card"><img src="/img/team/lei.jpg" alt="Lei Lee Ann Abut" width="320" height="320" loading="lazy"><div><div class="org-name">Lei Lee Ann “Lei” Abut</div><div class="org-role">Learning and Development Specialist / Upskill Coach</div></div></div>
         </div>
     </div>
 </section>
