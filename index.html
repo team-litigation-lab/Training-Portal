@@ -900,7 +900,7 @@
             // A visitor, or a locked site. Say so on the button rather than
             // opening a dialog that could only fail at the end.
             openBtn.textContent = '\u2605 Log in to rate your training';
-            openBtn.onclick = () => { location.href = '/trainee-login.html?next=' + encodeURIComponent('/index.html#feedback'); };
+            openBtn.onclick = () => { location.href = '/trainee-login.html?next=' + encodeURIComponent('/index.html?stay=1#feedback'); };
             return;
         }
         let d; try { d = await res.json(); } catch (e) { return; }
@@ -915,7 +915,7 @@
     }
 
     window.openFeedback = function () {
-        if (!signedIn) { location.href = '/trainee-login.html?next=' + encodeURIComponent('/index.html#feedback'); return; }
+        if (!signedIn) { location.href = '/trainee-login.html?next=' + encodeURIComponent('/index.html?stay=1#feedback'); return; }
         lastFocus = document.activeElement;
         if (mine) {
             mineBox.hidden = false; mineBox.className = 'fbk-status ' + mine.status;
