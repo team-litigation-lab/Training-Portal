@@ -353,24 +353,33 @@ const server = http.createServer(async (req, res) => {
     if (refused !== 403) fail(`a trainee changing the weekly schedule should be refused (${refused})`);
     const tcol = await tp.evaluate(() => { const b = [...document.querySelectorAll('#gc-main .ev')].find(e => /No Schedule Block/.test(e.textContent)); const bx = document.querySelector('#gc-side .cals .box'); return { ev: b && getComputedStyle(b).backgroundColor, cal: bx && getComputedStyle(bx).borderTopColor, btn: !!document.querySelector('[data-a="cc-open"]') }; });
     if (tcol.ev !== 'rgb(213, 0, 0)' || tcol.cal !== 'rgb(142, 36, 170)') fail('a trainee should see the trainer\'s color coding: ' + JSON.stringify(tcol));
-    // A trainee IS offered the color coding now — as the key to what they are looking at,
-    // and to the rule they are graded on. Read-only is the part that matters, so assert it
-    // rather than just dropping the old check: nothing to pick, and nothing saved for
-    // everyone. The write side stays the trainer's (PUT /api/gcal-schedule is adminOnly).
-    if (!tcol.btn) fail('a trainee should be offered the color coding key');
+    // A trainee sets their OWN color coding. Three things have to hold together,
+    // so assert all three rather than only that the swatches exist: their pick
+    // takes effect, it is kept with their calendar, and it does not write the
+    // program's colors (PUT /api/gcal-schedule is adminOnly, and those colors
+    // are shared — one trainee must not recolor the week for everyone).
+    if (!tcol.btn) fail('a trainee should be offered the color coding');
     const putsBefore = colorPuts.length;
     await tp.click('#gc-side [data-a="cc-open"]'); await tp.waitForSelector('.gc-dlg .cc');
-    const key = await tp.evaluate(() => ({
-        pickers: document.querySelectorAll('.gc-dlg .cc [data-cc]').length,
-        dots: document.querySelectorAll('.gc-dlg .cc .cc-dot').length,
-        cancel: !!document.querySelector('.gc-dlg [data-x]'),
-    }));
-    if (key.pickers) fail(`a trainee's color coding should be read-only (${key.pickers} swatches to pick)`);
-    if (!key.dots) fail('a trainee\'s color coding should show the colors in use');
-    if (key.cancel) fail('a read-only color key should offer Close alone, with nothing to cancel');
-    await shot(tp, 'gcal-7c-color-key-trainee');
-    await tp.click('.gc-dlg [data-ok]'); await tp.waitForTimeout(300);
-    if (colorPuts.length !== putsBefore) fail('a trainee opening the color key must not save colors for everyone');
+    const pickers = await tp.evaluate(() => document.querySelectorAll('.gc-dlg .cc [data-cc]').length);
+    if (!pickers) fail('a trainee should be able to pick their own colors');
+    await tp.click('.gc-dlg [data-cc="cal"][data-k="attorney"][data-v="banana"]');
+    await shot(tp, 'gcal-7c-color-coding-trainee');
+    await tp.click('.gc-dlg [data-ok]'); await tp.waitForTimeout(400);
+    const mine = await tp.evaluate(() => {
+        const bx = document.querySelector('#gc-side .cals .box');
+        const st = JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k => k.startsWith('lsh_gcal')) || '') || 'null');
+        return { cal: bx && getComputedStyle(bx).borderTopColor, saved: st && st.cc && st.cc.cal && st.cc.cal.attorney };
+    });
+    if (mine.cal !== 'rgb(246, 191, 38)') fail(`a trainee's own color should show on their calendar: ${mine.cal}`);
+    if (mine.saved !== 'banana') fail(`a trainee's own color should be kept with their calendar: ${JSON.stringify(mine.saved)}`);
+    if (colorPuts.length !== putsBefore) fail('a trainee choosing their own colors must not write the colors for everyone');
+    // The trainer's coding still reaches the rows the trainee has not overridden.
+    const other = await tp.evaluate(() => {
+        const b = [...document.querySelectorAll('#gc-main .ev')].find(e => /No Schedule Block/.test(e.textContent));
+        return b && getComputedStyle(b).backgroundColor;
+    });
+    if (other !== 'rgb(213, 0, 0)') fail(`the trainer's coding should still apply where the trainee has not overridden it: ${other}`);
     await tp.close();
     // restore
     await page.click('[data-a="admin-reset"]'); await page.click('.gc-dlg [data-ok]'); await page.waitForTimeout(300);
