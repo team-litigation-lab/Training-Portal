@@ -139,6 +139,52 @@
     background-image: linear-gradient(135deg, rgba(249, 115, 22, .22) 0%, rgba(56, 189, 248, .16) 100%);
 }
 
+/* ---------- the landing page's main screen ---------- */
+/* index.html's first screen — the hero and the three feature cards under it —
+   was the one dark surface this layer never reached: a flat --navy-deep,
+   #081226. The ramp starts on that exact colour and travels down, so the nav
+   sitting flush above it still meets the same tone across the full width and
+   there is no seam to see; what changes is the lower half, where the rings and
+   the case-file cards already are.
+   The tilt is slight on purpose. A 135deg sweep would put mid-tone in the
+   top-right corner, against a nav that stays flat, and the seam would show;
+   near-vertical keeps the top edge uniform and spends the travel where it
+   reads. Contrast was the other reason to go gently: the lead paragraph is
+   white at 62%, and holding the copy over the deep end keeps it above 7:1.
+   It crests rather than climbs. Running the ramp straight up to its lightest
+   value left the screen ending brighter than the "Meet the training team"
+   band directly beneath it (--navy-mid), so the first screen looked cut off
+   instead of finished. It now lifts through the hero, where the rings and the
+   case-file cards are, then settles onto #132a5c — the band's own colour — so
+   the screen hands off to it without a step, exactly as its top hands off to
+   the nav.
+   .main-screen, .hero and .stats-strip each paint their own --navy-deep, which
+   would cover the ramp, so they go transparent and the one gradient on
+   .first-screen shows through all three continuously. */
+.first-screen {
+    position: relative;
+    background-image: linear-gradient(170deg, #081226 0%, #0a1836 32%, #10275a 56%, #1a3a78 78%, #132a5c 100%);
+}
+.first-screen .main-screen,
+.first-screen .hero,
+.first-screen .stats-strip { background-color: transparent; background-image: none; }
+
+/* The futuristic note, same as the simulators' hero gets: a cyan bloom, placed
+   behind the orange rings on the right so the two lights cross, plus a warmer
+   one in the bottom corner to carry the brand's orange down the screen.
+   Everything the page puts in the hero is already z-index 1, so this sits
+   under all of it and never behind a word of copy. */
+.first-screen::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background:
+        radial-gradient(46% 54% at 76% 38%, rgba(56, 189, 248, .17), transparent 68%),
+        radial-gradient(40% 44% at 97% 95%, rgba(249, 115, 22, .11), transparent 72%);
+}
+/* No lit hairline along the bottom here, unlike the dark top bars. The band
+   below already brings its own top border and a 3px orange underline, and a
+   third line stacked above those read as clutter rather than an edge light —
+   the ramp settling onto the band's colour is what the join wants. */
+
 /* ---------- honour a reduced-motion preference ---------- */
 /* The lift and the hairline fade are decoration; someone who has asked for
    less movement should get the colour without any of it. */
@@ -153,7 +199,8 @@
 /* Printed pages drop the gradients: they cost ink and render as flat grey. */
 @media print {
     .idx-top, .sim-top, .auth-visual, .idx-head, .sim-hero, .sim-banner,
-    .sim-card, .topic-card, .queue-card { background-image: none; box-shadow: none; }
+    .sim-card, .topic-card, .queue-card, .first-screen { background-image: none; box-shadow: none; }
     .idx-top::after, .sim-top::after, .top-bar-modern::after,
-    .sim-hero::after, .sim-card::before, .topic-card::before { display: none; }
+    .sim-hero::after, .sim-card::before, .topic-card::before,
+    .first-screen::before { display: none; }
 }
