@@ -189,7 +189,12 @@
 
 
     /* ===== FOUNDER, TEAM, ABOUT, VISION, VALUES ===== */
-    section[id], .founder-block, .history-block { scroll-margin-top: 112px; }
+    /* The nav is sticky, so an anchor has to stop below it — and its height is
+       not a constant: the pill row wraps on a narrower window, taking it from
+       83px to 105px. 112px cleared it either way, but by 7px on one and 29px on
+       the other. --nav-h is measured from the nav in script below, so the gap is
+       the same everywhere; the literal here is only the pre-script fallback. */
+    section[id], .founder-block, .history-block { scroll-margin-top: calc(var(--nav-h, 105px) + 6px); }
     .history-block { margin-top: 72px; }
     .vlf-link { font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
     .vlf-link:hover { color: var(--orange-soft); }
@@ -200,7 +205,17 @@
     .name-pill { display: inline-block; font-size: 22px; font-weight: 800; color: var(--orange); background: var(--navy); border-radius: 14px; padding: 12px 24px; margin-bottom: 20px; }
     .hl { color: var(--orange); }
     /* The team chart is sized to sit in one screen, heading and all, on a laptop. */
-    #team { --sec-pad-top: 54px; padding-bottom: 54px; }
+    /* One full screen of its own: exactly the height left under the sticky nav,
+       so the chart neither shares the screen with the section below it nor runs
+       past the fold. The band already starts flush at the top of the section —
+       --sec-pad-top cancels the pull-up — so the chart takes the rest and sits
+       centred in it. */
+    #team {
+        --sec-pad-top: 54px; padding-bottom: 40px;
+        min-height: calc(100vh - var(--nav-h, 105px));
+        display: flex; flex-direction: column;
+    }
+    #team .org { margin-top: auto; margin-bottom: auto; }
     .org { max-width: 1132px; margin: 26px auto 0; display: flex; flex-direction: column; align-items: center; }
     .org-card { display: flex; align-items: center; gap: 14px; background: var(--navy); color: #fff; border-radius: 18px; border: 2px solid rgba(255,255,255,.18); padding: 10px 20px 10px 10px; min-width: 330px; box-sizing: border-box; box-shadow: 0 16px 34px -20px rgba(15,33,72,.6); }
     .org-card img { width: 78px; height: 78px; object-fit: cover; border-radius: 12px; flex: none; background: #fff; }
@@ -652,6 +667,23 @@ fetch('/api/me', { credentials: 'include', cache: 'no-store' }).then(r => r.json
     document.getElementById('pill-login').hidden = true;
     document.getElementById('pill-logout').hidden = false;
 }).catch(() => {});
+
+// --nav-h: the sticky nav's real height, for the anchor offset and for #team's
+// one-screen height. It is not a constant — the pill row wraps on a narrower
+// window and the nav grows from 83px to 105px — so measure it rather than
+// hard-coding, and keep it measured as the window changes. ResizeObserver
+// catches the wrap itself, which a resize listener alone can miss when the
+// height changes without the window doing so (a font loading late, say).
+(function () {
+    var nav = document.querySelector('nav');
+    if (!nav) return;
+    var set = function () {
+        document.documentElement.style.setProperty('--nav-h', Math.round(nav.getBoundingClientRect().height) + 'px');
+    };
+    set();
+    if (window.ResizeObserver) new ResizeObserver(set).observe(nav);
+    else window.addEventListener('resize', set);
+})();
 </script>
 </body>
 </html>
