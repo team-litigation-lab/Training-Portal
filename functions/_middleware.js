@@ -5,7 +5,7 @@ import { ticketSession } from './api/ticket-login.js';
 // any of their pages or files are sent, so a visitor without one gets a redirect to the Portal sign-in and nothing else.
 // (Their APIs check the session themselves: functions/_sim-guard.js.)
 // The admin pages: only a signed-in Admin gets them. Everyone else (a trainee, a visitor) is sent to the admin sign-in and receives none of the page.
-const ADMIN_PAGES = [/^\/(core|attendance|progress|referrals|feedback|system)(\.html)?\/?$/i];
+const ADMIN_PAGES = [/^\/(core|attendance|progress|referrals|system)(\.html)?\/?$/i];
 // The Training Directory is for signed-in people: a visitor who opens it (or presses "Access Training Directory" on the main
 // page) is sent to the trainee sign-in, and comes back here once signed in. The main page itself stays public.
 const MEMBER_PAGES = [/^\/programs(\.html)?\/?$/i];
