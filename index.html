@@ -204,6 +204,7 @@
        explains them belong together, and the block was running past the fold
        with the images stacked. The section's own anchor offset already clears
        the sticky nav, so the height to fill is the viewport minus that. */
+    #faq { min-height: calc(100vh - var(--nav-h, 105px) - var(--anchor-gap)); display: flex; flex-direction: column; justify-content: center; }
     .history-block {
         margin-top: 72px;
         min-height: calc(100vh - var(--nav-h, 105px) - var(--anchor-gap));
@@ -286,19 +287,29 @@
        corners of the two would run into each other, so it goes. */
     .about-text p { font-size: 15.5px; line-height: 1.7; }
     .about-text p { color: var(--navy); margin: 0 0 16px; }
-    .vm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px; margin-top: 36px; }
+    /* Mission, Vision and the nine values are one screen now, so the block is
+       sized to the room under the sticky nav and everything in it is tightened
+       to fit: the two halves together ran about 1209px against the 789px a
+       900px-tall window leaves. */
+    #vision { min-height: calc(100vh - var(--nav-h, 105px) - var(--anchor-gap)); display: flex; flex-direction: column; justify-content: center; padding-bottom: 40px; }
+    .vm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin-top: 20px; }
     .vm-col { display: flex; gap: 20px; align-items: stretch; }
     .vm-tag { flex: none; width: 54px; border-radius: 16px; background: var(--navy); border: 2px solid rgba(255,255,255,.18); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--orange); font-weight: 900; font-size: 24px; }
-    .vm-body h3 { margin: 0 0 8px; font-size: 22px; font-weight: 900; color: var(--orange); letter-spacing: .02em; text-transform: uppercase; }
-    .vm-body p { font-size: 15.5px; line-height: 1.75; color: var(--navy); margin: 0 0 22px; }
+    .vm-body h3 { margin: 0 0 5px; font-size: 17px; font-weight: 900; color: var(--orange); letter-spacing: .02em; text-transform: uppercase; }
+    .vm-body p { font-size: 13.5px; line-height: 1.6; color: var(--navy); margin: 0 0 14px; }
+    .vm-body p:last-child { margin-bottom: 0; }
+    .vm-values-head { margin: 26px 0 0; font-size: 19px; font-weight: 900; color: var(--navy); letter-spacing: .01em; text-align: center; scroll-margin-top: calc(var(--nav-h, 105px) + var(--anchor-gap)); }
     /* the section's own width, so the cards line up with the Mission and Vision columns above them */
-    .values-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 36px; }
-    .value-card { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 104px; padding: 18px 20px; border-radius: 16px; background: var(--navy); border: 2px solid var(--orange); color: #fff; font-size: 18px; font-weight: 800; line-height: 1.35; }
+    .values-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+    .value-card { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 64px; padding: 10px 14px; border-radius: 13px; background: var(--navy); border: 2px solid var(--orange); color: #fff; font-size: 13.5px; font-weight: 800; line-height: 1.3; }
     @media (max-width: 860px) {
         .founder-grid, .about-grid, .vm-grid { grid-template-columns: 1fr; }
         .about-imgs { grid-template-columns: 1fr; }
         .history-block { min-height: 0; display: block; }
         .org-row, .values-grid { grid-template-columns: 1fr; }
+        #vision, #faq { min-height: 0; display: block; }
+        .vm-body h3 { font-size: 20px; } .vm-body p { font-size: 15px; }
+        .value-card { min-height: 84px; font-size: 16px; }
         .org-branch { display: none; } .org-row { margin-top: 0; } .org-card { min-width: 0; width: 100%; }
         .org-stem { height: 34px; position: relative; } .org-stem::after { content: ''; position: absolute; left: -5px; bottom: -2px; border: 6px solid transparent; border-top: 9px solid var(--orange); border-bottom: 0; }
         .org-row .org-name { white-space: normal; }
@@ -317,6 +328,28 @@
     .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
     .faq-item.open .faq-answer { max-height: 240px; }
     .faq-answer p { font-size: 13.5px; color: var(--slate); line-height: 1.6; padding: 0 4px 20px; }
+    /* Short windows: both of these are sized to one screen, and at 768 or 720
+       tall the room under the nav is ~664px — the merged Mission/Vision/Values
+       block came to 761 and the FAQ list to 677. Tighten the type and the
+       spacing rather than let either spill past the fold. */
+    @media (max-height: 820px) {
+        #vision { padding-bottom: 24px; }
+        .vm-grid { gap: 20px; margin-top: 14px; }
+        .vm-body h3 { font-size: 15px; margin-bottom: 3px; }
+        .vm-body p { font-size: 12px; line-height: 1.5; margin-bottom: 10px; }
+        .vm-tag { width: 42px; font-size: 19px; }
+        .vm-values-head { margin-top: 16px; font-size: 16px; }
+        .values-grid { gap: 9px; margin-top: 10px; }
+        .value-card { min-height: 50px; padding: 7px 10px; font-size: 11.5px; border-radius: 11px; }
+        .faq-question { padding: 11px 4px; font-size: 14px; }
+        .faq-answer p { font-size: 12.5px; padding-bottom: 14px; }
+    }
+    @media (max-height: 745px) {
+        #vision { padding-bottom: 12px; }
+        .vm-body p { margin-bottom: 8px; }
+        .values-grid { gap: 7px; }
+        .value-card { min-height: 44px; }
+    }
 
 
     /* ===== FOOTER ===== */
@@ -395,8 +428,7 @@
                  (team, about, vision, values, faq), then the places that leave it, then the actions. -->
             <a class="pill" href="#team">Meet your training team</a>
             <a class="pill" href="#about">About</a>
-            <a class="pill" href="#vision">Mission and Vision</a>
-            <a class="pill" href="#values">Core Values</a>
+            <a class="pill" href="#vision">Mission, Vision and Values</a>
             <a class="pill" href="#faq">FAQs</a>
             <a class="pill" href="/blueprint.html">Platform Blueprint</a>
             <button type="button" class="pill" onclick="openReferral()">Got a referral?</button>
@@ -517,7 +549,7 @@
 </section>
 
 <section class="section" id="vision">
-    <div class="band"><h2>Mission and Vision</h2></div>
+    <div class="band"><h2>Mission, Vision and Core Values</h2></div>
     <div class="vm-grid">
         <div class="vm-col">
             <div class="vm-tag" aria-label="Clients"><span>C</span><span>L</span><span>I</span><span>E</span><span>N</span><span>T</span><span>S</span></div>
@@ -538,10 +570,7 @@
             </div>
         </div>
     </div>
-</section>
-
-<section class="section" id="values">
-    <div class="band"><h2>Our 9 Core Values</h2></div>
+    <h3 class="vm-values-head" id="values">Our 9 Core Values</h3>
     <div class="values-grid">
         <div class="value-card">Integrity &amp; Loyalty Through Compliance</div>
         <div class="value-card">Accountability</div>
@@ -745,6 +774,37 @@ fetch('/api/me', { credentials: 'include', cache: 'no-store' }).then(r => r.json
     set();
     if (window.ResizeObserver) new ResizeObserver(set).observe(nav);
     else window.addEventListener('resize', set);
+})();
+
+// ← Back, for jumping around this page. portal-nav.js deliberately skips the
+// landing page with its floating Back — that one goes to a PARENT page, and
+// this page has none. What is wanted here is a way back from a section you
+// reached by a nav pill, so this appears only once a pill has been used and
+// steps back through those jumps.
+(function () {
+    var btn = null, hops = 0;
+    function show() {
+        if (btn) { btn.hidden = false; return; }
+        btn = document.createElement('a');
+        btn.className = 'pn-back pn-float'; btn.id = 'lp-back';
+        btn.textContent = '← Back'; btn.title = 'Back to where you were on this page';
+        btn.setAttribute('role', 'button'); btn.tabIndex = 0;
+        btn.onclick = function () {
+            // history.back() replays the hash jumps in order. Once the last one
+            // is spent there is nothing left to go back to on this page, so the
+            // top is the honest destination rather than leaving the site.
+            if (hops > 0) { hops--; history.back(); } else { window.scrollTo({ top: 0, behavior: 'smooth' }); btn.hidden = true; }
+        };
+        btn.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); } };
+        document.body.appendChild(btn);
+    }
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a[href^="#"]');
+        if (!a || a.getAttribute('href') === '#') return;
+        hops++; show();
+    });
+    // Back to the top of the page with no jumps left behind it: nothing to return to.
+    window.addEventListener('hashchange', function () { if (!location.hash && btn) btn.hidden = true; });
 })();
 </script>
 </body>
