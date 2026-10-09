@@ -278,7 +278,8 @@
     .vm-tag { flex: none; width: 54px; border-radius: 16px; background: var(--navy); border: 2px solid rgba(255,255,255,.18); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--orange); font-weight: 900; font-size: 24px; }
     .vm-body h3 { margin: 0 0 8px; font-size: 22px; font-weight: 900; color: var(--orange); letter-spacing: .02em; text-transform: uppercase; }
     .vm-body p { font-size: 15.5px; line-height: 1.75; color: var(--navy); margin: 0 0 22px; }
-    .values-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 36px; max-width: 1000px; margin-left: auto; margin-right: auto; }
+    /* the section's own width, so the cards line up with the Mission and Vision columns above them */
+    .values-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 36px; }
     .value-card { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 104px; padding: 18px 20px; border-radius: 16px; background: var(--navy); border: 2px solid var(--orange); color: #fff; font-size: 18px; font-weight: 800; line-height: 1.35; }
     @media (max-width: 860px) {
         .founder-grid, .about-grid, .vm-grid { grid-template-columns: 1fr; }
@@ -375,14 +376,16 @@
     <div class="nav-inner">
         <div class="brand"><img class="brand-logo" src="/img/logo.png" alt="Legal Support Help" width="137" height="84"> <span class="brand-title">Legal Support Help Upskill Hub</span></div>
         <div class="nav-pills">
-            <a class="pill" href="#values">Core Values</a>
-            <a class="pill" href="#vision">Mission and Vision</a>
-            <button type="button" class="pill" onclick="openReferral()">Got a referral?</button>
-            <a class="pill" href="/blueprint.html">Platform Blueprint</a>
+            <!-- The pills that scroll this page come first, in the order the sections appear on it
+                 (team, about, vision, values, faq), then the places that leave it, then the actions. -->
             <a class="pill" href="#team">Meet your training team</a>
-            <a class="pill" href="#faq">FAQs</a>
-            <a class="pill" href="/admin-login.html" title="Admin monitoring (sign-in required)">Admin</a>
             <a class="pill" href="#about">About</a>
+            <a class="pill" href="#vision">Mission and Vision</a>
+            <a class="pill" href="#values">Core Values</a>
+            <a class="pill" href="#faq">FAQs</a>
+            <a class="pill" href="/blueprint.html">Platform Blueprint</a>
+            <button type="button" class="pill" onclick="openReferral()">Got a referral?</button>
+            <a class="pill" href="/admin-login.html" title="Admin monitoring (sign-in required)">Admin</a>
             <a class="pill pill-auth" id="pill-login" href="/trainee-login.html">Log In</a>
             <button type="button" class="pill pill-auth" id="pill-logout" onclick="PortalNav.logout()" hidden>Log Out</button>
         </div>
