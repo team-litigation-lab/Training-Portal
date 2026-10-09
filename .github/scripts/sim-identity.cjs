@@ -16,6 +16,11 @@
 //   - the "Who's practicing?" box is never shown;
 //   - a heartbeat goes out, so the Portal keeps treating them as signed in;
 //   - Sim.saveResult posts the score, and posts it as the signed-in trainee.
+// Then two cases that hang off the same answer:
+//   - a shared training-room machine: the previous trainee's name, calendar and history are dropped for the person now
+//     signed in (LSH_SIM_USER / Sim.claim(), which could only run once who is signed in was known);
+//   - a signed-out visitor is still asked who is practicing and their result is still saved: only *when* that is decided
+//     changed, not the decision.
 // Usage: node .github/scripts/sim-identity.cjs   (from the repository root; needs `npm i playwright`)
 const { chromium } = require('playwright');
 const http = require('http'); const fs = require('fs'); const path = require('path');
@@ -26,19 +31,20 @@ const failures = []; const fail = (m) => failures.push(m);
 const LEI = { username: 'labut', fullName: 'Lei Abut', userType: 'Trainee', batchId: 'B250926' };
 const LINK = '?program=FT&name=Someone%20Else&batch=B999999';      // what the course's link says
 const KEPT = { name: 'Maria Santos', batch: 'B010126' };           // an earlier trainee on this browser
-let log = [];
+let log = [], signedOut = false;
 const server = http.createServer(async (req, res) => {
     const u = new URL(req.url, 'http://x');
     const send = (o, code) => { res.writeHead(code || 200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
     const body = await new Promise(r => { let b = ''; req.on('data', c => { b += c; }); req.on('end', () => r(b)); });
     if (u.pathname.startsWith('/api/')) log.push({ path: u.pathname, method: req.method, body });
-    if (u.pathname === '/api/me') return send({ success: true, user: LEI });     // the cookie says who is signed in
+    if (u.pathname === '/api/me') return signedOut ? send({ success: false, code: 'NOT_AUTHENTICATED' }, 401) : send({ success: true, user: LEI });   // the cookie says who is signed in
     if (u.pathname === '/api/heartbeat') return send({ success: true });
     if (u.pathname === '/api/sim-results') return send({ success: true, admin: false, results: [] });
     if (u.pathname === '/api/calsim') return send({ success: true, me: { username: LEI.username, name: LEI.fullName, batch: LEI.batchId, admin: false }, data: null });
     if (u.pathname === '/api/gcal-reviews') return u.searchParams.get('draft') != null ? send({ success: true, data: null, updatedAt: null }) : send({ success: true, reviews: [] });
     if (u.pathname === '/api/gcal-schedule') return send({ success: true, rows: null });
     if (u.pathname.startsWith('/api/')) return send({ success: false, error: 'offline test' });
+    if (u.pathname === '/seed.html') { res.writeHead(200, { 'Content-Type': TYPES['.html'] }); return res.end('<!doctype html><title>seed</title>'); }   // storage seeded with no script of its own
     const f = path.join(ROOT, decodeURIComponent(u.pathname));
     if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end('not found'); }
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream' }); res.end(fs.readFileSync(f));
@@ -111,7 +117,56 @@ const PAGES = [
         else if (sent[0].name !== 'Lei Abut') fail(`"just practice" kept for a signed-in trainee: posted as ${JSON.stringify(sent[0])}`);
         await ctx.close();
     }
+    // A shared training-room machine: the trainee before them left their name, calendar and history in this browser.
+    // LSH_SIM_USER / Sim.claim() is meant to drop all of it for the next person (so nobody practices under the previous
+    // trainee's name, and their page never uploads the previous calendar as its own draft) — but Sim.claim() only runs
+    // once who is signed in is known, so on a page that rendered before /api/me answered it never ran at all.
+    {
+        const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+        await ctx.route(x => !/^(localhost|127\.0\.0\.1)$/.test(x.hostname), r => r.abort());
+        const page = await ctx.newPage(); page.on('dialog', d => d.dismiss());
+        await page.goto(base + '/seed.html', { waitUntil: 'load' });
+        await page.evaluate(() => {
+            localStorage.setItem('LSH_SIM_USER', 'ann');
+            localStorage.setItem('LSH_SIM_WHO', JSON.stringify({ name: 'Ann Prior', batch: 'B000001' }));
+            localStorage.setItem('LSH_SIM_HISTORY', JSON.stringify([{ simulator: 'Calendaring', score: 99 }]));
+            localStorage.setItem('lsh_gcal:ann prior', JSON.stringify({ v: 1, events: [{ id: 'x', title: "Ann's appointment" }] }));
+            sessionStorage.clear();
+        });
+        await page.goto(base + '/simulators/calendar.html' + LINK, { waitUntil: 'load' });
+        await page.waitForTimeout(1800);
+        const kept = await page.evaluate(() => { const o = {}; for (let i = 0; i < localStorage.length; i++) o[localStorage.key(i)] = localStorage.getItem(localStorage.key(i)); return o; });
+        if (kept.LSH_SIM_USER !== 'labut') fail(`a shared browser was not taken over by the trainee now signed in (LSH_SIM_USER=${kept.LSH_SIM_USER})`);
+        if (kept['lsh_gcal:ann prior']) fail("a shared browser kept the previous trainee's calendar, which this trainee's page would upload as their own draft");
+        if (/Ann Prior/.test(kept.LSH_SIM_WHO || '')) fail("a shared browser kept the previous trainee's name");
+        if (/"score":99/.test(kept.LSH_SIM_HISTORY || '')) fail("a shared browser kept the previous trainee's results history");
+        await ctx.close();
+    }
+    // A signed-out visitor is still asked who is practicing, and their result is still saved: only *when* that is decided
+    // changed, not the decision.
+    {
+        const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+        await ctx.route(x => !/^(localhost|127\.0\.0\.1)$/.test(x.hostname), r => r.abort());
+        const page = await ctx.newPage(); page.on('dialog', d => d.dismiss());
+        signedOut = true;
+        await page.goto(base + '/simulators/calendar.html', { waitUntil: 'load' });
+        await page.waitForTimeout(1800);
+        if (!(await page.evaluate(() => !!document.getElementById('sim-who')))) fail('a signed-out visitor is no longer asked who is practicing, so their results could never be saved');
+        else {
+            await page.fill('#sim-who-name', 'Walk-in Visitor');
+            await page.fill('#sim-who-batch', 'B123456');
+            await page.click('#sim-who-ok'); await page.waitForTimeout(400);
+            log = [];
+            await page.evaluate(() => Sim.saveResult({ simulator: 'Test', scenario: 'visitor', score: 70, summary: 'x' }));
+            await page.waitForTimeout(500);
+            const sent = log.filter(x => x.path === '/api/sim-results' && x.method === 'POST').map(x => (JSON.parse(x.body || '{}').who) || {});
+            if (!sent.length) fail('a signed-out visitor who gave their name had the score dropped');
+            else if (sent[0].name !== 'Walk-in Visitor') fail(`a visitor's score posted as ${JSON.stringify(sent[0])}`);
+        }
+        signedOut = false;
+        await ctx.close();
+    }
     await browser.close(); server.close();
     if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-    console.log(`Simulator identity test passed (${PAGES.length} pages): a signed-in trainee practices as their own account — the name is fixed, nobody is asked who is practicing, the heartbeat beats, and the score is recorded under the account and not under a name from the link or this browser.`);
+    console.log(`Simulator identity test passed (${PAGES.length} pages): a signed-in trainee practices as their own account — the name is fixed, nobody is asked who is practicing, the heartbeat beats, and the score is recorded under the account and not under a name from the link or this browser; a shared browser is taken over from the previous trainee; a signed-out visitor is still asked and still saved.`);
 })();

@@ -68,7 +68,9 @@ progress: Standard Training by lesson (Reception 4, Calendar Management 5, Intak
   link. A visitor's is typed, and kept in this browser with the calendars
   (`lsh_gcal[.track]:<name>`, `lsh_gcal_seen`) and the results history (`LSH_SIM_HISTORY`). `LSH_SIM_USER` remembers whose they
   are: when `Sim.restore()` (or the tab's own session) names a different person, `Sim.claim()` clears all of them, so a second
-  trainee on a shared browser never inherits the first one's calendar nor uploads it as their draft. (No sign-out hook is needed:
+  trainee on a shared browser never inherits the first one's calendar nor uploads it as their draft. This needs who is signed
+  in, so on a page that rendered before `/api/me` answered it never ran: the next trainee on a shared training-room machine
+  kept the previous one's name, calendar and history. `Sim.ready` is what makes it run everywhere. (No sign-out hook is needed:
   `logoutSession()` is `app.js`'s and clears only the session; the next person to sign in is compared with `LSH_SIM_USER`.)
 - `?program=CM` / `?program=EA` should open that program's content first.
 - Gemini: `Sim.ai({ system, messages:[{role:'user'|'model', text}], json, maxTokens })`
