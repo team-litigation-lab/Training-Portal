@@ -11,7 +11,7 @@
    "Main Portal" / "Home" button lands them back on the Training Directory. */
 const PortalNav = {
     LINKS: [
-        ['home', '/index.html', 'Home'],
+        ['home', '/index.html?stay=1', 'Home'],
         ['directory', '/programs.html', 'Training Directory'],
         ['orient', '/blueprint.html', '🧭 Blueprint']
     ],
@@ -21,18 +21,27 @@ const PortalNav = {
     ],
     embedded() { try { return window.self !== window.top; } catch (e) { return true; } },
     // Back to the previous portal page; a page opened fresh (new tab, bookmark) goes to its parent instead.
+    // Except when that parent IS the main page: there "Back" means up to the Main Portal, and it goes
+    // straight there. Replaying history from the Training Directory took you to whichever portal page
+    // you happened to come from, which is not where the button says it goes.
     back(fallback) {
+        const target = fallback || '/index.html?stay=1';
+        if (PortalNav.isMain(target)) { location.href = target; return; }
         let same = false;
         try { same = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
         if (same && history.length > 1) history.back();
-        else location.href = fallback || '/index.html';
+        else location.href = target;
+    },
+    // Does this href point at the landing page? Cloudflare serves it as /, /index and /index.html.
+    isMain(href) {
+        try { return /^\/(index(\.html)?)?$/.test(new URL(href, location.origin).pathname); } catch (e) { return false; }
     },
     // opts: { back: fallback URL or false, cls: extra class for each link }
     html(active, opts) {
         opts = opts || {};
         const cls = opts.cls ? ` ${opts.cls}` : '';
         const links = PortalNav.embedded() ? PortalNav.EMBEDDED_LINKS : PortalNav.LINKS;
-        const back = opts.back === false ? '' : `<a class="pn-back${cls}" onclick="PortalNav.back('${opts.back || '/index.html'}')" title="Go back">← Back</a>`;
+        const back = opts.back === false ? '' : `<a class="pn-back${cls}" onclick="PortalNav.back('${opts.back || '/index.html?stay=1'}')" title="Go back">← Back</a>`;
         return back + links.map(([id, href, label]) => `<a class="${active === id ? 'on' : ''}${cls}" href="${href}"${active === id ? ' aria-current="page"' : ''}>${label}</a>`).join('');
     },
     // Everything an admin uses less often, collated under ⚙ System Management: [href, label, title, opens in a new tab].
@@ -76,7 +85,7 @@ const PortalNav = {
     traineeHtml(active, opts) {
         opts = opts || {};
         const pill = (id, href, label, title) => `<a class="pn-pill${active === id ? ' on' : ''}" href="${href}"${active === id ? ' aria-current="page"' : ''} title="${title}">${label}</a>`;
-        const back = opts.back === false ? '' : `<a class="pn-back" onclick="PortalNav.back('${opts.back || '/index.html'}')" title="Go back">← Back</a>`;
+        const back = opts.back === false ? '' : `<a class="pn-back" onclick="PortalNav.back('${opts.back || '/index.html?stay=1'}')" title="Go back">← Back</a>`;
         return back
             + pill('home', '/index.html?stay=1', 'Home', 'The LSH Upskill Hub main page')
             + pill('orient', '/blueprint.html', 'Blueprint', 'The Platform Blueprint: how the portal works')
@@ -134,7 +143,7 @@ window.addEventListener('scroll', () => PortalNav.closeMenus(), true);
 // nav bar. If no "← Back" is on the page shortly after it loads (Home excepted), a
 // floating one is added. The Checks workflow also fails any page without one.
 (function () {
-    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html', '/registration.html': '/index.html', '/blueprint.html': '/index.html', '/orientation.html': '/index.html', '/referrals.html': '/core.html', '/feedback.html': '/core.html', '/attendance.html': '/core.html', '/system.html': '/programs.html' };
+    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html?stay=1', '/registration.html': '/index.html?stay=1', '/blueprint.html': '/index.html?stay=1', '/orientation.html': '/index.html?stay=1', '/referrals.html': '/core.html', '/feedback.html': '/core.html', '/attendance.html': '/core.html', '/system.html': '/programs.html' };
     function ensureBack() {
         // Cloudflare serves pages without ".html" too (/, /index, /programs): the main page never gets one.
         const path = location.pathname.replace(/\/$/, '/index.html').replace(/^(\/[^.]*[^/.])$/, '$1.html');
