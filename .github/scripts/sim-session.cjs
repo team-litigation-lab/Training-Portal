@@ -63,7 +63,7 @@ const server = http.createServer(async (req, res) => {
     }
     const store = (page) => page.evaluate(() => { const o = {}; for (let i = 0; i < localStorage.length; i++) o[localStorage.key(i)] = localStorage.getItem(localStorage.key(i)); return o; });
     const sess = (page) => page.evaluate(() => sessionStorage.getItem('LSH_SESSION_V1'));
-    const hub = (page) => page.evaluate(() => document.getElementById('hub-grid').innerText + '\n' + document.getElementById('results-title').innerText);
+    const hub = (page) => page.evaluate(() => document.getElementById('hub-grid').innerText + '\n' + document.getElementById('eval-note').innerText + '\n' + document.getElementById('results-title').innerText);
 
     /* ---------- a Trainee's tab keeps its session and beats ---------- */
     me = BOB;
