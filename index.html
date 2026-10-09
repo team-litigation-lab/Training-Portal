@@ -521,6 +521,19 @@
     /* Section bands ("segregators"): a full-width navy bar, the title in white capitals, a thin orange rule under it. */
     html, body { overflow-x: clip; }
     .section > .band { margin: calc(var(--sec-pad-top) * -1) calc(50% - 50vw) 52px; padding: 22px 24px; background: var(--navy-mid); border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 3px solid var(--orange); text-align: center; }
+    /* Every one of these sections is an anchor on the landing page itself, so there was no way
+       back to the top once you had jumped into one. Each band carries a Home pill that returns
+       to the hero; on a narrow screen it drops under the heading instead of overlapping it. */
+    .section > .band { position: relative; }
+    .band-home { position: absolute; right: 24px; top: 50%; transform: translateY(-50%);
+        display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800;
+        letter-spacing: .06em; text-transform: uppercase; color: #fff; text-decoration: none;
+        background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.3);
+        border-radius: 999px; padding: 7px 14px; white-space: nowrap;
+        transition: background .15s ease, border-color .15s ease, color .15s ease; }
+    .band-home:hover { background: var(--orange); border-color: var(--orange); color: #0f172a; }
+    .band-home:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+    @media (max-width: 900px) { .band-home { position: static; transform: none; margin: 10px auto 0; } }
     .band h2 { margin: 0; color: #fff; font-size: clamp(20px, 2.6vw, 30px); font-weight: 900; letter-spacing: .12em; text-transform: uppercase; line-height: 1.2; }
     .section { border-top: 0 !important; }
 
@@ -610,7 +623,7 @@
     </div>
 </nav>
 
-<div class="first-screen">
+<div class="first-screen" id="top">
 <div class="main-screen">
 <section class="hero">
     <svg class="hero-rings" viewBox="0 0 640 640" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -674,7 +687,7 @@
 </div>
 
 <section class="section" id="about">
-    <div class="band"><h2>About Legal Support Help</h2></div>
+    <div class="band"><h2>About Legal Support Help</h2><a class="band-home" href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'});history.replaceState(null,'',location.pathname+location.search);return false;" title="Back to the top of the page">&#8962; Home</a></div>
     <div class="founder-block" id="founder">
         <h3 class="sub-head">Meet our Founder</h3>
         <div class="founder-grid">
@@ -704,7 +717,7 @@
 </section>
 
 <section class="section" id="team">
-    <div class="band"><h2>Meet the training team</h2></div>
+    <div class="band"><h2>Meet the training team</h2><a class="band-home" href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'});history.replaceState(null,'',location.pathname+location.search);return false;" title="Back to the top of the page">&#8962; Home</a></div>
     <div class="org">
         <div class="org-card"><img src="/img/team/gwen.jpg" alt="Gwen Paiso-Adams" width="320" height="320" loading="lazy"><div><div class="org-name">Gwen Paiso-Adams</div><div class="org-role">General Manager</div></div></div>
         <div class="org-arrow" aria-hidden="true"></div>
@@ -720,7 +733,7 @@
 </section>
 
 <section class="section" id="vision">
-    <div class="band"><h2>Mission, Vision and Core Values</h2></div>
+    <div class="band"><h2>Mission, Vision and Core Values</h2><a class="band-home" href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'});history.replaceState(null,'',location.pathname+location.search);return false;" title="Back to the top of the page">&#8962; Home</a></div>
     <div class="vm-grid">
         <div class="vm-col">
             <div class="vm-tag" aria-label="Clients"><span>C</span><span>L</span><span>I</span><span>E</span><span>N</span><span>T</span><span>S</span></div>
@@ -756,7 +769,7 @@
 </section>
 
 <section class="section" id="faq">
-    <div class="band"><h2>Frequently Asked Questions</h2></div>
+    <div class="band"><h2>Frequently Asked Questions</h2><a class="band-home" href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'});history.replaceState(null,'',location.pathname+location.search);return false;" title="Back to the top of the page">&#8962; Home</a></div>
     <div id="faq-list">
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">What is the LSH Training Portal? <span class="chev">&#9660;</span></button>
