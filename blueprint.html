@@ -76,6 +76,22 @@
     .or-check { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; max-width: 900px; counter-reset: c; }
     .or-check li { counter-increment: c; display: flex; gap: 12px; align-items: baseline; font-size: clamp(14.5px, 1.45vw, 16.5px); line-height: 1.5; }
     .or-check li::before { content: counter(c); flex: 0 0 28px; height: 28px; border-radius: 50%; background: var(--navy); color: #fff; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
+    /* Every slide ends the way the EA/PA deck's do: where to find it, and one practical tip.
+       The two panels are the same pair lsh-blueprint.js draws (grey for where, orange-edged
+       for the tip), so the portal's deck and the programs' decks read as one family. */
+    .or-foot { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 22px; max-width: 980px; }
+    .or-where, .or-tip { border-radius: 12px; padding: 11px 15px; font-size: 13.5px; line-height: 1.5; }
+    .or-where { background: #f1f5f9; border: 1px solid #e2e8f0; color: #1e293b; }
+    .or-tip { background: var(--orange-pale); border: 1px solid #fed7aa; border-left: 6px solid var(--orange); color: #1e293b; }
+    .or-where b, .or-tip b { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 3px; }
+    .or-where b { color: var(--slate); }
+    .or-tip b { color: #c2410c; }
+    /* Which deck you are in, on every slide: the trainee deck runs orange, the admin deck navy. */
+    .or-deck { display: inline-block; font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; font-weight: 800;
+        letter-spacing: .1em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; margin-right: 9px;
+        background: var(--orange); color: #0f172a; vertical-align: 2px; }
+    .or-slide[data-deck="admin"] .or-deck { background: var(--navy); color: #fff; }
+    .or-slide[data-deck="admin"] .or-kicker { color: var(--navy-mid); }
     .or-mark { position: absolute; right: 22px; bottom: 16px; width: 34px; height: 34px; opacity: .5; border-radius: 8px; }
 
     .or-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-top: 1px solid var(--line); background: #fff; }
@@ -147,7 +163,7 @@ const PROGRAMS_LIVE = 'Standard Foundational Training, CM Training, EA / PA Trai
 
 const SLIDES = {
 trainee: [
-{ k: 'Welcome', h: 'One portal for all of your LSH training', body: `
+{ k: 'Welcome', w: `The main page of the Upskill Hub — Home on any section band brings you back to it.`, t: `Bookmark the main page rather than a program: everything else opens from here, already signed in.`, h: 'One portal for all of your LSH training', body: `
     <p class="or-lead">The Legal Support Help Upskill Hub is the master portal: the front door to every LSH training program, plus the practice tools and resources all programs share.</p>
     <div class="or-flow"><span>Main page</span><i>→</i><span>Log In</span><i>→</i><span>Training Directory</span><i>→</i><span>Your program</span><i>+</i><span class="alt">Simulators</span><span class="alt">Knowledge Base</span></div>
     <ul class="pts">
@@ -156,7 +172,7 @@ trainee: [
         <li><b>Your program:</b> your lessons, activities, scores, feedback and certificate.</li>
         <li><b>Simulators</b> and the <b>Knowledge Base:</b> practice real work, and look up the SOPs.</li>
     </ul>` },
-{ k: 'Logging in', h: 'Register once, then log in once', body: `
+{ k: 'Logging in', w: `Log In on the main page (/trainee-login.html).`, t: `Registered already but unsure of your Batch ID? Ask your trainer — registering a second time makes a duplicate account they then have to clean up.`, h: 'Register once, then log in once', body: `
     <ul class="pts">
         <li>New to LSH? Press <b>Register</b> on the log-in page and choose a username and password. An admin approves your registration and gives you your <b>Batch ID</b>.</li>
         <li>After that, press <b>Log In</b> on the main page and use your username and password. You land on the Training Directory.</li>
@@ -165,7 +181,7 @@ trainee: [
     </ul>
     <p class="or-note">Log-in details for work tools (email, CMS, time tracker) are never posted on the portal. Your trainer shares them privately.</p>
     <div class="or-go"><a class="btn pri" href="/trainee-login.html">Go to Log In</a></div>` },
-{ k: 'Training Directory', h: 'Find your program in the Training Directory', body: `
+{ k: 'Training Directory', w: `Training Directory (/programs.html), straight after you log in.`, t: `A program you cannot open yet shows Request Access. Press it once and carry on; your trainer sees the request.`, h: 'Find your program in the Training Directory', body: `
     <p class="or-lead">The Training Directory lists every LSH program, with the training tools (Simulators, Knowledge Base, LSH Ring Channel, Case Management System) beside it.</p>
     <div class="or-grid">
         <div class="or-card"><b>Request Access</b><span>Ask for a program; it shows <b>Awaiting Admin Approval</b> until a trainer approves it.</span></div>
@@ -175,7 +191,7 @@ trainee: [
     </div>
     <p class="or-note">Programs open now: ${PROGRAMS_LIVE}.</p>
     <div class="or-go"><a class="btn pri" href="/programs.html">Open the Training Directory</a></div>` },
-{ k: 'Inside a program', h: 'What you do inside your program', body: `
+{ k: 'Inside a program', w: `Training Directory → Enter Program, which opens in a new tab.`, t: `Leave the portal tab open. It is what signs you in to the program, the simulators and the Knowledge Base.`, h: 'What you do inside your program', body: `
     <div class="or-grid">
         <div class="or-card"><b>📚 Lessons</b><span>Slides you move through one at a time, with Full screen. Your trainer opens each lesson or day for your batch.</span></div>
         <div class="or-card"><b>▶ Videos &amp; files</b><span>Lecture videos and documents open right on the page, or in a new tab.</span></div>
@@ -184,7 +200,7 @@ trainee: [
         <div class="or-card"><b>💬 Your feedback</b><span>Rate the lessons and the training. You can send it anonymously.</span></div>
         <div class="or-card"><b>🎓 Certificate</b><span>Unlocks when you complete the program.</span></div>
     </div>` },
-{ k: 'Simulators', h: 'Practice on the Simulators', body: `
+{ k: 'Simulators', w: `Training Directory → Simulators (/simulators.html).`, t: `Put your name in when a simulator asks for it, or the run is practice only and your trainer never sees the score.`, h: 'Practice on the Simulators', body: `
     <p class="or-lead">The Simulators let you practice real work safely, with fictional cases, and send your scores to your trainer.</p>
     <div class="or-grid">
         <div class="or-card"><b>📞 Call Simulator · ☎ LSH Ring Channel</b><span>Take a call in the CMS and get a scored debrief, or answer trainer-led and 🤖 AI mock calls on a real phone line.</span></div>
@@ -194,7 +210,7 @@ trainee: [
     </div>
     <p class="or-note">You're already signed in, so every run is saved under your name and batch. <b>My recent results</b> on the Simulators page shows your scores.</p>
     <div class="or-go"><a class="btn pri" href="/simulators.html">Open the Simulators</a></div>` },
-{ k: 'Knowledge Base', h: 'Look things up in the Knowledge Base', body: `
+{ k: 'Knowledge Base', w: `Training Directory → Knowledge Base.`, t: `Search it before messaging your trainer: most of what gets asked is already written up there as an SOP.`, h: 'Look things up in the Knowledge Base', body: `
     <p class="or-lead">The Knowledge Base is where LSH VAs find the firm's SOPs and share what they know. It's for the team only.</p>
     <ul class="pts">
         <li>Open it from the Training Directory: the portal signs you in, so there's no access code to type.</li>
@@ -203,7 +219,7 @@ trainee: [
         <li><b>Contribute</b> your own. An admin reviews every post before it's published; your contributor profile shows who wrote it.</li>
     </ul>
     <div class="or-go"><a class="btn pri" href="/api/launch?tool=kb">Open the Knowledge Base</a></div>` },
-{ k: 'Good habits', h: 'Tips for a smooth training', body: `
+{ k: 'Good habits', w: `Everywhere — your progress is saved to your account, not to the computer you used.`, t: `Do a day's activities on the day. Scores and trainer feedback are far easier to act on while the lesson is fresh.`, h: 'Tips for a smooth training', body: `
     <ul class="pts">
         <li>Use <b>Google Chrome</b>, and keep the portal and your program open in separate tabs.</li>
         <li>Most links open in a <b>new tab</b>, so you never lose your place. <b>← Back</b> on every page takes you up one level.</li>
@@ -211,7 +227,7 @@ trainee: [
         <li><b>Log Out</b> when you're done on a shared computer.</li>
         <li>Can't get into a program, or something looks wrong? Message your <b>trainer or batch administrator</b> with your name, Batch ID and a screenshot.</li>
     </ul>` },
-{ k: 'Ready', h: "You're ready: your first steps", body: `
+{ k: 'Ready', w: `Log In on the main page, then pick your program in the Training Directory.`, t: `Something not working? Message your trainer with your name, your Batch ID and a screenshot — that is everything they need to fix it.`, h: "You're ready: your first steps", body: `
     <ol class="or-check">
         <li>Bookmark the Legal Support Help Upskill Hub.</li>
         <li><b>Log In</b> (or <b>Register</b> first, and wait for approval).</li>
@@ -222,7 +238,7 @@ trainee: [
     <div class="or-go"><a class="btn pri" href="/programs.html">Go to the Training Directory</a></div>` }
 ],
 admin: [
-{ k: 'The admin side', h: 'Running training from the master portal', body: `
+{ k: 'The admin side', w: `Admin in the main page header (/admin-login.html).`, t: `One admin password signs you in everywhere — the portal, each program's admin, the Knowledge Base, the Simulators. Sign in before you start screen sharing, never during it.`, h: 'Running training from the master portal', body: `
     <p class="or-lead">Trainers and admins sign in to the portal to run every batch, monitor trainees, and review what they share.</p>
     <div class="or-flow"><span>🔒 Admin sign-in</span><i>→</i><span>Training Directory (admin view)</span><i>→</i><span>Trainee Monitoring</span><span class="alt">System Management</span><span class="alt">Attendance</span></div>
     <ul class="pts">
@@ -230,14 +246,14 @@ admin: [
         <li>Every main page then has the same admin bar: <b>Blueprint · System Management ▾ · Trainee Monitoring · Attendance · Referrals · Switch view · Logout</b>.</li>
         <li>The portal signs you in to each program's admin, the Knowledge Base and the Simulators: one admin password everywhere.</li>
     </ul>` },
-{ k: 'Training Directory', h: 'The Training Directory, admin view', body: `
+{ k: 'Training Directory', w: `Training Directory (/programs.html), with the admin bar across the top.`, t: `Press Switch view before a demo so the batch sees the Directory as they will see it; press it again to get your admin view back.`, h: 'The Training Directory, admin view', body: `
     <ul class="pts">
         <li>Every built program opens directly for you with <b>Enter Program</b>.</li>
         <li><b>Pending Topic Requests:</b> approve or deny trainees' program requests. Approved programs turn into Enter Program for the trainee without a refresh.</li>
         <li>Mark a trainee <b>passed</b> in System Management → <b>Program Access</b> when they complete a program; they can then download its certificate from the Directory.</li>
         <li><b>Switch view</b> shows the Directory exactly as a trainee sees it (this tab only); press it again to come back.</li>
     </ul>` },
-{ k: 'System Management', h: 'System Management: everything else in one menu', body: `
+{ k: 'System Management', w: `System Management ▾ in the admin bar (/system.html).`, t: `Approving a registration is what issues the trainee's Batch ID — clear the queue before the batch's first day, not during it.`, h: 'System Management: everything else in one menu', body: `
     <div class="or-grid">
         <div class="or-card"><b>🛡 Master Control</b><span>Users, program access, who's online, activity logs, Broadcast &amp; Ping, and pausing or locking the workspace.</span></div>
         <div class="or-card"><b>📝 Registrations</b><span>Approve new sign-ups; approving issues the trainee's Batch ID.</span></div>
@@ -245,7 +261,7 @@ admin: [
         <div class="or-card"><b>🛠 Simulators · 📚 KB · ☎ Ring Channel</b><span>Open each tool already signed in as an admin.</span></div>
         <div class="or-card"><b>🔐 Checks · 🤖 AI Usage</b><span>Sign-in and admin password checks across platforms, and today's use of the shared AI budget.</span></div>
     </div>` },
-{ k: 'Trainee Monitoring', h: 'Trainee Monitoring: every trainee on one page', body: `
+{ k: 'Trainee Monitoring', w: `Trainee Monitoring in the admin bar (/progress.html).`, t: `Sort by “furthest behind” at the start of each day. It finds the people who need you faster than reading the whole table.`, h: 'Trainee Monitoring: every trainee on one page', body: `
     <ul class="pts">
         <li><b>A tab per program</b>, with trainees grouped by batch, the latest batch first.</li>
         <li>For each trainee: days completed, Knowledge Check and practice averages, trainer feedback, their own feedback, <b>simulator scores</b>, and when they were last active.</li>
@@ -253,14 +269,14 @@ admin: [
         <li><b>📦 Archive batch</b> when a batch finishes: its records are kept and can be restored.</li>
         <li><b>💬 Feedback from trainees</b> shows ratings and comments; anonymous feedback stays anonymous.</li>
     </ul>` },
-{ k: 'Attendance', h: 'Attendance, batch by batch', body: `
+{ k: 'Attendance', w: `Attendance in the admin bar (/attendance.html).`, t: `Take attendance while the batch is still all on the call, before you open the day's lessons.`, h: 'Attendance, batch by batch', body: `
     <ul class="pts">
         <li>Take and review attendance in every program from <b>Attendance</b> in the admin bar.</li>
         <li>Pick the batch and the day; the training shown is the one the batch is on, and it can be changed for the batch or one trainee.</li>
         <li>Attendance logs stay with the batch and show in Trainee Monitoring.</li>
     </ul>
     <div class="or-go"><a class="btn pri" href="/attendance.html">Open Attendance</a></div>` },
-{ k: 'Inside each program', h: 'Program admin: running the day', body: `
+{ k: 'Inside each program', w: `The program's own 🛡 Admin, reached with Enter Program.`, t: `Open only the day you are teaching. Trainees read ahead, and a day you have opened cannot be un-seen.`, h: 'Program admin: running the day', body: `
     <p class="or-lead">Each program's own <b>🛡 Admin</b> is where you run it day to day:</p>
     <ul class="pts">
         <li><b>Open lessons</b> or days for a batch when you're ready to teach them.</li>
@@ -268,14 +284,14 @@ admin: [
         <li>Grade activities, and write each trainee's <b>trainer feedback</b>.</li>
     </ul>
     <p class="or-note">Credentials are never posted on the platform. Share log-in details with trainees privately.</p>` },
-{ k: 'Knowledge Base, Referrals & Simulators', h: 'Knowledge Base review, referrals and simulator reviews', body: `
+{ k: 'Knowledge Base, Referrals & Simulators', w: `Knowledge Base review inside the KB; Referrals in the admin bar.`, t: `Send a post back with a note rather than deleting it — every post carries its contributor's profile, so the author can fix it themselves.`, h: 'Knowledge Base review, referrals and simulator reviews', body: `
     <div class="or-grid">
         <div class="or-card"><b>📚 Knowledge Base review</b><span>Approve posts, comments and profile changes, or send a post back with a note. Feature, archive, mark obsolete, edit or delete articles.</span></div>
         <div class="or-card"><b>🤝 Referrals</b><span>People referred with "Got a referral?" on the main page: contact details and CV. Set a status, keep a note, delete when done.</span></div>
         <div class="or-card"><b>📆 Calendar reviews</b><span>Trainees' Google Calendar submissions come to you for review; your result shows at the bottom of their requests panel.</span></div>
         <div class="or-card"><b>🛠 Simulator scores</b><span>Every run is saved under the trainee's name and batch, and shows in Trainee Monitoring.</span></div>
     </div>` },
-{ k: 'Daily workflow', h: 'Your daily checklist', body: `
+{ k: 'Daily workflow', w: `The admin bar, left to right: System Management, Trainee Monitoring, Attendance, Referrals.`, t: `Keep this order: approvals first, so nobody is locked out of the day you are about to open.`, h: 'Your daily checklist', body: `
     <ol class="or-check">
         <li>Approve new registrations and program requests.</li>
         <li>Take attendance, and open today's lessons for the batch.</li>
@@ -293,10 +309,14 @@ const $ = id => document.getElementById(id);
 function renderTrack() {
     const list = SLIDES[track];
     $('orSlides').innerHTML = list.map((s, i) => `
-        <article class="or-slide" data-track="print" aria-label="Slide ${i + 1} of ${list.length}">
-            <div class="or-kicker">${String(i + 1).padStart(2, '0')} · ${s.k}</div>
+        <article class="or-slide" data-deck="${track}" data-track="print" aria-label="Slide ${i + 1} of ${list.length}">
+            <div class="or-kicker"><span class="or-deck">${track === 'admin' ? 'Trainer &amp; Admin' : 'Trainee'}</span>${String(i + 1).padStart(2, '0')} · ${s.k}</div>
             <h2>${s.h}</h2>
             ${s.body}
+            ${(s.w || s.t) ? `<div class="or-foot">
+                ${s.w ? `<div class="or-where"><b>Where</b>${s.w}</div>` : ''}
+                ${s.t ? `<div class="or-tip"><b>Tip</b>${s.t}</div>` : ''}
+            </div>` : ''}
             <img class="or-mark" src="/favicon.png" alt="">
         </article>`).join('');
     $('orDots').innerHTML = list.map((s, i) => `<button type="button" title="${s.k}" aria-label="Slide ${i + 1}: ${s.k}" onclick="show(${i})"></button>`).join('');
@@ -349,7 +369,7 @@ function asBlueprint(list, name) {
                 if (el.classList.contains('or-card')) { const b = el.querySelector('b'), sp = el.querySelector('span'); pts.push((b ? text(b) : '') + (sp ? ': ' + text(sp) : '')); }
                 else if (!el.closest('.or-card')) pts.push(text(el));
             });
-            return { icon: '', title: sl.h.replace(/<[^>]+>/g, ''), points: pts.filter(Boolean).slice(0, 5).map(cut) };
+            return { icon: '', title: sl.h.replace(/<[^>]+>/g, ''), points: pts.filter(Boolean).slice(0, 5).map(cut), where: sl.w || '', tip: sl.t || '' };
         }) };
 }
 let ver = null;
