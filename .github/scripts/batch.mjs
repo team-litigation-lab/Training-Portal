@@ -2,7 +2,7 @@
 // nextBatchId); the pages show older ones (B30092026-LSHTRAINEE-004) without the trainee number (app.js batchLabel),
 // grouped by batch, the newest first (batchCohort). Run: node .github/scripts/batch.mjs
 import { readFileSync } from 'node:fs';
-import { nextBatchId } from '../../functions/_utils.js';
+import { nextBatchId, canonicalBatch } from '../../functions/_utils.js';
 
 const failures = []; const fail = (m) => failures.push(m);
 const app = readFileSync(new URL('../../app.js', import.meta.url), 'utf8');
@@ -22,6 +22,21 @@ for (const [id, want] of Object.entries(shown)) { const got = batchLabel(id); if
 const ids = ['B30092026-LSHTRAINEE-004', 'B30092026-LSHTRAINEE-005', 'B100526', 'B05022026-LSHTRAINEE-001', 'B123125', ''];
 const groups = [...new Map(ids.map(b => { const c = batchCohort(b); return [c.key, c]; })).values()].sort((a, b) => b.sort.localeCompare(a.sort)).map(c => c.key);
 if (groups.join() !== 'B100526,B300926,B050226,B123125,No Batch') fail(`batches grouped or ordered wrong: ${groups.join()}`);
+
+// What an admin types for a Batch ID (update-user.js) is saved in its one form: B + MMDDYY. The same rule
+// the programs read it by (canonicalBatch in each course's index.html and worker.js, and in the CMS).
+const typed = { 'B100926': 'B100926', 'b100926': 'B100926', 'B 10-09-26': 'B100926', '100926': 'B100926',
+    'B10092026': 'B100926', 'B10092026-LSHTRAINEE-001': 'B100926', 'B300926': 'B300926', 'B09102026-LSHADMIN-003': 'B091026' };
+for (const [t, want] of Object.entries(typed)) { const got = canonicalBatch(t); if (got !== want) fail(`an admin typing ${JSON.stringify(t)} saves ${JSON.stringify(got)} (expected ${want})`); }
+// (B130926 isn't here: read the other way round, as DDMMYY, 13 September 2026 is a real date)
+for (const bad of ['B1', 'CIFS', 'B993026', 'B000026', 'B123', 'batch one', '', 'MASTER-ADMIN']) {
+    if (canonicalBatch(bad)) fail(`${JSON.stringify(bad)} was taken as the Batch ID ${canonicalBatch(bad)}`);
+}
+// every Batch ID the Portal issues is one it would accept back
+for (const d of ['2026-10-05', '2026-09-30', '2027-01-02']) {
+    const issued = await nextBatchId(null, 'Trainee', d);
+    if (canonicalBatch(issued) !== issued) fail(`the Portal issues ${issued}, which it then reads as ${JSON.stringify(canonicalBatch(issued))}`);
+}
 
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
 console.log('Batch ID test passed (new ones B + MMDDYY with no trainee number; older ones shown without it, grouped by batch, the newest first).');
