@@ -77,7 +77,6 @@ const PortalNav = {
             + pill('monitor', '/progress.html', 'Trainee Monitoring', "Every trainee's progress and feedback in every program")
             + pill('attendance', '/attendance.html', 'Attendance', 'Take and review attendance in every program, batch by batch')
             + pill('referrals', '/referrals.html', 'Referrals', 'People referred from “Got a referral?” on the home page')
-            + pill('feedback', '/feedback.html', 'Feedback', 'Trainees\u2019 ratings of their training, waiting for your approval before they show on the home page')
             + `<button type="button" class="pn-pill${tv ? ' on' : ''}" onclick="PortalNav.switchView()" title="${tv ? 'Back to the admin view' : 'See the Training Directory as a trainee does'}"${tv ? ' aria-pressed="true"' : ''}>Switch view</button>`
             + `<button type="button" class="pn-pill" onclick="PortalNav.logout()">Logout</button>`;
     },
@@ -143,7 +142,7 @@ window.addEventListener('scroll', () => PortalNav.closeMenus(), true);
 // nav bar. If no "← Back" is on the page shortly after it loads (Home excepted), a
 // floating one is added. The Checks workflow also fails any page without one.
 (function () {
-    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html?stay=1', '/registration.html': '/index.html?stay=1', '/blueprint.html': '/index.html?stay=1', '/orientation.html': '/index.html?stay=1', '/referrals.html': '/core.html', '/feedback.html': '/core.html', '/attendance.html': '/core.html', '/system.html': '/programs.html' };
+    const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html?stay=1', '/registration.html': '/index.html?stay=1', '/blueprint.html': '/index.html?stay=1', '/orientation.html': '/index.html?stay=1', '/referrals.html': '/core.html', '/attendance.html': '/core.html', '/system.html': '/programs.html' };
     function ensureBack() {
         // Cloudflare serves pages without ".html" too (/, /index, /programs): the main page never gets one.
         const path = location.pathname.replace(/\/$/, '/index.html').replace(/^(\/[^.]*[^/.])$/, '$1.html');
