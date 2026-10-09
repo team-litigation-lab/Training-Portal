@@ -1,4 +1,4 @@
-import { json, requireSession, hashPassword, isUsernameTombstoned, logActivity, isMaster, MASTER_USERNAME, buildFullName } from '../_utils.js';
+import { json, canonicalBatch, requireSession, hashPassword, isUsernameTombstoned, logActivity, isMaster, MASTER_USERNAME, buildFullName } from '../_utils.js';
 
 // POST /api/update-user { userId, batchId?, username?, email?, firstName?, lastName?, password? }  (admins only)
 //
@@ -10,7 +10,6 @@ import { json, requireSession, hashPassword, isUsernameTombstoned, logActivity, 
 //     will see them as a new trainee under the new one. The admin screen warns about it before saving.
 const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]{8,}$/;
 const USERNAME_RE = /^[A-Za-z0-9_]{3,30}$/;
-const BATCH_RE = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,39}$/;
 const NAME_RE = /^[\p{L}][\p{L}\p{M} .'\-]{0,59}$/u;
 
 export async function onRequestPost({ request, env }) {
@@ -27,8 +26,10 @@ export async function onRequestPost({ request, env }) {
 
     const set = {}; const changed = [];
     if (body.batchId !== undefined) {
-        const b = String(body.batchId || '').trim().toUpperCase();
-        if (!BATCH_RE.test(b)) return json({ success: false, error: 'Batch ID: up to 40 letters, numbers, spaces, dashes or underscores.' }, 400);
+        // A Batch ID set here is B + the date the batch started, as MMDDYY (B100926 for 9 October 2026) —
+        // the same rule the programs read it by. What's typed is saved in that one form.
+        const b = canonicalBatch(body.batchId);
+        if (!b) return json({ success: false, error: 'Batch ID: B and the date the batch started (MMDDYY), for example B100926 for 9 October 2026.' }, 400);
         if (b !== user.batch_id) { set.batch_id = b; changed.push('batch'); }
     }
     if (body.email !== undefined) {
