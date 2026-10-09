@@ -114,8 +114,14 @@ const calOf = (id) => GCAL_CALENDARS.find(c => c.id === id) || GCAL_CALENDARS[1]
 // existing schedule. An appointment's own color wins over its type's, which wins over the default below; an event's own color wins over its calendar's.
 const CC = { cal: {}, type: {} }, SCHEDULE_TYPES = ['Blocked Time', 'Phone Call', 'Client Meeting', 'Internal Meeting', 'Other'];
 const setCC = (c) => { CC.cal = Object.assign({}, c && c.cal); CC.type = Object.assign({}, c && c.type); };
-const calColor = (id) => GCAL_COLORS[CC.cal[id]] || calOf(id).color;
-const seedColor = (r) => r.color || CC.type[r.type] || (r.type === 'Blocked Time' ? (/review/i.test(r.title) ? 'blueberry' : 'graphite') : r.type === 'Phone Call' ? 'tangerine' : r.type === 'Internal Meeting' ? 'basil' : '');
+// A trainee's own coding, on top of the trainer's. It lives in their calendar
+// state, so it rides the same local save and the same copy on their account,
+// and it follows them to another browser. A calendar saved before this existed
+// simply has none, hence the fallback rather than assuming the shape.
+const myCC = () => (S && S.cc) || { cal: {}, type: {} };
+// Own > the trainer's > the built-in default, for both calendars and the week.
+const calColor = (id) => GCAL_COLORS[myCC().cal[id]] || GCAL_COLORS[CC.cal[id]] || calOf(id).color;
+const seedColor = (r) => r.color || myCC().type[r.type] || CC.type[r.type] || (r.type === 'Blocked Time' ? (/review/i.test(r.title) ? 'blueberry' : 'graphite') : r.type === 'Phone Call' ? 'tangerine' : r.type === 'Internal Meeting' ? 'basil' : '');
 const guessType = (t) => (/block|lunch|daily case/i.test(t) || (TRK && /board|travel|focus|briefing/i.test(t))) ? 'Blocked Time' : /conference/i.test(t) ? 'Internal Meeting' : /preparation|strategy|settlement meeting|deposition/i.test(t) ? 'Client Meeting' : 'Phone Call';
 const colorOf = (e) => (e.color && GCAL_COLORS[e.color]) || calColor(e.cal);
 // The attorney's color rule: the trainee colors each appointment by its length (30 minutes Tangerine, 45 Blueberry, 1 hour Tomato).
@@ -433,11 +439,11 @@ const G = { pop: null, temp: null, drag: null, undo: null, q: '', menu: null, me
 function fresh() {
     const today = simToday();
     return { v: 1, today, view: innerWidth < 640 ? 'day' : 'week', anchor: today, mini: today.slice(0, 7), side: innerWidth > 900, panel: innerWidth > 1100 && !OPEN ? 'requests' : '',
-        hidden: {}, set: { dur: 30, weekends: false, tz2: false }, events: [], ex: {}, sx: {}, reqs: OPEN ? [] : dealRequests(today), result: null };
+        hidden: {}, set: { dur: 30, weekends: false, tz2: false }, cc: { cal: {}, type: {} }, events: [], ex: {}, sx: {}, reqs: OPEN ? [] : dealRequests(today), result: null };
 }
 function load() { try { const s = JSON.parse(localStorage.getItem(KEY()) || 'null'); if (s && s.v === 1 && Array.isArray(s.reqs)) { if (OPEN) { s.reqs = []; s.today = simToday(); } return s; } } catch (e) { /* none */ } return null; }   // (Standard Training has no dealt set: its today follows the calendar)
 // What counts as the calendar's content (a view or a panel opening is not: it is kept in this browser but never sent as a newer copy)
-const sigNow = () => S ? JSON.stringify([S.events, S.ex, S.sx, (S.reqs || []).map(q => [q.id, q.done]), S.set, S.hidden]) : '';
+const sigNow = () => S ? JSON.stringify([S.events, S.ex, S.sx, (S.reqs || []).map(q => [q.id, q.done]), S.set, S.hidden, S.cc]) : '';
 function save(local) {
     if (RV) return;   // a trainer reviewing a trainee's calendar (?review=) saves nothing
     const changed = sigNow() !== CLOUD.sig;
@@ -670,7 +676,7 @@ function renderSide() {
     const side = $('#gc-side'); side.classList.toggle('off', !S.side);
     const box = (c) => `<label><input type="checkbox" data-cal="${c.id}" ${S.hidden[c.id] ? '' : 'checked'}><span class="box" style="border-color:${calColor(c.id)};background:${S.hidden[c.id] ? '#fff' : calColor(c.id)}">${S.hidden[c.id] ? '' : `<svg viewBox="0 0 24 24"><path d="${P.check}"/></svg>`}</span>${esc(c.name)}</label>`;
     side.innerHTML = `<button class="gc-create" data-a="create">${PLUS}Create</button>${miniHtml()}
-        <div class="cals"><h4>My calendars</h4>${GCAL_CALENDARS.filter(c => !c.other).map(box).join('')}<h4>Other calendars</h4>${GCAL_CALENDARS.filter(c => c.other).map(box).join('')}<button class="txt" data-a="cc-open" style="padding:0 6px;height:30px;margin:10px 0 0 2px" title="${Sim.isAdmin() && !RV ? 'Choose the colors of the calendars and of the existing schedule, for everyone' : 'What the colors on this calendar mean, and the color to give each appointment you book'}">🎨 Color coding</button></div>`;
+        <div class="cals"><h4>My calendars</h4>${GCAL_CALENDARS.filter(c => !c.other).map(box).join('')}<h4>Other calendars</h4>${GCAL_CALENDARS.filter(c => c.other).map(box).join('')}<button class="txt" data-a="cc-open" style="padding:0 6px;height:30px;margin:10px 0 0 2px" title="${Sim.isAdmin() && !RV ? 'Choose the colors of the calendars and of the existing schedule, for everyone' : RV ? 'The colors as this trainee sees them' : 'Choose your own colors for the calendars and the existing schedule'}">🎨 Color coding</button></div>`;
     placeScores();   // (📊 Your scores, under Other calendars)
 }
 function layoutDay(evs) {
@@ -965,16 +971,36 @@ function dialog(title, body, ok, okLabel) {
     el.querySelector('[data-ok]').onclick = () => { el.remove(); ok(el); };
     el.onclick = (e) => { if (e.target === el) el.remove(); };
 }
-// 🎨 Color coding (a trainer's, for everyone): the calendars and the existing schedule's types of appointment, each a swatch of Google's event colors, or its default.
+// 🎨 Color coding. One dialog, two scopes:
+//   • a trainer (not reviewing) sets it FOR EVERYONE — PUT /api/gcal-schedule, which is adminOnly;
+//   • anyone else sets their OWN, kept in their calendar state and saved to their account with it.
+// A trainee's choice layers over the trainer's, so a trainer changing the program's
+// colors still reaches everyone who has not overridden that particular row.
+// None of this touches grading: the half-point color check reads an appointment's
+// own e.color, which is set in the event editor and is not what this changes.
 function colorDialog() {
-    if (!Sim.isAdmin()) return;
-    const pick = { cal: Object.assign({}, CC.cal), type: Object.assign({}, CC.type) };
-    const sw = (grp, key, now, dflt) => `<span class="cc-sw" role="radiogroup" aria-label="Color of ${esc(key)}"><button type="button" class="cc-def ${now ? '' : 'on'}" data-cc="${grp}" data-k="${esc(key)}" data-v="" title="The default" aria-label="Default" aria-checked="${!now}" role="radio" style="background:${esc(dflt)}"></button>${Object.keys(GCAL_COLORS).map(c => `<button type="button" class="${now === c ? 'on' : ''}" data-cc="${grp}" data-k="${esc(key)}" data-v="${c}" title="${c}" aria-label="${c}" aria-checked="${now === c}" role="radio" style="background:${GCAL_COLORS[c]}"></button>`).join('')}</span>`;
-    const body = () => `<div class="cc"><h4>Calendars</h4>${GCAL_CALENDARS.map(c => `<div class="cc-row"><span>${esc(c.name)}</span>${sw('cal', c.id, pick.cal[c.id] || '', c.color)}</div>`).join('')}
-        <h4>The existing schedule, by type</h4>${SCHEDULE_TYPES.map(ty => { const n = ROWS.filter(r => r.type === ty).length; return `<div class="cc-row"><span>${esc(ty)} <em>${n} in the week</em></span>${sw('type', ty, pick.type[ty] || '', '#9aa0a6')}</div>`; }).join('')}
-        <p class="cc-note">Applies to everyone on this simulator. An appointment you colored yourself keeps its own color; a person’s own events keep theirs. The first swatch is the default.</p>
-        <button type="button" class="txt" data-cc-clear style="padding:0 6px;height:28px">Clear all colors</button></div>`;
+    const forEveryone = Sim.isAdmin() && !RV;
+    const base = forEveryone ? CC : myCC();
+    const pick = { cal: Object.assign({}, base.cal), type: Object.assign({}, base.type) };
+    // The first swatch means "leave it as it was". For a trainer that is the
+    // built-in default; for a trainee it is whatever the trainer has set, so
+    // clearing a row hands it back to the program rather than to the default.
+    const fallbackCal = (c) => forEveryone ? c.color : (GCAL_COLORS[CC.cal[c.id]] || c.color);
+    const fallbackType = (ty) => forEveryone ? '#9aa0a6' : (GCAL_COLORS[CC.type[ty]] || '#9aa0a6');
+    const sw = (grp, key, now, dflt) => `<span class="cc-sw" role="radiogroup" aria-label="Color of ${esc(key)}"><button type="button" class="cc-def ${now ? '' : 'on'}" data-cc="${grp}" data-k="${esc(key)}" data-v="" title="${forEveryone ? 'The default' : 'As your trainer set it'}" aria-label="${forEveryone ? 'Default' : 'As your trainer set it'}" aria-checked="${!now}" role="radio" style="background:${esc(dflt)}"></button>${Object.keys(GCAL_COLORS).map(c => `<button type="button" class="${now === c ? 'on' : ''}" data-cc="${grp}" data-k="${esc(key)}" data-v="${c}" title="${c}" aria-label="${c}" aria-checked="${now === c}" role="radio" style="background:${GCAL_COLORS[c]}"></button>`).join('')}</span>`;
+    const body = () => `<div class="cc"><h4>Calendars</h4>${GCAL_CALENDARS.map(c => `<div class="cc-row"><span>${esc(c.name)}</span>${sw('cal', c.id, pick.cal[c.id] || '', fallbackCal(c))}</div>`).join('')}
+        <h4>The existing schedule, by type</h4>${SCHEDULE_TYPES.map(ty => { const n = ROWS.filter(r => r.type === ty).length; return `<div class="cc-row"><span>${esc(ty)} <em>${n} in the week</em></span>${sw('type', ty, pick.type[ty] || '', fallbackType(ty))}</div>`; }).join('')}
+        <p class="cc-note">${forEveryone
+            ? 'Applies to everyone on this simulator. An appointment you colored yourself keeps its own color; a person’s own events keep theirs. The first swatch is the default.'
+            : WW('Your own colors, saved to your account — your trainer and other trainees keep theirs. The first swatch hands a row back to the way your trainer set it. This is only how the calendar looks to you: the color of an appointment you book is set in the event itself, and that is what the attorney’s rule is checked against.')}</p>
+        <button type="button" class="txt" data-cc-clear style="padding:0 6px;height:28px">${forEveryone ? 'Clear all colors' : 'Back to my trainer’s colors'}</button></div>`;
     dialog('Color coding', body(), async () => {
+        if (!forEveryone) {
+            if (!S) return;
+            S.cc = pick; save(); closeAll(); render();
+            snack(cloudOn() ? 'Your colors are saved to your account' : 'Your colors are saved in this browser');
+            return;
+        }
         try {
             const res = await Sim.fetchRetry(API_SCHEDULE, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ colors: pick }) });
             const d = await res.json().catch(() => ({}));
@@ -990,15 +1016,11 @@ function colorDialog() {
         box().outerHTML = body();
     });
 }
-// 🎨 Color coding, as a trainee sees it: the same coding the trainer set up, read-only. It cannot be the dialog above —
-// PUT /api/gcal-schedule is adminOnly, so a trainee has nothing to save — and the colors are shared by everyone, so a
-// trainee changing them would change them for the whole program. What they need is to SEE the scheme: the attorney's
-// rule they are graded half a point on, then the calendars and the existing week exactly as colored for them.
+// Reviewing a trainee's submission: their colors, read-only. save() is a no-op
+// under ?review=, so an editor here would look like it worked and change nothing.
 function colorLegend() {
     const dot = (hex) => `<span class="cc-dot" style="background:${esc(hex)}"></span>`;
     const chip = (name) => `<span class="cc-key">${dot(GCAL_COLORS[name] || '#9aa0a6')}${esc(colorName(name))}</span>`;
-    // What a type actually looks like in this week, not what the default would be: a type whose rows carry their own
-    // colors shows each one, so the key never claims a color the trainee cannot see on the grid.
     const typeColors = (ty) => {
         const seen = [];
         ROWS.filter((r) => r.type === ty).forEach((r) => { const c = seedColor(r); if (c && !seen.includes(c)) seen.push(c); });
@@ -1017,11 +1039,8 @@ function colorLegend() {
             const cs = typeColors(ty);
             return `<div class="cc-row"><span>${esc(ty)} <em>${n} in the week</em></span><span class="cc-sw">${cs.length ? cs.map(chip).join('') : dot('#9aa0a6')}</span></div>`;
         }).join('')}
-        <p class="cc-note">Your trainer sets the colors of the calendars and of the week that is already on them. You color
-            the appointments you book yourself — by length, in the Color box when you create or edit one.</p></div>`;
+        <p class="cc-note">The colors as this trainee sees them: their trainer’s coding, and their own on top of it.</p></div>`;
     dialog('Color coding', body, () => {}, 'Close');
-    // dialog() always draws a Cancel beside the action. There is nothing to cancel in a
-    // read-only key, and two buttons that both just shut it read as a choice — drop it.
     const x = gc().lastElementChild.querySelector('[data-x]'); if (x) x.remove();
 }
 function snack(text, canUndo) {
@@ -1404,7 +1423,7 @@ function bind() {
             check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true), 'tv-skip': () => skipItem(a.dataset.id, true), 'tv-unskip': () => skipItem(a.dataset.id, false), 'to-scores': () => { ev.preventDefault(); toScores(); },
             evals: () => { if (Sim.isAdmin()) { location.href = REVIEW_PAGE; return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
             'submit-eval': () => submitEval(),
-            'cc-open': () => { closeAll(); (Sim.isAdmin() && !RV ? colorDialog : colorLegend)(); },
+            'cc-open': () => { closeAll(); (RV ? colorLegend : colorDialog)(); },
             'cloud-save': () => { save(true); cloudSave(); },
             'cloud-newer': () => { if (confirm('Open the newer copy saved to your account? The changes you made in this tab since then are replaced.')) cloudLoad(true); },
             'eval-open': () => { EV.open = +a.dataset.id; renderPanel(); },
