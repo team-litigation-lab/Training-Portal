@@ -54,19 +54,19 @@
     .idx-logout.on { font-weight: 800; }
     @media (max-width: 760px) { .idx-top { flex-wrap: wrap; gap: 10px; padding: 14px 16px; } .idx-user { flex-wrap: wrap; gap: 10px 14px; } }
 
-    .idx-wrap { max-width: 1280px; margin: 0 auto; padding: 40px 24px 80px; }
+    .idx-wrap { max-width: 1280px; margin: 0 auto; padding: 12px 24px 12px; }
     /* Directory hero — the same navy and orange rings as the home page hero. */
-    .idx-head { position: relative; overflow: hidden; margin-bottom: 16px; padding: 24px 36px 22px; border-radius: 22px; color: #fff;
+    .idx-head { position: relative; overflow: hidden; margin-bottom: 9px; padding: 10px 26px 11px; border-radius: 16px; color: #fff;
         background: radial-gradient(120% 140% at 100% 0%, var(--navy-mid) 0%, var(--navy-deep) 62%); box-shadow: 0 18px 40px -22px rgba(8,18,38,.7); }
     .idx-head::before, .idx-head::after { content: ""; position: absolute; border-radius: 50%; pointer-events: none; }
     .idx-head::before { width: 360px; height: 360px; right: -90px; top: -150px; border: 44px solid rgba(249,115,22,.16); }
     .idx-head::after { width: 200px; height: 200px; right: 40px; top: -40px; border: 2px solid rgba(251,146,60,.35); }
     .idx-head > * { position: relative; z-index: 1; }
-    .idx-head .eyebrow { display: inline-block; font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--orange-soft);
+    .idx-head .eyebrow { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--orange-soft);
         padding: 4px 11px; border: 1px solid rgba(251,146,60,.45); border-radius: 999px; background: rgba(249,115,22,.10); margin-bottom: 10px; }
-    .idx-head h1 { font-size: clamp(26px, 3.2vw, 36px); font-weight: 900; line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 8px; color: #fff; }
+    .idx-head h1 { font-size: clamp(19px, 1.9vw, 24px); font-weight: 900; line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 4px; color: #fff; }
     .idx-head h1 span { color: var(--orange); }
-    .idx-head p { font-size: 14px; line-height: 1.5; color: rgba(255,255,255,.68); margin: 0; max-width: 62ch; }
+    .idx-head p { font-size: 12.5px; line-height: 1.45; color: rgba(255,255,255,.68); margin: 0; max-width: 72ch; }
     @media (max-width: 640px) { .idx-head { padding: 28px 22px 26px; border-radius: 18px; } .idx-head::before { right: -180px; } .idx-head::after { display: none; } }
 
     .queue-card { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; padding: 18px 20px; margin-bottom: 28px; }
@@ -84,11 +84,11 @@
        balanced 3 + 3 on a three-column one. groupedTopicsHtml() picks the count
        that divides the group evenly (see cols-3) rather than this being a
        one-off for that one section. */
-    .topic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .topic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
     .topic-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
-    .topic-group { margin-bottom: 22px; }
-    .topic-group-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 2px solid rgba(249,115,22,.35); }
-    .topic-group-head h2 { font-size: 17px; font-weight: 900; margin: 0; color: var(--navy); letter-spacing: .01em; }
+    .topic-group { margin-bottom: 12px; }
+    .topic-group-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 7px; padding-bottom: 4px; border-bottom: 2px solid rgba(249,115,22,.35); }
+    .topic-group-head h2 { font-size: 15px; font-weight: 900; margin: 0; color: var(--navy); letter-spacing: .01em; }
     /* These section notes sit directly on the body backdrop, not on a card.
        At 30% the photo's darkest area composites to about rgb(176,175,174),
        where the old #64748b measured 2.17:1 — under WCAG AA for 12px text.
@@ -99,16 +99,20 @@
     @media (max-width: 560px) { .topic-grid, .topic-grid.cols-3 { grid-template-columns: 1fr; } }
     /* The cards keep their gridlines: the navy frame around the card and around its title,
        so they read as a grid over the page's photo backdrop. */
-    .topic-card { background: #fff; border-radius: 16px; padding: 15px 16px; border: 2px solid rgba(15,33,72,.35); box-shadow: 0 14px 28px -18px rgba(15,33,72,.35); display: flex; flex-direction: column; gap: 9px; }
-    .topic-card h3 { font-size: 14.5px; font-weight: 800; margin: 0; color: var(--navy); border: 2px solid var(--navy); border-radius: 10px; padding: 8px 10px; }
-    .topic-status { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 10px; border-radius: 999px; display: inline-block; width: fit-content; }
+    .topic-card { background: #fff; border-radius: 13px; padding: 9px 11px; border: 2px solid rgba(15,33,72,.35); box-shadow: 0 14px 28px -18px rgba(15,33,72,.35);
+        display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "title title" "status action"; align-items: center; gap: 7px 8px; }
+    .topic-card h3 { grid-area: title; }
+    .topic-card .topic-status { grid-area: status; }
+    .topic-card .topic-action-btn { grid-area: action; margin-top: 0; }
+    .topic-card h3 { font-size: 13px; font-weight: 800; margin: 0; color: var(--navy); border: 2px solid var(--navy); border-radius: 9px; padding: 6px 8px; line-height: 1.25; }
+    .topic-status { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 999px; display: inline-block; width: fit-content; }
     .topic-status.approved { background: #f0fdf4; color: #166534; }
     .topic-status.passed { background: #fff7ed; color: #9a3412; }
     .topic-status.pending { background: #fffbeb; color: #b45309; }
     .topic-status.locked { background: #f1f5f9; color: #64748b; }
     .topic-status.denied { background: #fef2f2; color: #b91c1c; }
     .topic-action-btn {
-        margin-top: auto; padding: 9px; border-radius: 999px; border: none; font-weight: 800; font-size: 11px;
+        margin-top: auto; padding: 7px; border-radius: 999px; border: none; font-weight: 800; font-size: 10.5px;
         text-transform: uppercase; letter-spacing: 0.03em; text-align: center; text-decoration: none; cursor: pointer;
     }
     .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
@@ -116,15 +120,17 @@
     .topic-action-btn.disabled { background: #f1f5f9; color: #94a3b8; cursor: default; }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
-    .sim-banner-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 12px; margin-bottom: 18px; }
-    .sim-banner-row .sim-banner { margin-bottom: 0; padding: 13px 16px; gap: 13px; }
+    .sim-banner-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+    .sim-banner-row .sim-banner { margin-bottom: 0; padding: 10px 12px; gap: 10px; border-radius: 14px; }
     /* Two lines, with the rest on the title attribute — these are signposts to
        four tools, not the tools' documentation, and at four lines each they
        pushed the actual programs off the screen. */
-    .sim-banner-row .sim-banner-tx span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-    .sim-banner-row .sim-banner-ic { width: 40px; height: 40px; border-radius: 12px; font-size: 20px; }
-    .sim-banner-row .sim-banner-tx b { font-size: 15px; }
-    @media (max-width: 760px) { .sim-banner-row { grid-template-columns: 1fr; } }
+    .sim-banner-row .sim-banner-tx span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 11.5px; line-height: 1.35; }
+    .sim-banner-row .sim-banner-ic { width: 34px; height: 34px; border-radius: 10px; font-size: 17px; }
+    .sim-banner-row .sim-banner-tx b { font-size: 13px; line-height: 1.25; margin-bottom: 1px; }
+    .sim-banner-row .sim-banner-go { font-size: 10.5px; padding: 6px 10px; }
+    @media (max-width: 1150px) { .sim-banner-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 620px) { .sim-banner-row { grid-template-columns: 1fr; } }
     .sim-banner-ic { width: 48px; height: 48px; border-radius: 14px; background: rgba(249,115,22,.18); border: 1px solid rgba(253,186,116,.45); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
     .sim-banner-tx { flex: 1; min-width: 0; } .sim-banner-tx b { display: block; font-size: 16px; } .sim-banner-tx span { font-size: 13px; color: #c7d2fe; }
     .sim-banner-go { background: var(--orange); color: #0f172a; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 8px 16px; white-space: nowrap; }
@@ -132,7 +138,7 @@
     /* The top bar: the LSH logo, the page's name, and the pill bar (trainees, visitors, or the admin bar). */
     .idx-top { position: relative; z-index: 5; gap: 18px; padding: 10px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
     .idx-brand { flex-shrink: 0; }
-    .idx-logo { height: 66px; width: auto; display: block; }
+    .idx-logo { height: 46px; width: auto; display: block; }
     .idx-title { flex: 0 1 auto; margin-right: auto; font-size: clamp(16px, 2vw, 26px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: #fff; white-space: nowrap; }
     .idx-user { gap: 6px; }
     .idx-user .pn-pill { font-size: 11.5px !important; padding: 5px 10px !important; }
@@ -141,31 +147,52 @@
     @media (max-width: 900px) { .idx-top { flex-wrap: wrap; } .idx-title { order: 2; flex-basis: auto; } .idx-user { order: 3; width: 100%; justify-content: flex-start; } }
     .pn-trainee-view { position: relative; z-index: 5; }
 
-    /* Short screens. The target is the first group of programs — Personal Injury
-       Law — sitting between the top bar and the fold, so the directory opens on
-       what it is a directory of. These two steps buy that back on a 768px and a
-       720px screen; the words are all still there, with less air around them and
-       the banner strap-lines on one line (their full text is on hover). */
-    @media (max-height: 820px) {
-        .idx-head { padding: 18px 32px 16px; margin-bottom: 12px; }
-        .idx-head .eyebrow { margin-bottom: 8px; }
-        .idx-head h1 { font-size: clamp(24px, 2.8vw, 31px); margin-bottom: 6px; }
-        .idx-head p { font-size: 13px; line-height: 1.45; }
-        .sim-banner-row { gap: 10px; margin-bottom: 14px; }
-        .sim-banner-row .sim-banner { padding: 10px 14px; }
-        .sim-banner-row .sim-banner-tx span { -webkit-line-clamp: 1; }
-        .topic-card { padding: 12px 14px; gap: 7px; }
+    /* Short screens. The target now is the whole directory on one screen: the top bar, the
+       four tools and all three groups of programs, with nothing cut off and nothing overlapping.
+       The base above fits a 900px-tall screen; these steps buy back what a 864px, 800px and
+       720px one needs. The words are all still there, with less air around them — except the
+       hero's strap-line, which repeats what the page obviously is, and the banners', whose
+       full text is on hover.*/
+    @media (max-height: 880px) {
+        .idx-wrap { padding: 10px 24px 10px; }
+        .idx-logo { height: 40px; }
+        .idx-head { padding: 9px 24px 10px; margin-bottom: 8px; }
+        .idx-head .eyebrow { display: none; }
+        .idx-head p { display: none; }
+        .idx-head h1 { font-size: clamp(18px, 1.7vw, 22px); margin: 0; }
+        .sim-banner-row { gap: 9px; margin-bottom: 9px; }
+        .sim-banner-row .sim-banner { padding: 9px 11px; }
+        .topic-card { padding: 8px 10px; gap: 6px; }
     }
-    @media (max-height: 745px) {
-        .idx-head { padding: 14px 28px 13px; margin-bottom: 10px; }
-        .idx-head h1 { font-size: clamp(22px, 2.5vw, 27px); }
-        .idx-head p { font-size: 12.5px; }
-        .sim-banner-row { margin-bottom: 11px; }
-        .sim-banner-row .sim-banner { padding: 8px 13px; gap: 11px; }
-        .sim-banner-row .sim-banner-ic { width: 34px; height: 34px; border-radius: 10px; font-size: 17px; }
-        .topic-grid { gap: 11px; }
-        .topic-card { padding: 10px 13px; gap: 6px; }
-        .topic-card h3 { font-size: 13.5px; padding: 7px 9px; }
+    @media (max-height: 800px) {
+        .idx-logo { height: 34px; }
+        .idx-user .pn-pill { font-size: 10.5px !important; padding: 4px 8px !important; }
+        .idx-head { padding: 7px 22px 8px; margin-bottom: 7px; }
+        .idx-head h1 { font-size: clamp(17px, 1.5vw, 20px); }
+        .sim-banner-row { gap: 8px; margin-bottom: 8px; }
+        .sim-banner-row .sim-banner { padding: 7px 10px; gap: 9px; }
+        .sim-banner-row .sim-banner-ic { width: 30px; height: 30px; font-size: 15px; }
+        .sim-banner-row .sim-banner-tx span { -webkit-line-clamp: 1; }
+        .topic-group { margin-bottom: 9px; }
+        .topic-group-head { margin-bottom: 5px; padding-bottom: 3px; }
+        .topic-group-head h2 { font-size: 14px; }
+        .topic-grid { gap: 8px; }
+        .topic-card { padding: 7px 9px; gap: 5px; }
+        .topic-card h3 { font-size: 12px; padding: 5px 7px; }
+        .topic-action-btn { padding: 6px; font-size: 10px; }
+        .topic-status { font-size: 9.5px; padding: 3px 8px; }
+    }
+    @media (max-height: 730px) {
+        .idx-wrap { padding: 8px 20px 8px; }
+        .idx-logo { height: 30px; }
+        .idx-head { padding: 6px 18px 7px; margin-bottom: 6px; }
+        .idx-head h1 { font-size: 17px; }
+        .sim-banner-row { gap: 7px; margin-bottom: 7px; }
+        .sim-banner-row .sim-banner { padding: 6px 9px; }
+        .topic-grid { gap: 7px; }
+        .topic-group { margin-bottom: 7px; }
+        .topic-card { padding: 6px 8px; gap: 4px; }
+        .topic-card h3 { font-size: 11.5px; padding: 4px 6px; }
     }
 </style>
 <script src="/portal-nav.js"></script>
@@ -188,10 +215,10 @@
 </script>
 
 <div class="idx-top">
-    <a class="idx-brand" href="/index.html" title="The LSH Upskill Hub main page"><img class="idx-logo" src="/img/logo.png" alt="Legal Support Help"></a>
+    <a class="idx-brand" href="/index.html?stay=1" title="The LSH Upskill Hub main page"><img class="idx-logo" src="/img/logo.png" alt="Legal Support Help"></a>
     <span class="idx-title">Training Directory</span>
     <div class="idx-user" id="idx-user">
-        <script>document.write(PortalNav.traineeHtml('', { back: '/index.html' }));</script>
+        <script>document.write(PortalNav.traineeHtml('', { back: '/index.html?stay=1' }));</script>
         <a class="pn-pill" href="/admin-login.html" title="Admin monitoring (sign-in required)">Admin</a>
     </div>
 </div>
@@ -343,14 +370,14 @@
         if (session.userType === 'Admin') {
             const userEl = document.getElementById('idx-user');
             // One admin bar on every main page (portal-nav.js); everything else is under System Management.
-            if (userEl) userEl.innerHTML = PortalNav.adminHtml('', { back: '/index.html' });
+            if (userEl) userEl.innerHTML = PortalNav.adminHtml('', { back: '/index.html?stay=1' });
             if (asTrainee) document.querySelector('.idx-top').insertAdjacentHTML('afterend',
                 `<div class="pn-trainee-view">👁 Trainee view: the Training Directory as trainees see it.<button type="button" onclick="PortalNav.switchView()">Back to the admin view</button></div>`);
         }
 
         if (session.userType === 'Trainee') {
             const userEl = document.getElementById('idx-user');
-            if (userEl) userEl.innerHTML = PortalNav.traineeHtml('', { back: '/index.html', signedIn: true });
+            if (userEl) userEl.innerHTML = PortalNav.traineeHtml('', { back: '/index.html?stay=1', signedIn: true });
         }
 
         const headingEl = document.getElementById('idx-heading');

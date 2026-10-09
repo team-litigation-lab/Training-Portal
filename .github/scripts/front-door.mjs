@@ -97,6 +97,30 @@ m = await getMe(boss); check(m.status === 200 && m.body.user.userType === 'Admin
 m = await getMe(''); check(m.status === 401, '/api/me answers 401 when signed out');
 m = await getMe(await cookieFor('gone', 'Trainee')); check(m.status === 401 && m.body.code === 'ACCESS_REVOKED', '/api/me refuses a revoked account');
 
+// Every link and Back target that points at the main page must carry ?stay=1.
+// Without it the redirect checked above sends a signed-in person who presses
+// "Home" or "Back" straight back to the Training Directory they just left, so
+// the button looks broken. Static check, because that is how it went wrong.
+const LANDING = /(?:href=["']|["'`]|encodeURIComponent\(['"])(\/index(?:\.html)?)(["'`#?])/g;
+// href="/" is the landing page too, and reads as innocent, so it gets its own pattern
+const BARE_ROOT = /href=["']\/["']/g;
+const isCompare = (l) => /location\.pathname|path ===/.test(l);   // path comparisons, not links
+const files = fs.readdirSync('.').filter(f => /\.(html|js)$/.test(f))
+    .concat(fs.existsSync('simulators') ? fs.readdirSync('simulators').filter(f => /\.(html|js)$/.test(f)).map(f => 'simulators/' + f) : []);
+let bare = [];
+for (const f of files) {
+    if (!fs.existsSync(f)) continue;
+    fs.readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
+        if (isCompare(line)) return;
+        for (const m of line.matchAll(LANDING)) {
+            const after = line.slice(m.index + m[0].length - 1);
+            if (!/^\?stay=1/.test(after)) bare.push(`${f}:${i + 1}  ${line.trim().slice(0, 100)}`);
+        }
+        for (const _ of line.matchAll(BARE_ROOT)) bare.push(`${f}:${i + 1}  ${line.trim().slice(0, 100)}`);
+    });
+}
+check(bare.length === 0, 'every link to the main page carries ?stay=1' + (bare.length ? ':\n    ' + bare.join('\n    ') : ''));
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(failures.length ? `\n${failures.length} failed` : '\nall passed');
 process.exit(failures.length ? 1 : 0);

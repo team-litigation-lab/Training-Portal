@@ -667,7 +667,7 @@ async function attemptUnlock() {
         // in place — if this fired while sitting on core.html, that would
         // leave a blank dashboard shell with no login form to get back in from.
         clearSession();
-        window.location.href = '/index.html';
+        window.location.href = '/index.html?stay=1';
     } catch (e) {
         if (errEl) { errEl.textContent = e.message; errEl.style.display = 'block'; }
     }
