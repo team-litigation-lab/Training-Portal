@@ -252,7 +252,14 @@
        explains them belong together, and the block was running past the fold
        with the images stacked. The section's own anchor offset already clears
        the sticky nav, so the height to fill is the viewport minus that. */
-    #faq { min-height: calc(100vh - var(--nav-h, 105px) - var(--anchor-gap)); display: flex; flex-direction: column; justify-content: center; }
+    /* The band sits flush under the nav, the way #team's does, and only what
+       is below it is centred in the leftover height. justify-content: center
+       centred the band too, so on a tall window a strip of the page's photo
+       showed above it and the heading no longer met the nav. #team does this
+       by leaving the band at the top and giving the content margin: auto;
+       these sections now do the same. */
+    #faq { min-height: calc(100vh - var(--nav-h, 105px) - var(--anchor-gap)); display: flex; flex-direction: column; }
+    #faq > #faq-list { margin-top: auto; margin-bottom: auto; }
     .history-block {
         margin-top: 72px;
         min-height: calc(100vh - var(--nav-h, 105px) - var(--anchor-gap));
@@ -274,9 +281,14 @@
         #about {
             min-height: calc(100vh - var(--nav-h, 105px) - var(--anchor-gap));
             display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            grid-template-rows: auto auto; align-content: center; column-gap: clamp(32px, 3.4vw, 56px);
+            /* Row 1 is the band, pinned at the top; row 2 takes the rest and
+               its two columns centre inside it. align-content: center centred
+               the band along with them and pushed it 137px down the screen at
+               1920, leaving the page's photo showing above the heading. */
+            grid-template-rows: auto minmax(0, 1fr); align-content: stretch; column-gap: clamp(32px, 3.4vw, 56px);
         }
-        #about > .band { grid-column: 1 / -1; }
+        #about > .band { grid-column: 1 / -1; align-self: start; }
+        #about > .founder-block, #about > .history-block { align-self: center; }
         /* it was a screen of its own; now it is a column of one */
         #about .history-block { margin-top: 0; min-height: 0; display: block; }
         #about .founder-block { min-width: 0; }
@@ -295,6 +307,16 @@
             #about .founder-text p, #about .about-text p { font-size: 12.5px; line-height: 1.55; margin-bottom: 8px; }
             #about .sub-head { font-size: 19px; }
             #about .name-pill { font-size: 14px; padding: 6px 13px; margin-bottom: 9px; }
+        }
+        /* 1280x720 is the shortest window this layout is held to, and it was
+           the one width still 20px past the fold. The two grids' top margins
+           and the gap between the timeline images are what pay for it. */
+        @media (max-height: 745px) {
+            #about .founder-grid, #about .about-grid { margin-top: 8px; }
+            #about .about-grid { gap: 8px; }
+            #about .about-imgs { gap: 9px; }
+            #about .sub-head { font-size: 18px; }
+            #about .founder-text p, #about .about-text p { margin-bottom: 5px; line-height: 1.5; }
         }
     }
     .vlf-link { font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
@@ -389,7 +411,11 @@
        sized to the room under the sticky nav and everything in it is tightened
        to fit: the two halves together ran about 1209px against the 789px a
        900px-tall window leaves. */
-    #vision { min-height: calc(100vh - var(--nav-h, 105px) - var(--anchor-gap)); display: flex; flex-direction: column; justify-content: center; padding-bottom: 40px; }
+    #vision { min-height: calc(100vh - var(--nav-h, 105px) - var(--anchor-gap)); display: flex; flex-direction: column; padding-bottom: 40px; }
+    /* Three children below the band, so the auto margins go on the first and
+       the last of them: that centres the group without wrapping it in a box. */
+    #vision > .vm-grid { margin-top: auto; }
+    #vision > .values-grid { margin-bottom: auto; }
     .vm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin-top: 20px; }
     .vm-col { display: flex; gap: 20px; align-items: stretch; }
     .vm-tag { flex: none; width: 54px; border-radius: 16px; background: var(--navy); border: 2px solid rgba(255,255,255,.18); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--orange); font-weight: 900; font-size: 24px; }
