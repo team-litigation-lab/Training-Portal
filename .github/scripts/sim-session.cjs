@@ -51,6 +51,11 @@ const server = http.createServer(async (req, res) => {
         if (kept || session) {
             await page.goto(base + '/blank.html', { waitUntil: 'load' });
             await page.evaluate(([k, s]) => { Object.keys(k || {}).forEach(n => localStorage.setItem(n, typeof k[n] === 'string' ? k[n] : JSON.stringify(k[n]))); if (s) sessionStorage.setItem('LSH_SESSION_V1', JSON.stringify(s)); }, [kept, session]);
+            // blank.html loads sim.js too, and this seeding page has no session of its own yet, so sim.js asks /api/me
+            // (Sim.ready) and starts a heartbeat there. Let that finish before the log is cleared, or the seeding page's
+            // requests are counted against the page under test.
+            await page.evaluate(() => (window.Sim && Sim.ready) || null).catch(() => {});
+            await page.waitForTimeout(300);
         }
         log = [];
         await page.goto(base + url, { waitUntil: 'load' }); await page.waitForTimeout(900);
@@ -98,9 +103,14 @@ const server = http.createServer(async (req, res) => {
     /* ---------- Sim.restore / Sim.fetchRetry in isolation ---------- */
     me = BOB;
     page = await tab('/blank.html');
+    // sim.js asks who is signed in itself, once, as soon as it loads (Sim.ready), so the top bar, the "Who's practicing?"
+    // card and Sim.saveResult never have to guess on a page that renders before the answer is in. One question per page,
+    // whoever asks: two more Sim.restore() calls at once add none, and both get the signed-in person.
+    if (count('/api/me') !== 1) fail(`sim.js asked /api/me ${count('/api/me')} times on loading a page (expected exactly 1: Sim.ready)`);
+    if (!(await page.evaluate(() => Sim.ready instanceof Promise))) fail('sim.js did not start Sim.ready at load, so a page that renders first would treat a signed-in trainee as a visitor');
     log = [];
     const both = await page.evaluate(() => Promise.all([Sim.restore(), Sim.restore()]));
-    if (count('/api/me') !== 1 || both[0].username !== 'bob' || both[1].username !== 'bob') fail(`two Sim.restore() calls at once asked /api/me ${count('/api/me')} times: ${JSON.stringify(both)}`);
+    if (count('/api/me') !== 0 || both[0].username !== 'bob' || both[1].username !== 'bob') fail(`two more Sim.restore() calls asked /api/me ${count('/api/me')} times (expected 0: Sim.ready already answered): ${JSON.stringify(both)}`);
     log = [];
     if ((await page.evaluate(() => Sim.restore())).username !== 'bob' || count('/api/me')) fail('Sim.restore() with a session in the tab should answer from the tab, without /api/me');
     const probe = (o) => page.evaluate(async (o) => { const r = await Sim.fetchRetry('/api/probe', Object.assign({ method: 'POST', credentials: 'include', body: '{"n":1}' }, o)); return { status: r.status, text: await r.text() }; }, o || {});

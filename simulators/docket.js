@@ -287,6 +287,7 @@ window.DK = {
     }
 };
 
-document.getElementById('topbar').innerHTML = Sim.topbar('docket');
-render();
+// A new tab (a course's link opens with noopener, or a bookmark) has the cookie but no copy of the session: ask who is
+// signed in before the first render, so the heartbeat starts and a signed-in trainee practices as their own account.
+Sim.restore().then(() => { document.getElementById('topbar').innerHTML = Sim.topbar('docket'); render(); });
 })();

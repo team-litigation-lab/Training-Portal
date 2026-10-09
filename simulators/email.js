@@ -325,4 +325,6 @@ async function wsSubmit(){
   Sim.saveResult({simulator:'Email Workspace', scenario:W.pack.title, score:overall, summary:`Filing ${filing}% · Security ${security}% · Triage ${triage}%${writing!=null?` · Replies ${writing}%`:''}`, details:{filing, security, triage, writing, secs, labels:W.labels.map(l=>lblPath(l.id))}});
 }
 document.addEventListener('click', (e)=>{ if(W.menu && !e.target.closest('.gm-menu') && !e.target.closest('.gm-ib') && !e.target.closest('.gm-dialog')){ W.menu = null; draw(); } });
-document.addEventListener('DOMContentLoaded', ()=>{ document.getElementById('topbar').innerHTML = Sim.topbar('email'); render(); });
+// A new tab (a course's link opens with noopener, or a bookmark) has the cookie but no copy of the session: ask who is
+// signed in before the first render, so the heartbeat starts and the inbox is kept under the trainee's own account (wsKey).
+document.addEventListener('DOMContentLoaded', async ()=>{ await Sim.restore(); document.getElementById('topbar').innerHTML = Sim.topbar('email'); render(); });

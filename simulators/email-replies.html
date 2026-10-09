@@ -226,6 +226,7 @@ function renderDebrief() {
         ${again}</div>`;
 }
 async function boot() {
+    await Sim.restore();   // a new tab (a course's link opens with noopener) has the cookie but no copy of the session
     document.getElementById('topbar').innerHTML = Sim.topbar('replies');
     $app().innerHTML = `<div class="sim-card"><div class="sim-loading">Loading the inbox…</div></div>`;
     try {

@@ -50,17 +50,27 @@ progress: Standard Training by lesson (Reception 4, Calendar Management 5, Intak
   to the sign-in before any `/simulators/*` page, and the simulators' APIs refuse one. **`sim.js` keeps a Trainee session** (it
   used to delete it): `Sim.isAdmin()` is only `userType === 'Admin'`. The Portal treats a session with no heartbeat for 90 s as
   expired (the APIs answer 401 `SESSION_EXPIRED`), and `app.js` beats every 30 s only for a person the tab knows. A page opened
-  in a new tab (a link from a course site, a bookmark) has the cookie but no copy in the tab, so **every page that decides by
-  who is signed in calls `await Sim.restore()` before its first render** (`simulators.html`, `gcal.js`, `my-evaluations.html`,
-  `gcal-review.html`): it asks `/api/me` once, keeps the answer (Admin or Trainee) with `setSession()`, starts the heartbeat,
-  and resolves to the session (`{}` when signed out). `Sim.fetchRetry(url, opts)` is `fetch` that, on a 401 `SESSION_EXPIRED`,
+  in a new tab (a course's link, which opens with `noopener`, or a bookmark) has the cookie but no copy in the tab, so **every
+  page that decides by who is signed in calls `await Sim.restore()` before its first render** (every simulator page does): it
+  asks `/api/me` once, keeps the answer (Admin or Trainee) with `setSession()`, starts the heartbeat,
+  and resolves to the session (`{}` when signed out). **`Sim.ready`** is that one question, started by `sim.js` itself at load,
+  so a page cannot forget it: the top bar, the "Who's practicing?" card and `Sim.saveResult` all wait for it, and the top bar
+  draws itself again (`Sim.retopbar()`) once the answer is in. Before that, a signed-in trainee read as an anonymous visitor on
+  a page that rendered first — the editable *Practicing as … ✎*, the "Who's practicing?" card, no heartbeat, and the score
+  written under a name typed in this browser or dropped as "just practice". `Sim.fetchRetry(url, opts)` is `fetch` that, on a
+  401 `SESSION_EXPIRED`,
   asks `/api/me` once (it re-seeds the heartbeat) and sends the request again once: use it for the Portal's own APIs
-  (`Sim.ai`, `Sim.saveResult` and `Sim.results` do). Test: `.github/scripts/sim-session.cjs`.
-- `Sim.who()` → `{ name, batch, program }` is what the trainer sees with the scores (asked once by the "Who's practicing?" card,
-  or passed as `?name=&batch=&program=`). It is typed, not taken from the account, and kept in this browser with the calendars
+  (`Sim.ai`, `Sim.saveResult` and `Sim.results` do). Tests: `.github/scripts/sim-session.cjs`,
+  `.github/scripts/sim-identity.cjs` (whose score it is, on every simulator page).
+- `Sim.who()` → `{ name, batch, program }` is what the trainer sees with the scores. For a **signed-in trainee it is always
+  their account** (the name and batch from the session, never editable): the "Who's practicing?" card is a visitor's only, and a
+  name typed earlier in this browser or passed by a link (`?name=&batch=`) never replaces it. Only `?program=` is kept from the
+  link. A visitor's is typed, and kept in this browser with the calendars
   (`lsh_gcal[.track]:<name>`, `lsh_gcal_seen`) and the results history (`LSH_SIM_HISTORY`). `LSH_SIM_USER` remembers whose they
   are: when `Sim.restore()` (or the tab's own session) names a different person, `Sim.claim()` clears all of them, so a second
-  trainee on a shared browser never inherits the first one's calendar nor uploads it as their draft. (No sign-out hook is needed:
+  trainee on a shared browser never inherits the first one's calendar nor uploads it as their draft. This needs who is signed
+  in, so on a page that rendered before `/api/me` answered it never ran: the next trainee on a shared training-room machine
+  kept the previous one's name, calendar and history. `Sim.ready` is what makes it run everywhere. (No sign-out hook is needed:
   `logoutSession()` is `app.js`'s and clears only the session; the next person to sign in is compared with `LSH_SIM_USER`.)
 - `?program=CM` / `?program=EA` should open that program's content first.
 - Gemini: `Sim.ai({ system, messages:[{role:'user'|'model', text}], json, maxTokens })`
