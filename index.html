@@ -393,8 +393,18 @@
     .vm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin-top: 20px; }
     .vm-col { display: flex; gap: 20px; align-items: stretch; }
     .vm-tag { flex: none; width: 54px; border-radius: 16px; background: var(--navy); border: 2px solid rgba(255,255,255,.18); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--orange); font-weight: 900; font-size: 24px; }
+    /* The statements used to sit directly on the page's own backdrop (the office
+       photo, under its paper wash) with nothing of their own — legible by the
+       numbers, but visually the quietest thing on a screen that now has a photo
+       behind it and bold navy value-cards below it. A white card lifts them off
+       that backdrop the same way the value-cards already are a solid block of
+       colour, not ink typed onto photo; the tag strip stays flush against it so
+       the two read as one piece, label and statement. */
+    .vm-body { background: #fff; border: 1px solid rgba(15,33,72,.08); border-radius: 18px; padding: 16px 20px; box-shadow: 0 18px 36px -26px rgba(15,33,72,.5); }
     .vm-body h3 { margin: 0 0 5px; font-size: 17px; font-weight: 900; color: var(--orange); letter-spacing: .02em; text-transform: uppercase; }
-    .vm-body p { font-size: 13.5px; line-height: 1.6; color: var(--navy); margin: 0 0 14px; }
+    /* 600 (semibold), not just higher contrast: on bare paper the navy was
+       already well past AA, so the ask was presence, not legibility. */
+    .vm-body p { font-size: 13.5px; font-weight: 600; line-height: 1.6; color: var(--navy); margin: 0 0 14px; }
     .vm-body p:last-child { margin-bottom: 0; }
     .vm-values-head { margin: 26px 0 0; font-size: 19px; font-weight: 900; color: var(--navy); letter-spacing: .01em; text-align: center; scroll-margin-top: calc(var(--nav-h, 105px) + var(--anchor-gap)); }
     /* the section's own width, so the cards line up with the Mission and Vision columns above them */

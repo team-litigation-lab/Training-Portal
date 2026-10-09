@@ -178,7 +178,8 @@
     content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
     background:
         radial-gradient(46% 54% at 76% 38%, rgba(56, 189, 248, .17), transparent 68%),
-        radial-gradient(40% 44% at 97% 95%, rgba(249, 115, 22, .11), transparent 72%);
+        radial-gradient(40% 44% at 97% 95%, rgba(249, 115, 22, .11), transparent 72%),
+        url('/img/hero-tech-bg.svg') center / cover no-repeat;
 }
 /* No lit hairline along the bottom here, unlike the dark top bars. The band
    below already brings its own top border and a 3px orange underline, and a

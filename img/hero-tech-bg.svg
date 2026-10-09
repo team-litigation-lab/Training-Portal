@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="wave1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#38bdf8" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#38bdf8" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="wave2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f97316" stop-opacity="0"/>
+      <stop offset=".55" stop-color="#f97316" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#f97316" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="dotFade" cx="72%" cy="58%" r="60%">
+      <stop offset="0" stop-color="#fff" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- flow lines: a loose bundle of sine-like strokes, the same gesture as the
+       simulators' cyan edge-light, just drawn long and soft rather than as a hairline -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M -50 560 C 250 460, 500 620, 760 500 S 1250 380, 1650 470" stroke="url(#wave1)" stroke-width="2.5"/>
+    <path d="M -50 600 C 260 520, 520 660, 790 560 S 1260 440, 1650 530" stroke="url(#wave1)" stroke-width="1.5"/>
+    <path d="M -50 640 C 270 600, 540 700, 800 630 S 1270 540, 1650 610" stroke="url(#wave2)" stroke-width="1.5"/>
+    <path d="M -50 500 C 230 420, 480 540, 740 440 S 1230 320, 1650 400" stroke="url(#wave1)" stroke-width="1"/>
+  </g>
+
+  <!-- a scatter of small particles, concentrated toward the right where the hero's
+       own orange rings already sit, thinning out toward the text column on the left -->
+  <g fill="url(#dotFade)">
+    <circle cx="980" cy="120" r="1.6"/><circle cx="1040" cy="200" r="1.2"/>
+    <circle cx="1120" cy="90" r="1.8"/><circle cx="1180" cy="260" r="1.3"/>
+    <circle cx="1260" cy="150" r="1.5"/><circle cx="1320" cy="330" r="1.1"/>
+    <circle cx="1400" cy="110" r="1.7"/><circle cx="1460" cy="240" r="1.2"/>
+    <circle cx="1530" cy="180" r="1.4"/><circle cx="1050" cy="420" r="1.3"/>
+    <circle cx="1150" cy="500" r="1.6"/><circle cx="1230" cy="440" r="1.1"/>
+    <circle cx="1350" cy="560" r="1.5"/><circle cx="1420" cy="480" r="1.2"/>
+    <circle cx="1500" cy="600" r="1.7"/><circle cx="1570" cy="520" r="1.3"/>
+    <circle cx="1080" cy="680" r="1.4"/><circle cx="1200" cy="740" r="1.2"/>
+    <circle cx="1330" cy="700" r="1.6"/><circle cx="1460" cy="760" r="1.1"/>
+    <circle cx="1560" cy="700" r="1.5"/><circle cx="900" cy="300" r="1.1"/>
+    <circle cx="840" cy="180" r="1.3"/><circle cx="760" cy="90" r="1.2"/>
+  </g>
+
+  <!-- a small circuit / network cluster, upper right, well clear of the headline column -->
+  <g fill="none" stroke="#6bd4f7" stroke-opacity=".28" stroke-width="1">
+    <path d="M 1180 70 L 1250 40 L 1330 75 L 1300 140 L 1360 170"/>
+    <path d="M 1250 40 L 1250 10"/>
+    <path d="M 1330 75 L 1400 55"/>
+  </g>
+  <g fill="#9ee3fb" fill-opacity=".55">
+    <circle cx="1180" cy="70" r="2.5"/><circle cx="1250" cy="40" r="2.5"/>
+    <circle cx="1330" cy="75" r="2.5"/><circle cx="1300" cy="140" r="2.5"/>
+    <circle cx="1360" cy="170" r="2.5"/><circle cx="1400" cy="55" r="2.2"/>
+  </g>
+  <!-- a faint dotted grid, the same device the Training Directory's own hero uses for
+       a "data" texture, kept sparse and low-contrast so it reads as ambient, not pattern -->
+  <g fill="#ffffff" fill-opacity=".08">
+    <circle cx="1440" cy="690" r="1"/><circle cx="1470" cy="690" r="1"/><circle cx="1500" cy="690" r="1"/>
+    <circle cx="1440" cy="715" r="1"/><circle cx="1470" cy="715" r="1"/><circle cx="1500" cy="715" r="1"/>
+    <circle cx="1440" cy="740" r="1"/><circle cx="1470" cy="740" r="1"/><circle cx="1500" cy="740" r="1"/>
+  </g>
+</svg>
