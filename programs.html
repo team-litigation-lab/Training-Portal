@@ -56,17 +56,17 @@
 
     .idx-wrap { max-width: 1280px; margin: 0 auto; padding: 40px 24px 80px; }
     /* Directory hero — the same navy and orange rings as the home page hero. */
-    .idx-head { position: relative; overflow: hidden; margin-bottom: 20px; padding: 38px 40px 34px; border-radius: 22px; color: #fff;
+    .idx-head { position: relative; overflow: hidden; margin-bottom: 16px; padding: 24px 36px 22px; border-radius: 22px; color: #fff;
         background: radial-gradient(120% 140% at 100% 0%, var(--navy-mid) 0%, var(--navy-deep) 62%); box-shadow: 0 18px 40px -22px rgba(8,18,38,.7); }
     .idx-head::before, .idx-head::after { content: ""; position: absolute; border-radius: 50%; pointer-events: none; }
     .idx-head::before { width: 360px; height: 360px; right: -90px; top: -150px; border: 44px solid rgba(249,115,22,.16); }
     .idx-head::after { width: 200px; height: 200px; right: 40px; top: -40px; border: 2px solid rgba(251,146,60,.35); }
     .idx-head > * { position: relative; z-index: 1; }
     .idx-head .eyebrow { display: inline-block; font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--orange-soft);
-        padding: 5px 12px; border: 1px solid rgba(251,146,60,.45); border-radius: 999px; background: rgba(249,115,22,.10); margin-bottom: 14px; }
-    .idx-head h1 { font-size: clamp(30px, 4.2vw, 44px); font-weight: 900; line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 12px; color: #fff; }
+        padding: 4px 11px; border: 1px solid rgba(251,146,60,.45); border-radius: 999px; background: rgba(249,115,22,.10); margin-bottom: 10px; }
+    .idx-head h1 { font-size: clamp(26px, 3.2vw, 36px); font-weight: 900; line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 8px; color: #fff; }
     .idx-head h1 span { color: var(--orange); }
-    .idx-head p { font-size: 15.5px; line-height: 1.6; color: rgba(255,255,255,.68); margin: 0; max-width: 62ch; }
+    .idx-head p { font-size: 14px; line-height: 1.5; color: rgba(255,255,255,.68); margin: 0; max-width: 62ch; }
     @media (max-width: 640px) { .idx-head { padding: 28px 22px 26px; border-radius: 18px; } .idx-head::before { right: -180px; } .idx-head::after { display: none; } }
 
     .queue-card { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; padding: 18px 20px; margin-bottom: 28px; }
@@ -79,9 +79,15 @@
     .queue-btn.approve { background: #166534; color: #fff; }
     .queue-btn.deny { background: #fff; color: #b91c1c; border: 1px solid #fca5a5; }
 
-    .topic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-    .topic-group { margin-bottom: 30px; }
-    .topic-group-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid rgba(249,115,22,.35); }
+    /* Four across is the default, but a group's last row should not be a stub:
+       Personal Injury Law has six, which is 4 + 2 on a four-column grid and a
+       balanced 3 + 3 on a three-column one. groupedTopicsHtml() picks the count
+       that divides the group evenly (see cols-3) rather than this being a
+       one-off for that one section. */
+    .topic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .topic-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .topic-group { margin-bottom: 22px; }
+    .topic-group-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 2px solid rgba(249,115,22,.35); }
     .topic-group-head h2 { font-size: 17px; font-weight: 900; margin: 0; color: var(--navy); letter-spacing: .01em; }
     /* These section notes sit directly on the body backdrop, not on a card.
        At 30% the photo's darkest area composites to about rgb(176,175,174),
@@ -89,12 +95,12 @@
        #334155 is the lightest step that clears 4.5:1 (4.73:1) and still reads
        as a muted grey next to the navy heading. */
     .topic-group-head span { font-size: 12px; color: #334155; font-weight: 600; }
-    @media (max-width: 1000px) { .topic-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 560px) { .topic-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 1000px) { .topic-grid, .topic-grid.cols-3 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .topic-grid, .topic-grid.cols-3 { grid-template-columns: 1fr; } }
     /* The cards keep their gridlines: the navy frame around the card and around its title,
        so they read as a grid over the page's photo backdrop. */
-    .topic-card { background: #fff; border-radius: 18px; padding: 20px; border: 2px solid rgba(15,33,72,.35); box-shadow: 0 14px 28px -18px rgba(15,33,72,.35); display: flex; flex-direction: column; gap: 12px; }
-    .topic-card h3 { font-size: 14.5px; font-weight: 800; margin: 0; color: var(--navy); border: 2px solid var(--navy); border-radius: 10px; padding: 9px 10px; }
+    .topic-card { background: #fff; border-radius: 16px; padding: 15px 16px; border: 2px solid rgba(15,33,72,.35); box-shadow: 0 14px 28px -18px rgba(15,33,72,.35); display: flex; flex-direction: column; gap: 9px; }
+    .topic-card h3 { font-size: 14.5px; font-weight: 800; margin: 0; color: var(--navy); border: 2px solid var(--navy); border-radius: 10px; padding: 8px 10px; }
     .topic-status { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 10px; border-radius: 999px; display: inline-block; width: fit-content; }
     .topic-status.approved { background: #f0fdf4; color: #166534; }
     .topic-status.passed { background: #fff7ed; color: #9a3412; }
@@ -110,8 +116,14 @@
     .topic-action-btn.disabled { background: #f1f5f9; color: #94a3b8; cursor: default; }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
-    .sim-banner-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; margin-bottom: 28px; }
-    .sim-banner-row .sim-banner { margin-bottom: 0; }
+    .sim-banner-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .sim-banner-row .sim-banner { margin-bottom: 0; padding: 13px 16px; gap: 13px; }
+    /* Two lines, with the rest on the title attribute — these are signposts to
+       four tools, not the tools' documentation, and at four lines each they
+       pushed the actual programs off the screen. */
+    .sim-banner-row .sim-banner-tx span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+    .sim-banner-row .sim-banner-ic { width: 40px; height: 40px; border-radius: 12px; font-size: 20px; }
+    .sim-banner-row .sim-banner-tx b { font-size: 15px; }
     @media (max-width: 760px) { .sim-banner-row { grid-template-columns: 1fr; } }
     .sim-banner-ic { width: 48px; height: 48px; border-radius: 14px; background: rgba(249,115,22,.18); border: 1px solid rgba(253,186,116,.45); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
     .sim-banner-tx { flex: 1; min-width: 0; } .sim-banner-tx b { display: block; font-size: 16px; } .sim-banner-tx span { font-size: 13px; color: #c7d2fe; }
@@ -128,6 +140,33 @@
     @media (max-width: 1400px) { .idx-title { white-space: normal; max-width: 9em; line-height: 1.1; } }
     @media (max-width: 900px) { .idx-top { flex-wrap: wrap; } .idx-title { order: 2; flex-basis: auto; } .idx-user { order: 3; width: 100%; justify-content: flex-start; } }
     .pn-trainee-view { position: relative; z-index: 5; }
+
+    /* Short screens. The target is the first group of programs — Personal Injury
+       Law — sitting between the top bar and the fold, so the directory opens on
+       what it is a directory of. These two steps buy that back on a 768px and a
+       720px screen; the words are all still there, with less air around them and
+       the banner strap-lines on one line (their full text is on hover). */
+    @media (max-height: 820px) {
+        .idx-head { padding: 18px 32px 16px; margin-bottom: 12px; }
+        .idx-head .eyebrow { margin-bottom: 8px; }
+        .idx-head h1 { font-size: clamp(24px, 2.8vw, 31px); margin-bottom: 6px; }
+        .idx-head p { font-size: 13px; line-height: 1.45; }
+        .sim-banner-row { gap: 10px; margin-bottom: 14px; }
+        .sim-banner-row .sim-banner { padding: 10px 14px; }
+        .sim-banner-row .sim-banner-tx span { -webkit-line-clamp: 1; }
+        .topic-card { padding: 12px 14px; gap: 7px; }
+    }
+    @media (max-height: 745px) {
+        .idx-head { padding: 14px 28px 13px; margin-bottom: 10px; }
+        .idx-head h1 { font-size: clamp(22px, 2.5vw, 27px); }
+        .idx-head p { font-size: 12.5px; }
+        .sim-banner-row { margin-bottom: 11px; }
+        .sim-banner-row .sim-banner { padding: 8px 13px; gap: 11px; }
+        .sim-banner-row .sim-banner-ic { width: 34px; height: 34px; border-radius: 10px; font-size: 17px; }
+        .topic-grid { gap: 11px; }
+        .topic-card { padding: 10px 13px; gap: 6px; }
+        .topic-card h3 { font-size: 13.5px; padding: 7px 9px; }
+    }
 </style>
 <script src="/portal-nav.js"></script>
 <link rel="stylesheet" href="/theme.css">
@@ -167,22 +206,22 @@
     <div class="sim-banner-row">
     <a class="sim-banner" href="/simulators.html">
         <span class="sim-banner-ic">🛠</span>
-        <span class="sim-banner-tx"><b>Simulators</b><span>Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way.</span></span>
+        <span class="sim-banner-tx" title="SimulatorsCalls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>Simulators</b><span>Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" href="/kb.html">
         <span class="sim-banner-ic">📚</span>
-        <span class="sim-banner-tx"><b>Knowledge Base</b><span>Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know.</span></span>
+        <span class="sim-banner-tx" title="Knowledge BaseOfficial SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know."><b>Knowledge Base</b><span>Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="ring-banner" href="/api/launch?tool=ringchannel" target="_blank" rel="noopener">
         <span class="sim-banner-ic">☎</span>
-        <span class="sim-banner-tx"><b>LSH Ring Channel</b><span>Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal.</span></span>
+        <span class="sim-banner-tx" title="LSH Ring ChannelMock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal."><b>LSH Ring Channel</b><span>Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="cms-banner" href="/api/launch?tool=cms" target="_blank" rel="noopener">
         <span class="sim-banner-ic">🗂</span>
-        <span class="sim-banner-tx"><b>Case Management System</b><span>The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer.</span></span>
+        <span class="sim-banner-tx" title="Case Management SystemThe practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer."><b>Case Management System</b><span>The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer.</span></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     </div>
@@ -458,6 +497,12 @@
         { title: 'Support & Upskill', note: '',
           keys: ['EA  PA TRAINING-OUTSOURCED MANP', 'FREE UPSKILL PROGRAMS'] }
     ];
+    // How many across, so a group's last row is not a stub. Four is the default
+    // and the widest the cards look right at; three when the count divides by
+    // three and not by four, which is what makes Personal Injury Law's six read
+    // as 3 + 3 rather than 4 + 2. Other Practice Areas' eight stays 4 + 4.
+    const columnsFor = (n) => (n % 4 === 0 ? 4 : n % 3 === 0 ? 3 : 4);
+
     function groupedTopicsHtml(cardFor) {
         const all = orderedTopics();
         const used = new Set();
@@ -471,7 +516,7 @@
         if (rest.length) sections.push({ title: 'More Training & Resources', note: '', cards: rest });
         return sections.filter(sec => sec.cards.length).map(sec =>
             `<section class="topic-group"><div class="topic-group-head"><h2>${escapeHtml(sec.title)}</h2>${sec.note ? `<span>${escapeHtml(sec.note)}</span>` : ''}</div>`
-            + `<div class="topic-grid">${sec.cards.map(cardFor).join('')}</div></section>`).join('');
+            + `<div class="topic-grid${columnsFor(sec.cards.length) === 3 ? ' cols-3' : ''}">${sec.cards.map(cardFor).join('')}</div></section>`).join('');
     }
 
     // Live access: while a trainee has a request waiting for approval, the page asks for the latest every 12 seconds (only while the tab is
