@@ -42,6 +42,8 @@ jobs:
         run: node --no-warnings .github/scripts/gcal-schedule.mjs
       - name: AI gateway (one shared budget for every call flow; per-flow share, per-minute and per-person limits)
         run: node --no-warnings .github/scripts/ai-gateway.mjs
+      - name: Trainee feedback (a rating shows on the home page only once an admin approves it)
+        run: node --no-warnings .github/scripts/feedback.mjs
       - name: The Call Simulator opens the CMS's (signed in, on the link's tab and line)
         run: node --no-warnings .github/scripts/calls-route.mjs
       - name: LSH Ring Channel opens from the Portal (signed in; admins to its trainer sign-in; linked on the Portal)
