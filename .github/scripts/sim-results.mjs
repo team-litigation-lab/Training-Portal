@@ -3,7 +3,8 @@
 // simulator (who.program), in that course's store (<prefix>simresults:<course trainee id>) with the best per simulator; a name typed
 // in the browser never replaces the account's. Run: node --no-warnings .github/scripts/sim-results.mjs
 import { DatabaseSync } from 'node:sqlite';
-import { onRequestPost } from '../../functions/api/sim-results.js';
+import { onRequestPost, onRequestGet } from '../../functions/api/sim-results.js';
+import { courseTraineeId } from '../../functions/api/call-results.js';
 import { createSessionToken } from '../../functions/_utils.js';
 
 const failures = []; const fail = (m) => failures.push(m);
@@ -38,6 +39,18 @@ await post({ simulator: 'Google Calendar', scenario: 'Attorney Rivera', score: 9
 await post({ simulator: 'Google Calendar', scenario: 'Attorney Rivera', score: 60, who: { program: 'FT' } }, jamie);
 const rec = JSON.parse(kv.get('ft:simresults:jamie-cruz--b100526') || 'null');
 if (!rec || rec.results.length !== 3 || rec.best['Google Calendar'].score !== 90 || rec.best['Google Calendar'].count !== 3) fail(`the course record: ${JSON.stringify(rec)}`);
+// read back under the same identity it was written under: the trainee's own rows, the trainer's list, and the course id a
+// graded call from the CMS Call Simulator uses for the same person (so a score and a call meet on one trainee record).
+{
+    const mine = await onRequestGet({ request: new Request('https://portal.test/api/sim-results', { headers: { cookie: jamie } }), env });
+    const d = await mine.json();
+    const got = (d.results || []).filter(r => r.simulator === 'Google Calendar');
+    if (d.admin !== false || got.length !== 3 || got.some(r => r.username !== 'jcruz' || r.full_name !== 'jcruz')) fail(`the trainee can't read their own scores back: ${JSON.stringify(d.results)}`);
+    const boss = await onRequestGet({ request: new Request('https://portal.test/api/sim-results', { headers: { cookie: await cookie('boss', 'Admin') } }), env });
+    const dd = await boss.json();
+    if (dd.admin !== true || !(dd.results || []).some(r => r.username === 'jcruz' && r.simulator === 'Google Calendar')) fail(`the trainer can't see the trainee's score: ${JSON.stringify(dd.results)}`);
+    if (courseTraineeId('Jamie', 'Cruz', 'B100526') !== 'jamie-cruz--b100526') fail('the course trainee id is not built the same way on the read side');
+}
 // the CM course, by its prefix
 r = await post({ simulator: 'Medical Records Requests', score: 80, who: { program: 'CM' } }, jamie);
 if (!kv.has('cm:simresults:jamie-cruz--b100526')) fail('a CM result didn\'t reach the CM course');

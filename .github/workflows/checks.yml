@@ -78,6 +78,10 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/sim-session.cjs
+      - name: Whose score is it (every simulator page records the signed-in trainee's score under their own account, never a name from the link or the browser)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/sim-identity.cjs
       - name: Google Calendar Simulator (the week, every request doable, the check, the page, an Admin's schedule)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
