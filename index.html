@@ -179,6 +179,11 @@
     .stat-label { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-top: 4px; font-weight: 600; }
 
     /* ===== SECTIONS (light body) ===== */
+    /* The breathing room between the sticky nav and an anchored heading. The
+       one-screen height below subtracts it too — a section that starts this far
+       down and is a full 100vh-minus-nav tall ends exactly that far past the
+       fold. */
+    :root { --anchor-gap: 6px; }
     .section { --sec-pad-top: 96px; max-width: 1180px; margin: 0 auto; padding: var(--sec-pad-top) 24px 96px; }
     .section-head { max-width: 640px; margin-bottom: 52px; }
     .section-head h2 { font-size: clamp(26px, 3.4vw, 38px); font-weight: 800; letter-spacing: -0.015em; margin: 12px 0 12px; color: var(--navy); }
@@ -194,7 +199,7 @@
        83px to 105px. 112px cleared it either way, but by 7px on one and 29px on
        the other. --nav-h is measured from the nav in script below, so the gap is
        the same everywhere; the literal here is only the pre-script fallback. */
-    section[id], .founder-block, .history-block { scroll-margin-top: calc(var(--nav-h, 105px) + 6px); }
+    section[id], .founder-block, .history-block { scroll-margin-top: calc(var(--nav-h, 105px) + var(--anchor-gap)); }
     .history-block { margin-top: 72px; }
     .vlf-link { font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
     .vlf-link:hover { color: var(--orange-soft); }
@@ -211,27 +216,31 @@
        --sec-pad-top cancels the pull-up — so the chart takes the rest and sits
        centred in it. */
     #team {
+        /* Wider than a text section: the chart is three cards across and was
+           being held to .section's 1180px, which is why raising .org's own
+           max-width alone did nothing. */
+        max-width: 1420px;
         --sec-pad-top: 54px; padding-bottom: 40px;
-        min-height: calc(100vh - var(--nav-h, 105px));
+        min-height: calc(100vh - var(--nav-h, 105px) - var(--anchor-gap));
         display: flex; flex-direction: column;
     }
     #team .org { margin-top: auto; margin-bottom: auto; }
-    .org { max-width: 1132px; margin: 26px auto 0; display: flex; flex-direction: column; align-items: center; }
-    .org-card { display: flex; align-items: center; gap: 14px; background: var(--navy); color: #fff; border-radius: 18px; border: 2px solid rgba(255,255,255,.18); padding: 10px 20px 10px 10px; min-width: 330px; box-sizing: border-box; box-shadow: 0 16px 34px -20px rgba(15,33,72,.6); }
-    .org-card img { width: 78px; height: 78px; object-fit: cover; border-radius: 12px; flex: none; background: #fff; }
-    .org-name { font-size: 17px; font-weight: 800; color: var(--orange); line-height: 1.25; }
-    .org-role { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: rgba(255,255,255,.85); margin-top: 5px; line-height: 1.35; }
-    .org-arrow { width: 2px; height: 26px; background: var(--orange); position: relative; margin: 0 auto; }
+    .org { max-width: 1340px; margin: 26px auto 0; display: flex; flex-direction: column; align-items: center; }
+    .org-card { display: flex; align-items: center; gap: 17px; background: var(--navy); color: #fff; border-radius: 20px; border: 2px solid rgba(255,255,255,.18); padding: 13px 26px 13px 13px; min-width: 392px; box-sizing: border-box; box-shadow: 0 16px 34px -20px rgba(15,33,72,.6); }
+    .org-card img { width: 92px; height: 92px; object-fit: cover; border-radius: 12px; flex: none; background: #fff; }
+    .org-name { font-size: 19.5px; font-weight: 800; color: var(--orange); line-height: 1.25; }
+    .org-role { font-size: 14.5px; letter-spacing: .04em; text-transform: uppercase; color: rgba(255,255,255,.85); margin-top: 5px; line-height: 1.35; }
+    .org-arrow { width: 2px; height: 30px; background: var(--orange); position: relative; margin: 0 auto; }
     .org-arrow::after { content: ''; position: absolute; left: -5px; bottom: -2px; border: 6px solid transparent; border-top: 9px solid var(--orange); border-bottom: 0; }
-    .org-stem { width: 2px; height: 14px; background: var(--orange); margin: 0 auto; }
-    .org-branch { position: relative; width: 66%; height: 26px; border-top: 2px solid var(--orange); }
-    .org-branch i { position: absolute; top: -2px; width: 2px; height: 26px; background: var(--orange); }
+    .org-stem { width: 2px; height: 16px; background: var(--orange); margin: 0 auto; }
+    .org-branch { position: relative; width: 66%; height: 30px; border-top: 2px solid var(--orange); }
+    .org-branch i { position: absolute; top: -2px; width: 2px; height: 30px; background: var(--orange); }
     .org-branch i::after { content: ''; position: absolute; left: -5px; bottom: -2px; border: 6px solid transparent; border-top: 9px solid var(--orange); border-bottom: 0; }
     .org-branch i:nth-child(1) { left: 0; } .org-branch i:nth-child(2) { left: calc(50% - 1px); } .org-branch i:nth-child(3) { right: 0; }
-    .org-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; width: 100%; }
-    .org-row .org-card { min-width: 0; padding-right: 16px; gap: 14px; }
-    .org-row .org-card img { width: 66px; height: 66px; }
-    .org-row .org-name { white-space: nowrap; font-size: 16px; }
+    .org-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; width: 100%; }
+    .org-row .org-card { min-width: 0; padding-right: 20px; gap: 16px; }
+    .org-row .org-card img { width: 78px; height: 78px; }
+    .org-row .org-name { white-space: nowrap; font-size: 18px; }
     @media (max-width: 1100px) { .org-row .org-name { font-size: 14.5px; } .org-row .org-card img { width: 60px; height: 60px; } }
     .about-grid { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: 44px; align-items: center; margin-top: 36px; }
     .about-imgs { display: grid; gap: 14px; }
@@ -302,7 +311,15 @@
 
     /* ===== Main screen: the dark hero and the three feature cards fill the first screen; everything below is on cream ===== */
     body { background: var(--paper); }
-    .first-screen { display: flex; flex-direction: column; min-height: 100vh; background: var(--navy-deep); }
+    /* The nav used to live in here, which is why it stopped sticking past the
+       hero: a sticky element is only sticky inside its own parent, so once this
+       box scrolled by, the nav went with it — and every anchor below it then
+       reserved scroll-margin for a bar that was no longer on screen, which is
+       the blank strip that left above those headings. The nav is a sibling now,
+       sticky for the whole page, so the offset is always paying for something.
+       Its height comes off the hero's 100vh, or the first view would be the nav
+       plus a full screen and start out scrollable. */
+    .first-screen { display: flex; flex-direction: column; min-height: calc(100vh - var(--nav-h, 105px)); background: var(--navy-deep); }
     .main-screen { flex: 1; display: flex; flex-direction: column; min-height: 0; background: var(--navy-deep); }
     .main-screen .hero { flex: 1; display: flex; align-items: center; }
     .main-screen .hero-inner { width: 100%; }
@@ -328,7 +345,6 @@
 </head>
 <body>
 
-<div class="first-screen">
 <nav>
     <div class="nav-inner">
         <div class="brand"><img class="brand-logo" src="/img/logo.png" alt="Legal Support Help" width="137" height="84"> <span class="brand-title">Legal Support Help Upskill Hub</span></div>
@@ -346,6 +362,7 @@
     </div>
 </nav>
 
+<div class="first-screen">
 <div class="main-screen">
 <section class="hero">
     <svg class="hero-rings" viewBox="0 0 640 640" fill="none" xmlns="http://www.w3.org/2000/svg">
