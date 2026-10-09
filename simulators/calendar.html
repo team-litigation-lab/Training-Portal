@@ -291,7 +291,9 @@ As an experienced legal calendaring coach, return ONLY JSON: {"summary":"2 sente
             ${(r.notify || []).length ? `<div style="margin-top:8px;"><b>Who to tell:</b><ul style="margin:4px 0 0;padding-left:20px;">${r.notify.map(t => `<li>${Sim.esc(t)}</li>`).join('')}</ul></div>` : ''}</div>`;
     } catch (e) { el.innerHTML = `<div class="sim-error">${Sim.esc(e.message)}</div>`; if (btn) btn.disabled = false; }
 }
-document.addEventListener('DOMContentLoaded', () => { document.getElementById('topbar').innerHTML = Sim.topbar('calendar'); Sim.label('Calendaring'); render(); });
+// A new tab (a course's link opens with noopener, or a bookmark) has the cookie but no copy of the session: ask who is
+// signed in before the first render, so the heartbeat starts and a signed-in trainee practices as their own account.
+document.addEventListener('DOMContentLoaded', async () => { await Sim.restore(); document.getElementById('topbar').innerHTML = Sim.topbar('calendar'); Sim.label('Calendaring'); render(); });
 </script>
 </body>
 </html>

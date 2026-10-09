@@ -26,6 +26,15 @@ const Sim = {
         Sim.claim(s);
         return s;
     },
+    // Who is signed in, known once per page. A page a course opened (its links open in a new tab, with noopener) and a
+    // bookmark both carry the signed cookie but no copy of the person in the tab, so until /api/me answers a signed-in
+    // trainee reads as a visitor. Everything that decides by who is practicing waits for this: the top bar (which would
+    // otherwise leave the editable name on screen), the "Who's practicing?" box (which would ask a signed-in trainee, and
+    // let them practice as someone else) and a saved score (which would be written under a name typed in this browser, or
+    // dropped as "just practice", instead of reaching the trainee's own record). Started at the foot of this file, so no
+    // page has to remember; a page should still `await Sim.restore()` before its first render, to start the heartbeat at
+    // once and paint the right name the first time.
+    ready: null,
     // The portal's own APIs refuse a session whose heartbeat is more than 90 s old (401, code SESSION_EXPIRED): a laptop that slept, a tab
     // the browser throttled. /api/me re-seeds it, so ask once and send the request again once. Returns the Response either way. (opts
     // are used twice: pass a string body, not a stream.)
@@ -78,6 +87,9 @@ const Sim = {
     embedded() { try { return window.self !== window.top; } catch (e) { return true; } },
     topbar(active) {
         Sim._active = active;
+        // Drawn before /api/me has answered (a page that didn't await Sim.restore()): draw it again as soon as who is signed
+        // in is known, so a signed-in trainee is never left with the editable name.
+        if (!Sim._synced && Sim.ready) { Sim._synced = 'waiting'; Sim.ready.then(() => { Sim._synced = true; Sim.retopbar(); }); }
         if (!Sim._asked) { Sim._asked = true; setTimeout(() => Sim.askWho(false), 400); }
         const s = Sim.session(), w = Sim.who(), admin = s.userType === 'Admin';
         const me = admin ? `<span class="who">${Sim.esc(s.fullName || s.username || '')}</span><a onclick="logoutSession()">Log Out</a>`
@@ -90,8 +102,11 @@ const Sim = {
                 ${me}
             </div></div>`;
     },
+    // Draw the top bar again where the page put it, keeping whichever page it is.
+    retopbar() { const tb = document.getElementById('topbar'); if (tb && tb.querySelector('.sim-top')) tb.innerHTML = Sim.topbar(Sim._active || ''); },
     // First visit (not an admin, no name yet): ask once so results can be saved for the trainer.
-    askWho(force) {
+    async askWho(force) {
+        await Sim.ready;   // who is signed in decides whether to ask at all: a signed-in trainee is never asked
         if (Sim.isAdmin() || Sim.session().userType === 'Trainee') return;   // (signed in to the Portal: who they are is known)
         const w = Sim.who();
         if (!force && (w.name || w.skipped)) return;
@@ -135,6 +150,7 @@ const Sim = {
         return JSON.parse(t);
     },
     async saveResult(r) {
+        await Sim.ready;   // the score is the signed-in trainee's, whether or not the page waited for /api/me itself
         const w = Sim.who();
         // Trainees keep their own history in this browser (the server list is admin-only).
         try {
@@ -164,3 +180,6 @@ const Sim = {
 // then the link's ?name=&batch=&program= (if it has them) says who is practicing.
 Sim.claim(Sim.session());
 Sim.fromQuery();
+// Then ask who is signed in, once, on every simulator page: Sim.ready is what the top bar, the "Who's practicing?" box and
+// Sim.saveResult wait for, so a signed-in trainee is never treated as a visitor on a page that renders before /api/me answers.
+Sim.ready = Sim.restore().catch(() => Sim.session());
