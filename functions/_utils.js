@@ -317,6 +317,21 @@ export async function loginFailed(db, request, username) {
 // IDs given out before as B<DDMMYYYY>-LSH<TYPE>-<NNN> keep it in storage, since the programs know those trainees by
 // it; the pages show them without it, app.js batchLabel). db is no longer needed (the batch_id_counter table that
 // numbered them isn't used), kept for the callers.
+// What's typed or stored for a Batch ID, in its one form: B + the date the batch started as MMDDYY. Any
+// capitals, spaces or dashes, the B left off, a four-digit year, or the older long forms B09102026 and
+// B09102026-LSHTRAINEE-001 all read as that one form, and a Batch ID given out before as B + DDMMYY reads
+// the same as before. '' when it isn't a real date. The same rule on every LSH platform (canonicalBatch in
+// the CMS's functions/_utils.js, and in each course's index.html and worker.js).
+const batchRealDay = (mm, dd, yy) => { const d = new Date(Date.UTC(2000 + yy, mm - 1, dd)); return mm >= 1 && mm <= 12 && dd >= 1 && d.getUTCMonth() === mm - 1; };
+export function canonicalBatch(raw) {
+    const v = String(raw || '').toUpperCase().replace(/[\s\-]/g, '');
+    const m = /^B?(\d{2})(\d{2})(\d{4}|\d{2})(?:LSH[A-Z]*\d+)?$/.exec(v);
+    if (!m) return '';
+    const yy = m[3].slice(-2);
+    if (!batchRealDay(+m[1], +m[2], +yy) && !batchRealDay(+m[2], +m[1], +yy)) return '';
+    return `B${m[1]}${m[2]}${yy}`;
+}
+
 export async function nextBatchId(db, userType, referenceDate) {
     const d = referenceDate ? new Date(referenceDate) : new Date();
     const when = isNaN(d) ? new Date() : d;
