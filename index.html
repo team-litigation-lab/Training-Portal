@@ -50,6 +50,9 @@
     .nav-inner {
         max-width: none; margin: 0; padding: 10px 32px;
         display: flex; align-items: center; justify-content: space-between;
+        /* a gap the brand and the pill row can never close, so a pill scrolled
+           half out of view never looks like it is running into the wordmark */
+        gap: 20px;
     }
     .brand { display: flex; align-items: center; gap: 14px; font-weight: 800; font-size: 16px; color: #fff; }
     .brand-mark {
@@ -60,6 +63,10 @@
     }
     .brand-mark img { width: 100%; height: 100%; object-fit: contain; }
     .brand-logo { height: 84px; width: auto; display: block; }
+    /* Between the phone layout and a roomy desktop the wordmark is the widest
+       thing that can afford to give: 425px of brand against a 965px pill row is
+       what forced the row to scroll at all below ~1300px. */
+    @media (max-width: 1280px) { .brand-logo { height: 70px; } .brand .brand-title { font-size: 14.5px; } .brand { gap: 10px; } }
     @media (max-width: 760px) { .brand-logo { height: 60px; } .brand .brand-title { font-size: 15px; white-space: normal; } }
     .brand-title { font-size: 18px; font-weight: 800; letter-spacing: .01em; white-space: nowrap; }
     .nav-links { display: flex; gap: 28px; align-items: center; }
@@ -162,10 +169,31 @@
     @media (max-width: 760px) { .stats-inner.three { grid-template-columns: 1fr; } }
     .stats-inner .stat-num { font-size: 18px; line-height: 1.3; }
     .stats-inner .stat-ring { background: none; }
-    .nav-pills { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-    .nav-pills .pill { font: inherit; font-size: 11.5px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; color: #fff; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.28); border-radius: 12px; padding: 8px 10px; text-decoration: none; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+    /* The pills stay on ONE line, always. They give up size first — the gap, the
+       padding and the type all scale with the viewport — and only once there is
+       genuinely no room left does the row scroll sideways, which is what
+       .nav-links below already does on a phone. Wrapping is what it must not do:
+       the row is 965px of pills against a 425px brand, so from about 1400px down
+       a second line appeared under ADMIN carrying nothing but LOG IN, and by
+       900px there were four of them pushing the hero off the screen.
+       min-width: 0 is the load-bearing part: without it this flex item refuses to
+       shrink below its content and overflows the bar instead of scrolling.
+       It packs from the left, not the right, even though the row sits on the
+       right of the bar: .nav-inner is space-between, so this item is already
+       held against the right edge, and a scroll container told to justify to
+       flex-end puts its overflow off the START edge, where several engines will
+       not let you scroll back to it. Packing from the left keeps every pill
+       reachable. */
+    .nav-pills {
+        display: flex; gap: clamp(4px, .42vw, 6px); flex-wrap: nowrap; justify-content: flex-start;
+        min-width: 0; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .nav-pills::-webkit-scrollbar { display: none; }
+    .nav-pills .pill { flex: 0 0 auto; font: inherit; font-size: clamp(9.5px, .72vw, 11.5px); font-weight: 800; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; color: #fff; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.28); border-radius: 12px; padding: 8px clamp(6px, .6vw, 10px); text-decoration: none; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
     .nav-pills .pill:hover { background: rgba(255,255,255,0.14); border-color: var(--orange); }
-    @media (max-width: 900px) { .nav-inner { flex-direction: column; gap: 12px; align-items: flex-start; } .nav-pills { justify-content: flex-start; } }
+    /* Stacked under the brand on a phone, the row still holds its one line: full
+       width, starting at the left, scrolling for the rest. */
+    @media (max-width: 900px) { .nav-inner { flex-direction: column; gap: 12px; align-items: flex-start; } .nav-pills { justify-content: flex-start; width: 100%; } }
     footer .footer-inner { justify-content: space-between; }
     footer .footer-bottom { border: 0; padding: 0; max-width: none; text-align: left; }
     .stats-inner { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
@@ -377,6 +405,12 @@
     /* Log In / Log Out: one of the two shows, from /api/me. */
     .nav-pills .pill.pill-auth { background: var(--orange); border-color: var(--orange); color: #fff !important; }
     .nav-pills .pill.pill-auth:hover { background: var(--orange-soft); }
+    /* Sign in is the one thing on the bar that must never be the pill you have to
+       go looking for, so once the row is narrow enough to scroll it stays pinned
+       to the right edge and the rest travels underneath it. Sticky does nothing
+       while everything fits; its solid orange is what hides the pills passing
+       behind, and the shadow gives that edge somewhere to land. */
+    .nav-pills .pill.pill-auth { position: sticky; right: 0; margin-left: 2px; box-shadow: -8px 0 10px -6px var(--navy-deep); }
     .pill[hidden] { display: none !important; }
     /* Footer: the copyright line in italics, the three icons in orange. */
     footer .footer-bottom { font-style: italic; margin: 0; }
