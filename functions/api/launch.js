@@ -29,19 +29,23 @@ export const SSO_TOOLS = {
     kb: 'https://lsh-knowledge-base.legalsupporthelp.workers.dev/',
     ringchannel: 'https://lshringchannel.legalsupporthelp.workers.dev/'
 };
-// The tools an administrator opens signed in, as themselves (a ticket { r: 'a', n: their name }): Ring Channel only.
-// Everywhere else administrators type the admin password, as below.
+// Administrators sign in once, here on the Portal, with their own admin account. Every training program and the
+// tools listed here open signed in as a trainer from a ticket { r: 'a', n: their name }, which each accepts only once.
+// The CMS and the Knowledge Base keep their own trainer accounts (?admin=1 lands on their trainer sign-in).
 export const ADMIN_TICKET_TOOLS = ['ringchannel'];
 const TICKET_TTL_MS = 5 * 60 * 1000;
 // Where inside a program or tool a link lands (?to=): a program's own Live Roleplay, the CMS Front Desk Drill, or the CMS
 // Call Simulator (to=calls: every platform's Call Simulator opens there, on the tab and line the link names, callsQuery),
 // or LSH Ring Channel's 🎧 Practice (to=aicall: an AI caller rings the trainee) or console (to=console: a trainer sends AI callers).
 // Only these are allowed, and each only on its own tool, so a link can't send anyone anywhere else.
+// blueprint: a program's (or the Knowledge Base's) own Blueprint, the only way in: the No Blueprint rule keeps every
+// Blueprint button and link out of the programs and tools, and the Portal's 🧭 Blueprint page links here instead.
 const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1', tool: 'cms' }, calls: { tool: 'cms' },
-    aicall: { hash: '#/practice', tool: 'ringchannel' }, console: { hash: '#/console', tool: 'ringchannel' } };
+    aicall: { hash: '#/practice', tool: 'ringchannel' }, console: { hash: '#/console', tool: 'ringchannel' },
+    blueprint: { hash: '#/blueprint', also: ['kb'] } };
 function landing(to, isTool, params, tool) {
     const l = Object.prototype.hasOwnProperty.call(LANDINGS, to) ? LANDINGS[to] : null;
-    if (!l || (l.tool && (!isTool || l.tool !== tool)) || (!l.tool && isTool)) return { query: '', hash: '' };
+    if (!l || (l.tool && (!isTool || l.tool !== tool)) || (!l.tool && isTool && !(l.also || []).includes(tool))) return { query: '', hash: '' };
     if (to === 'calls') return { query: '&' + callsQuery(params), hash: '' };
     return { query: l.query || '', hash: l.hash || '' };
 }
@@ -61,9 +65,9 @@ export function callsQuery(params) {
     return q.toString();
 }
 
-// A trainee's ticket carries their name and batch. {r: 'a'} (an administrator) no longer signs anyone in: the platforms refuse it,
-// because administrators type the admin password on every platform. {r: 's'} is the Portal's own server-side tools only
-// (Sign-in check, registration import): never given to a person.
+// A trainee's ticket carries their name and batch. {r: 'a', n} is an administrator signed in here: every program (and Ring
+// Channel) signs them in as a trainer, once per ticket. {r: 's'} is the Portal's own server-side tools only (Sign-in
+// check, registration import): never given to a person.
 export async function makeTicket(secret, who, now = Date.now()) {
     const enc = new TextEncoder();
     const body = who.system ? { r: 's', exp: now + TICKET_TTL_MS } : who.admin ? Object.assign({ r: 'a', exp: now + TICKET_TTL_MS }, who.name ? { n: String(who.name).slice(0, 60) } : {}) : { first: who.first, last: who.last, b: who.batch, exp: now + TICKET_TTL_MS };
@@ -115,16 +119,16 @@ async function launch({ request, env }) {
     const secret = String(env.PORTAL_SSO_SECRET || '').trim();
     if (!secret) return page(503, 'Not available yet', 'Single sign-in isn\'t set up yet. Please tell your trainer.');
 
-    // Administrators were signed in here with their admin password, so the program doesn't ask again.
+    // Administrators signed in here with their own admin account: single sign-on, so no program asks again.
     if (auth.session.userType === 'Admin') {
-        // Ring Channel has no sign-in of its own: an administrator opens its console as themselves.
-        if (isTool && ADMIN_TICKET_TOOLS.includes(tool)) {
-            const ticket = await makeTicket(secret, { admin: true, name: String(auth.session.fullName || auth.session.username || 'Trainer').trim() });
-            const to = landing(params.get('to') || '', isTool, params, tool);
-            return Response.redirect(`${target}?ticket=${ticket}${to.hash}`, 302);
-        }
-        // Administrators type the admin password on every other platform: no ticket signs them in, they land on that platform's password prompt.
         const to = landing(params.get('to') || '', isTool, params, tool);
+        // Every training program, and Ring Channel (no sign-in of its own), opens signed in as a trainer, from a ticket
+        // that works once.
+        if (!isTool || ADMIN_TICKET_TOOLS.includes(tool)) {
+            const ticket = await makeTicket(secret, { admin: true, name: String(auth.session.fullName || auth.session.username || 'Trainer').trim() });
+            return Response.redirect(`${target}?ticket=${ticket}${isTool ? '' : to.query}${to.hash}`, 302);
+        }
+        // The CMS and the Knowledge Base keep their own trainer accounts: they land on their trainer sign-in.
         return Response.redirect(`${target}?admin=1${to.query}${to.hash}`, 302);
     }
     if (auth.session.userType !== 'Trainee') return page(403, 'Not available', 'This account can\'t open programs.');

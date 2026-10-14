@@ -34,8 +34,15 @@ else {
     const v = await verifyTicket(env.PORTAL_SSO_SECRET, au.searchParams.get('ticket'));
     if (!v.ok || !v.admin || v.name !== 'Coach Ana') fail(`the admin's ticket Ring Channel gets: ${JSON.stringify(v)}`);
 }
-// ... but on every other platform an admin still gets no ticket (their admin password there)
-for (const q of ['tool=cms', 'tool=kb', 'program=' + encodeURIComponent(Object.keys(SSO_PROGRAMS)[0])]) {
+// ... every training program too (single sign-on for trainers: no second password), with the blueprint landing kept ...
+for (const key of Object.keys(SSO_PROGRAMS)) {
+    const o = await go(admin, 'program=' + encodeURIComponent(key) + '&to=blueprint');
+    const ou = o.at ? new URL(o.at) : null;
+    const v = ou && ou.searchParams.get('ticket') ? await verifyTicket(env.PORTAL_SSO_SECRET, ou.searchParams.get('ticket')) : null;
+    if (o.status !== 302 || !ou || ou.origin + ou.pathname !== SSO_PROGRAMS[key] || !v || !v.ok || !v.admin || ou.hash !== '#/blueprint') fail(`an admin's ${key} launch: ${o.status} ${o.at}`);
+}
+// ... but the CMS and the Knowledge Base keep their own trainer accounts: no ticket, their trainer sign-in
+for (const q of ['tool=cms', 'tool=kb']) {
     const o = await go(admin, q);
     if (/ticket=/.test(o.at) || !/[?&]admin=1/.test(o.at)) fail(`an admin's ${q} launch carries a ticket: ${o.at}`);
 }
@@ -60,4 +67,4 @@ if (/drill=1/.test(kbDrill.at)) fail(`to=drill worked on the Knowledge Base: ${k
 for (const f of ['programs.html', 'core.html']) if (!readFileSync(new URL('../../' + f, import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail(`${f} has no link to LSH Ring Channel`);
 
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-console.log('LSH Ring Channel test passed (trainees and admins open it signed in, admins nowhere else; linked from the Directory and Master Control).');
+console.log('LSH Ring Channel test passed (trainees and admins open it signed in, admins every program too but not the CMS or the Knowledge Base; linked from the Directory and Master Control).');

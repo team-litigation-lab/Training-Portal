@@ -98,7 +98,7 @@ const Sim = {
         return `<div class="sim-top">
             <a class="sim-brand" href="/index.html?stay=1"><img src="/img/logo.png" alt="Legal Support Help" width="70" height="46"><span class="sim-title">Simulators</span></a>
             <div class="sim-nav">
-                ${PortalNav.html(active === 'hub' ? 'sims' : '', { back: active === 'hub' ? '/programs.html' : '/simulators.html' })}
+                ${PortalNav.html(active === 'hub' ? 'sims' : '', { back: active === 'hub' ? '/programs.html' : '/simulators.html', blueprint: false })}
                 ${me}
             </div></div>`;
     },

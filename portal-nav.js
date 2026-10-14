@@ -36,11 +36,13 @@ const PortalNav = {
     isMain(href) {
         try { return /^\/(index(\.html)?)?$/.test(new URL(href, location.origin).pathname); } catch (e) { return false; }
     },
-    // opts: { back: fallback URL or false, cls: extra class for each link }
+    // opts: { back: fallback URL or false, cls: extra class for each link, blueprint: false to leave 🧭 Blueprint out }
+    // The No Blueprint rule: the Blueprint lives on the Main Portal's own pages (the Training Directory's bar, the
+    // admin bar, blueprint.html); a simulator, a program or a tool never links to it.
     html(active, opts) {
         opts = opts || {};
         const cls = opts.cls ? ` ${opts.cls}` : '';
-        const links = PortalNav.embedded() ? PortalNav.EMBEDDED_LINKS : PortalNav.LINKS;
+        const links = (PortalNav.embedded() ? PortalNav.EMBEDDED_LINKS : PortalNav.LINKS).filter(([id]) => !(opts.blueprint === false && id === 'orient'));
         const back = opts.back === false ? '' : `<a class="pn-back${cls}" onclick="PortalNav.back('${opts.back || '/index.html?stay=1'}')" title="Go back">← Back</a>`;
         return back + links.map(([id, href, label]) => `<a class="${active === id ? 'on' : ''}${cls}" href="${href}"${active === id ? ' aria-current="page"' : ''}>${label}</a>`).join('');
     },
