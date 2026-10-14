@@ -1,6 +1,12 @@
 import { json, logActivity, hashPassword, isUsernameTombstoned, MASTER_USERNAME } from '../_utils.js';
 
-const REG_PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]{8,}$/;
+// Eight characters or more, and whatever characters they want. The rule used to be letters and digits ONLY
+// (and at least one of each), which quietly refused the password most people and every password manager
+// reach for — anything with a symbol in it. The registration was simply never made, so the trainee did not
+// appear in Master Control → Registrations and nothing could be approved: a new trainee got in only by
+// editing their password down to letters and numbers. Keep this rule, portal.js's validateRegPassword and
+// update-user.js's PASSWORD_RE the same.
+const REG_PASSWORD_RE = /^[\s\S]{8,128}$/;
 
 export async function onRequestPost({ request, env }) {
     const db = env.DB;
@@ -28,7 +34,7 @@ export async function onRequestPost({ request, env }) {
     if (!REG_PASSWORD_RE.test(password)) {
         return json({
             success: false,
-            error: 'Password must be at least 8 characters long and contain only letters and numbers (at least one letter and one number).'
+            error: 'Password must be at least 8 characters long (up to 128). Any characters are fine.'
         }, 400);
     }
 

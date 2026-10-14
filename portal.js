@@ -174,8 +174,8 @@ function attemptLogin() {
 // server reject/accept the same passwords.
 // ==========================================
 function validateRegPassword(password) {
-    if (!/^(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]{8,}$/.test(password)) {
-        return 'Password must be at least 8 characters long and contain only letters and numbers (at least one letter and one number).';
+    if (!/^[\s\S]{8,128}$/.test(password)) {
+        return 'Password must be at least 8 characters long (up to 128). Any characters are fine.';
     }
     return null;
 }

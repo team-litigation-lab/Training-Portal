@@ -8,7 +8,7 @@ import { json, canonicalBatch, requireSession, hashPassword, isUsernameTombstone
 //   - A new username or password ends the account's open sessions, so the next sign-in uses the new one.
 //   - A new Batch ID is what the programs are told at launch: a program that already knows this trainee under the old Batch ID
 //     will see them as a new trainee under the new one. The admin screen warns about it before saving.
-const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]{8,}$/;
+const PASSWORD_RE = /^[\s\S]{8,128}$/;   // as at registration (api/register.js): 8+ characters, any of them
 const USERNAME_RE = /^[A-Za-z0-9_]{3,30}$/;
 const NAME_RE = /^[\p{L}][\p{L}\p{M} .'\-]{0,59}$/u;
 
@@ -56,7 +56,7 @@ export async function onRequestPost({ request, env }) {
     }
     let passwordChanged = false;
     if (body.password !== undefined && body.password !== '') {
-        if (!PASSWORD_RE.test(String(body.password))) return json({ success: false, error: 'Password must be at least 8 characters, letters and numbers only (at least one of each).' }, 400);
+        if (!PASSWORD_RE.test(String(body.password))) return json({ success: false, error: 'Password must be at least 8 characters long (up to 128). Any characters are fine.' }, 400);
         set.password = await hashPassword(String(body.password)); passwordChanged = true; changed.push('password');
     }
     if (!changed.length) return json({ success: true, changed: [] });
