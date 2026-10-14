@@ -42,6 +42,7 @@
     .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--orange); }
     .or-head h1 { margin: 4px 0 0; font-size: clamp(24px, 3.2vw, 32px); font-weight: 900; letter-spacing: -.01em; }
     .or-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .bp-programs select { font: inherit; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; color: #0f2148; cursor: pointer; }
     .or-tabs { display: inline-flex; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
     .or-tabs button { border: 0; background: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--slate); padding: 7px 14px; border-radius: 999px; cursor: pointer; }
     .or-tabs button.on { background: var(--navy); color: #fff; }
@@ -153,6 +154,17 @@
                 <button type="button" role="tab" data-track="trainee" onclick="setTrack('trainee')">Trainees</button>
                 <button type="button" role="tab" data-track="admin" onclick="setTrack('admin')">Trainers &amp; Admins</button>
             </div>
+            <label class="bp-programs" id="bpPrograms" hidden title="Every program's own blueprint opens from here, and only from here">
+                <select aria-label="Program blueprints" onchange="if (this.value) { window.open(this.value, '_blank', 'noopener'); this.selectedIndex = 0; }">
+                    <option value="">📚 Program blueprints…</option>
+                    <option value="/api/launch?program=STANDARD%20TRAINING&amp;to=blueprint">Standard Foundational Training</option>
+                    <option value="/api/launch?program=EA%20%20PA%20TRAINING-OUTSOURCED%20MANP&amp;to=blueprint">EA/PA Upskill Program</option>
+                    <option value="/api/launch?program=CM%20TRAINING&amp;to=blueprint">Case Management Training</option>
+                    <option value="/api/launch?program=PROPERTY%20DAMAGE&amp;to=blueprint">Property Damage Claims Training</option>
+                    <option value="/api/launch?program=MEDSUM%20AND%20DEMAND&amp;to=blueprint">Medsum &amp; Demand Training</option>
+                    <option value="/api/launch?tool=kb&amp;to=blueprint">Knowledge Base</option>
+                </select>
+            </label>
             <button type="button" class="btn" onclick="toggleFull()" title="Full screen (F)">⛶ Full screen</button>
             <button type="button" class="btn" onclick="window.print()" title="Print or save this track as a PDF">🖨 Print</button>
             <button type="button" class="btn pri" id="orPdf" onclick="downloadTrackPdf()" title="Download this track as a PDF, made from the live site">⬇ Download PDF</button>
@@ -403,6 +415,9 @@ async function downloadTrackPdf() {
     await LSHBlueprint.pdf(track === 'admin' ? 'trainer' : 'trainee');
 }
 if (!isAdmin()) { delete SLIDES.admin; document.querySelectorAll('.or-tabs').forEach(t => t.hidden = true); }
+// 📚 Program blueprints: the No Blueprint rule keeps every Blueprint out of the programs and tools, so this is the one
+// place their (trainer) blueprints open from: each opens the program signed in, straight on its #/blueprint.
+else document.querySelectorAll('.bp-programs').forEach(n => { n.hidden = false; });
 // A signed-in admin gets the same admin bar as every other main page (portal-nav.js).
 // (portal-nav.js loads after this script, so this waits for the page.)
 if (isAdmin()) document.addEventListener('DOMContentLoaded', () => document.querySelectorAll('.or-links').forEach(n => { n.innerHTML = PortalNav.adminHtml('orient', { back: '/programs.html' }); }));
