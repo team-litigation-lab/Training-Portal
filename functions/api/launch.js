@@ -42,7 +42,7 @@ const TICKET_TTL_MS = 5 * 60 * 1000;
 // Blueprint button and link out of the programs and tools, and the Portal's 🧭 Blueprint page links here instead.
 const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1', tool: 'cms' }, calls: { tool: 'cms' },
     aicall: { hash: '#/practice', tool: 'ringchannel' }, console: { hash: '#/console', tool: 'ringchannel' },
-    blueprint: { hash: '#/blueprint', also: ['kb'] } };
+    blueprint: { hash: '#/blueprint', also: ['kb', 'cms', 'ringchannel'] } };
 function landing(to, isTool, params, tool) {
     const l = Object.prototype.hasOwnProperty.call(LANDINGS, to) ? LANDINGS[to] : null;
     if (!l || (l.tool && (!isTool || l.tool !== tool)) || (!l.tool && isTool && !(l.also || []).includes(tool))) return { query: '', hash: '' };
