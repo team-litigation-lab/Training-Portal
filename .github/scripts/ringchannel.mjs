@@ -46,6 +46,15 @@ for (const q of ['tool=cms', 'tool=kb']) {
     const o = await go(admin, q);
     if (/ticket=/.test(o.at) || !/[?&]admin=1/.test(o.at)) fail(`an admin's ${q} launch carries a ticket: ${o.at}`);
 }
+// ... and the Portal's 🧭 Blueprint menu reaches the CMS's, Ring Channel's and the Knowledge Base's blueprints the same way
+const rb = await go(admin, 'tool=ringchannel&to=blueprint');
+if (!/\?ticket=[^#&]+#\/blueprint$/.test(rb.at)) fail(`an admin's Ring Channel blueprint link: ${rb.at}`);
+for (const q of ['tool=cms', 'tool=kb']) {
+    const o = await go(admin, q + '&to=blueprint');
+    if (!/\?admin=1#\/blueprint$/.test(o.at)) fail(`an admin's ${q} blueprint link: ${o.at}`);
+}
+const bp = readFileSync(new URL('../../blueprint.html', import.meta.url), 'utf8');
+for (const q of ['tool=cms', 'tool=ringchannel', 'tool=kb', ...Object.keys(SSO_PROGRAMS).map((k) => 'program=' + encodeURIComponent(k))]) if (!bp.includes(`/api/launch?${q}&amp;to=blueprint`)) fail(`the 🧭 Blueprint page's menu has no ${q} blueprint`);
 // 3. signed out: no way in
 const o = await go(null);
 if (o.status !== 401) fail(`a signed-out launch: ${o.status} ${o.at}`);
@@ -67,4 +76,4 @@ if (/drill=1/.test(kbDrill.at)) fail(`to=drill worked on the Knowledge Base: ${k
 for (const f of ['programs.html', 'core.html']) if (!readFileSync(new URL('../../' + f, import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail(`${f} has no link to LSH Ring Channel`);
 
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-console.log('LSH Ring Channel test passed (trainees and admins open it signed in, admins every program too but not the CMS or the Knowledge Base; linked from the Directory and Master Control).');
+console.log('LSH Ring Channel test passed (trainees and admins open it signed in, admins every program too but not the CMS or the Knowledge Base; every blueprint reached from the Portal\'s 🧭 Blueprint menu; linked from the Directory and Master Control).');
