@@ -14,7 +14,6 @@ The landing page, sign-in, registration, claim and referral pages, and their sha
 | `_redirects` | 16 | Cloudflare Pages redirects: keeps repo files (wrangler.toml, *.md, topics_seed.sql, .github/, functions/) off the published site, forwards old KB URLs through /api/launch?tool=kb SSO (kb target exists in functions/api/launch.js), and bridges retired /bridge.html to /programs.html. |
 | `auth.css` | 91 | Shared chrome of the two sign-in pages (split card, visual panel, form styles), extracted from the byte-identical blocks trainee-login.html and admin-login.html carried; registration.html keeps its own tuned variant. |
 | `admin-login.html` | 92 | Admin sign-in page; during a site-wide lock portal.js swaps the login form for the Master-Account unlock form (admin-unlock-content); loads show-password.js. |
-| `claim.html` | 64 | Self-contained page where imported (CMS/program) trainees claim their pre-created account: POST /api/claim with firstName/lastName/batchId/username/email/password. |
 | `index.html` | 622 | Public landing page: hero, team org chart, about/mission/values, FAQ, footer, plus the 'Got a referral?' modal that posts multipart form data to /api/referrals. |
 | `referrals.html` | 162 | Admin-only referrals manager over /api/referrals: list/filter/search, status + admin note (PATCH), CV download (?cv=id), CSV export with formula-injection quoting, delete. |
 | `registration.html` | 195 | New-account request form (Trainee/Admin) handled by portal.js submitRegistration() → POST /api/register; lock-aware via AUTH_PAGE_TYPE='registration'. |
@@ -121,7 +120,6 @@ Login/session plumbing, user management, site lock/pause/alert, logs and monitor
 | `functions/api/alert.js` | 73 | GET active alert (public); POST set / DELETE stop an alert (admin), logged to env.DB activity_log. |
 | `functions/api/announcement.js` | 60 | GET public announcement ticker text; POST/DELETE set or clear it (admin), stored in TRAINING_DB site_settings. |
 | `functions/api/heartbeat.js` | 62 | GET who's-online list (admin); POST session heartbeat upsert with lighter-than-requireSession checks. |
-| `functions/api/import-registrations.js` | 164 | Admin-only GET page + POST importer: pulls registered trainees from the five programs and the CMS, creates unclaimed Portal accounts and program access. |
 | `functions/api/launch.js` | 146 | GET /api/launch: opens a program or tool for the signed-in person with a short-lived signed SSO ticket (trainee/admin/system variants), plus landing/?to= routing and callsQuery. |
 | `functions/api/live.js` | 22 | GET /api/live: one-request aggregation of site-state, alert and pings for every open page's 20s poll. |
 | `functions/api/login.js` | 133 | POST /api/login for Trainee and Admin portals: password verify, legacy-hash upgrade, throttle, master-account path, status checks, session cookie + heartbeat seed. |
@@ -159,7 +157,6 @@ Simulator results and reviews, program progress, attendance, the AI gateway and 
 | `functions/api/attendance.js` | 89 | Admin attendance page API: per-program day view (batches, check-ins, default training), batch history, and merge-writes via _attendance.saveRows; preview deployments can't write. |
 | `functions/api/call-results.js` | 104 | Server-to-server intake of CMS-graded calls (X-Gateway-Key): writes simulator_results and the course's KV callsim record (courseTraineeId/addCall/courseSlot); admin GET lists CMS-graded calls. |
 | `functions/api/calsim.js` | 128 | Calendaring Simulators record store (D1 calsim_records): trainee saves, admin reviews, CALENDAR MANAGEMENT MOCK CALL scorecards and per-track exclusions; trainer-owned fields survive trainee saves. |
-| `functions/api/claim.js` | 67 | One-time claim of an admin-imported (unclaimed:) trainee account: name+batch match, per-IP fail throttle, atomic UPDATE guarded by the unclaimed marker, access-row carry-over. |
 | `functions/api/email-inbound.js` | 36 | Postmark inbound webhook (keyed URL, constant-time compare): stores the first reply onto the matching email_practice row. |
 | `functions/api/email-practice.js` | 123 | Email Replies delivery: sends a fixed scenario via Postmark with a tokenized Reply-To, per-address daily cap; GET polls a token's reply status, ?status=1 reports configuration. |
 | `functions/api/gcal-reviews.js` | 314 | Google Calendar Simulator submissions and drafts: submit → background AI review (waitUntil, retries, stale-run detection), trainer feedback, finalize/reopen/retry, per-track AI rules, 409-guarded draft saves. |
@@ -196,6 +193,7 @@ The Checks suite (node + Playwright) and the Uptime monitor.
 | `.github/scripts/gcal.cjs` | 457 | Google Calendar Simulator end-to-end: the attorney's week, solvable requests, the grading rules (incl. the length-color rule), full page UI (create/edit/Meet/drag/undo/views/search), scores card placement, admin weekly-schedule and color edits, the cm/ea clones. |
 | `.github/scripts/my-evaluations.cjs` | 66 | Trainee's My Evaluations page: drafts with a way back in, submitted statuses, final report + PDF button, New flag clears, trainer and signed-out views, phone width. |
 | `.github/scripts/requests.cjs` | 88 | Request budget from an open page: one /api/live per 20 s (none in a background tab), heartbeat per 30 s, lock/alert/ping from /api/live shown, since= cursor, signed-out asks no pings. |
+| `.github/scripts/registration.mjs` | 80 | Registering on the Portal: any password of 8+ characters, the registration lands as Pending for Master Control → Registrations, the same password signs in once approved, and the claim-account feature stays gone. |
 | `.github/scripts/ringchannel.mjs` | 61 | /api/launch?tool=ringchannel: trainee and admin tickets verified by verify-ticket, admins get tickets nowhere else, ?to=aicall/console, portal pages link to it. |
 | `.github/scripts/sim-session.cjs` | 177 | simulators/sim.js session keeping: heartbeat cadence, Sim.restore single /api/me, Sim.fetchRetry on SESSION_EXPIRED, second trainee on the same browser starts clean, no cross-trainee draft upload. |
 | `.github/scripts/smoke.cjs` | 52 | Opens 24 portal/simulator pages at desktop and phone width; fails on page errors, sideways scroll, missing Back button, portal links opening new tabs. |
@@ -221,4 +219,4 @@ The Checks suite (node + Playwright) and the Uptime monitor.
 - **`functions/_utils.js generateAiReview`** keeps its own Gemini key/model fallback outside `_ai-gateway.js`'s budgeted pool.
 - **`wrangler.toml name`** is the CM course's project name, not this Pages project's; renaming could detach the deployment, so it is only noted.
 - **Test-harness duplication**: the D1-over-`node:sqlite` stub (6 node tests) and the static-server/Chromium boilerplate (10 browser tests) are copy-pasted with drift.
-- **Coverage gaps**: no test signs in through `/trainee-login.html`/`/registration.html`/`/claim.html` end to end, and the Docket/Records/eFiling/Email simulators plus attendance are load-only tested.
+- **Coverage gaps**: no test signs in through `/trainee-login.html`/`/registration.html` end to end, and the Docket/Records/eFiling/Email simulators plus attendance are load-only tested.

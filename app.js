@@ -2820,7 +2820,7 @@ function openEditUser(id) {
         ${f('first', 'First name', u.first_name || '')}${f('last', 'Last name', u.last_name || '')}${f('email', 'Email', u.email || '', 'email')}
         ${f('username', 'Username', u.username, 'text', 'Changing it moves their grades, submissions and program access to the new username, and signs them out.')}
         ${f('batch', 'Batch ID', u.batchId === 'UNASSIGNED' ? '' : batchLabel(u.batchId), 'text', 'Changing the Batch ID changes who the programs think this trainee is: a program that already has them under the old Batch ID will start a new record under the new one.')}
-        ${f('password', 'New password (leave blank to keep)', '', 'password', 'At least 8 characters, letters and numbers. Signs them out.')}
+        ${f('password', 'New password (leave blank to keep)', '', 'password', 'At least 8 characters, any of them. Signs them out.')}
         <div id="eu-error" style="color:#b91c1c;font-size:12px;font-weight:700;margin-top:10px;display:none;"></div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
             <button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="document.getElementById('edit-user-overlay').remove()">Cancel</button>
