@@ -41,17 +41,23 @@ for (const key of Object.keys(SSO_PROGRAMS)) {
     const v = ou && ou.searchParams.get('ticket') ? await verifyTicket(env.PORTAL_SSO_SECRET, ou.searchParams.get('ticket')) : null;
     if (o.status !== 302 || !ou || ou.origin + ou.pathname !== SSO_PROGRAMS[key] || !v || !v.ok || !v.admin || ou.hash !== '#/blueprint') fail(`an admin's ${key} launch: ${o.status} ${o.at}`);
 }
-// ... but the CMS and the Knowledge Base keep their own trainer accounts: no ticket, their trainer sign-in
+// ... and the CMS and the Knowledge Base too: the trainer's own admin ticket, no admin password there
 for (const q of ['tool=cms', 'tool=kb']) {
     const o = await go(admin, q);
-    if (/ticket=/.test(o.at) || !/[?&]admin=1/.test(o.at)) fail(`an admin's ${q} launch carries a ticket: ${o.at}`);
+    const ou = o.at ? new URL(o.at) : null;
+    const v = ou && ou.searchParams.get('ticket') ? await verifyTicket(env.PORTAL_SSO_SECRET, ou.searchParams.get('ticket')) : null;
+    if (o.status !== 302 || /admin=1/.test(o.at) || !v || !v.ok || !v.admin || v.name !== 'Coach Ana') fail(`an admin's ${q} launch: ${o.status} ${o.at}`);
 }
+// the Master Account's ticket has no name: it opens as the Master Account there, not as a trainer called "System Administrator"
+const master = await createSessionToken({ username: 'LSHADMIN123', userType: 'Admin', fullName: 'System Administrator', batchId: '' }, env.SESSION_SECRET);
+{ const o = await go(master, 'tool=cms'); const v = await verifyTicket(env.PORTAL_SSO_SECRET, new URL(o.at).searchParams.get('ticket'));
+  if (!v.ok || !v.admin || v.name) fail(`the Master Account's CMS ticket: ${JSON.stringify(v)}`); }
 // ... and the Portal's 🧭 Blueprint menu reaches the CMS's, Ring Channel's and the Knowledge Base's blueprints the same way
 const rb = await go(admin, 'tool=ringchannel&to=blueprint');
 if (!/\?ticket=[^#&]+#\/blueprint$/.test(rb.at)) fail(`an admin's Ring Channel blueprint link: ${rb.at}`);
 for (const q of ['tool=cms', 'tool=kb']) {
     const o = await go(admin, q + '&to=blueprint');
-    if (!/\?admin=1#\/blueprint$/.test(o.at)) fail(`an admin's ${q} blueprint link: ${o.at}`);
+    if (!/\?ticket=[^#&]+#\/blueprint$/.test(o.at)) fail(`an admin's ${q} blueprint link: ${o.at}`);
 }
 const bp = readFileSync(new URL('../../blueprint.html', import.meta.url), 'utf8');
 for (const q of ['tool=cms', 'tool=ringchannel', 'tool=kb', ...Object.keys(SSO_PROGRAMS).map((k) => 'program=' + encodeURIComponent(k))]) if (!bp.includes(`/api/launch?${q}&amp;to=blueprint`)) fail(`the 🧭 Blueprint page's menu has no ${q} blueprint`);
@@ -76,4 +82,4 @@ if (/drill=1/.test(kbDrill.at)) fail(`to=drill worked on the Knowledge Base: ${k
 for (const f of ['programs.html', 'core.html']) if (!readFileSync(new URL('../../' + f, import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail(`${f} has no link to LSH Ring Channel`);
 
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-console.log('LSH Ring Channel test passed (trainees and admins open it signed in, admins every program too but not the CMS or the Knowledge Base; every blueprint reached from the Portal\'s 🧭 Blueprint menu; linked from the Directory and Master Control).');
+console.log('LSH Ring Channel test passed (trainees and admins open it signed in, admins every program, the CMS and the Knowledge Base too; every blueprint reached from the Portal\'s 🧭 Blueprint menu; linked from the Directory and Master Control).');

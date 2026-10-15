@@ -1,4 +1,4 @@
-import { requireSession, b64url } from '../_utils.js';
+import { requireSession, b64url, isMaster } from '../_utils.js';
 
 // Opens a training program for the signed-in trainee or administrator, with no second sign-in there.
 //
@@ -30,9 +30,9 @@ export const SSO_TOOLS = {
     ringchannel: 'https://lshringchannel.legalsupporthelp.workers.dev/'
 };
 // Administrators sign in once, here on the Portal, with their own admin account. Every training program and the
-// tools listed here open signed in as a trainer from a ticket { r: 'a', n: their name }, which each accepts only once.
-// The CMS and the Knowledge Base keep their own trainer accounts (?admin=1 lands on their trainer sign-in).
-export const ADMIN_TICKET_TOOLS = ['ringchannel'];
+// tools listed here open signed in as that trainer from a ticket { r: 'a', n: their name }, which each accepts only once
+// (the Master Account's ticket has no name: it opens as the Master Account there). No platform asks for a password again.
+export const ADMIN_TICKET_TOOLS = ['ringchannel', 'cms', 'kb'];
 const TICKET_TTL_MS = 5 * 60 * 1000;
 // Where inside a program or tool a link lands (?to=): a program's own Live Roleplay, the CMS Front Desk Drill, or the CMS
 // Call Simulator (to=calls: every platform's Call Simulator opens there, on the tab and line the link names, callsQuery),
@@ -122,13 +122,12 @@ async function launch({ request, env }) {
     // Administrators signed in here with their own admin account: single sign-on, so no program asks again.
     if (auth.session.userType === 'Admin') {
         const to = landing(params.get('to') || '', isTool, params, tool);
-        // Every training program, and Ring Channel (no sign-in of its own), opens signed in as a trainer, from a ticket
-        // that works once.
+        // Every training program and tool opens signed in as this trainer, from a ticket that works once.
         if (!isTool || ADMIN_TICKET_TOOLS.includes(tool)) {
-            const ticket = await makeTicket(secret, { admin: true, name: String(auth.session.fullName || auth.session.username || 'Trainer').trim() });
-            return Response.redirect(`${target}?ticket=${ticket}${isTool ? '' : to.query}${to.hash}`, 302);
+            const name = isMaster(auth.session) ? '' : String(auth.session.fullName || auth.session.username || 'Trainer').trim();
+            const ticket = await makeTicket(secret, { admin: true, name });
+            return Response.redirect(`${target}?ticket=${ticket}${to.query}${to.hash}`, 302);
         }
-        // The CMS and the Knowledge Base keep their own trainer accounts: they land on their trainer sign-in.
         return Response.redirect(`${target}?admin=1${to.query}${to.hash}`, 302);
     }
     if (auth.session.userType !== 'Trainee') return page(403, 'Not available', 'This account can\'t open programs.');
