@@ -429,6 +429,14 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// Who may decide a pending registration. A trainee's is any trainer's to approve; an Admin / Trainer's is
+// the Master Account's, so one trainer login can't mint another working admin login on its own. The server
+// enforces it (functions/api/update-status.js) — this only keeps a button out of reach that would be refused.
+function canDecideRegistration(u) {
+    if (u.userType !== 'Admin') return true;
+    const me = getSession();
+    return !!me && me.username === 'LSHADMIN123';
+}
 function renderRegistrations() {
     const container = document.getElementById('registrations-list');
     if (!container) return;
@@ -453,8 +461,10 @@ function renderRegistrations() {
                 ${u.trainingStartDate ? `<div style="font-size:11px;color:#64748b;">Training start: ${escapeHtml(u.trainingStartDate)}</div>` : ''}
             </div>
             <div style="display:flex;gap:8px;flex-shrink:0;">
+                ${canDecideRegistration(u) ? `
                 <button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="approveRegistration(${u.id})">Approve</button>
-                <button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;color:var(--classified-red);border-color:var(--classified-red);" onclick="rejectRegistration(${u.id})">Reject</button>
+                <button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;color:var(--classified-red);border-color:var(--classified-red);" onclick="rejectRegistration(${u.id})">Reject</button>`
+                : `<div style="font-size:10.5px;color:#94a3b8;text-align:right;max-width:170px;">The Master Account approves an Admin / Trainer registration.</div>`}
             </div>
         </div>
     `).join('');

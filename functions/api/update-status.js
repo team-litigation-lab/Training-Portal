@@ -1,4 +1,4 @@
-import { json, nextBatchId, logActivity, requireSession } from '../_utils.js';
+import { json, nextBatchId, logActivity, requireSession, isMaster } from '../_utils.js';
 // Handles the two reversible registration-review outcomes: Approved and
 // Rejected. Permanent revocation of an already-approved user is a
 // different, irreversible operation (deletes the account entirely) and is
@@ -18,6 +18,15 @@ export async function onRequestPost({ request, env }) {
     }
     const user = await db.prepare(`SELECT * FROM users WHERE id = ?`).bind(userId).first();
     if (!user) return json({ success: false, error: 'User not found.' }, 404);
+    // An Admin / Trainer registration is the Master Account's to decide. Any trainer may create one
+    // (api/create-user.js) and any trainer may approve a *trainee*, but a trainer approving an admin
+    // would let one trainer login mint another working admin login with nobody else involved — so the
+    // approval that actually turns an admin account on stays with the Master Account. This is the rule
+    // the rest of the admin screen already follows: only the Master Account edits an Admin
+    // (api/update-user.js) and only the Master Account revokes one (api/revoke-user.js).
+    if (user.user_type === 'Admin' && !isMaster(session)) {
+        return json({ success: false, error: 'Only the Master Account can approve or reject an Admin / Trainer registration.' }, 403);
+    }
     let batchId = user.batch_id;
     if (newStatus === 'Approved' && !batchId) {
         const referenceDate = user.user_type === 'Admin' ? user.created_at : user.training_start_date;
