@@ -19,6 +19,7 @@
     • Trainers & Admins: admin sign-in, the Directory's admin view, System Management,
       Trainee Monitoring, Attendance, program admin, Knowledge Base review, the daily workflow.
   Public page: nothing private is shown (no passwords, access codes or trainee data).
+  Trainees read it on screen; ⬇ Download PDF is a trainer's, for sharing the deck outside the portal.
   Slides are in SLIDES below. Deep link: /blueprint.html?track=admin&slide=3 (/orientation.html forwards here)
   In the deck: ← → (or Page Up / Page Down), the contents strip, Esc to close.
 -->
@@ -91,7 +92,7 @@ function signedIn() { return !!lshSession(); }
                 <button type="button" role="tab" data-track="trainee" onclick="setTrack('trainee')">Trainees</button>
                 <button type="button" role="tab" data-track="admin" onclick="setTrack('admin')">Trainers &amp; Admins</button>
             </div>
-            <button type="button" class="btn pri" id="orPdf" onclick="downloadTrackPdf()" title="Download this track as a PDF, made from the live site">⬇ Download PDF</button>
+            <button type="button" class="btn pri" id="orPdf" hidden onclick="downloadTrackPdf()" title="Download this track as a PDF, made from the live site">⬇ Download PDF</button>
         </div>
     </div>
     <p class="or-tip" style="margin:-4px 0 14px;">Share this tab in Google Meet: nothing private is shown here. In the deck, ← → move between slides and Esc closes it.</p>
@@ -273,7 +274,7 @@ window.LSH_BLUEPRINT = {
 function renderTrack() {
     const slides = track === 'admin' ? SLIDES.admin : SLIDES.trainee;
     $('bpTitle').textContent = track === 'admin' ? 'The Trainer blueprint' : 'The Trainee blueprint';
-    $('bpSub').textContent = `${SUBS[track]} — ${slides.length} slides. ← → or the contents strip move through it, ⬇ Download PDF saves it, Esc closes it.`;
+    $('bpSub').textContent = `${SUBS[track]} — ${slides.length} slides. ← → or the contents strip move through it${isAdmin() ? ', ⬇ Download PDF saves it' : ''}, Esc closes it.`;
     $('bpContents').innerHTML = slides.map((s, i) => `<li><span>${i + 1}</span>${s.title}</li>`).join('');
     document.querySelectorAll('.or-tabs button').forEach(b => { const on = b.dataset.track === track; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
     document.title = (track === 'admin' ? 'Trainer Blueprint' : 'Blueprint') + ' — LSH Training Portal';
@@ -295,7 +296,10 @@ function setTrack(t) {
 }
 function downloadTrackPdf() { return window.LSHBlueprint ? LSHBlueprint.pdf(deckKey()) : null; }
 
+// A trainee (or a visitor) reads the blueprint on screen: no track to switch to, and no PDF to take
+// away. ⬇ Download PDF is a trainer's, for sharing the deck outside the portal.
 if (!isAdmin()) { delete SLIDES.admin; document.querySelectorAll('.or-tabs').forEach(t => t.hidden = true); }
+else document.querySelectorAll('#orPdf').forEach(b => { b.hidden = false; });
 
 (function init() {
     const q = new URLSearchParams(location.search);
