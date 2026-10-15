@@ -88,7 +88,7 @@ The **Got a referral?** button on the home page (a pill in the top navigation) o
 
 **`/blueprint.html`** is the Platform Blueprint (formerly the Platform Orientation; `/orientation.html` forwards here): a slide deck made for screen sharing in Google Meet. It shows nothing private: no passwords, access codes or trainee data.
 
-The deck is drawn by **`lsh-blueprint.js`**, the Blueprint engine every LSH platform shares — the same navy cover band with the numbered contents, the same points / where to find it / tip slide, and the same real-text PDF as every program's blueprint, so they all read as one deck. The page itself is the front door: the header, the program blueprints, the track, and **🧭 Open the blueprint**, which opens the deck over the page.
+The deck is drawn by **`lsh-blueprint.js`**, the Blueprint engine every LSH platform shares — the same navy cover band with the numbered contents, the same points / where to find it / tip slide, and the same real-text PDF as every program's blueprint, so they all read as one deck. The page itself is the front door: the standard portal header, the track, and **🧭 Open the blueprint**, which opens the deck over the page. Nothing here opens a deck inside a program or a tool.
 
 It has two tracks, switched at the top of the page:
 - **Trainees** (8 slides): what the portal is, registering and the one log in, the Training Directory (Request Access, Enter Program, certificates), what's inside a program, the Simulators, the Knowledge Base, good habits, and first steps.

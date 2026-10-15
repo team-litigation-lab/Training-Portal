@@ -30,7 +30,7 @@ The signed-in portal: Training Directory, dashboard, progress, attendance, orien
 | `app.js` | 2853 | Core dashboard script: session/heartbeat, view switching, Master Control (users, registrations, logs, monitoring, program access), activities/lectures/submissions CRUD, grading, PDF reports, leaderboard/progress, toasts, celebration. |
 | `attendance.html` | 364 | Admin attendance per program/batch/day: debounced autosave with retry, batch summaries, CSV export, Google Sheet sync setup helper. |
 | `core.html` | 1058 | Admin dashboard (CM Training workspace + Master Control): sidebars, views, modals, overlays (pause/alert/lock), deck/lecture viewer panes, hash deep links into Master Control tabs. |
-| `blueprint.html` | 336 | Platform Blueprint: the two tracks and the program blueprints, with the deck itself drawn by `lsh-blueprint.js` (the shared Blueprint engine) — the former Platform Orientation. |
+| `blueprint.html` | 314 | Platform Blueprint: the two tracks, with the deck itself drawn by `lsh-blueprint.js` (the shared Blueprint engine) — the former Platform Orientation. |
 | `orientation.html` | 15 | Stub pointing the old Orientation URL at /blueprint.html. |
 | `system.html` | 119 | System Management page (admin). |
 | `portal-nav.js` | 139 | Shared nav: PortalNav.html/adminHtml top bars, System Management menu, trainee-view switch, logout, injected styles, floating Back-button safety net. |
@@ -119,6 +119,7 @@ Login/session plumbing, user management, site lock/pause/alert, logs and monitor
 | `functions/api/admin-password-check.js` | 87 | Admin-only GET/POST page that tests the typed admin password against every platform's admin sign-in. |
 | `functions/api/alert.js` | 73 | GET active alert (public); POST set / DELETE stop an alert (admin), logged to env.DB activity_log. |
 | `functions/api/announcement.js` | 60 | GET public announcement ticker text; POST/DELETE set or clear it (admin), stored in TRAINING_DB site_settings. |
+| `functions/api/create-user.js` | 111 | POST /api/create-user (admin): a trainer makes an account for someone — same checks as registration, creates a Pending users row for an administrator to approve. |
 | `functions/api/heartbeat.js` | 62 | GET who's-online list (admin); POST session heartbeat upsert with lighter-than-requireSession checks. |
 | `functions/api/launch.js` | 146 | GET /api/launch: opens a program or tool for the signed-in person with a short-lived signed SSO ticket (trainee/admin/system variants), plus landing/?to= routing and callsQuery. |
 | `functions/api/live.js` | 22 | GET /api/live: one-request aggregation of site-state, alert and pings for every open page's 20s poll. |

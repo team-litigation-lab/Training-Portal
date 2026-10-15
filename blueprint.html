@@ -13,8 +13,8 @@
   The deck itself is drawn by /lsh-blueprint.js, the Blueprint engine every LSH platform shares:
   the same navy cover band with the numbered contents, the same points / where to find it / tip
   slide, and the same real-text PDF — so the portal's blueprint and every program's blueprint
-  read as one deck. This page is its front door: the header, the program blueprints, and the
-  two tracks.
+  read as one deck. This page is its front door: the standard portal header and the two tracks.
+  Every blueprint link stays here: nothing on this page opens a deck inside a program or a tool.
     • Trainees: the portal, the Training Directory, program sign-in, Simulators, Knowledge Base.
     • Trainers & Admins: admin sign-in, the Directory's admin view, System Management,
       Trainee Monitoring, Attendance, program admin, Knowledge Base review, the daily workflow.
@@ -32,21 +32,11 @@
     body { margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif; background: var(--paper); color: var(--navy); -webkit-font-smoothing: antialiased; }
     a { color: inherit; }
 
-    .or-bar { background: var(--navy-deep); color: #fff; }
-    .or-bar-in { max-width: 1240px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-    .or-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; text-decoration: none; }
-    .or-brand img { height: 42px; width: auto; }
-    .or-brand small { display: block; font-size: 11px; font-weight: 600; color: #fdba74; letter-spacing: .08em; text-transform: uppercase; }
-    .or-links { display: flex; gap: 14px; margin-left: auto; font-size: 13px; font-weight: 600; flex-wrap: wrap; }
-    .or-links a { text-decoration: none; color: rgba(255,255,255,.78); }
-    .or-links a:hover { color: #fdba74; }
-
     .or-wrap { max-width: 1240px; margin: 0 auto; padding: 22px 16px 40px; }
     .or-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
     .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--orange); }
     .or-head h1 { margin: 4px 0 0; font-size: clamp(24px, 3.2vw, 32px); font-weight: 900; letter-spacing: -.01em; }
     .or-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .bp-programs select { font: inherit; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; color: #0f2148; cursor: pointer; }
     .or-tabs { display: inline-flex; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
     .or-tabs button { border: 0; background: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--slate); padding: 7px 14px; border-radius: 999px; cursor: pointer; }
     .or-tabs button.on { background: var(--navy); color: #fff; }
@@ -64,19 +54,31 @@
     .bp-contents { margin: 26px auto 0; max-width: 940px; list-style: none; padding: 0; columns: 2; column-gap: 40px; text-align: left; }
     .bp-contents li { break-inside: avoid; display: flex; align-items: center; gap: 12px; font-size: 14.5px; color: #e8ebf5; margin-bottom: 11px; }
     .bp-contents li span { flex: 0 0 auto; width: 26px; height: 23px; border-radius: 6px; background: var(--orange); color: #fff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
-    @media (max-width: 640px) { .bp-contents { columns: 1; } .or-links { margin-left: 0; } }
+    @media (max-width: 640px) { .bp-contents { columns: 1; } }
 </style>
+<link rel="stylesheet" href="/simulators/sim.css">
+<script src="/portal-nav.js"></script>
 <link rel="stylesheet" href="/theme.css">
 </head>
 <body>
 
-<div class="or-bar"><div class="or-bar-in">
-    <a class="or-brand" href="/index.html?stay=1"><img src="/img/logo.png" alt="Legal Support Help" width="70" height="46"><span>LSH Training Portal<small>Blueprint</small></span></a>
-    <nav class="or-links">
-        <a href="/index.html?stay=1">Home</a>
-        <a href="/programs.html">Training Directory</a>
-    </nav>
-</div></div>
+<script>
+// Who is reading this page: the header (the standard portal bar) and the deck both ask.
+function lshSession() {
+    try { return JSON.parse(sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1') || 'null'); }
+    catch (e) { return null; }
+}
+function isAdmin() { const s = lshSession(); return !!(s && s.userType === 'Admin'); }
+function signedIn() { return !!lshSession(); }
+</script>
+
+<div class="sim-top">
+    <a class="sim-brand" href="/programs.html"><img src="/img/logo.png" alt="Legal Support Help" width="70" height="46"><span>LSH Training Portal<small>Blueprint</small></span></a>
+    <div class="sim-nav">
+        <script>document.write(isAdmin() ? PortalNav.adminHtml('orient', { back: '/programs.html' })
+            : PortalNav.traineeHtml('orient', { back: '/index.html?stay=1', signedIn: signedIn() }));</script>
+    </div>
+</div>
 
 <main class="or-wrap">
     <div class="or-head">
@@ -89,19 +91,6 @@
                 <button type="button" role="tab" data-track="trainee" onclick="setTrack('trainee')">Trainees</button>
                 <button type="button" role="tab" data-track="admin" onclick="setTrack('admin')">Trainers &amp; Admins</button>
             </div>
-            <label class="bp-programs" id="bpPrograms" hidden title="Every program's own blueprint opens from here, and only from here">
-                <select aria-label="Program blueprints" onchange="if (this.value) { window.open(this.value, '_blank', 'noopener'); this.selectedIndex = 0; }">
-                    <option value="">📚 Program blueprints…</option>
-                    <option value="/api/launch?program=STANDARD%20TRAINING&amp;to=blueprint">Standard Foundational Training</option>
-                    <option value="/api/launch?program=EA%20%20PA%20TRAINING-OUTSOURCED%20MANP&amp;to=blueprint">EA/PA Upskill Program</option>
-                    <option value="/api/launch?program=CM%20TRAINING&amp;to=blueprint">Case Management Training</option>
-                    <option value="/api/launch?program=PROPERTY%20DAMAGE&amp;to=blueprint">Property Damage Claims Training</option>
-                    <option value="/api/launch?program=MEDSUM%20AND%20DEMAND&amp;to=blueprint">Medsum &amp; Demand Training</option>
-                    <option value="/api/launch?tool=cms&amp;to=blueprint">Case Management System (CMS)</option>
-                    <option value="/api/launch?tool=ringchannel&amp;to=blueprint">Ring Channel (RingCentral)</option>
-                    <option value="/api/launch?tool=kb&amp;to=blueprint">Knowledge Base</option>
-                </select>
-            </label>
             <button type="button" class="btn pri" id="orPdf" onclick="downloadTrackPdf()" title="Download this track as a PDF, made from the live site">⬇ Download PDF</button>
         </div>
     </div>
@@ -258,10 +247,6 @@ admin: [
    Trainees (and visitors) get the Trainees track only; the Trainers & Admins track is for a signed-in Admin.
    The deck and its PDF are lsh-blueprint.js, the same Blueprint engine as every LSH platform: it is made from
    the slides deployed right now, stamped with the deploy and the date. */
-function isAdmin() {
-    try { const s = JSON.parse(sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1') || 'null'); return !!(s && s.userType === 'Admin'); }
-    catch (e) { return false; }
-}
 const SUBS = {
     trainee: 'The LSH Training Portal: how to find and use your training',
     admin: 'The LSH Training Portal: running training from the admin side'
@@ -311,12 +296,6 @@ function setTrack(t) {
 function downloadTrackPdf() { return window.LSHBlueprint ? LSHBlueprint.pdf(deckKey()) : null; }
 
 if (!isAdmin()) { delete SLIDES.admin; document.querySelectorAll('.or-tabs').forEach(t => t.hidden = true); }
-// 📚 Program blueprints: the No Blueprint rule keeps every Blueprint out of the programs and tools, so this is the one
-// place their (trainer) blueprints open from: each opens the program signed in, straight on its #/blueprint.
-else document.querySelectorAll('.bp-programs').forEach(n => { n.hidden = false; });
-// A signed-in admin gets the same admin bar as every other main page (portal-nav.js).
-// (portal-nav.js loads after this script, so this waits for the page.)
-if (isAdmin()) document.addEventListener('DOMContentLoaded', () => document.querySelectorAll('.or-links').forEach(n => { n.innerHTML = PortalNav.adminHtml('orient', { back: '/programs.html' }); }));
 
 (function init() {
     const q = new URLSearchParams(location.search);
@@ -331,6 +310,5 @@ if (isAdmin()) document.addEventListener('DOMContentLoaded', () => document.quer
 })();
 </script>
 <script src="/lsh-blueprint.js"></script>
-<script src="/portal-nav.js"></script>
 </body>
 </html>

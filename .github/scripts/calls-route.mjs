@@ -33,11 +33,11 @@ for (const [link, want] of Object.entries(links)) {
     if (l.status !== 302 || !u || u.origin !== 'https://lshcasemanagementtraining-trainingcrm.pages.dev' || !u.searchParams.get('ticket') || u.searchParams.get('calls') !== '1') { fail(`${link}: the launch didn't sign them into the CMS Call Simulator: ${l.status} ${l.at}`); continue; }
     for (const k of ['flow', 'program', 'line', 'mode']) if ((u.searchParams.get(k) || undefined) !== want[k]) fail(`${link}: the CMS link's ${k} is ${u.searchParams.get(k)} (expected ${want[k]})`);
 }
-// signed out: the sign-in page, not the CMS; an admin lands on the CMS's admin sign-in with the same details
+// signed out: the sign-in page, not the CMS; an admin lands on the CMS signed in (their own admin ticket) with the same details
 const out = await mw('/simulators/call.html?program=FT', null);
 if (out.status !== 302 || out.headers.get('Location') !== '/trainee-login.html') fail(`a signed-out visitor to the Call Simulator wasn't sent to sign in: ${out.status} ${out.headers.get('Location')}`);
 const ad = await go('/api/launch?tool=cms&to=calls&flow=reception', admin);
-if (!/^https:\/\/lshcasemanagementtraining-trainingcrm\.pages\.dev\/\?admin=1&calls=1&flow=reception$/.test(ad.at)) fail(`an Admin's Call Simulator link: ${ad.at}`);
+if (!/^https:\/\/lshcasemanagementtraining-trainingcrm\.pages\.dev\/\?ticket=[^&#]+&calls=1&flow=reception$/.test(ad.at)) fail(`an Admin's Call Simulator link: ${ad.at}`);
 // the other simulators are unchanged
 const other = await mw('/simulators/gcal.html', trainee);
 if (other.status !== 200 || (await other.text()) !== 'the page') fail('another simulator page was redirected');
