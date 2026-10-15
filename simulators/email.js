@@ -86,7 +86,9 @@ function wsQuit(){ if(W.phase==='ws' && Object.keys(W.meta||{}).length && !W.res
 
 /* ---------- helpers ---------- */
 function mins(t){ const m = String(t||'').match(/(\d+):(\d+)\s*(AM|PM)/i); if(!m) return 0; let h = +m[1]%12; if(/pm/i.test(m[3])) h += 12; return h*60 + +m[2]; }
-function folderOf(e){ const m = W.meta[e.id]; return m ? WS_ACTIONS[m.action].folder : 'inbox'; }
+// Gmail-style: the Inbox holds only what is neither filed under a label nor decided.
+// A filed email lives under its label ('filed' is no folder button) until a decision moves it on.
+function folderOf(e){ const m = W.meta[e.id]; if(m) return WS_ACTIONS[m.action].folder; return W.lab[e.id] ? 'filed' : 'inbox'; }
 function lbl(id){ return W.labels.find(l=>l.id===id); }
 function lblKids(pid){ return W.labels.filter(l=>(l.parentId||null)===(pid||null)); }
 function lblChain(id){ const out=[]; let c=lbl(id); while(c){ out.push(c.name); c = c.parentId ? lbl(c.parentId) : null; } return out; }
@@ -119,7 +121,7 @@ function render(){
   }
   app.innerHTML = `<div class="sim-card" style="margin-bottom:12px;"><div class="ws-bar"><div class="grow"><div class="sim-kicker">${esc(W.pack.program)}</div><div style="font-size:18px;font-weight:800;">${esc(W.pack.title)}</div></div>
       <button class="sim-btn ghost" onclick="wsQuit()">← Choose another inbox</button></div>
-      <p class="ws-role">${esc(W.pack.role)} <b>File every email under a label</b> (create folders and nest sub-labels), then clear the Inbox with <b>one decision per email</b>. Watch for anything suspicious.</p></div>
+      <p class="ws-role">${esc(W.pack.role)} <b>File every email under a label</b> (create folders and nest sub-labels) — like Gmail, filing <b>moves it out of the Inbox</b> and into that label. Every email also needs <b>one decision</b>, which you can give it from the Inbox before you file it or from the label afterwards. Watch for anything suspicious.</p></div>
     <div id="wsZone"></div>`;
   draw();
 }
@@ -151,7 +153,7 @@ function shellHtml(){
       <section class="gm-main">${open ? readerHtml(open) : listHtml()}</section>
     </div>
     <div class="gm-legend">
-      <span><b>Do:</b> Reply or ⭐</span><span><b>Schedule:</b> 🕒 Snooze</span><span><b>Delegate:</b> ↪ Forward</span><span><b>Defer:</b> Archive / 🗑</span><span><b>Suspicious:</b> 🚩 Report</span><span><b>File:</b> 🏷 Label</span><span class="gm-dnd"><b>🖱 Drag</b> an email onto a folder or label</span>
+      <span><b>Do:</b> Reply or ⭐</span><span><b>Schedule:</b> 🕒 Snooze</span><span><b>Delegate:</b> ↪ Forward</span><span><b>Defer:</b> Archive / 🗑</span><span><b>Suspicious:</b> 🚩 Report</span><span><b>File:</b> 🏷 Label — it leaves the Inbox</span><span class="gm-dnd"><b>🖱 Drag</b> an email onto a folder or label</span>
       <span>⌨ <span class="gm-kbd">j</span>/<span class="gm-kbd">k</span> · <span class="gm-kbd">o</span> open · <span class="gm-kbd">u</span> back · <span class="gm-kbd">e</span> archive · <span class="gm-kbd">#</span> delete · <span class="gm-kbd">s</span> star · <span class="gm-kbd">b</span> snooze · <span class="gm-kbd">f</span> forward · <span class="gm-kbd">r</span> reply · <span class="gm-kbd">l</span> label · <span class="gm-kbd">!</span> report · <span class="gm-kbd">z</span> undo</span>
       <span class="gm-submit">${handled}/${total} handled · ${filed}/${total} filed ${ready ? `<button class="sim-btn primary" onclick="wsSubmit()">Submit for grading</button>` : ''}</span>
     </div>
@@ -161,12 +163,12 @@ function shellHtml(){
   </div><div id="wsResult" style="margin-top:14px;">${W.result||''}</div>`;
 }
 function listHtml(){
-  const rows = visible(), inInbox = W.folder==='inbox', selIds = rows.filter(e=>W.sel[e.id]).map(e=>e.id);
+  const rows = visible(), inInbox = W.folder==='inbox', inLabel = W.folder.startsWith('label:'), selIds = rows.filter(e=>W.sel[e.id]).map(e=>e.id);
   const bulk = (a, tip, icon)=>`<button class="gm-ib" data-tip="${tip}" ${selIds.length?'':'disabled'} onclick="wsBulk('${a}')">${WS_ICON[icon||a]}</button>`;
   let body;
   if(!rows.length){
-    const unfiled = W.emails.filter(e=>!W.lab[e.id]).length, allDone = W.emails.every(e=>W.meta[e.id]);
-    body = inInbox && !W.search ? `<div class="gm-done"><div class="sun">☀️</div><b>You're all done!</b><div>Nothing in Inbox — that's Inbox Zero.</div>${allDone && !unfiled ? `<button class="sim-btn primary" style="margin-top:12px;" onclick="wsSubmit()">Submit for grading</button>` : (unfiled ? `<div style="margin-top:8px;color:#b06000;">${unfiled} email${unfiled>1?'s':''} still need a label — find them in the other folders.</div>` : '')}</div>`
+    const unfiled = W.emails.filter(e=>!W.lab[e.id]).length, undecided = W.emails.filter(e=>!W.meta[e.id]).length, allDone = !unfiled && !undecided;
+    body = inInbox && !W.search ? `<div class="gm-done"><div class="sun">☀️</div><b>${allDone ? "You're all done!" : 'Inbox Zero.'}</b><div>Nothing in Inbox${allDone ? " — that's Inbox Zero." : ' — but every email still needs both a label and a decision.'}</div>${allDone ? `<button class="sim-btn primary" style="margin-top:12px;" onclick="wsSubmit()">Submit for grading</button>` : `<div style="margin-top:8px;color:#b06000;">${undecided ? `${undecided} email${undecided>1?'s':''} still need a decision — open the label you filed them under.` : ''}${undecided && unfiled ? '<br>' : ''}${unfiled ? `${unfiled} email${unfiled>1?'s':''} still need a label — find them in the other folders.` : ''}</div>`}</div>`
       : `<div class="gm-empty">${W.search ? 'No messages matched your search.' : 'No conversations here.'}</div>`;
   }else body = rows.map((e,i)=>{ const n = nm(e.from), m = W.meta[e.id], live = !m;
     return `<div class="gm-row ${W.read[e.id]?'':'unread'} ${W.focus===i?'focus':''} ${W.sel[e.id]?'sel':''}" onclick="wsOpen('${e.id}')" draggable="true" ondragstart="wsDragStart(event,'${e.id}')" ondragend="wsDragEnd()" title="Drag onto a folder or a label on the left">
@@ -179,7 +181,8 @@ function listHtml(){
         : `<button class="gm-ib" data-tip="Label" onclick="event.stopPropagation();wsLabelMenu(['${e.id}'])">${WS_ICON.label}</button><button class="gm-ib" data-tip="Move to Inbox" onclick="event.stopPropagation();wsToInbox(['${e.id}'])">${WS_ICON.inbox}</button>`}</div></div>`; }).join('');
   return `<div class="gm-bar"><input type="checkbox" class="gm-chk" ${rows.length && selIds.length===rows.length?'checked':''} onclick="wsSelectAll(this.checked)" aria-label="Select all">
     <button class="gm-ib" data-tip="Refresh" onclick="draw()">${WS_ICON.refresh}</button>
-    ${inInbox ? bulk('archive','Archive')+bulk('report','Report phishing')+bulk('trash','Delete')+`<button class="gm-ib" data-tip="Snooze" ${selIds.length?'':'disabled'} onclick="wsSnoozeMenu(null)">${WS_ICON.snooze}</button>`+bulk('star','Star') : `<button class="gm-ib" data-tip="Move to Inbox" ${selIds.length?'':'disabled'} onclick="wsToInbox(null)">${WS_ICON.inbox}</button>`}
+    ${inInbox || inLabel ? bulk('archive','Archive')+bulk('report','Report phishing')+bulk('trash','Delete')+`<button class="gm-ib" data-tip="Snooze" ${selIds.length?'':'disabled'} onclick="wsSnoozeMenu(null)">${WS_ICON.snooze}</button>`+bulk('star','Star') : ''}
+    ${inInbox ? '' : `<button class="gm-ib" data-tip="Move to Inbox" ${selIds.length?'':'disabled'} onclick="wsToInbox(null)">${WS_ICON.inbox}</button>`}
     <button class="gm-ib" data-tip="Label as" ${selIds.length?'':'disabled'} onclick="wsLabelMenu(null)">${WS_ICON.label}</button>
     ${W.folder.startsWith('label:') ? `<span style="margin-left:6px;">${chip(W.folder.slice(6))}</span>` : ''}<span class="gm-count">${rows.length ? `1–${rows.length} of ${rows.length}` : ''}</span></div>
     <div class="gm-list">${body}</div>`;
@@ -223,7 +226,7 @@ function composeHtml(){
 function wsAct(ids, action, detail){
   ids = ids.filter(id=>!W.meta[id]); if(!ids.length) return;
   if(!W.startedAt) W.startedAt = Date.now();
-  W.undo = ids.slice();
+  wsMark(ids);
   ids.forEach(id=>{ W.meta[id] = {action, detail:detail||''}; W.read[id] = true; delete W.sel[id]; });
   if(W.open && ids.includes(W.open)) W.open = null;
   const d = WS_ACTIONS[action];
@@ -232,8 +235,23 @@ function wsAct(ids, action, detail){
   W.focus = Math.min(W.focus||0, Math.max(0, visible().length-1));
   wsSave(); draw();
 }
-function wsUndo(){ if(!W.undo) return; W.undo.forEach(id=>{ delete W.meta[id]; delete W.notes[id]; }); W.undo = null; snack('Action undone.', false, 3000); wsSave(); draw(); }
-function wsToInbox(ids){ ids = ids || visible().filter(e=>W.sel[e.id]).map(e=>e.id); ids.forEach(id=>{ delete W.meta[id]; delete W.sel[id]; delete W.notes[id]; }); if(W.open && ids.includes(W.open)) W.open = null; snack(ids.length>1 ? `${ids.length} conversations moved to Inbox.` : 'Conversation moved to Inbox.'); wsSave(); draw(); }
+// Remember where these emails stood, so one Undo puts them back.
+function wsMark(ids){ const u = {ids:ids.slice(), meta:{}, lab:{}, notes:{}}; ids.forEach(id=>{ if(W.meta[id]) u.meta[id] = W.meta[id]; if(W.lab[id]) u.lab[id] = W.lab[id]; if(W.notes[id]) u.notes[id] = W.notes[id]; }); W.undo = u; }
+function wsUndo(){
+  const u = W.undo; if(!u) return;
+  u.ids.forEach(id=>{ delete W.meta[id]; delete W.lab[id]; delete W.notes[id];
+    if(u.meta[id]) W.meta[id] = u.meta[id]; if(u.lab[id]) W.lab[id] = u.lab[id]; if(u.notes[id]) W.notes[id] = u.notes[id]; });
+  W.undo = null; snack('Action undone.', false, 3000); wsSave(); draw();
+}
+function wsToInbox(ids){
+  ids = ids || visible().filter(e=>W.sel[e.id]).map(e=>e.id); if(!ids.length) return;
+  wsMark(ids);
+  const wasFiled = ids.some(id=>W.lab[id]);
+  ids.forEach(id=>{ delete W.meta[id]; delete W.lab[id]; delete W.sel[id]; delete W.notes[id]; });
+  if(W.open && ids.includes(W.open)) W.open = null;
+  snack((ids.length>1 ? `${ids.length} conversations moved to Inbox.` : 'Conversation moved to Inbox.') + (wasFiled ? ' Its label came off with it.' : ''), true);
+  wsSave(); draw();
+}
 function wsBulk(a){ const ids = visible().filter(e=>W.sel[e.id]).map(e=>e.id); if(ids.length) wsAct(ids, a); }
 function wsOpen(id){ W.open = id; W.read[id] = true; W.menu = null; wsSave(); draw(); const s = document.getElementById('gmShell'); if(s) s.focus({preventScroll:true}); }
 function wsBack(){ W.open = null; W.compose = null; draw(); }
@@ -246,7 +264,17 @@ function wsSnoozeMenu(ids){ ids = ids || visible().filter(e=>W.sel[e.id]).map(e=
 function wsLabelMenu(ids){ ids = ids || visible().filter(e=>W.sel[e.id]).map(e=>e.id); if(!ids.length) return; W.menu = {type:'label', ids}; draw(); }
 function wsCloseMenu(){ W.menu = null; draw(); }
 function wsSnooze(label){ if(!W.menu) return; const o = WS_SNOOZE.find(x=>x[0]===label); wsAct(W.menu.ids, 'snooze', o ? o[1] : 'a date you picked'); }
-function wsSetLabel(id){ if(!W.menu) return; const ids = W.menu.ids; ids.forEach(x=>{ if(id) W.lab[x] = id; else delete W.lab[x]; }); W.menu = null; snack(id ? `${ids.length>1 ? ids.length+' conversations' : 'Conversation'} labelled "${lblPath(id)}".` : 'Label removed.'); wsSave(); draw(); }
+function wsSetLabel(id){
+  if(!W.menu) return;
+  const ids = W.menu.ids, fromInbox = ids.some(x=>folderOf(W.emails.find(e=>e.id===x))==='inbox'), what = ids.length>1 ? ids.length+' conversations' : 'Conversation';
+  wsMark(ids);
+  ids.forEach(x=>{ if(id) W.lab[x] = id; else delete W.lab[x]; });
+  W.menu = null; ids.forEach(x=>delete W.sel[x]);
+  if(W.open && !visible().some(e=>e.id===W.open)) W.open = null;   // it moved out of this view
+  W.focus = Math.min(W.focus||0, Math.max(0, visible().length-1));
+  snack(id ? `${what} moved to "${lblPath(id)}".${fromInbox ? ' It has left the Inbox — give it its decision there.' : ''}` : `${what} moved back to the Inbox — its label came off.`, true);
+  wsSave(); draw();
+}
 function wsNewLabel(fromMenu){ W.dialog = {applyTo: fromMenu && W.menu ? W.menu.ids : null}; W.menu = null; draw(); setTimeout(()=>{ const i = document.getElementById('wsLblName'); if(i) i.focus(); }, 30); }
 function wsCloseDialog(){ W.dialog = null; draw(); }
 function wsCreateLabel(){
@@ -318,7 +346,7 @@ function wsDropIds(kind, key){
   if(!WS_DRAG) return [];
   const ids = WS_DRAG.ids;
   if(kind==='label') return ids;
-  if(key==='inbox') return ids.filter(id=>W.meta[id]);          // undo a decision
+  if(key==='inbox') return ids.filter(id=>W.meta[id] || W.lab[id]);  // bring it back out of a folder or a label
   if(key==='forwarded') return ids.filter(id=>!W.meta[id]).slice(0,1); // a handoff note, one at a time
   return ids.filter(id=>!W.meta[id]);                            // a fresh decision
 }
