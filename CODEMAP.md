@@ -133,7 +133,7 @@ Login/session plumbing, user management, site lock/pause/alert, logs and monitor
 | `functions/api/site-state.js` | 131 | GET public lock/pause state (+pause message); POST LOCK/UNLOCK/PAUSE/RESUME with master-credential re-verification. |
 | `functions/api/sso-check.js` | 52 | Admin-only GET page that signs a test ticket and tries it on every program's /api/auth/portal. |
 | `functions/api/update-access.js` | 42 | POST /api/update-access (admin): Suspend / Reactivate an approved account. |
-| `functions/api/update-status.js` | 31 | POST /api/update-status (admin): Approve / Reject a pending registration, assigning a Batch ID on approval. |
+| `functions/api/update-status.js` | 40 | POST /api/update-status (admin): Approve / Reject a pending registration, assigning a Batch ID on approval; an Admin / Trainer registration is the Master Account's to decide. |
 | `functions/api/update-user.js` | 79 | POST /api/update-user (admin): edit batch/name/email/username/password; moves username-keyed data across TRAINING_DB tables and kills open sessions. |
 | `functions/api/users.js` | 32 | GET /api/users (admin): all accounts without passwords, with formatted names. |
 | `functions/api/verify-ticket.js` | 42 | POST /api/verify-ticket: verifies a Portal SSO ticket for sites that don't hold the shared secret (CMS, Ring Channel fallback). |
@@ -178,6 +178,7 @@ The Checks suite (node + Playwright) and the Uptime monitor.
 
 | File | Lines | What it is |
 |---|---|---|
+| `.github/scripts/admin-approval.mjs` | 85 | functions/api/update-status.js + api/create-user.js: a trainer may set an Admin / Trainer account up but only the Master Account approves or rejects one; a trainer still approves a trainee, and the approval issues the Batch ID. |
 | `.github/scripts/ai-gateway.mjs` | 186 | functions/_ai-gateway.js + api/ai-gateway.js: one shared ledger across flows, minute/daily/per-user/module-share limits, key-pool failover and rest, relay fallback, live-token cost, abort deadlines, review reserve, endpoint auth. |
 | `.github/scripts/batch.mjs` | 27 | Batch IDs: nextBatchId (functions/_utils.js) mints B+MMDDYY; app.js batchLabel/batchCohort show and group older IDs. |
 | `.github/scripts/blueprint.cjs` | 139 | Orientation decks and PDFs: trainee vs admin tracks, PDF page-per-slide with deploy stamp, consistent numbering across page counter, PDF footers/headers and the engine's own deck. |
