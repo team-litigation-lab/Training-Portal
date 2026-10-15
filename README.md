@@ -220,6 +220,51 @@ Where the records come from:
 
 The API (`/api/program-progress`) is admin-only. It writes only to archive and restore batches; feedback is written and marked reviewed in each course. It stays under Workers KV's 1,000-operations-per-request limit and says so on the page if a very large program doesn't fit. To add a program, add it to `PROGRAMS` in `functions/api/program-progress.js` with its key prefix, number of days and course address, and to `PROGRAM_ORDER` in `progress-records.js`.
 
+## 🎨 The standard page style
+
+Every page loads `theme.css` last, and that file is what makes a page look like
+the portal. A new page needs nothing but the stylesheet: the look below is the
+default, not something to opt into.
+
+**The backdrop.** The page sits on a photo behind a wash — the scales image by
+default, the office on the landing page. Three variables on the page's own
+`body` change it, and nothing else should:
+
+| | |
+|---|---|
+| `--portal-photo` | the image, e.g. `url('/img/landing-bg-office.webp')` |
+| `--portal-wash` | how much of it shows through (lower alpha = more photo) |
+| `--portal-base` | the flat colour under both, before the image loads |
+
+A page whose body copy is white adds `class="portal-bg-dark"` to its `<body>`
+for the navy wash instead of the cream one (Progress and System Management do).
+A page that genuinely must be flat adds `class="no-portal-bg"`. Both are the
+exception; `class="portal-bg"` is the old opt-in name and still harmless.
+
+**The panels.** Cards are translucent so the backdrop carries on underneath —
+`.sim-card`, `.topic-card`, `.pdf-card`, `.dash-card`, `.stat-card-v2`,
+`.admin-tile`, the Master Control pane. Use one of those classes and the page
+is right automatically. A new panel of your own gets
+`background: var(--surface-glass)` and `backdrop-filter: var(--surface-blur)`.
+Declare `background` (the shorthand), never `background-image`: these classes
+each carry a flat white of their own, and an alpha gradient layered over an
+opaque colour changes nothing.
+
+**The colours, which exist because of the backdrop.** Text has to clear WCAG AA
+(4.5:1, or 3:1 at 24px/18.7px bold) against the photo, not against a white card
+that is no longer white:
+
+- Muted text is `--slate` / `#334155`, not `#64748b` — 5.6:1 on a glass panel.
+  Text sitting straight on the backdrop with no panel is `#1e293b`.
+- Orange is a **fill** colour. As lettering on navy use `#fdba74`
+  (`--orange-lift` on the landing page); on white or paper use `#9a3412` or
+  `#c2410c`; on an orange fill the label is `#081226`, never white.
+- On a dark surface, "muted" means *lighter* (`#cbd5e1`, `#94a3b8`), not darker.
+
+The audit that produced those numbers screenshots a page twice — normally and
+with every glyph transparent — and scores each text run against the pixels
+actually behind its own lettering. Worth re-running after a visual change.
+
 ## 📉 Server requests (every LSH site shares one monthly allowance)
 
 Every request that runs a Pages Function counts toward the Cloudflare account's monthly requests, shared by every LSH site (the courses, the CMS, this portal, Ring Channel, the Knowledge Base): 10 million a billing month on the Workers Paid plan, then charged. So open pages ask sparingly:

@@ -254,12 +254,22 @@
    the ramp settling onto the band's colour is what the join wants. */
 
 /* ---------- the backdrop, and the surfaces you see it through ---------- */
-/* <body class="portal-bg"> puts the photo behind a screen. One background
-   shorthand, no pseudo-element and no extra stacking context, so nothing on
-   the page needs a z-index to stay on top of it — the same approach the
-   Training Directory already used, lifted here so every screen shares it.
-   background-attachment:fixed holds the image still while the page scrolls. */
-body.portal-bg {
+/* THE STANDARD PAGE. This is the portal's default now, not something a page
+   opts into: theme.css is the last stylesheet on every page, so a new page
+   that loads it is already see-through, and nobody has to remember a class.
+   One background shorthand, no pseudo-element and no extra stacking context,
+   so nothing on the page needs a z-index to stay on top of it.
+   background-attachment:fixed holds the image still while the page scrolls.
+
+   Three knobs, each set on the page's own body:
+     --portal-photo   the image (the landing page points this at the office)
+     --portal-wash    how much of it shows through
+     --portal-base    the colour under both, for the moment before it loads
+   A page whose copy is white adds class="portal-bg-dark" for the navy wash.
+   A page that must not have a backdrop at all adds class="no-portal-bg".
+   `body.portal-bg` stays valid so older pages keep working; it does nothing
+   a plain body does not already do. */
+body {
     background:
         linear-gradient(var(--portal-wash), var(--portal-wash)),
         var(--portal-photo) center center / cover no-repeat fixed,
@@ -268,15 +278,18 @@ body.portal-bg {
 /* The dark screens (Progress, System) carry white body text, so theirs is a
    navy wash rather than a cream one: the photo still shows through it, and
    white copy keeps better than 10:1 even over the photo's brightest areas. */
-body.portal-bg.portal-bg-dark {
+body.portal-bg-dark {
     --portal-wash: rgba(8, 18, 38, .82);
     --portal-base: var(--navy, #0f2148);
 }
+/* The one way out, for a page that needs a flat surface (a print view, a
+   full-bleed canvas): it keeps the base colour and drops the photo. */
+body.no-portal-bg { background: var(--portal-base); }
 /* A fixed backdrop is the thing that misbehaves on iOS Safari — the image
    jumps or renders at the wrong scale mid-scroll — and the photo is wasted at
    phone width anyway, so phones scroll it instead. */
 @media (max-width: 860px) {
-    body.portal-bg { background-attachment: scroll, scroll; }
+    body { background-attachment: scroll, scroll; }
 }
 
 /* The panels of the portal shell (core.html) and of the shared card set in
@@ -307,9 +320,9 @@ body.portal-bg.portal-bg-dark {
    next to the navy headings (4.91:1 bare, 7.96:1 where it falls on glass).
    `:not(.on)` keeps the active tab's navy, which would otherwise lose on
    specificity to this rule. */
-body.portal-bg .sim-muted,
-body.portal-bg .lx-tabs button:not(.on),
-body.portal-bg .dk-tabs button:not(.on) { color: #1e293b; }
+.sim-muted,
+.lx-tabs button:not(.on),
+.dk-tabs button:not(.on) { color: #1e293b; }
 
 /* The sign-in pages: the navy rings panel IS the page there, so the photo goes
    behind its gradient rather than behind the body. The navy stays at .86 here
@@ -338,7 +351,7 @@ body.portal-bg .dk-tabs button:not(.on) { color: #1e293b; }
     .sim-card, .topic-card, .queue-card, .first-screen { background-image: none; box-shadow: none; }
     /* A photo backdrop behind a printed page costs ink and muddies every
        line on top of it, and a backdrop-filter prints as a grey slab. */
-    body.portal-bg { background: #fff; }
+    body { background: #fff; }
     .pdf-card, .dash-card, .stat-card-v2, .admin-tile, .mc-body, .mc-tabs,
     .sim-card, .topic-card, .queue-card {
         backdrop-filter: none; -webkit-backdrop-filter: none; background: #fff;
