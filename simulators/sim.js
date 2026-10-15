@@ -99,6 +99,7 @@ const Sim = {
             <a class="sim-brand" href="/index.html?stay=1"><img src="/img/logo.png" alt="Legal Support Help" width="70" height="46"><span class="sim-title">Simulators</span></a>
             <div class="sim-nav">
                 ${PortalNav.html(active === 'hub' ? 'sims' : '', { back: active === 'hub' ? '/programs.html' : '/simulators.html', blueprint: false })}
+                ${active === 'hub' ? `<a href="${admin ? '/simulators/gcal-review.html' : '/simulators/my-evaluations.html'}" title="${admin ? 'Each trainee\u2019s calendars with their AI review and your feedback' : 'My calendars and the reports my trainer sent'}">${admin ? '\u{1F5A5} Trainee Evaluations' : '\u{1F4CB} My Evaluations'}</a>` : ''}
                 ${me}
             </div></div>`;
     },

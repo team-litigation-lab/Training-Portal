@@ -119,6 +119,7 @@ Login/session plumbing, user management, site lock/pause/alert, logs and monitor
 | `functions/api/admin-password-check.js` | 87 | Admin-only GET/POST page that tests the typed admin password against every platform's admin sign-in. |
 | `functions/api/alert.js` | 73 | GET active alert (public); POST set / DELETE stop an alert (admin), logged to env.DB activity_log. |
 | `functions/api/announcement.js` | 60 | GET public announcement ticker text; POST/DELETE set or clear it (admin), stored in TRAINING_DB site_settings. |
+| `functions/api/create-user.js` | 111 | POST /api/create-user (admin): a trainer makes an account for someone — same checks as registration, creates a Pending users row for an administrator to approve. |
 | `functions/api/heartbeat.js` | 62 | GET who's-online list (admin); POST session heartbeat upsert with lighter-than-requireSession checks. |
 | `functions/api/launch.js` | 146 | GET /api/launch: opens a program or tool for the signed-in person with a short-lived signed SSO ticket (trainee/admin/system variants), plus landing/?to= routing and callsQuery. |
 | `functions/api/live.js` | 22 | GET /api/live: one-request aggregation of site-state, alert and pings for every open page's 20s poll. |

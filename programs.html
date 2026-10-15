@@ -54,7 +54,7 @@
     .idx-logout.on { font-weight: 800; }
     @media (max-width: 760px) { .idx-top { flex-wrap: wrap; gap: 10px; padding: 14px 16px; } .idx-user { flex-wrap: wrap; gap: 10px 14px; } }
 
-    .idx-wrap { max-width: 1660px; margin: 0 auto; padding: 12px 32px 12px; }
+    .idx-wrap { max-width: 1880px; margin: 0 auto; padding: 12px 32px 12px; }
     /* Directory hero — the same navy and orange rings as the home page hero. */
     .idx-head { position: relative; overflow: hidden; margin-bottom: 9px; padding: 10px 26px 11px; border-radius: 16px; color: #fff;
         background: radial-gradient(120% 140% at 100% 0%, var(--navy-mid) 0%, var(--navy-deep) 62%); box-shadow: 0 18px 40px -22px rgba(8,18,38,.7); }
@@ -84,9 +84,9 @@
        balanced 3 + 3 on a three-column one. groupedTopicsHtml() picks the count
        that divides the group evenly (see cols-3) rather than this being a
        one-off for that one section. */
-    .topic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; }
+    .topic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(8px, 1.1vh, 15px) 15px; }
     .topic-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
-    .topic-group { margin-bottom: 12px; }
+    .topic-group { margin-bottom: clamp(8px, 1.1vh, 12px); }
     .topic-group-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 7px; padding-bottom: 4px; border-bottom: 2px solid rgba(249,115,22,.35); }
     .topic-group-head h2 { font-size: 15px; font-weight: 900; margin: 0; color: var(--navy); letter-spacing: .01em; }
     /* These section notes sit directly on the body backdrop, not on a card.
@@ -99,21 +99,21 @@
     @media (max-width: 560px) { .topic-grid, .topic-grid.cols-3 { grid-template-columns: 1fr; } }
     /* The cards keep their gridlines: the navy frame around the card and around its title,
        so they read as a grid over the page's photo backdrop. */
-    .topic-card { background: #fff; border-radius: 13px; padding: 11px 13px; border: 2px solid rgba(15,33,72,.35); box-shadow: 0 14px 28px -18px rgba(15,33,72,.35);
-        display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "title title" "status action"; align-items: center; gap: 8px 9px; }
+    .topic-card { background: #fff; border-radius: 14px; padding: clamp(7px, 1.2vh - 2px, 15px) 16px; border: 2px solid rgba(15,33,72,.35); box-shadow: 0 14px 28px -18px rgba(15,33,72,.35);
+        display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "title title" "status action"; align-items: center; gap: clamp(5px, 1vh - 2px, 11px) 10px; }
     .topic-card h3 { grid-area: title; }
     .topic-card .topic-status { grid-area: status; }
     .topic-card .topic-action-btn { grid-area: action; margin-top: 0; }
     /* Centered, so the title reads as the card's headline rather than being pinned to one side. */
-    .topic-card h3 { font-size: 14px; font-weight: 800; margin: 0; color: var(--navy); border: 2px solid var(--navy); border-radius: 9px; padding: 7px 9px; line-height: 1.25; text-align: center; }
-    .topic-status { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 999px; display: inline-block; width: fit-content; }
+    .topic-card h3 { font-size: 16px; font-weight: 800; margin: 0; color: var(--navy); border: 2px solid var(--navy); border-radius: 10px; padding: clamp(6px, 0.9vh - 1px, 10px) 11px; line-height: 1.25; text-align: center; }
+    .topic-status { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 999px; display: inline-block; width: fit-content; }
     .topic-status.approved { background: #f0fdf4; color: #166534; }
     .topic-status.passed { background: #fff7ed; color: #9a3412; }
     .topic-status.pending { background: #fffbeb; color: #b45309; }
     .topic-status.locked { background: #f1f5f9; color: #64748b; }
     .topic-status.denied { background: #fef2f2; color: #b91c1c; }
     .topic-action-btn {
-        margin-top: auto; padding: 7px; border-radius: 999px; border: none; font-weight: 800; font-size: 10.5px;
+        margin-top: auto; padding: 9px; border-radius: 999px; border: none; font-weight: 800; font-size: 11.5px;
         text-transform: uppercase; letter-spacing: 0.03em; text-align: center; text-decoration: none; cursor: pointer;
     }
     .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
@@ -148,13 +148,32 @@
     @media (max-width: 900px) { .idx-top { flex-wrap: wrap; } .idx-title { order: 2; flex-basis: auto; } .idx-user { order: 3; width: 100%; justify-content: flex-start; } }
     .pn-trainee-view { position: relative; z-index: 5; }
 
+    /* Desktop: the program cards fill the screen. The page is one screen tall; the space left under the
+       banners goes to the groups by their number of rows of cards (style --rows, set in groupedTopicsHtml),
+       and every row of cards stretches to share it, so the cards are as big as the screen allows. */
+    @media (min-width: 1001px) and (min-height: 700px) {
+        body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .idx-wrap { flex: 1 1 auto; min-height: 0; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; }
+        #idx-topics { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+        #idx-topics .topic-group:last-child { margin-bottom: 0; }
+        #idx-topics .topic-group { flex: var(--rows, 1) 1 auto; min-height: 0; display: flex; flex-direction: column; }
+        #idx-topics .topic-group .topic-grid { flex: 1 1 auto; min-height: 0; grid-auto-rows: minmax(0, 1fr); }
+        /* min-height:0 on the card and its title: without it a row can never shrink below the
+           card's own content, so on a screen that is a little too short the last group was
+           clipped by the body's overflow:hidden instead of the rows giving up their spare air. */
+        #idx-topics .topic-card { grid-template-rows: minmax(0, 1fr) auto; align-content: center; min-height: 0; overflow: hidden; }
+        #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: clamp(12px, 1.95vh, 21px); }
+        #idx-topics .topic-action-btn { font-size: clamp(10.5px, 1.25vh, 13.5px); padding: clamp(6px, 1vh, 12px); }
+        #idx-topics .topic-status { font-size: clamp(9.5px, 1.1vh, 12px); padding: 3px 10px; }
+    }
+
     /* Short screens. The target now is the whole directory on one screen: the top bar, the
        four tools and all three groups of programs, with nothing cut off and nothing overlapping.
        The base above fits a 900px-tall screen; these steps buy back what a 864px, 800px and
        720px one needs. The words are all still there, with less air around them — except the
        hero's strap-line, which repeats what the page obviously is, and the banners', whose
        full text is on hover.*/
-    @media (max-height: 880px) {
+    @media (max-height: 940px) {
         .idx-wrap { padding: 10px 24px 10px; }
         .idx-logo { height: 40px; }
         .idx-head { padding: 9px 24px 10px; margin-bottom: 8px; }
@@ -226,9 +245,7 @@
 
 <div class="idx-wrap">
     <div class="idx-head">
-        <div class="eyebrow">All Programs</div>
         <h1 id="idx-heading">Training <span>Directory</span></h1>
-        <p id="idx-subhead">Every LSH training program in one place. Open a program to start. Each program has its own sign-in.</p>
     </div>
 
     <div class="sim-banner-row">
@@ -543,7 +560,7 @@
         const rest = all.filter(t => !used.has(t.key));
         if (rest.length) sections.push({ title: 'More Training & Resources', note: '', cards: rest });
         return sections.filter(sec => sec.cards.length).map(sec =>
-            `<section class="topic-group"><div class="topic-group-head"><h2>${escapeHtml(sec.title)}</h2>${sec.note ? `<span>${escapeHtml(sec.note)}</span>` : ''}</div>`
+            `<section class="topic-group" style="--rows:${Math.ceil(sec.cards.length / columnsFor(sec.cards.length))}"><div class="topic-group-head"><h2>${escapeHtml(sec.title)}</h2>${sec.note ? `<span>${escapeHtml(sec.note)}</span>` : ''}</div>`
             + `<div class="topic-grid${columnsFor(sec.cards.length) === 3 ? ' cols-3' : ''}">${sec.cards.map(cardFor).join('')}</div></section>`).join('');
     }
 

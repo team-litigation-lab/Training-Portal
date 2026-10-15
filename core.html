@@ -643,7 +643,10 @@
 
             <!-- REGISTRATIONS -->
             <div class="mc-pane" id="admin-dash-registrations">
-                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Pending registrations submitted from the login screen. Approve to move an account into the <b>Users</b> tab and issue its Batch ID.</p>
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;">
+                    <p style="font-size:11px;color:#64748b;margin:0;">Pending registrations, whether someone signed up on the login screen or a trainer set the account up here. Approve to move an account into the <b>Users</b> tab and issue its Batch ID.</p>
+                    <button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;flex-shrink:0;" onclick="openCreateUser()">+ Create account</button>
+                </div>
                 <div id="registrations-list"></div>
             </div>
 
