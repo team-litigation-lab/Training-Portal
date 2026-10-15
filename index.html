@@ -327,7 +327,11 @@
     .sub-head { font-size: clamp(22px, 2.6vw, 30px); font-weight: 800; letter-spacing: -0.01em; color: var(--navy); margin: 0; }
     .founder-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 44px; align-items: start; margin-top: 36px; }
     .founder-photo { width: 100%; height: auto; border-radius: 18px; box-shadow: 0 24px 50px -24px rgba(15,33,72,.45); }
-    .founder-text, .about-text { background: var(--navy); border: 2px solid rgba(255,255,255,.18); border-radius: 22px;
+    /* Navy, but see-through: --panel-navy is the one place the whole page's
+       panel colour is set, so the backdrop reads through the cards instead of
+       stopping at them. At .82 the office photo is visible in the panel
+       without the copy on it dropping below 9:1. */
+    .founder-text, .about-text { background: var(--panel-navy); border: 2px solid rgba(255,255,255,.18); border-radius: 22px;
         box-shadow: 0 16px 34px -20px rgba(15,33,72,.6); padding: 26px 30px; }
     .founder-text p { font-size: 16.5px; line-height: 1.75; color: rgba(255,255,255,.88); margin: 0 0 16px; }
     /* on the card the pill's navy would vanish into it, so it keeps the orange on a lift */
@@ -460,12 +464,12 @@
        card with a pale hairline, a soft shadow and a 22px corner. Anything that would
        otherwise sit straight on the page's photo backdrop goes in one, so the words
        are read off a solid colour rather than off a picture of an office. */
-    .std-panel { background: var(--navy); border: 2px solid rgba(255,255,255,.18); border-radius: 22px;
+    .std-panel { background: var(--panel-navy); border: 2px solid rgba(255,255,255,.18); border-radius: 22px;
         box-shadow: 0 16px 34px -20px rgba(15,33,72,.6); }
 
     /* ===== FAQ ===== */
     #faq-list { display: flex; flex-direction: column; gap: 10px; margin-inline: auto; }   /* the measure cap above stays; this just centres it under its band */
-    .faq-item { background: var(--navy); border: 2px solid rgba(255,255,255,.18); border-radius: 18px;
+    .faq-item { background: var(--panel-navy); border: 2px solid rgba(255,255,255,.18); border-radius: 18px;
         box-shadow: 0 16px 34px -20px rgba(15,33,72,.6); overflow: hidden; }
     .faq-question {
         width: 100%; text-align: left; background: none; border: none; cursor: pointer;
@@ -556,22 +560,26 @@
     .social-link svg { width: 24px; height: 24px; }
 
     /* ===== Main screen: the dark hero and the three feature cards fill the first screen; everything below is on cream ===== */
-    /* The office behind the whole page. One shorthand, not a pseudo-element:
-       nothing new is stacked over the content, so no z-index has to be
-       managed and the sticky nav and the dialogs are unaffected. The paper
-       wash over it is what keeps body text at its usual contrast — the photo
-       is a texture at this strength, not an image you read. */
+    /* The office behind the whole page. The backdrop itself is theme.css's
+       shared one (body.portal-bg) — one background shorthand, no
+       pseudo-element, so nothing is stacked over the content and the sticky
+       nav and the dialogs are unaffected. This page only swaps in its own
+       photo and its own wash: 28% of the office shows now rather than 12%,
+       which is as far as it goes while the section intros still sit directly
+       on it (#334155 measures 4.92:1 over the photo's darkest area at this
+       strength). The copy that reads like a document is all on navy cards,
+       which have their own surface. */
     body {
-        background:
-            linear-gradient(rgba(250, 248, 244, .88), rgba(250, 248, 244, .88)),
-            url('/img/landing-bg-office.webp') center center / cover no-repeat fixed,
-            var(--paper);
+        --portal-photo: url('/img/landing-bg-office.webp');
+        --portal-wash: rgba(250, 248, 244, .72);
+        --portal-base: var(--paper);
+        /* Every navy panel on the page — the founder and about cards, the
+           standard panel, the FAQ rows — is this one colour, so the photo
+           behind them is adjusted in one place. */
+        --panel-navy: rgba(15, 33, 72, .82);
     }
     /* A fixed backdrop on a phone either judders as the page scrolls or is
-       ignored outright, and the photo is wasted at that width anyway. */
-    @media (max-width: 860px) {
-        body { background: var(--paper); }
-    }
+       ignored outright; theme.css switches it to a scrolling one there. */
     /* The nav used to live in here, which is why it stopped sticking past the
        hero: a sticky element is only sticky inside its own parent, so once this
        box scrolled by, the nav went with it — and every anchor below it then
@@ -603,7 +611,7 @@
 </style>
 <link rel="stylesheet" href="/theme.css">
 </head>
-<body>
+<body class="portal-bg">
 
 <nav>
     <div class="nav-inner">

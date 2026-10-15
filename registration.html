@@ -56,7 +56,18 @@
            registration form is long enough to hit this; the shorter login
            cards never did, which is why this only showed up here. */
     }
-    .auth-card { width: 100%; max-width: 480px; }
+    /* The form is the one thing on the portal that sits straight on the
+       backdrop with no panel of its own, and it is all small labels and
+       hint text — so it brings a surface. Translucent, like every other
+       panel: the photo still reads behind the form, but each label is read
+       off a near-paper tone instead of off the picture. */
+    .auth-card {
+        width: 100%; max-width: 480px;
+        background: rgba(250, 248, 244, .82); border-radius: 22px; padding: 28px 30px;
+        box-shadow: 0 24px 60px -28px rgba(8, 18, 38, .55);
+        backdrop-filter: var(--surface-blur, saturate(118%) blur(10px));
+        -webkit-backdrop-filter: var(--surface-blur, saturate(118%) blur(10px));
+    }
     .auth-card-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
     .auth-card-mark {
         width: auto; height: auto; border-radius: 10px; background: var(--navy-deep); padding: 6px 12px; box-sizing: border-box;
@@ -109,7 +120,7 @@
 </style>
 <link rel="stylesheet" href="/theme.css">
 </head>
-<body>
+<body class="portal-bg">
 
 <div class="auth-shell">
     <div class="auth-visual">
