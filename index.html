@@ -553,6 +553,14 @@
        behind, and the shadow gives that edge somewhere to land. */
     .nav-pills .pill.pill-auth { position: sticky; right: 0; margin-left: 2px; box-shadow: -8px 0 10px -6px var(--navy-deep); }
     .pill[hidden] { display: none !important; }
+    /* The 🧭 Blueprint menu wears the pill: the <select> inside it carries the pill's own type, not the browser's. */
+    .nav-pills .pill-menu { display: inline-flex; align-items: center; padding: 0; overflow: hidden; }
+    /* The closed pill stays the size of the word "Blueprint": a <select> otherwise grows to its longest option, which
+       for an administrator (eight program and tool decks) would push the rest of the pill row off the bar. */
+    .nav-pills .pill-menu select { max-width: 11em; text-overflow: ellipsis; font: inherit; font-size: inherit; font-weight: inherit; letter-spacing: inherit; text-transform: inherit; color: #fff; background: transparent; border: 0; border-radius: 12px; padding: 8px clamp(6px, .6vw, 10px); cursor: pointer; -webkit-appearance: none; appearance: none; }
+    .nav-pills .pill-menu select:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+    /* The list itself is the browser's own, so it needs readable colors of its own. */
+    .nav-pills .pill-menu option { color: #0f2148; background: #fff; text-transform: none; font-weight: 600; }
     /* Footer: the copyright line in italics, the three icons in orange. */
     footer .footer-bottom { font-style: italic; margin: 0; }
     .social-link, .social-link:hover { background: transparent !important; color: var(--navy) !important; }
@@ -623,7 +631,15 @@
             <a class="pill" href="#team">Meet your training team</a>
             <a class="pill" href="#vision">Mission, Vision and Values</a>
             <a class="pill" href="#faq">FAQs</a>
-            <a class="pill" href="/blueprint.html">Platform Blueprint</a>
+            <!-- 🧭 Blueprint: the Platform Blueprint first, then (for a signed-in administrator) every program's and
+                 tool's own blueprint. The No Blueprint rule keeps those decks out of the programs themselves, so this
+                 menu is the one place they open from. -->
+            <label class="pill pill-menu" id="pill-blueprint">
+                <select aria-label="Blueprint" onchange="if (this.value) { const o = this.options[this.selectedIndex]; if (o.dataset.blank === '1') window.open(this.value, '_blank', 'noopener'); else window.location.href = this.value; this.selectedIndex = 0; }">
+                    <option value="">Blueprint</option>
+                    <option value="/blueprint.html">Platform Blueprint</option>
+                </select>
+            </label>
             <button type="button" class="pill" onclick="openReferral()">Got a referral?</button>
             <a class="pill" href="/admin-login.html" title="Admin monitoring (sign-in required)">Admin</a>
             <a class="pill pill-auth" id="pill-login" href="/trainee-login.html">Log In</a>
@@ -936,10 +952,33 @@
 <script src="/portal-nav.js"></script>
 <script>
 // Log In or Log Out in the header, from who is signed in on this browser (the cookie, via /api/me).
+// Administrators also get every program's and tool's own blueprint in the 🧭 Blueprint menu (/api/launch opens each
+// one signed in, straight on its #/blueprint): the decks have no link of their own, so this menu is the only way in.
+const ADMIN_BLUEPRINTS = [
+    ['Standard Foundational Training', '/api/launch?program=STANDARD%20TRAINING&to=blueprint'],
+    ['EA/PA Upskill Program', '/api/launch?program=EA%20%20PA%20TRAINING-OUTSOURCED%20MANP&to=blueprint'],
+    ['Case Management Training', '/api/launch?program=CM%20TRAINING&to=blueprint'],
+    ['Property Damage Claims Training', '/api/launch?program=PROPERTY%20DAMAGE&to=blueprint'],
+    ['Medsum & Demand Training', '/api/launch?program=MEDSUM%20AND%20DEMAND&to=blueprint'],
+    ['Case Management System', '/api/launch?tool=cms&to=blueprint'],
+    ['LSH Ring Channel', '/api/launch?tool=ringchannel&to=blueprint'],
+    ['Knowledge Base', '/api/launch?tool=kb&to=blueprint']
+];
 fetch('/api/me', { credentials: 'include', cache: 'no-store' }).then(r => r.json()).then(d => {
     if (!d || !d.success) return;
     document.getElementById('pill-login').hidden = true;
     document.getElementById('pill-logout').hidden = false;
+    if (!d.user || d.user.userType !== 'Admin') return;
+    const sel = document.querySelector('#pill-blueprint select');
+    if (!sel) return;
+    const group = document.createElement('optgroup');
+    group.label = 'Program and tool blueprints';
+    for (const [name, href] of ADMIN_BLUEPRINTS) {
+        const o = document.createElement('option');
+        o.value = href; o.textContent = name; o.dataset.blank = '1';
+        group.appendChild(o);
+    }
+    sel.appendChild(group);
 }).catch(() => {});
 
 // --nav-h: the sticky nav's real height, for the anchor offset and for #team's
