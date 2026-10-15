@@ -10,37 +10,9 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/simulators/sim.css">
+<link rel="stylesheet" href="/simulators/gmail.css">
 <style>
-    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
-    .filters button { border: 1px solid #cbd5e1; background: #fff; border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--navy); cursor: pointer; }
-    .filters button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
-    .inbox { padding: 0; overflow: hidden; }
-    .row { display: grid; grid-template-columns: 40px minmax(0, 190px) minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border-top: 1px solid #eef2f7; cursor: pointer; }
-    .row:first-child { border-top: none; } .row:hover { background: #f8fafc; }
-    .av { width: 36px; height: 36px; border-radius: 50%; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; }
-    .row .fr { font-weight: 800; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .row .sj { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .row .sj span { color: var(--slate); }
-    .row .tg { display: flex; gap: 6px; }
-    .chip { font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; background: #f1f5f9; color: var(--slate); white-space: nowrap; }
-    .chip.done { background: #f0fdf4; color: var(--ok); } .chip.wait { background: #fff7ed; color: #9a3412; }
-    @media (max-width: 760px) { .row { grid-template-columns: 36px minmax(0, 1fr); } .row .sj, .row .tg { grid-column: 2; } }
-    .mail { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
-    @media (max-width: 960px) { .mail { grid-template-columns: 1fr; } }
-    .mail h2 { margin: 0 0 10px; font-size: 21px; font-weight: 800; }
-    .hdr { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
-    .hdr .meta { font-size: 13px; color: var(--slate); } .hdr .meta b { color: var(--navy); font-size: 14px; }
-    .body { white-space: pre-wrap; font-size: 14.5px; line-height: 1.65; border-top: 1px solid #eef2f7; padding-top: 12px; }
-    .att { display: inline-flex; gap: 6px; align-items: center; border: 1px solid #e2e8f0; border-radius: 10px; padding: 6px 10px; font-size: 12.5px; margin: 12px 8px 0 0; }
-    .facts { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 14px; padding: 14px 16px; font-size: 13.5px; line-height: 1.6; margin-top: 12px; }
-    .compose label { display: block; font-size: 12px; font-weight: 800; color: var(--slate); text-transform: uppercase; letter-spacing: .05em; margin: 10px 0 4px; }
-    .compose input, .compose textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 12px; padding: 10px 12px; }
-    .compose textarea { min-height: 240px; resize: vertical; line-height: 1.55; }
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
-    .tabs { display: flex; gap: 6px; margin-bottom: 4px; } .tabs button { flex: 1; border: 1px solid #cbd5e1; background: #fff; border-radius: 10px; padding: 9px; font: inherit; font-weight: 800; font-size: 13px; color: var(--navy); cursor: pointer; }
-    .tabs button.on { background: var(--navy); color: #fff; border-color: var(--navy); } .tabs button:disabled { opacity: .45; cursor: not-allowed; }
-    .note { font-size: 12.5px; color: var(--slate); line-height: 1.5; margin-top: 8px; }
-    .waiting { text-align: center; padding: 18px 8px; } .waiting .big { font-size: 38px; } .waiting b { display: block; font-size: 16px; margin: 6px 0; }
-    .reply { white-space: pre-wrap; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.6; }
+    /* Page-specific: the debrief and the bits that sit outside the Gmail chrome. */
     .deb-top { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; }
     .ring { width: 86px; height: 86px; border-radius: 50%; border: 6px solid var(--orange); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; }
     .goals { list-style: none; padding: 0; margin: 8px 0 0; } .goals li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-top: 1px dashed #e2e8f0; font-size: 14px; }
@@ -48,8 +20,24 @@
     .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; } @media (max-width: 760px) { .cols2 { grid-template-columns: 1fr; } }
     .cols2 h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--slate); } .cols2 ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
     .better { margin-top: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 14px; font-size: 14px; white-space: pre-wrap; line-height: 1.55; }
-    .casefile { margin-top: 12px; font-size: 13px; } .casefile summary { cursor: pointer; font-weight: 800; }
-    .casefile pre { white-space: pre-wrap; font-family: inherit; font-size: 12.5px; line-height: 1.55; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; max-height: 360px; overflow: auto; }
+    .reply { white-space: pre-wrap; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.6; }
+    /* Gmail's own chrome, extended for this simulator only. */
+    .gm-att { display: inline-flex; gap: 8px; align-items: center; border: 1px solid #dadce0; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; margin: 0 8px 8px 0; background: #fff; color: #202124; }
+    .gm-facts { border: 1px solid #dadce0; border-left: 3px solid #0b57d0; border-radius: 4px; background: #f8fafd; padding: 12px 14px; font-size: 13.5px; line-height: 1.6; color: #3c4043; }
+    .gm-facts b { color: #202124; }
+    .gm-quote { margin: 14px 0 0; border-left: 2px solid #dadce0; padding-left: 10px; color: #5f6368; font-size: 13px; }
+    .gm-replybox { margin: 18px 20px 20px 74px; border: 1px solid #dadce0; border-radius: 12px; box-shadow: 0 1px 2px rgba(60,64,67,.3); overflow: hidden; }
+    .gm-replybox .hd { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #f1f3f4; font-size: 13.5px; color: #5f6368; }
+    .gm-replybox textarea { width: 100%; box-sizing: border-box; border: none; outline: none; font: inherit; font-size: 14px; line-height: 1.6; padding: 12px 14px; min-height: 200px; resize: vertical; color: #202124; }
+    .gm-replybox .ft { display: flex; align-items: center; gap: 10px; padding: 10px 14px; flex-wrap: wrap; }
+    .gm-replybox .ft .sp { flex: 1; }
+    .gm-tabsw { display: flex; gap: 6px; }
+    .gm-tabsw button { border: 1px solid #dadce0; background: #fff; border-radius: 16px; padding: 7px 14px; font: inherit; font-size: 13px; color: #444746; cursor: pointer; }
+    .gm-tabsw button.on { background: #d3e3fd; border-color: #d3e3fd; color: #001d35; font-weight: 600; }
+    .gm-tabsw button:disabled { opacity: .45; cursor: not-allowed; }
+    .gm-note { font-size: 12.5px; color: #5f6368; line-height: 1.5; }
+    .gm-field { display: block; width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; border: 1px solid #dadce0; border-radius: 8px; padding: 10px 12px; margin-top: 6px; color: #202124; }
+    .gm-waiting { text-align: center; padding: 26px 18px; color: #5f6368; } .gm-waiting .big { font-size: 42px; } .gm-waiting b { display: block; font-size: 16px; color: #202124; margin: 8px 0; font-weight: 500; }
 </style>
 <style>.sim-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.sim-tabs a{border:1px solid #e5e7eb;background:#fff;color:#0f2148;border-radius:999px;padding:7px 16px;font-weight:700;font-size:13.5px;text-decoration:none}.sim-tabs a.on{background:#0f2148;color:#fff;border-color:#0f2148}</style>
 <link rel="stylesheet" href="/theme.css">
@@ -60,7 +48,7 @@
     <section class="sim-hero">
         <div class="eyebrow">Simulator · Email replies</div>
         <h1>Email Replies</h1>
-        <p>One email at a time, answered like at work: a client, an adjuster, a lienholder, opposing counsel, your attorney. Reply here, or have it sent to your own inbox and reply from there. Every reply gets a scored debrief. (To triage and file a whole inbox, use <a href="/simulators/email.html" style="color:#fdba74;font-weight:700;">Email Workspace</a>.)</p>
+        <p>One email at a time, answered like at work: a client, an adjuster, a lienholder, opposing counsel, your attorney. The inbox is the same Gmail-style workspace as the rest of the portal — star, archive, snooze, report, search and the keyboard shortcuts all work. Reply here, or have it sent to your own inbox and reply from there. Every reply gets a scored debrief. (To triage and file a whole inbox, use <a href="/simulators/email.html" style="color:#fdba74;font-weight:700;">Email Workspace</a>.)</p>
         <div class="sim-tabs"><a href="/simulators/email.html">✉️ Email Workspace</a><a href="/simulators/email-replies.html" class="on">✍️ Email Replies</a></div>
     </section>
     <div id="app"></div>
@@ -71,92 +59,279 @@
 <script src="/portal-nav.js"></script>
 <script src="/portal.js"></script>
 <script src="/simulators/sim.js"></script>
+<script src="/simulators/gmail-ui.js"></script>
 <script src="/simulators/cm-case.js"></script>
 <script>
-/* Scenarios live in /simulators/reply-packs/emails.json — the server sends only these. */
+/* Scenarios live in /simulators/reply-packs/emails.json — the server sends only these.
+   The inbox is drawn in the shared Gmail look-alike chrome (/simulators/gmail.css,
+   /simulators/gmail-ui.js), the same one the Email Workspace simulator uses. */
+const I = window.GM_ICON, esc = (s) => Sim.esc(s);
 const START_PROGRAM = (() => { const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'CM' : p.startsWith('EA') ? 'EA' : 'All'; })();
-let E = { emails: [], delivery: false, filter: START_PROGRAM, phase: 'list', cur: null, mode: 'here', to: '', draft: '', token: null, poll: null, reply: null, debrief: null, busy: false };
+const FOLDERS = [
+    { id: 'inbox', name: 'Inbox', icon: 'inbox' },
+    { id: 'starred', name: 'Starred', icon: 'starOn' },
+    { id: 'snoozed', name: 'Snoozed', icon: 'snooze' },
+    { id: 'sent', name: 'Sent', icon: 'forward' },
+    { id: 'drafts', name: 'Drafts', icon: 'pencil' },
+    { id: 'archive', name: 'All mail', icon: 'archive' },
+    { id: 'spam', name: 'Spam', icon: 'report' },
+    { id: 'trash', name: 'Trash', icon: 'trash' }
+];
+const LABELS = [{ id: 'CM', name: 'Case Management', color: '#0b57d0' }, { id: 'EA', name: 'EA / PA', color: '#188038' }, { id: 'All', name: 'All programs', color: '#e37400' }];
+const SNOOZE = [['Later today', '6:00 PM'], ['Tomorrow', 'Tue, 8:00 AM'], ['This weekend', 'Sat, 8:00 AM'], ['Next week', 'Mon, 8:00 AM']];
+
+let E = {
+    emails: [], delivery: false, filter: START_PROGRAM, phase: 'list', cur: null, folder: 'inbox', search: '',
+    mode: 'here', to: '', draft: '', token: null, poll: null, reply: null, debrief: null, busy: false,
+    focus: 0, sel: {}, menu: null, snack: null, undo: null, replying: false
+};
 const $app = () => document.getElementById('app');
 const SENT_KEY = 'LSH_EMAIL_REPLIES_SENT';
+const UI_KEY = () => `LSH_EMAIL_REPLIES_UI:${Sim.who().name || 'me'}`;
+/* star / read / where each email sits / saved drafts — kept per trainee in this browser. */
+let U = { star: {}, read: {}, box: {}, snoozeAt: {}, drafts: {}, replied: {} };
+function uiLoad() { try { U = Object.assign(U, JSON.parse(localStorage.getItem(UI_KEY()) || '{}')); } catch (e) {} }
+function uiSave() { try { localStorage.setItem(UI_KEY(), JSON.stringify(U)); } catch (e) {} }
 function sent() { try { return JSON.parse(localStorage.getItem(SENT_KEY) || '[]'); } catch (e) { return []; } }
 function saveSent(list) { try { localStorage.setItem(SENT_KEY, JSON.stringify(list.slice(0, 30))); } catch (e) {} }
-function initials(n) { return String(n).replace(/[^A-Za-z ]/g, '').split(' ').filter(Boolean).map(x => x[0]).join('').slice(0, 2).toUpperCase() || '✉'; }
 function byId(id) { return E.emails.find(m => m.id === id); }
 function progLabel(p) { return p === 'All' ? 'All programs' : p === 'CM' ? 'Case Management' : 'EA / PA'; }
+function me() { const w = Sim.who(); return w.name || 'Me'; }
+function boxOf(m) { return U.box[m.id] || 'inbox'; }
+/* A stable "received at" time per email, newest first, the way Gmail stamps a row. */
+function timeOf(m) { const i = E.emails.indexOf(m); const mins = 8 * 60 + 55 - i * 23; const h = Math.floor(mins / 60), x = mins % 60; return `${((h + 11) % 12) + 1}:${String(x).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; }
+function snippet(m) { return String(m.body || '').replace(/\s+/g, ' ').slice(0, 140); }
+
+/* ---------- the list ---------- */
+function inFolder(m) {
+    const b = boxOf(m);
+    if (E.folder === 'starred') return !!U.star[m.id] && b !== 'trash';
+    if (E.folder === 'sent') return !!U.replied[m.id];
+    if (E.folder === 'drafts') return !!(U.drafts[m.id] || '').trim() && !U.replied[m.id];
+    if (E.folder === 'archive') return b !== 'trash' && b !== 'spam';
+    return b === E.folder;
+}
+function visible() {
+    const q = (E.search || '').toLowerCase();
+    return E.emails.filter(m => (E.filter === 'All' || m.program === E.filter || m.program === 'All') && inFolder(m)
+        && (!q || (m.from.name + ' ' + m.from.email + ' ' + m.subject + ' ' + m.body).toLowerCase().includes(q)));
+}
+function counts() {
+    const c = {}; FOLDERS.forEach(f => { const was = E.folder; E.folder = f.id; c[f.id] = E.emails.filter(inFolder).length; E.folder = was; });
+    c.inbox = E.emails.filter(m => boxOf(m) === 'inbox' && !U.read[m.id]).length;
+    return c;
+}
 
 function render() {
     Sim.label('Email Replies');
-    if (E.phase === 'read') return renderRead();
     if (E.phase === 'debrief') return renderDebrief();
-    return renderList();
+    const c = counts(), list = visible(), open = E.phase === 'read' && E.cur;
+    $app().innerHTML = `<div class="gm" id="gmShell" tabindex="0" onkeydown="keyDown(event)">
+        <div class="gm-top"><div class="gm-logo"><b>M</b><span>Mail</span></div>
+            <label class="gm-search">${I.search}<input placeholder="Search mail" value="${esc(E.search)}" oninput="E.search=this.value;render();focusSearch()" id="gmSearch">${E.search ? `<button class="gm-ib" title="Clear search" onclick="E.search='';render()" style="width:28px;height:28px;">✕</button>` : ''}</label>
+            <div class="gm-avatar" title="${esc(me())}">${esc(window.GM_INITIALS(me()))}</div></div>
+        <div class="gm-body">
+            <nav class="gm-nav">
+                <button class="gm-compose" disabled title="You answer the emails that land here — composing a new one isn’t part of this exercise">${I.pencil} Compose</button>
+                ${FOLDERS.map(f => `<button class="gm-folder ${E.folder === f.id ? 'on' : ''}" onclick="goFolder('${f.id}')">${I[f.icon]}<span>${f.name}</span><em>${c[f.id] || ''}</em></button>`).join('')}
+                <div class="gm-lblhead">Labels</div>
+                ${LABELS.map(l => `<button class="gm-lbl ${E.filter === l.id ? 'on' : ''}" onclick="E.filter=E.filter==='${l.id}'?'All':'${l.id}';E.phase='list';render()" title="${esc(l.name)}"><i style="background:${l.color}"></i><span>${esc(l.name)}</span><em>${E.emails.filter(m => m.program === l.id).length || ''}</em></button>`).join('')}
+            </nav>
+            <section class="gm-main">${open ? readerHtml(E.cur) : listHtml(list)}</section>
+        </div>
+        <div class="gm-legend">
+            <span><b>Reply</b> to the email, here or from your own inbox — every reply is scored.</span>
+            <span>⌨ <span class="gm-kbd">j</span>/<span class="gm-kbd">k</span> · <span class="gm-kbd">o</span> open · <span class="gm-kbd">u</span> back · <span class="gm-kbd">r</span> reply · <span class="gm-kbd">s</span> star · <span class="gm-kbd">e</span> archive · <span class="gm-kbd">#</span> delete · <span class="gm-kbd">b</span> snooze · <span class="gm-kbd">!</span> spam · <span class="gm-kbd">/</span> search · <span class="gm-kbd">z</span> undo</span>
+        </div>
+        ${E.menu ? snoozeMenuHtml() : ''}
+        ${E.snack ? `<div class="gm-snack"><span>${esc(E.snack)}</span>${E.undo ? '<button onclick="undo()">Undo</button>' : ''}</div>` : ''}
+    </div>`;
+    // keep the shell focused so the Gmail keyboard shortcuts work, but never steal focus from a field
+    const act = document.activeElement, tag = (act && act.tagName || '').toLowerCase();
+    if (tag !== 'input' && tag !== 'textarea') { const sh = document.getElementById('gmShell'); if (sh) sh.focus({ preventScroll: true }); }
 }
-function renderList() {
-    const list = E.emails.filter(m => E.filter === 'All' || m.program === E.filter || m.program === 'All');
+function focusSearch() { const i = document.getElementById('gmSearch'); if (i) { i.focus(); i.selectionStart = i.selectionEnd = i.value.length; } }
+
+function listHtml(list) {
+    const selN = Object.keys(E.sel).filter(k => E.sel[k]).length;
     const mine = sent();
-    $app().innerHTML = `
-        <div class="filters">${[['All', 'All emails'], ['CM', 'Case Management'], ['EA', 'Executive support (EA/PA)']].map(([k, l]) => `<button class="${E.filter === k ? 'on' : ''}" onclick="E.filter='${k}';render()">${l}</button>`).join('')}</div>
-        ${mine.length ? `<div class="sim-card" style="margin-bottom:16px;"><div class="sim-kicker">Sent to your inbox</div>
-            ${mine.map(s => { const m = byId(s.emailId) || { title: s.emailId }; return `<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px dashed #e2e8f0;flex-wrap:wrap;">
-                <div style="font-size:13.5px;"><b>${Sim.esc(m.title)}</b> <span class="sim-muted">→ ${Sim.esc(s.to)} · ${Sim.esc(Sim.fmtDate(s.at))}</span></div>
-                <div style="display:flex;gap:8px;align-items:center;">${s.scored != null ? `<span class="chip done">Scored ${s.scored}%</span>` : '<span class="chip wait">Waiting for your reply</span>'}
-                <button class="sim-btn ghost" onclick="openSent('${s.token}')">Open</button></div></div>`; }).join('')}</div>` : ''}
-        <div class="sim-card inbox">${list.length ? list.map(m => `
-            <div class="row" onclick="openEmail('${m.id}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openEmail('${m.id}')">
-                <span class="av">${initials(m.from.name)}</span>
-                <span class="fr">${Sim.esc(m.from.name)}</span>
-                <span class="sj"><b>${Sim.esc(m.subject)}</b> <span>— ${Sim.esc(m.body.replace(/\s+/g, ' ').slice(0, 90))}…</span></span>
-                <span class="tg"><span class="chip">${Sim.esc(progLabel(m.program))}</span><span class="chip">${Sim.esc(m.level)}</span></span>
-            </div>`).join('') : '<div style="padding:18px;" class="sim-muted">No practice emails for this program yet.</div>'}</div>`;
+    return `<div class="gm-bar">
+            <input type="checkbox" class="gm-chk" title="Select" ${selN && selN === list.length ? 'checked' : ''} onchange="selectAll(this.checked)">
+            ${selN ? `<button class="gm-ib" data-tip="Archive" onclick="bulk('archive')">${I.archive}</button>
+                <button class="gm-ib" data-tip="Report spam" onclick="bulk('spam')">${I.report}</button>
+                <button class="gm-ib" data-tip="Delete" onclick="bulk('trash')">${I.trash}</button>
+                <button class="gm-ib" data-tip="Mark as read" onclick="bulk('read')">${I.unread}</button>`
+            : `<button class="gm-ib" data-tip="Refresh" onclick="render()">${I.refresh}</button>`}
+            <span class="gm-count">${list.length ? `1–${list.length} of ${list.length}` : ''}</span>
+        </div>
+        <div class="gm-list">${list.length ? list.map((m, i) => rowHtml(m, i)).join('') : `<div class="gm-empty">${E.search ? 'No messages matched your search.' : E.folder === 'inbox' ? '🎉 Nothing left in the inbox for this label.' : 'Nothing here.'}</div>`}</div>
+        ${mine.length ? `<div class="gm-legend" style="display:block;">
+            <b>Sent to your own inbox</b>
+            ${mine.map(s => { const m = byId(s.emailId) || { title: s.emailId }; return `<div class="gm-res-row"><span>${esc(m.title)} <span style="color:#5f6368;">→ ${esc(s.to)} · ${esc(Sim.fmtDate(s.at))}</span></span>
+                <span>${s.scored != null ? `<b>Scored ${s.scored}%</b>` : 'Waiting for your reply'} <button class="gm-pill" style="padding:3px 12px;" onclick="openSent('${s.token}')">Open</button></span></div>`; }).join('')}</div>` : ''}`;
 }
+function rowHtml(m, i) {
+    const read = !!U.read[m.id], star = !!U.star[m.id], lab = LABELS.find(l => l.id === m.program);
+    return `<div class="gm-row ${read ? '' : 'unread'} ${E.focus === i ? 'focus' : ''} ${E.sel[m.id] ? 'sel' : ''}" onclick="openEmail('${m.id}')">
+        <input type="checkbox" class="gm-chk" ${E.sel[m.id] ? 'checked' : ''} onclick="event.stopPropagation();toggleSel('${m.id}',this.checked)">
+        <span class="gm-star ${star ? 'on' : ''}" title="${star ? 'Starred' : 'Not starred'}" onclick="event.stopPropagation();toggleStar('${m.id}')">${star ? I.starOn : I.star}</span>
+        <span class="gm-from">${esc(m.from.name)}</span>
+        <span class="gm-snip">${lab ? `<span class="gm-chip" style="background:${lab.color}">${esc(lab.name)}</span>` : ''}<span class="gm-subj">${esc(m.subject)}</span> — ${esc(snippet(m))}</span>
+        <span class="gm-time">${U.replied[m.id] ? 'Replied' : timeOf(m)}</span>
+        <span class="gm-hover">
+            <button class="gm-ib" data-tip="Archive" onclick="event.stopPropagation();move('${m.id}','archive')">${I.archive}</button>
+            <button class="gm-ib" data-tip="Delete" onclick="event.stopPropagation();move('${m.id}','trash')">${I.trash}</button>
+            <button class="gm-ib" data-tip="Mark as ${U.read[m.id] ? 'unread' : 'read'}" onclick="event.stopPropagation();toggleRead('${m.id}')">${I.unread}</button>
+            <button class="gm-ib" data-tip="Snooze" onclick="event.stopPropagation();openSnooze('${m.id}')">${I.snooze}</button>
+        </span></div>`;
+}
+
+/* ---------- the reader ---------- */
+function readerHtml(m) {
+    const lab = LABELS.find(l => l.id === m.program), star = !!U.star[m.id];
+    return `<div class="gm-bar">
+            <button class="gm-ib" data-tip="Back to ${esc(FOLDERS.find(f => f.id === E.folder).name)}" onclick="back()">${I.back}</button>
+            <button class="gm-ib" data-tip="Archive" onclick="move('${m.id}','archive')">${I.archive}</button>
+            <button class="gm-ib" data-tip="Report spam" onclick="move('${m.id}','spam')">${I.report}</button>
+            <button class="gm-ib" data-tip="Delete" onclick="move('${m.id}','trash')">${I.trash}</button>
+            <button class="gm-ib" data-tip="Mark as unread" onclick="toggleRead('${m.id}');back()">${I.unread}</button>
+            <button class="gm-ib" data-tip="Snooze" onclick="openSnooze('${m.id}')">${I.snooze}</button>
+            <span class="gm-count">${esc(m.level)}</span>
+        </div>
+        <div class="gm-read">
+            <h2>${esc(m.subject)} ${lab ? `<span class="gm-tag">${esc(lab.name)}</span>` : ''}</h2>
+            <div class="gm-sender">
+                <span class="gm-av" style="background:${window.GM_AVCOLOR(m.from.name)}">${esc(window.GM_INITIALS(m.from.name))}</span>
+                <div style="min-width:0;"><b>${esc(m.from.name)}</b> <span>&lt;${esc(m.from.email)}&gt;</span><br><span>to me · ${esc(m.from.role)}</span></div>
+                <span class="gm-when">${esc(timeOf(m))}
+                    <span class="gm-star ${star ? 'on' : ''}" style="cursor:pointer;margin-left:8px;vertical-align:-5px;" onclick="toggleStar('${m.id}')">${star ? I.starOn : I.star}</span></span>
+            </div>
+            <div class="gm-msg">${esc(m.body).replace(/\n/g, '<br>')}
+                ${(m.attachments || []).length ? `<div style="margin-top:16px;">${m.attachments.map(a => `<span class="gm-att">📎 ${esc(a)}</span>`).join('')}</div>` : ''}
+                <div style="margin-top:18px;" class="gm-facts"><b>Your role:</b> ${esc(m.you)}<br><br><b>What you know:</b> ${esc(m.facts)}</div>
+                ${m.caseFile && window.CM_CASE_SUMMARY ? `<details style="margin-top:12px;font-size:13px;"><summary style="cursor:pointer;font-weight:600;">📂 Case summary: John Doe v. Apex Delivery Services</summary><pre style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.55;background:#f8fafd;border:1px solid #dadce0;border-radius:8px;padding:12px 14px;max-height:360px;overflow:auto;">${esc(window.CM_CASE_SUMMARY)}</pre></details>` : ''}
+            </div>
+            ${composerHtml(m)}
+        </div>`;
+}
+function composerHtml(m) {
+    if (E.token) {
+        return E.reply
+            ? `<div class="gm-replybox"><div class="hd">${I.reply} Your reply, back from <b style="color:#202124;margin-left:4px;">${esc(E.to)}</b></div>
+                <div style="padding:12px 14px;white-space:pre-wrap;font-size:14px;line-height:1.6;">${esc(E.reply)}</div>
+                <div class="ft"><button class="gm-send" onclick="gradeReply(E.reply,'inbox')" ${E.busy ? 'disabled' : ''}>Score my reply</button></div></div>`
+            : `<div class="gm-replybox"><div class="gm-waiting"><div class="big">📬</div><b>Sent to ${esc(E.to)}</b>
+                <p class="gm-note" style="max-width:420px;margin:0 auto;">Open it in your own inbox (check spam the first time) and reply as you would at work. This page checks for your reply every few seconds; you can also leave and come back from the list.</p>
+                <div style="margin-top:14px;"><button class="gm-pill" onclick="checkReply(true)">Check now</button></div></div></div>`;
+    }
+    if (!E.replying) {
+        return `<div class="gm-replybar">
+            <button class="gm-pill" onclick="E.replying=true;E.mode='here';render();focusDraft()">${I.reply} Reply</button>
+            <button class="gm-pill" onclick="E.replying=true;E.mode='inbox';render()" ${E.delivery ? '' : 'disabled title="Inbox delivery isn’t set up on this portal yet"'}>${I.forward} Send it to my own inbox</button>
+        </div>`;
+    }
+    const head = `<div class="hd">${I.reply}<span>To:</span> <b style="color:#202124;">${esc(m.from.name)} &lt;${esc(m.from.email)}&gt;</b>
+        <span style="margin-left:auto;"><span class="gm-tabsw">
+            <button class="${E.mode === 'here' ? 'on' : ''}" onclick="E.mode='here';render()">Answer here</button>
+            <button class="${E.mode === 'inbox' ? 'on' : ''}" onclick="E.mode='inbox';render()" ${E.delivery ? '' : 'disabled title="Inbox delivery isn’t set up on this portal yet"'}>Send to my inbox</button>
+        </span></span></div>`;
+    if (E.mode === 'inbox') {
+        return `<div class="gm-replybox">${head}
+            <div style="padding:12px 14px;">
+                <label class="gm-note">Your email address<input id="toAddr" class="gm-field" type="email" autocomplete="email" value="${esc(E.to)}" placeholder="you@yourcompany.com" oninput="E.to=this.value"></label>
+                <p class="gm-note">We'll email this message to you from the LSH Training Portal. Reply from your inbox; your reply comes back here and is scored. Limit: a few practice emails per address per day.</p>
+            </div>
+            <div class="ft"><button class="gm-send" onclick="sendToInbox()" ${E.busy ? 'disabled' : ''}>📨 Send it to me</button><span class="sp"></span>
+                <button class="gm-ib" data-tip="Discard" onclick="E.replying=false;render()">${I.trash}</button></div></div>`;
+    }
+    return `<div class="gm-replybox">${head}
+        <div style="padding:6px 14px 0;font-size:13px;color:#5f6368;">Subject: <b style="color:#202124;">Re: ${esc(m.subject)}</b></div>
+        <textarea id="draft" oninput="E.draft=this.value;saveDraft()" placeholder="Write your reply…">${esc(E.draft)}</textarea>
+        <div class="gm-quote" style="margin:0 14px 10px;">On ${esc(timeOf(m))}, ${esc(m.from.name)} &lt;${esc(m.from.email)}&gt; wrote: ${esc(snippet(m))}…</div>
+        <div class="ft"><button class="gm-send" onclick="gradeReply(document.getElementById('draft').value,'here')" ${E.busy ? 'disabled' : ''}>Send &amp; score</button>
+            <span class="gm-note">${U.drafts[m.id] ? 'Draft saved' : ''}</span><span class="sp"></span>
+            <button class="gm-ib" data-tip="Discard draft" onclick="discardDraft()">${I.trash}</button></div></div>`;
+}
+
+/* ---------- actions ---------- */
+function goFolder(f) { E.folder = f; E.phase = 'list'; E.cur = null; E.focus = 0; E.sel = {}; render(); }
+function back() { stopPoll(); E.phase = 'list'; E.cur = null; E.replying = false; E.token = null; E.reply = null; render(); }
+function toggleSel(id, on) { E.sel[id] = on; render(); }
+function selectAll(on) { E.sel = {}; if (on) visible().forEach(m => E.sel[m.id] = true); render(); }
+function toggleStar(id) { U.star[id] = !U.star[id]; uiSave(); snack(U.star[id] ? 'Starred.' : 'Star removed.'); render(); }
+function toggleRead(id) { U.read[id] = !U.read[id]; uiSave(); render(); }
+function move(id, box, quiet) {
+    const was = U.box[id] || 'inbox'; U.box[id] = box; uiSave();
+    if (!quiet) { E.undo = () => { U.box[id] = was; uiSave(); }; snack({ archive: 'Conversation archived.', trash: 'Conversation moved to Trash.', spam: 'Reported as spam and moved to Spam.', inbox: 'Moved to Inbox.' }[box] || 'Moved.', true); }
+    if (E.cur && E.cur.id === id) { E.phase = 'list'; E.cur = null; E.replying = false; }
+    render();
+}
+function bulk(what) {
+    const ids = Object.keys(E.sel).filter(k => E.sel[k]); if (!ids.length) return;
+    const prev = ids.map(id => ({ id, box: U.box[id] || 'inbox', read: !!U.read[id] }));
+    ids.forEach(id => { if (what === 'read') U.read[id] = true; else U.box[id] = what; });
+    E.sel = {}; uiSave();
+    E.undo = () => { prev.forEach(p => { U.box[p.id] = p.box; U.read[p.id] = p.read; }); uiSave(); };
+    snack(`${ids.length} conversation${ids.length > 1 ? 's' : ''} ${what === 'read' ? 'marked as read' : what === 'trash' ? 'moved to Trash' : what === 'spam' ? 'reported as spam' : 'archived'}.`, true);
+    render();
+}
+function openSnooze(id) { E.menu = { id }; render(); }
+function snoozeMenuHtml() {
+    return `<div class="gm-menu" onclick="event.stopPropagation()"><h6>Snooze until…</h6>
+        ${SNOOZE.map(([a, b], i) => `<button onclick="doSnooze('${E.menu.id}',${i})">${a}<span>${b}</span></button>`).join('')}
+        <button onclick="E.menu=null;render()" style="color:#5f6368;">Cancel</button></div>`;
+}
+function doSnooze(id, i) {
+    const was = U.box[id] || 'inbox'; U.box[id] = 'snoozed'; U.snoozeAt[id] = SNOOZE[i][1]; E.menu = null; uiSave();
+    E.undo = () => { U.box[id] = was; delete U.snoozeAt[id]; uiSave(); };
+    if (E.cur && E.cur.id === id) { E.phase = 'list'; E.cur = null; }
+    snack(`Snoozed until ${SNOOZE[i][0].toLowerCase()}, ${SNOOZE[i][1]}.`, true); render();
+}
+function snack(t, withUndo, ms) { E.snack = t; if (!withUndo) E.undo = null; clearTimeout(snack.t); snack.t = setTimeout(() => { E.snack = null; E.undo = null; render(); }, ms || 6000); }
+function undo() { if (E.undo) { E.undo(); E.undo = null; E.snack = null; render(); } }
+function saveDraft() { if (E.cur) { U.drafts[E.cur.id] = E.draft; uiSave(); } }
+function discardDraft() { if (E.cur) { delete U.drafts[E.cur.id]; uiSave(); } E.replying = false; E.draft = ''; snack('Draft discarded.'); render(); }
+
 function openEmail(id) {
     stopPoll();
-    E.cur = byId(id); E.phase = 'read'; E.mode = 'here'; E.token = null; E.reply = null; E.debrief = null;
-    E.draft = `Hi ${E.cur.from.name.split(' ')[0]},\n\n\n\nBest regards,\n${Sim.who().name || ''}`;
+    const m = byId(id); if (!m) return;
+    E.cur = m; E.phase = 'read'; E.mode = 'here'; E.token = null; E.reply = null; E.debrief = null; E.replying = false;
+    E.focus = Math.max(0, visible().indexOf(m));
+    U.read[id] = true; uiSave();
+    E.draft = U.drafts[id] || `Hi ${m.from.name.split(' ')[0]},\n\n\n\nBest regards,\n${Sim.who().name || ''}`;
     E.to = (sent()[0] || {}).to || '';
     render(); window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function openSent(token) {
     const s = sent().find(x => x.token === token); if (!s) return;
-    E.cur = byId(s.emailId); if (!E.cur) return;
-    E.phase = 'read'; E.mode = 'inbox'; E.token = token; E.to = s.to; E.reply = null; E.debrief = null;
+    const m = byId(s.emailId); if (!m) return;
+    E.cur = m; E.phase = 'read'; E.mode = 'inbox'; E.token = token; E.to = s.to; E.reply = null; E.debrief = null; E.replying = true;
     render(); startPoll();
 }
-function renderRead() {
-    const m = E.cur;
-    const left = `<div class="sim-card">
-        <button class="sim-btn ghost" onclick="stopPoll();E.phase='list';render()" style="margin-bottom:12px;">← Inbox</button>
-        <h2>${Sim.esc(m.subject)}</h2>
-        <div class="hdr"><span class="av">${initials(m.from.name)}</span><div class="meta"><b>${Sim.esc(m.from.name)}</b> &lt;${Sim.esc(m.from.email)}&gt;<br>${Sim.esc(m.from.role)}</div></div>
-        <div class="body">${Sim.esc(m.body)}</div>
-        ${(m.attachments || []).map(a => `<span class="att">📎 ${Sim.esc(a)}</span>`).join('')}
-        <div class="facts"><b>Your role:</b> ${Sim.esc(m.you)}<br><br><b>What you know:</b> ${Sim.esc(m.facts)}</div>
-        ${m.caseFile && window.CM_CASE_SUMMARY ? `<details class="casefile"><summary>📂 Case summary: John Doe v. Apex Delivery Services</summary><pre>${Sim.esc(window.CM_CASE_SUMMARY)}</pre></details>` : ''}
-    </div>`;
-    let right;
-    if (E.token) {
-        right = E.reply ? `<div class="sim-card"><div class="sim-kicker">Your reply (from your inbox)</div><div class="reply">${Sim.esc(E.reply)}</div>
-                <div class="actions"><button class="sim-btn orange" onclick="gradeReply(E.reply,'inbox')" ${E.busy ? 'disabled' : ''}>Score my reply</button></div></div>`
-            : `<div class="sim-card waiting"><div class="big">📬</div><b>Sent to ${Sim.esc(E.to)}</b>
-                <p class="sim-muted" style="font-size:13.5px;">Open it in your inbox (check spam the first time) and reply as you would at work. This page checks for your reply every few seconds; you can also leave and come back from the inbox list.</p>
-                <div class="actions" style="justify-content:center;"><button class="sim-btn ghost" onclick="checkReply(true)">Check now</button></div></div>`;
-    } else {
-        right = `<div class="sim-card compose">
-            <div class="tabs"><button class="${E.mode === 'here' ? 'on' : ''}" onclick="E.mode='here';render()">Answer here</button><button class="${E.mode === 'inbox' ? 'on' : ''}" onclick="E.mode='inbox';render()" ${E.delivery ? '' : 'disabled title="Inbox delivery isn’t set up on this portal yet"'}>Send to my inbox</button></div>
-            ${E.mode === 'here' ? `
-                <label>To</label><input value="${Sim.esc(m.from.name)} <${Sim.esc(m.from.email)}>" disabled>
-                <label>Subject</label><input value="Re: ${Sim.esc(m.subject)}" disabled>
-                <label>Your reply</label><textarea id="draft" oninput="E.draft=this.value">${Sim.esc(E.draft)}</textarea>
-                <div class="actions"><button class="sim-btn orange" onclick="gradeReply(document.getElementById('draft').value,'here')" ${E.busy ? 'disabled' : ''}>Send &amp; score</button></div>`
-            : `<label>Your email address</label><input id="toAddr" type="email" autocomplete="email" value="${Sim.esc(E.to)}" placeholder="you@yourcompany.com" oninput="E.to=this.value">
-                <p class="note">We'll email this message to you from the LSH Training Portal. Reply from your inbox; your reply comes back here and is scored. Limit: a few practice emails per address per day.</p>
-                <div class="actions"><button class="sim-btn orange" onclick="sendToInbox()" ${E.busy ? 'disabled' : ''}>📨 Send it to me</button></div>`}
-            ${E.delivery ? '' : '<p class="note">Inbox delivery isn’t set up on this portal yet, so replies are written here for now.</p>'}
-        </div>`;
-    }
-    $app().innerHTML = `<div class="mail">${left}${right}</div>`;
+function focusDraft() { const t = document.getElementById('draft'); if (t) { t.focus(); t.selectionStart = t.selectionEnd = t.value.indexOf('\n\n') + 2 || t.value.length; } }
+
+function keyDown(ev) {
+    const tag = (ev.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') { if (ev.key === 'Escape') ev.target.blur(); return; }
+    const list = visible(), m = E.phase === 'read' ? E.cur : list[E.focus];
+    const k = ev.key;
+    if (k === '/') { ev.preventDefault(); focusSearch(); return; }
+    if (k === 'z') { ev.preventDefault(); undo(); return; }
+    if (E.phase === 'list' && (k === 'j' || k === 'k')) { ev.preventDefault(); E.focus = Math.min(list.length - 1, Math.max(0, E.focus + (k === 'j' ? 1 : -1))); render(); return; }
+    if (k === 'u' && E.phase === 'read') { ev.preventDefault(); back(); return; }
+    if (!m) return;
+    if (k === 'o' || k === 'Enter') { ev.preventDefault(); if (E.phase === 'list') openEmail(m.id); return; }
+    if (k === 's') { ev.preventDefault(); toggleStar(m.id); return; }
+    if (k === 'e') { ev.preventDefault(); move(m.id, 'archive'); return; }
+    if (k === '#') { ev.preventDefault(); move(m.id, 'trash'); return; }
+    if (k === '!') { ev.preventDefault(); move(m.id, 'spam'); return; }
+    if (k === 'b') { ev.preventDefault(); openSnooze(m.id); return; }
+    if (k === 'r') { ev.preventDefault(); if (E.phase === 'list') openEmail(m.id); E.replying = true; E.mode = 'here'; render(); focusDraft(); return; }
 }
+
+/* ---------- delivery to the trainee's own inbox ---------- */
 async function sendToInbox() {
-    const to = (document.getElementById('toAddr') || {}).value.trim();
+    const to = ((document.getElementById('toAddr') || {}).value || '').trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to)) { alert('Enter a valid email address.'); return; }
     E.busy = true; render();
     try {
@@ -181,11 +356,14 @@ async function checkReply(manual) {
         else if (manual) alert('No reply yet — reply to the practice email from your inbox, then check again.');
     } catch (e) { if (manual) alert('Couldn’t check for your reply: ' + e.message); }
 }
+
+/* ---------- grading ---------- */
 async function gradeReply(text, mode) {
     const m = E.cur; text = String(text || '').trim();
     const bare = text.replace(/^Hi [^\n]*,?/, '').replace(/Best regards,[\s\S]*$/, '').trim();
     if (bare.length < 20) { alert('Write your reply first.'); return; }
     stopPoll();
+    U.replied[m.id] = true; delete U.drafts[m.id]; uiSave();
     E.phase = 'debrief'; E.debrief = { loading: true, text, mode }; render();
     const system = 'You are an experienced legal-support trainer grading a practice email reply. Be fair, specific and encouraging; frame gaps as "not yet — here is the better way".';
     const prompt = `SCENARIO: ${m.title}
@@ -214,20 +392,22 @@ Return ONLY JSON:
 function renderDebrief() {
     const d = E.debrief || {}, m = E.cur;
     if (d.loading) { $app().innerHTML = `<div class="sim-card"><div class="sim-loading">Scoring your reply…</div></div>`; return; }
-    const again = `<div class="actions" style="margin-top:18px;"><button class="sim-btn orange" onclick="openEmail('${m.id}')">↻ Try this email again</button><button class="sim-btn ghost" onclick="E.phase='list';render()">Back to the inbox</button><a class="sim-btn ghost" href="/simulators.html">All simulators</a></div>`;
-    if (d.error) { $app().innerHTML = `<div class="sim-card"><div class="sim-error">${Sim.esc(d.error)}</div>${again}</div>`; return; }
+    const again = `<div class="actions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;"><button class="sim-btn orange" onclick="E.phase='read';openEmail('${m.id}')">↻ Try this email again</button><button class="sim-btn ghost" onclick="back()">Back to the inbox</button><a class="sim-btn ghost" href="/simulators.html">All simulators</a></div>`;
+    if (d.error) { $app().innerHTML = `<div class="sim-card"><div class="sim-error">${esc(d.error)}</div>${again}</div>`; return; }
     $app().innerHTML = `<div class="sim-card">
-        <div class="deb-top"><div class="ring">${Math.round(d.score || 0)}</div><div><div class="sim-kicker">Email debrief · ${d.mode === 'inbox' ? 'replied from your inbox' : 'answered here'}</div><h2 style="margin:0 0 4px;font-size:21px;">${Sim.esc(m.title)}</h2><div class="sim-muted" style="font-size:14px;">${Sim.esc(d.verdict || '')}</div></div></div>
+        <div class="deb-top"><div class="ring">${Math.round(d.score || 0)}</div><div><div class="sim-kicker">Email debrief · ${d.mode === 'inbox' ? 'replied from your inbox' : 'answered here'}</div><h2 style="margin:0 0 4px;font-size:21px;">${esc(m.title)}</h2><div class="sim-muted" style="font-size:14px;">${esc(d.verdict || '')}</div></div></div>
         <div class="sim-kicker">Goals</div>
-        <ul class="goals">${(d.goals || []).map(g => `<li><span class="${g.met ? 'ok' : 'no'}">${g.met ? '✓' : '○'}</span><div>${Sim.esc(g.goal)}<small>${Sim.esc(g.note || '')}</small></div></li>`).join('')}</ul>
-        <div class="cols2"><div><h4>What worked</h4><ul>${(d.strengths || []).map(x => `<li>${Sim.esc(x)}</li>`).join('')}</ul></div><div><h4>Not yet — next time</h4><ul>${(d.improve || []).map(x => `<li>${Sim.esc(x)}</li>`).join('')}</ul></div></div>
-        ${d.betterVersion ? `<div class="better"><b>A stronger reply:</b>\n${Sim.esc(d.betterVersion)}</div>` : ''}
-        <details style="margin-top:14px;"><summary style="cursor:pointer;font-weight:700;font-size:13px;">Your reply</summary><div class="reply" style="margin-top:10px;">${Sim.esc(d.text || '')}</div></details>
+        <ul class="goals">${(d.goals || []).map(g => `<li><span class="${g.met ? 'ok' : 'no'}">${g.met ? '✓' : '○'}</span><div>${esc(g.goal)}<small>${esc(g.note || '')}</small></div></li>`).join('')}</ul>
+        <div class="cols2"><div><h4>What worked</h4><ul>${(d.strengths || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div><div><h4>Not yet — next time</h4><ul>${(d.improve || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div></div>
+        ${d.betterVersion ? `<div class="better"><b>A stronger reply:</b>\n${esc(d.betterVersion)}</div>` : ''}
+        <details style="margin-top:14px;"><summary style="cursor:pointer;font-weight:700;font-size:13px;">Your reply</summary><div class="reply" style="margin-top:10px;">${esc(d.text || '')}</div></details>
         ${again}</div>`;
 }
+
 async function boot() {
     await Sim.restore();   // a new tab (a course's link opens with noopener) has the cookie but no copy of the session
     document.getElementById('topbar').innerHTML = Sim.topbar('replies');
+    uiLoad();
     $app().innerHTML = `<div class="sim-card"><div class="sim-loading">Loading the inbox…</div></div>`;
     try {
         const [pack, status] = await Promise.all([
@@ -236,9 +416,10 @@ async function boot() {
         ]);
         E.emails = pack.emails || []; E.delivery = !!(status && status.delivery);
         render();
-    } catch (e) { $app().innerHTML = `<div class="sim-card"><div class="sim-error">Couldn’t load the practice emails: ${Sim.esc(e.message)}</div></div>`; }
+    } catch (e) { $app().innerHTML = `<div class="sim-card"><div class="sim-error">Couldn’t load the practice emails: ${esc(e.message)}</div></div>`; }
 }
 document.addEventListener('DOMContentLoaded', boot);
+document.addEventListener('click', (e) => { if (E.menu && !e.target.closest('.gm-menu')) { E.menu = null; render(); } });
 </script>
 </body>
 </html>
