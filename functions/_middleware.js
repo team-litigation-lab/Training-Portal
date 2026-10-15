@@ -10,8 +10,9 @@ const ADMIN_PAGES = [/^\/(core|attendance|progress|referrals|system)(\.html)?\/?
 // page) is sent to the trainee sign-in, and comes back here once signed in. The main page itself stays public.
 const MEMBER_PAGES = [/^\/programs(\.html)?\/?$/i];
 const PROTECTED = [/^\/simulators(\.html)?\/?$/i, /^\/simulators\//i];
-// The Call Simulator is the CMS's (its 📞 Call Simulator panel): a link to the Portal's opens that one, through the Portal's
-// sign-in (/api/launch?tool=cms&to=calls), with the link's flow, program, line and random call (api/launch.js callsQuery).
+// The Call Simulator is LSH Ring Channel's (the training phone itself): a link to the Portal's opens it there, through the
+// Portal's sign-in (/api/launch?tool=ringchannel&to=calls), on the line the link names and with a graded call ringing at
+// once when it asks for one (api/launch.js callsQuery).
 const CALL_SIMULATOR = /^\/simulators\/call(\.html)?\/?$/i;
 
 // The main page (/) is the Main Portal for everyone, signed in or not: it is the site's landing page and is never redirected.
@@ -77,7 +78,7 @@ export async function onRequest(context) {
     const auth = await requireSession(request, env);
     if (auth.ok && CALL_SIMULATOR.test(path)) {
         const q = new URL(request.url).search.replace(/^\?/, '');
-        return new Response(null, { status: 302, headers: { Location: '/api/launch?tool=cms&to=calls' + (q ? '&' + q : ''), 'Cache-Control': 'no-store' } });
+        return new Response(null, { status: 302, headers: { Location: '/api/launch?tool=ringchannel&to=calls' + (q ? '&' + q : ''), 'Cache-Control': 'no-store' } });
     }
     if (auth.ok) {
         const res = await next();

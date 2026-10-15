@@ -1,10 +1,13 @@
 import { json, requireSession, sameSecret } from '../_utils.js';
 
-// Graded calls from the CMS Call Simulator (the main Call Simulator: the CMS's call-packs.js lines), so they count in the
-// trainee's course. The CMS sends each graded call here, server to server, with the shared secret of the AI gateway.
+// Graded calls from the Call Simulator, so they count in the trainee's course. Every Call Simulator is LSH Ring Channel's
+// (the training phone: the Portal's /api/launch?tool=ringchannel&to=calls opens it), and Ring Channel sends each graded
+// call here, server to server, with the shared secret of the AI gateway (?via=ringchannel). The CMS's older Call Simulator
+// panel sends them the same way (via=cms), so calls taken there still count.
 //
 //   POST /api/call-results   header X-Gateway-Key: <AI_GATEWAY_SECRET>
-//        { first, last, batch, username, call: { id, program: 'FT'|'CM'|'PD'|'EA', line, lesson, title, score, verdict, secs, voice, at } }
+//        { first, last, batch, username, via: 'ringchannel'|'cms',
+//          call: { id, program: 'FT'|'CM'|'PD'|'EA', line, lesson, title, score, verdict, secs, voice, at } }
 //        → { success, course: { key, best } }
 //   It's kept in two places:
 //   - the Portal's simulator_results (the trainee's Portal account, found by first name, last name and batch; otherwise
@@ -60,6 +63,7 @@ export async function onRequestPost({ request, env }) {
     try { body = await request.json(); } catch (e) { return json({ success: false, error: 'Invalid request body.' }, 400); }
     const c = (body && body.call) || {};
     const first = clip(body.first, 60), last = clip(body.last, 60), batch = clip(body.batch, 40);
+    const via = clip(body.via, 20).toLowerCase() === 'ringchannel' ? 'ringchannel' : 'cms';   // which Call Simulator it came from
     const call = { id: clip(c.id, 60), program: clip(c.program, 4).toUpperCase(), line: clip(c.line, 80), lesson: Number.isInteger(Number(c.lesson)) && Number(c.lesson) > 0 ? Number(c.lesson) : null,
         title: clip(c.title, 140), verdict: clip(c.verdict, 400), secs: Math.max(0, Math.min(3600, Math.round(Number(c.secs) || 0))), voice: clip(c.voice, 12),
         score: Math.max(0, Math.min(100, Math.round(Number(c.score)))), at: /^\d{4}-\d{2}-\d{2}T/.test(String(c.at || '')) ? String(c.at).slice(0, 30) : new Date().toISOString() };
@@ -77,7 +81,7 @@ export async function onRequestPost({ request, env }) {
     await ensureSimResultsTable(tdb);
     await tdb.prepare(`INSERT INTO simulator_results (username, full_name, simulator, scenario, score, summary, details, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
         .bind(username, fullName, 'Call Simulator', call.title, call.score, call.verdict,
-            JSON.stringify({ graded: true, via: 'cms', program: call.program, line: call.line, lesson: call.lesson, call: call.id, secs: call.secs, voice: call.voice, batch }), call.at).run();
+            JSON.stringify({ graded: true, via, program: call.program, line: call.line, lesson: call.lesson, call: call.id, secs: call.secs, voice: call.voice, batch }), call.at).run();
 
     // 2. the course's own store, where the course shows it on the trainee's progress
     let course = null;
@@ -99,6 +103,6 @@ export async function onRequestGet({ request, env }) {
     if (!auth.ok) return auth.response;
     await ensureSimResultsTable(env.TRAINING_DB);
     const { results } = await env.TRAINING_DB.prepare(`SELECT id, username, full_name, scenario, score, summary, details, created_at FROM simulator_results
-        WHERE simulator = 'Call Simulator' AND details LIKE '%"via":"cms"%' ORDER BY id DESC LIMIT 200`).all();
+        WHERE simulator = 'Call Simulator' AND (details LIKE '%"via":"ringchannel"%' OR details LIKE '%"via":"cms"%') ORDER BY id DESC LIMIT 200`).all();
     return json({ success: true, results: results || [] });
 }

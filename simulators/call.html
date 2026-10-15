@@ -6,14 +6,14 @@
 <title>Call Simulator</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <script>
-/* The Call Simulator is the CMS's (its 📞 Call Simulator panel, with every program's calls). The Portal's server sends this
-   address there through the Portal's sign-in (functions/_middleware.js → /api/launch?tool=cms&to=calls, with the link's
-   flow, program, line and random call); this page does the same wherever it's served as a plain file. */
-location.replace('/api/launch?tool=cms&to=calls' + (location.search ? '&' + location.search.slice(1) : ''));
+/* The Call Simulator is LSH Ring Channel's (the training phone, with every program's lines). The Portal's server sends this
+   address there through the Portal's sign-in (functions/_middleware.js → /api/launch?tool=ringchannel&to=calls, with the
+   link's line, program and graded call); this page does the same wherever it's served as a plain file. */
+location.replace('/api/launch?tool=ringchannel&to=calls' + (location.search ? '&' + location.search.slice(1) : ''));
 </script>
 <link rel="stylesheet" href="/theme.css">
 </head>
 <body style="font-family:Arial,Helvetica,sans-serif;background:#081226;color:#fff;text-align:center;padding:60px 20px">
-<p>Opening the Call Simulator in the CMS… <a href="/api/launch?tool=cms&amp;to=calls" style="color:#f97316;font-weight:700">Open it</a></p>
+<p>Opening the Call Simulator on LSH Ring Channel… <a href="/api/launch?tool=ringchannel&amp;to=calls" style="color:#f97316;font-weight:700">Open it</a></p>
 </body>
 </html>
