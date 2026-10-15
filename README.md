@@ -88,19 +88,20 @@ The **Got a referral?** button on the home page (a pill in the top navigation) o
 
 **`/blueprint.html`** is the Platform Blueprint (formerly the Platform Orientation; `/orientation.html` forwards here): a slide deck made for screen sharing in Google Meet. It shows nothing private: no passwords, access codes or trainee data.
 
+The deck is drawn by **`lsh-blueprint.js`**, the Blueprint engine every LSH platform shares — the same navy cover band with the numbered contents, the same points / where to find it / tip slide, and the same real-text PDF as every program's blueprint, so they all read as one deck. The page itself is the front door: the header, the program blueprints, the track, and **🧭 Open the blueprint**, which opens the deck over the page.
+
 It has two tracks, switched at the top of the page:
 - **Trainees** (8 slides): what the portal is, registering and the one log in, the Training Directory (Request Access, Enter Program, certificates), what's inside a program, the Simulators, the Knowledge Base, good habits, and first steps.
 - **Trainers & Admins** (8 slides, signed-in admins only: trainees never see this track or its tab): the admin bar, the Directory's admin view (topic requests, Switch view), System Management, Trainee Monitoring, Attendance, program admin, Knowledge Base review / referrals / calendar reviews, and a daily checklist.
 
 How to use it:
-- Keys: ← → (or Page Up / Page Down / Space) change slides, and **F** toggles full screen.
-- **⬇ Download PDF** saves the current track as a PDF, one page per slide (`lsh-blueprint.js`, the same file as on every LSH platform). The cover and each page carry the deployed version (the page's ETag) and the date, so it's always made from what's live: nothing to rebuild by hand after a deploy.
-- **Numbering:** the PDF's cover is the Cover, then its pages are `1 / 8` to `8 / 8` (headed "1 of 8" to "8 of 8"), the same as the page's own counter. The cover isn't counted, so nothing says 9.
-- **🖨 Print** prints the current track, one slide per page.
-- Deep links: `?track=admin&slide=3`.
+- In the deck: **← →** (or Page Up / Page Down) change slides, the contents strip jumps to one, and **Esc** closes it.
+- **⬇ Download PDF** saves the current track as a PDF, one page per slide, from the deck or from the page. The cover and each page carry the deployed version (the page's ETag) and the date, so it's always made from what's live: nothing to rebuild by hand after a deploy.
+- **Numbering:** the cover is the Cover, then the pages are `1 / 8` to `8 / 8` (headed "1 of 8" to "8 of 8"), the same as the page's numbered contents. The cover isn't counted, so nothing says 9.
+- Deep links: `?track=admin&slide=3` opens the deck straight on that slide.
 - Links to it: **Blueprint** in the main page header and in the admin bar on every main page. Signed-in admins get the admin track.
 
-To change the content, edit `SLIDES` in `blueprint.html`; the PDF is made from the same slides. `.github/scripts/blueprint.cjs` checks it in CI: trainees get the Trainees track only, an admin gets both, and each track downloads as a PDF with every slide and the deploy stamp.
+To change the content, edit `SLIDES` in `blueprint.html` — each slide is the engine's own `{ icon, title, points, where, tip }`, and the page, the deck and the PDF are all made from it. `.github/scripts/blueprint.cjs` checks it in CI: trainees get the Trainees track only, an admin gets both, and each track downloads as a PDF with every slide and the deploy stamp.
 
 ### 🔑 Admin accounts and Master Control
 

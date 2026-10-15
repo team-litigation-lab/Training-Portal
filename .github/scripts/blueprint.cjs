@@ -1,12 +1,13 @@
-// The Blueprint (formerly the Platform Orientation) and its PDFs (blueprint.html with lsh-blueprint.js, the Blueprint engine every LSH platform shares).
+// The Blueprint and its PDFs (blueprint.html with lsh-blueprint.js, the Blueprint engine every LSH platform shares,
+// which draws the deck itself now: the same cover, slides and PDF as every program's blueprint).
 // Static files; jsPDF served from node_modules in place of cdnjs.
 // Checks: a visitor or trainee gets the Trainees track only (no tab to the Trainers & Admins track, even with
 // ?track=admin); a signed-in Admin gets both tracks and starts on the admin one; ⬇ Download PDF saves the track
 // that's showing, a page per slide (plus the cover) with each slide's title, and the trainee PDF has no admin slides.
 // Numbering: the slide numbers match everywhere. Each PDF's cover is "Cover", then its pages are "1 / n" to "n / n",
-// headed "1 of n" to "n of n", the same as the page's own counter ("1 / n" to "n / n"); nothing says n + 1 (an 8-slide
-// track's PDF used to end on "9 / 9"). The engine's own deck (this page shows its own slides, so the test opens the
-// deck through LSHBlueprint) numbers the same: the counter "Cover · n slides" on the cover, then "k / n" on the
+// headed "1 of n" to "n of n", the same as the page's numbered contents (1 to n); nothing says n + 1 (an 8-slide
+// track's PDF used to end on "9 / 9"). The deck itself is the engine's, opened over the page: the counter reads
+// "Cover · n slides" on the cover, then "k / n" on the
 // counter and the footer, "k of n" in the header, the highlighted contents button k, and "n / n" on the last slide,
 // the same as the last contents button.
 // Usage: node .github/scripts/blueprint.cjs   (from the repository root; needs `npm i playwright jspdf@4.2.1`)
@@ -49,7 +50,7 @@ function inspect(buf) {
         return page;
     };
     const pdfOf = async (page) => { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#orPdf')]); return { name: dl.suggestedFilename(), ...inspect(fs.readFileSync(await dl.path())) }; };
-    const state = (page) => page.evaluate(() => ({ tabs: !document.querySelector('.or-tabs').hidden, track: new URLSearchParams(location.search).get('track'), admin: 'admin' in SLIDES, slides: SLIDES.trainee.length, adminSlides: SLIDES.admin ? SLIDES.admin.length : 0, adminTitles: (SLIDES.admin || []).map(s => s.h) }));
+    const state = (page) => page.evaluate(() => ({ tabs: !document.querySelector('.or-tabs').hidden, track: new URLSearchParams(location.search).get('track'), admin: 'admin' in SLIDES, slides: SLIDES.trainee.length, adminSlides: SLIDES.admin ? SLIDES.admin.length : 0, adminTitles: (SLIDES.admin || []).map(s => s.title) }));
     // the PDF's numbers: the cover's footer is "Cover", then the pages' footers are "1 / n" to "n / n" and their headers
     // "… · 1 OF n" to "… · n OF n", in order; nothing says n + 1
     const numbered = (pdf, n, label) => {
@@ -59,8 +60,8 @@ function inspect(buf) {
         if (heads.join(', ') !== want.map(x => x.replace(' / ', ' OF ')).join(', ')) fail(`the ${label} PDF's page headers should be 1 of ${n} to ${n} of ${n}; they are: ${heads.join(', ')}`);
         if (pdf.text.includes(`${n + 1} / ${n + 1}`)) fail(`the ${label} PDF says ${n + 1} / ${n + 1}, but the track has ${n} slides`);
     };
-    // the page's own counter: "1 / n" on the first slide, "n / n" on the last, as the PDF's pages
-    const counts = (page) => page.evaluate(() => { const el = document.getElementById('orCount'), first = el.textContent; show(1e9); const last = el.textContent; show(0); return { first, last }; });
+    // the page's own contents list: one numbered entry per slide, 1 to n, as the PDF's pages
+    const counts = (page) => page.evaluate(() => [...document.querySelectorAll('#bpContents li span')].map(x => x.textContent.trim()));
     // the engine's own deck, slide by slide: Cover, then 1 to n on the counter, the highlighted contents button, the
     // slide's header and footer; the last slide is "n / n", as its button; nothing says n + 1
     const walk = (page, which) => page.evaluate(async (which) => {
@@ -105,7 +106,7 @@ function inspect(buf) {
     if (/Master Control|Access queue/.test(pdf.text)) fail('the trainee PDF has admin slides');
     numbered(pdf, st.slides, 'trainee');
     let c = await counts(page);
-    if (c.first !== `1 / ${st.slides}` || c.last !== `${st.slides} / ${st.slides}`) fail(`the page's counter should read 1 / ${st.slides} to ${st.slides} / ${st.slides}, as the PDF's pages: ${JSON.stringify(c)}`);
+    if (c.join() !== Array.from({ length: st.slides }, (_, k) => k + 1).join()) fail(`the page's contents should be numbered 1 to ${st.slides}, as the PDF's pages: ${JSON.stringify(c)}`);
     (await walk(page, 'trainee')).forEach(fail);
     await page.context().close();
 
@@ -125,7 +126,7 @@ function inspect(buf) {
     if (missing.length) fail(`the admin PDF is missing slides: ${missing.join(' | ')}`);
     numbered(pdf, st.adminSlides, 'admin');
     c = await counts(page);
-    if (c.first !== `1 / ${st.adminSlides}` || c.last !== `${st.adminSlides} / ${st.adminSlides}`) fail(`the admin track's counter should read 1 / ${st.adminSlides} to ${st.adminSlides} / ${st.adminSlides}, as the PDF's pages: ${JSON.stringify(c)}`);
+    if (c.join() !== Array.from({ length: st.adminSlides }, (_, k) => k + 1).join()) fail(`the admin track's contents should be numbered 1 to ${st.adminSlides}, as the PDF's pages: ${JSON.stringify(c)}`);
     await page.click('.or-tabs button[data-track="trainee"]');
     pdf = await pdfOf(page);
     if (pdf.name !== 'LSH_Training_Portal_Blueprint_Trainee.pdf') fail(`an Admin on the Trainees track downloaded ${pdf.name}`);

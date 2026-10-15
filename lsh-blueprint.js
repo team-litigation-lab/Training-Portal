@@ -31,7 +31,9 @@
                   Orientation); the tab calls open() instead of showing a deck
    Numbering: the cover is the Cover (★); the slides are 1 to n, the same on the buttons, the counter, the
    slide's kicker and footer, and the PDF's footers.
-   API: LSHBlueprint.open('admin'|'trainer'|'trainee'), .close(), .go(n, absolute), .deck(which), .pdf(), .zoom(src)
+   API: LSHBlueprint.open('admin'|'trainer'|'trainee'), .close(), .go(n, absolute), .deck(which), .pdf(), .doc(which), .zoom(src)
+        .doc(which) gives the deck's PDF as a jsPDF document instead of saving it, for a platform that
+        publishes its blueprint (the courses' /blueprint.pdf).
    ========================================================= */
 (function () {
     'use strict';
@@ -47,7 +49,7 @@
     let cur = 'trainee', at = 0, version = '';
 
     const CSS = `
-    #lbp-page{position:fixed;inset:0;z-index:100000;display:none;flex-direction:column;background:#e9eef5;font-family:Inter,'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:#1e293b}
+    #lbp-page{position:fixed;inset:0;z-index:100000;display:none;flex-direction:column;background:#e9eef5;font-family:'IBM Plex Sans',Inter,'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:#1e293b}
     #lbp-page.open{display:flex}
     #lbp-page *{box-sizing:border-box}
     .lbp-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;background:#0f2148;color:#fff;padding:14px 24px;border-bottom:4px solid #f97316}
@@ -81,32 +83,32 @@
     .lbp-brand img{height:112px;width:auto;display:block}
     #lbp-slide .lbp-brand-name{color:#fff;font-size:17px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;line-height:1.1;-webkit-font-smoothing:antialiased}
     .lbp-cover h1{margin:8px 0 0;color:#fff;font-size:50px;font-weight:800;letter-spacing:.01em;line-height:1.1}
-    .lbp-cover-body{flex:1;min-height:0;padding:34px 70px 24px;display:flex;flex-direction:column}
+    .lbp-cover-body{flex:1;min-height:0;padding:34px 70px 24px;display:flex;flex-direction:column;justify-content:safe center}
     .lbp-cover-sub{margin:0 0 26px;font-size:26px;color:#334155;font-weight:600}
-    .lbp-contents{list-style:none;margin:0;padding:0;columns:2;column-gap:50px;flex:1}
+    .lbp-contents{list-style:none;margin:0;padding:0;columns:2;column-gap:50px;flex:0 1 auto}
     .lbp-contents li{break-inside:avoid;display:flex;align-items:center;gap:14px;font-size:calc(22px * var(--lbp-k,1));color:#1e293b;margin-bottom:calc(15px * var(--lbp-k,1))}
     .lbp-contents li span{flex:0 0 auto;width:calc(32px * var(--lbp-k,1));height:calc(28px * var(--lbp-k,1));border-radius:6px;background:#f97316;color:#fff;font-size:calc(15px * var(--lbp-k,1));font-weight:800;display:flex;align-items:center;justify-content:center}
-    .lbp-version{font-size:14px;font-weight:700;color:#94a3b8;letter-spacing:.03em}
+    .lbp-version{margin-top:26px;font-size:14px;font-weight:700;color:#94a3b8;letter-spacing:.03em}
     .lbp-card{height:100%;display:flex;flex-direction:column}
     .lbp-head{display:flex;align-items:center;gap:24px;background:#0f2148;padding:30px 52px 28px;border-bottom:6px solid #f97316}
     .lbp-head h1{margin:6px 0 0;color:#fff;font-size:40px;font-weight:800;line-height:1.15}
     .lbp-icon{flex:0 0 auto;width:78px;height:78px;border-radius:18px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:42px}
-    .lbp-main{flex:1;min-height:0;display:flex;gap:44px;padding:40px 52px 22px}
-    .lbp-points{flex:1;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:calc(22px * var(--lbp-k,1))}
+    .lbp-main{flex:1;min-height:0;display:flex;align-items:safe center;gap:44px;padding:40px 52px 22px}
+    .lbp-points{flex:1;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;justify-content:safe center;gap:calc(22px * var(--lbp-k,1))}
     .lbp-points li{position:relative;padding-left:32px;font-size:calc(26px * var(--lbp-k,1));line-height:1.38;color:#1e293b}
     .lbp-points li::before{content:'';position:absolute;left:0;top:.5em;width:11px;height:11px;border-radius:2px;background:#f97316}
-    .lbp-side{flex:0 0 360px;display:flex;flex-direction:column;gap:20px}
+    .lbp-side{flex:0 0 360px;display:flex;flex-direction:column;justify-content:safe center;gap:20px}
     .lbp-where,.lbp-tip{border-radius:12px;padding:calc(22px * var(--lbp-k,1)) 24px;font-size:calc(21px * var(--lbp-k,1));line-height:1.42;color:#1e293b}
     .lbp-where{background:#f1f5f9;border:1px solid #e2e8f0}
     .lbp-tip{background:#fff7ed;border:1px solid #fed7aa;border-left:6px solid #f97316}
     #lbp-slide .lbp-tip .lbp-label{color:#c2410c}
     .lbp-main.lbp-has-shot{gap:36px}
-    .lbp-col{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:calc(20px * var(--lbp-k,1))}
-    .lbp-col.lbp-col-shot{flex:0 0 calc(560px * var(--lbp-k,1))}
-    .lbp-col .lbp-points{flex:1 1 auto}
+    .lbp-col{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:safe center;gap:calc(20px * var(--lbp-k,1))}
+    .lbp-col.lbp-col-shot{flex:0 0 calc(600px * var(--lbp-k,1))}
+    .lbp-col .lbp-points{flex:0 1 auto}
     .lbp-col .lbp-side{flex:0 0 auto}
     .lbp-shot{margin:0;display:block;border-radius:10px;overflow:hidden;border:1px solid #cbd5e1;box-shadow:0 6px 18px rgba(15,33,72,.14);cursor:zoom-in;background:#f8fafc;position:relative}
-    .lbp-shot img{display:block;width:100%;height:auto}
+    .lbp-shot img{display:block;width:100%;height:auto;max-height:calc(430px * var(--lbp-k,1));object-fit:cover;object-position:top}
     .lbp-shot span{position:absolute;right:8px;bottom:8px;background:rgba(15,33,72,.82);color:#fff;font-size:12px;font-weight:800;letter-spacing:.04em;padding:5px 9px;border-radius:6px}
     #lbp-zoom{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;background:rgba(15,33,72,.94);cursor:zoom-out;padding:44px 20px 16px}
     #lbp-zoom.open{display:flex}
@@ -115,7 +117,8 @@
     .lbp-foot{display:flex;justify-content:space-between;gap:20px;padding:14px 52px 18px;border-top:1px solid #e2e8f0;font-size:14px;font-weight:700;color:#94a3b8;letter-spacing:.04em}
     #lbp-slide.portrait .lbp-head{padding:28px 34px;gap:18px}
     #lbp-slide.portrait .lbp-head h1{font-size:36px}
-    #lbp-slide.portrait .lbp-main{flex-direction:column;padding:28px 34px 16px;gap:22px}
+    #lbp-slide.portrait .lbp-main{flex-direction:column;align-items:stretch;justify-content:flex-start;padding:28px 34px 16px;gap:22px}
+    #lbp-slide.portrait .lbp-points,#lbp-slide.portrait .lbp-side,#lbp-slide.portrait .lbp-col,#lbp-slide.portrait .lbp-cover-body{justify-content:flex-start}
     #lbp-slide.portrait .lbp-points li{font-size:calc(23px * var(--lbp-k,1))}
     #lbp-slide.portrait .lbp-side{flex:0 0 auto}
     #lbp-slide.portrait .lbp-col,#lbp-slide.portrait .lbp-col.lbp-col-shot{flex:0 0 auto}
@@ -247,6 +250,9 @@
         at = Math.max(0, Math.min(total - 1, at));
         const slide = $id('lbp-slide');
         slide.innerHTML = slideHtml(d, at); slide.dataset.deck = d.key;
+        // a screenshot has no height until it has loaded: lay the slide out again when it does,
+        // or its text is measured as if the picture weren't there and the slide overflows
+        slide.querySelectorAll('img').forEach(im => { if (!im.complete) im.addEventListener('load', fit, { once: true }); });
         // the cover is ★ Cover; the slides are 1 to n, as on the buttons and the slides themselves
         $id('lbp-count').textContent = at === 0 ? `Cover · ${total - 1} slides` : `${at} / ${total - 1}`;
         $id('lbp-count').title = at === 0 ? 'The cover and contents' : `Slide ${at} of ${total - 1}`;
@@ -298,6 +304,7 @@
         isOpen() { const p = $id('lbp-page'); return !!(p && p.classList.contains('open')); },
         current() { return { deck: cur, slide: at }; },
         pdf: (which) => makePdf(which),
+        doc: (which) => makeDoc(which),
         decks: () => ({ trainee: deckOf('trainee'), trainer: deckOf('trainer'), admin: deckOf('admin') }),
         refresh: mount
     };
@@ -325,10 +332,15 @@
     // Our own jsPDF, whatever else the page has on window.jspdf (html2pdf bundles its own).
     async function loadJsPdf() {
         if (JsPDF) return JsPDF;
-        const before = window.jspdf;
+        const had = 'jspdf' in window, before = window.jspdf;
         await loadScript(JSPDF_SRC);
         JsPDF = window.jspdf && window.jspdf.jsPDF;
-        if (before !== undefined) window.jspdf = before;
+        // Put window.jspdf back exactly as it was, deleting it when the page had
+        // none. This deck loads jsPDF 4.2.1; the engine's certificates and
+        // handouts use 2.5.1 via ensureJsPdf(), and since jsPDF is no longer
+        // pre-loaded in the page head, leaving 4.2.1 behind would make
+        // ensureJsPdf() hand the engine the wrong version.
+        if (had) window.jspdf = before; else delete window.jspdf;
         if (!JsPDF) throw new Error('The PDF maker did not load. Try again.');
         return JsPDF;
     }
@@ -359,6 +371,10 @@
         const c = cfg();
         const doc = new JsPDF({ unit: 'pt', format: 'letter', orientation: 'landscape', compress: true });
         const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 46;
+        // a slide page's body: under the navy header band, above the footer rule
+        const TOP = 122, BOTTOM = H - 46;
+        // how tall a points list is: measure it from 0, so it can be centred in the body
+        const blockH = (points, x, w, size) => points(x, w, size, false, size) - size;
         const total = d.slides.length + 1;
         const font = (size, style, color) => { doc.setFont('helvetica', style || 'normal'); doc.setFontSize(size); doc.setTextColor(...(color || INK)); };
         const stamp = clean(`${version ? 'Version ' + version + ' · ' : ''}made ${today()}`);
@@ -413,9 +429,10 @@
                 font(12, 'normal', INK); doc.text(lines, x + 14, top + 39, { lineHeightFactor: 1.3 });
                 return top + h;
             };
-            // the points (draw false: only measure them), smaller where they would run into the footer
-            const points = (x, w, size, draw) => {
-                let y = 142;
+            // the points (draw false: only measure them), smaller where they would run into the footer.
+            // startY is the first line's baseline, so a short list can be centred in the space it has.
+            const points = (x, w, size, draw, startY) => {
+                let y = startY == null ? TOP + size : startY;
                 (s.points || []).forEach(p => {
                     font(size, 'normal', INK);
                     const lines = doc.splitTextToSize(clean(p), w - 22);
@@ -427,27 +444,33 @@
                 });
                 return y;
             };
+            // each column is centred in the space between the header band and the footer rule, as on the page
+            const mid = (h) => TOP + Math.max(0, (BOTTOM - TOP - h) / 2);
             const shot = shots[k];
             if (shot) {
                 // the screenshot and Where to find it on the right; the points and the Tip on the left
-                const colW = 318, rx = W - M - colW, lw = rx - M - 30, bottom = H - 46;
-                const f = fitImage(doc, shot, colW, 200);
-                let top = 122;
+                const colW = 345, rx = W - M - colW, lw = rx - M - 30;
+                const f = fitImage(doc, shot, colW, 232);
+                const whereH = s.where ? box('Where to find it', s.where, rx, 0, colW, SOFT, null, false) : 0;
+                let top = mid(f.h + (whereH ? whereH + 14 : 0));
                 try {
                     doc.addImage(shot, imgType(shot), rx, top, f.w, f.h);
                     doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.8); doc.rect(rx, top, f.w, f.h, 'S');
                     top += f.h + 14;
-                } catch (e) { /* the page works without it */ }
+                } catch (e) { top = mid(whereH); /* the page works without it */ }
                 if (s.where) box('Where to find it', s.where, rx, top, colW, SOFT, null);
                 let size = 15.5;
                 const tipH = s.tip ? box('Tip', s.tip, M, 0, lw, null, null, false) + 14 : 0;
-                while (size > 10 && points(M, lw, size, false) - size + tipH > bottom) size -= 0.5;
-                const y = points(M, lw, size);
-                if (s.tip) box('Tip', s.tip, M, Math.min(y - size + 4, bottom - tipH + 14), lw, [255, 247, 237], ORANGE);
+                while (size > 10 && TOP + size + blockH(points, M, lw, size) + tipH > BOTTOM) size -= 0.5;
+                const y = points(M, lw, size, true, mid(blockH(points, M, lw, size) + tipH) + size);
+                if (s.tip) box('Tip', s.tip, M, Math.min(y - size + 4, BOTTOM - tipH + 14), lw, [255, 247, 237], ORANGE);
             } else {
                 const sideX = W - M - 230, textW = sideX - M - 40;
-                points(M, textW, 15.5);
-                let top = 128;
+                const size = 15.5;
+                points(M, textW, size, true, mid(blockH(points, M, textW, size)) + size);
+                const whereH = s.where ? box('Where to find it', s.where, sideX, 0, 230, SOFT, null, false) : 0;
+                const tipH = s.tip ? box('Tip', s.tip, sideX, 0, 230, null, null, false) : 0;
+                let top = mid(whereH + (whereH && tipH ? 16 : 0) + tipH);
                 if (s.where) top = box('Where to find it', s.where, sideX, top, 230, SOFT, null) + 16;
                 if (s.tip) box('Tip', s.tip, sideX, top, 230, [255, 247, 237], ORANGE);
             }
@@ -455,6 +478,18 @@
         });
         doc.setProperties({ title: clean(`${c.site || 'LSH'} ${d.name}`), subject: clean(`How ${c.product || 'the platform'} works · ${stamp}`), creator: clean(c.site || 'LSH') });
         return doc;
+    }
+
+    // the deck's PDF as a jsPDF document, without saving it: for a platform that publishes
+    // its blueprint (the courses' /blueprint.pdf) rather than handing it to the person here.
+    // The deck has to exist, but it needn't be one this role may open.
+    async function makeDoc(which) {
+        const d = deckOf(which) || deckOf(allowed()[0]);
+        if (!d) return null;
+        await loadJsPdf();
+        if (!version) await loadVersion();
+        const [logo, shots] = await Promise.all([imageData(cfg().logo), Promise.all(d.slides.map(s => s.shot ? imageData(s.shot) : null))]);
+        return buildPdf(d, logo, shots);
     }
 
     async function makePdf(which) {
@@ -465,10 +500,7 @@
         const btn = $id('lbp-pdf-btn');
         try {
             if (btn) { btn.disabled = true; btn.textContent = '⏳ Making the PDF…'; }
-            await loadJsPdf();
-            if (!version) await loadVersion();
-            const [logo, shots] = await Promise.all([imageData(cfg().logo), Promise.all(d.slides.map(s => s.shot ? imageData(s.shot) : null))]);
-            const doc = buildPdf(d, logo, shots);
+            const doc = await makeDoc(key);
             const name = `${cfg().file || 'LSH'}_Blueprint_${FILES[key] || 'Trainee'}.pdf`;
             doc.save(name);
             return { name, pages: doc.getNumberOfPages(), version };
