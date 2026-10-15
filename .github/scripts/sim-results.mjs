@@ -40,7 +40,7 @@ await post({ simulator: 'Google Calendar', scenario: 'Attorney Rivera', score: 6
 const rec = JSON.parse(kv.get('ft:simresults:jamie-cruz--b100526') || 'null');
 if (!rec || rec.results.length !== 3 || rec.best['Google Calendar'].score !== 90 || rec.best['Google Calendar'].count !== 3) fail(`the course record: ${JSON.stringify(rec)}`);
 // read back under the same identity it was written under: the trainee's own rows, the trainer's list, and the course id a
-// graded call from the CMS Call Simulator uses for the same person (so a score and a call meet on one trainee record).
+// graded call from the Call Simulator (Ring Channel) uses for the same person (so a score and a call meet on one trainee record).
 {
     const mine = await onRequestGet({ request: new Request('https://portal.test/api/sim-results', { headers: { cookie: jamie } }), env });
     const d = await mine.json();

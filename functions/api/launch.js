@@ -21,7 +21,8 @@ export const SSO_PROGRAMS = {
     'MEDSUM AND DEMAND': 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/'
 };
 // Shared tools that aren't programs: any signed-in, approved person opens them (no program access to request).
-// ringchannel is LSH Ring Channel (the lshringchannel repo), the VOIP phone for trainer-led mock calls. It has no sign-in of its own:
+// ringchannel is LSH Ring Channel (the lshringchannel repo), the VOIP phone for trainer-led mock calls and the home of the
+// 📞 Call Simulator (to=calls). It has no sign-in of its own:
 // a trainee's ticket opens their phone, and an administrator's opens the console as a trainer (ADMIN_TICKET_TOOLS). It checks
 // tickets at its /api/auth/portal (with PORTAL_SSO_SECRET, or here at /api/verify-ticket), and each one works only once there.
 export const SSO_TOOLS = {
@@ -34,33 +35,44 @@ export const SSO_TOOLS = {
 // (the Master Account's ticket has no name: it opens as the Master Account there). No platform asks for a password again.
 export const ADMIN_TICKET_TOOLS = ['ringchannel', 'cms', 'kb'];
 const TICKET_TTL_MS = 5 * 60 * 1000;
-// Where inside a program or tool a link lands (?to=): a program's own Live Roleplay, the CMS Front Desk Drill, or the CMS
-// Call Simulator (to=calls: every platform's Call Simulator opens there, on the tab and line the link names, callsQuery),
-// or LSH Ring Channel's 🎧 Practice (to=aicall: an AI caller rings the trainee) or console (to=console: a trainer sends AI callers).
+// Where inside a program or tool a link lands (?to=): a program's own Live Roleplay, the CMS Front Desk Drill, or the
+// Call Simulator (to=calls: every platform's Call Simulator opens on LSH Ring Channel's 🎧 Practice, on the line the link
+// names, callsQuery), or Ring Channel's 🎧 Practice (to=aicall: an AI caller rings the trainee) or console (to=console: a
+// trainer sends AI callers).
 // Only these are allowed, and each only on its own tool, so a link can't send anyone anywhere else.
 // There is no blueprint landing: every blueprint link leads to the Portal's own 🧭 Blueprint page (/blueprint.html),
 // never into a program or a tool, so a link here can't send anyone to a program's deck.
-const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1', tool: 'cms' }, calls: { tool: 'cms' },
+const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1', tool: 'cms' }, calls: { hash: '#/practice', tool: 'ringchannel' },
     aicall: { hash: '#/practice', tool: 'ringchannel' }, console: { hash: '#/console', tool: 'ringchannel' } };
 function landing(to, isTool, params, tool) {
     const l = Object.prototype.hasOwnProperty.call(LANDINGS, to) ? LANDINGS[to] : null;
     if (!l || (l.tool && (!isTool || l.tool !== tool)) || (!l.tool && isTool && !(l.also || []).includes(tool))) return { query: '', hash: '' };
-    if (to === 'calls') return { query: '&' + callsQuery(params), hash: '' };
+    if (to === 'calls') { const q = callsQuery(params); return { query: q ? '&' + q : '', hash: l.hash }; }
     return { query: l.query || '', hash: l.hash || '' };
 }
-// The CMS Call Simulator's tab and line from a link (the Portal's /simulators/call.html, a course, a program):
-// ?flow= (standard, cms, reception, intake, calendaring, ea-pa, pd), ?program= (FT, CM, PD, EA), ?line= (a line's name),
-// and ?random=1 or ?mode=graded (a line's graded call: a random caller, unknown until the debrief).
-const CALL_FLOWS = ['standard', 'cms', 'reception', 'intake', 'calendaring', 'ea-pa', 'pd'];
+/* The Call Simulator's line from a link (the Portal's /simulators/call.html and Simulators page, a course, a program).
+   Every Call Simulator is LSH Ring Channel's: the calls are taken on the training phone itself, graded on the line's
+   Mock Calls Metrics, and each graded call goes back to the Portal's /api/call-results, so it counts in the trainee's
+   course exactly as before. What a link may say:
+     ?track=   reception | calendar | intake (Ring Channel's lines), or an older ?flow= (calendaring → calendar)
+     ?line=    the line's name ("Reception Mock Calls"), for a line a track name doesn't cover: Ring Channel reads it
+     ?program= FT, CM, PD or EA: the course the call counts in
+     ?random=1 or ?mode=graded → &graded=1: a graded call rings at once, with a caller unknown until the debrief. */
+const CALL_TRACKS = ['reception', 'calendar', 'intake'];
+const FLOW_TRACKS = { calendaring: 'calendar', calendars: 'calendar' };
+// The lines the courses name (Standard Training's three) are Ring Channel's own lines.
+const lineTrack = (line) => /calendar/i.test(line) ? 'calendar' : /intake/i.test(line) ? 'intake' : /reception|front desk/i.test(line) ? 'reception' : '';
+const CALL_PROGRAMS = ['FT', 'CM', 'PD', 'EA'];
 export function callsQuery(params) {
-    const q = new URLSearchParams({ calls: '1' });
-    const flow = String(params.get('flow') || '').trim().toLowerCase();
-    if (CALL_FLOWS.includes(flow)) q.set('flow', flow);
-    const program = String(params.get('program') || '').trim();
-    if (/^[A-Za-z][A-Za-z -]{0,30}$/.test(program)) q.set('program', program);
+    const q = new URLSearchParams();
+    const flow = String(params.get('track') || params.get('flow') || '').trim().toLowerCase();
     const line = String(params.get('line') || '').trim();
-    if (line && line.length <= 80 && !/^(all|core)$/i.test(line)) q.set('line', line);
-    if (params.get('random') === '1' || params.get('mode') === 'graded') q.set('mode', 'graded');
+    const track = CALL_TRACKS.includes(flow) ? flow : FLOW_TRACKS[flow] || (line.length <= 80 ? lineTrack(line) : '');
+    if (track) q.set('track', track);
+    else if (line && line.length <= 80 && !/^(all|core)$/i.test(line)) q.set('line', line);
+    const program = String(params.get('program') || '').trim().toUpperCase();
+    if (CALL_PROGRAMS.includes(program)) q.set('program', program);
+    if (params.get('random') === '1' || params.get('mode') === 'graded') q.set('graded', '1');
     return q.toString();
 }
 

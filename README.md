@@ -123,16 +123,28 @@ Every main page (Training Directory, Blueprint, Trainee Monitoring, Attendance, 
 
 ## ☎ LSH Ring Channel
 
-**☎ LSH Ring Channel** is its own site ([lshringchannel](https://github.com/team-litigation-lab/lshringchannel), `https://lshringchannel.legalsupporthelp.workers.dev/`): the training phone (VOIP in the browser) for trainer-led Reception, Calendar and Intake mock calls.
+**☎ LSH Ring Channel** is its own site ([lshringchannel](https://github.com/team-litigation-lab/lshringchannel), `https://lshringchannel.legalsupporthelp.workers.dev/`): the training phone (VOIP in the browser) for trainer-led Reception, Calendar and Intake mock calls, and **the home of the 📞 Call Simulator** — every program's mock calls are taken on this phone.
 - The trainer dials the trainee's desk extension and plays the caller.
 - Calls are recorded and graded on the program's Mock Calls Metrics.
 - Trainees can also practice with an AI caller.
 
-The Portal links to it from the Training Directory's banners, the home page's Simulators, the 🛠 Simulators hub and Master Control's menu, all through `/api/launch?tool=ringchannel`.
+### 📞 The Call Simulator is Ring Channel's
+
+Every Call Simulator link on the Portal, in a course and in a program opens the training phone, so a mock call is a real
+call on a real line instead of a panel in another platform: the phone rings on the line the link names (Reception and
+Calendar Management on the Main Line, Intake on the Intake Line), the trainee answers with a headset, uses the phone's own
+keys (mute, hold, transfer) and 🔎 Case lookup, and the call is graded on that line's Mock Calls Metrics.
+
+- **The address:** `/simulators/call.html` (and the Simulators hub's 📞 Call Simulator card) → `/api/launch?tool=ringchannel&to=calls` → Ring Channel's 🎧 Practice, signed in. A link may say which line and which course: `?track=reception|calendar|intake` (or `?line=<the line's name>`, or an older `?flow=calendaring`), `?program=FT|CM|PD|EA`, and `?random=1` / `?mode=graded` for a **graded call** — it rings at once with a caller the trainee doesn't see first (`callsQuery` in `functions/api/launch.js`).
+- **Graded calls still count in the course:** Ring Channel sends each one to this Portal's `/api/call-results` (server to server, header `X-Gateway-Key` = `AI_GATEWAY_SECRET`, `via: 'ringchannel'`), which keeps it on the trainee's Portal account and in the course's own store, exactly as the CMS's panel did. Standard Training counts a call by its lesson (Reception 4, Calendar Management 5, Intake 6), the other programs by their line. **Set `AI_GATEWAY_SECRET` on the Ring Channel Worker too** (the same value as here) or its graded calls stay on Ring Channel and never reach the course.
+- **The CMS's older 📞 Call Simulator panel** is still there and still reports its calls (`via: 'cms'`), so nothing already taken is lost; the Portal no longer sends anyone to it.
+- Tests: `.github/scripts/calls-route.mjs` (the route and what a link may carry), `.github/scripts/call-results.mjs` (the course's store).
+
+The Portal links to it from the Training Directory's banners, the home page's Simulators, the 🛠 Simulators hub (its 📞 Call Simulator card) and Master Control's menu, all through `/api/launch?tool=ringchannel`.
 
 Ring Channel has **no sign-in of its own**: everyone opens it from here.
 - **Trainees** land on their phone, signed in with the short-lived signed ticket (their name and batch). Any signed-in, approved trainee can open it (no program access to request).
-- **🤖 AI calls:** `?to=aicall` lands a trainee on Ring Channel's 🎧 Practice (an AI caller rings them), and `?to=console` lands a trainer on the console, where **🤖 AI caller** on the dialer sends one to a trainee. The 🛠 Simulators hub links both, on the Ring Channel card and the Call Simulator card.
+- **🤖 AI calls:** `?to=aicall` lands a trainee on Ring Channel's 🎧 Practice (an AI caller rings them), `?to=calls` the same with the Call Simulator's line and graded call from the link, and `?to=console` lands a trainer on the console, where **🤖 AI caller** on the dialer sends one to a trainee. The 🛠 Simulators hub links them on the 📞 Call Simulator card.
 - **Admins** land on its console as trainers, under their Portal name, with a ticket `{ r: 'a', n: name }`. Ring Channel is the only place an admin ticket signs anyone in (`ADMIN_TICKET_TOOLS` in `functions/api/launch.js`); every other platform still asks admins for the admin password.
 - **Checking tickets:** Ring Channel checks them with `PORTAL_SSO_SECRET` if it has the secret; otherwise it asks this Portal's `/api/verify-ticket` (which returns the admin's name), like the CMS. Each ticket works there only once.
 

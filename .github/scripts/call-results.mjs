@@ -1,5 +1,6 @@
-// Graded calls from the CMS Call Simulator count in the trainee's course (functions/api/call-results.js), on an in-memory
-// SQLite database and a stand-in for the courses' shared KV. Run: node --no-warnings .github/scripts/call-results.mjs
+// Graded calls from the Call Simulator count in the trainee's course (functions/api/call-results.js), on an in-memory
+// SQLite database and a stand-in for the courses' shared KV. The Call Simulator is LSH Ring Channel's (via=ringchannel);
+// the CMS's older panel sends them the same way (via=cms). Run: node --no-warnings .github/scripts/call-results.mjs
 import { DatabaseSync } from 'node:sqlite';
 import { onRequestPost, onRequestGet, courseTraineeId } from '../../functions/api/call-results.js';
 import { createSessionToken } from '../../functions/_utils.js';
@@ -31,7 +32,7 @@ const call = (over) => Object.assign({ id: 'ft_cal_depo', program: 'FT', line: '
 // the course Workers' trainee id (worker.js candidateIds)
 if (courseTraineeId('Ana', 'Cruz', 'B1') !== 'ana-cruz--b1' || courseTraineeId('José', 'Núñez', 'B300926') !== 'jose-nunez--b300926' || courseTraineeId('Jamie', 'Cruz', '') !== 'jamie-cruz') fail('the course trainee id doesn\'t match the courses\' (slug of "first last" -- batch)');
 
-// 1. only the CMS (the shared secret)
+// 1. only a Call Simulator with the shared secret
 let r = await post({ first: 'Jamie', last: 'Cruz', batch: 'B100526', call: call() }, 'wrong');
 if (r.status !== 401) fail(`a wrong key got ${r.status}`);
 r = await post({ first: 'Jamie', last: 'Cruz', batch: 'B100526', call: call() }, 'gw-secret', { ...env, AI_GATEWAY_SECRET: '' });
@@ -40,15 +41,19 @@ r = await post({ first: 'Jamie', last: 'Cruz', batch: 'B100526', call: call({ pr
 if (r.status !== 400) fail(`an unknown program got ${r.status}`);
 
 // 2. a Standard Training graded call: the Portal's simulator results on Jamie's account, and FT's store by lesson
-r = await post({ first: 'Jamie', last: 'Cruz', batch: 'B100526', username: 'jamie.cruz', call: call() });
+r = await post({ first: 'Jamie', last: 'Cruz', batch: 'B100526', username: 'jamie.cruz', via: 'ringchannel', call: call() });
 const ftKey = 'ft:callsim:jamie-cruz--b100526';
 if (r.status !== 200 || !r.data.success || r.data.username !== 'jcruz' || !r.data.course || r.data.course.key !== ftKey) fail(`the FT call wasn't saved: ${r.status} ${JSON.stringify(r.data)}`);
 const row = sql.prepare(`SELECT * FROM simulator_results ORDER BY id DESC LIMIT 1`).get();
-if (!row || row.username !== 'jcruz' || row.simulator !== 'Call Simulator' || row.score !== 82 || !/"via":"cms"/.test(row.details) || !/"lesson":5/.test(row.details)) fail(`the simulator result is wrong: ${JSON.stringify(row)}`);
+if (!row || row.username !== 'jcruz' || row.simulator !== 'Call Simulator' || row.score !== 82 || !/"via":"ringchannel"/.test(row.details) || !/"lesson":5/.test(row.details)) fail(`the simulator result is wrong: ${JSON.stringify(row)}`);
+// a call from the CMS's older panel, and an unknown sender, are kept as the CMS's
+r = await post({ first: 'Jamie', last: 'Cruz', batch: 'B100526', via: 'nonsense', call: call({ id: 'ft_cal_old', score: 55 }) });
+const old1 = sql.prepare(`SELECT * FROM simulator_results ORDER BY id DESC LIMIT 1`).get();
+if (!old1 || !/"via":"cms"/.test(old1.details)) fail(`a call from an unknown sender should be kept as the CMS's: ${JSON.stringify(old1)}`);
 await post({ first: 'jamie', last: 'cruz', batch: 'B100526', call: call({ id: 'ft_cal_prep', score: 64, at: '2026-10-05T11:00:00.000Z' }) });
 await post({ first: 'Jamie', last: 'Cruz', batch: 'B100526', call: call({ id: 'ft_rc_appt', line: 'Reception Mock Calls', lesson: 4, score: 90 }) });
 const ft = JSON.parse(kv.get(ftKey) || 'null');
-if (!ft || ft.traineeId !== 'jamie-cruz--b100526' || ft.calls.length !== 3 || JSON.stringify(ft.best.lesson5 && [ft.best.lesson5.score, ft.best.lesson5.calls]) !== '[82,2]' || !ft.best.lesson4 || ft.best.lesson4.score !== 90) fail(`FT's store by lesson is wrong: ${JSON.stringify(ft)}`);
+if (!ft || ft.traineeId !== 'jamie-cruz--b100526' || ft.calls.length !== 4 || JSON.stringify(ft.best.lesson5 && [ft.best.lesson5.score, ft.best.lesson5.calls]) !== '[82,3]' || !ft.best.lesson4 || ft.best.lesson4.score !== 90) fail(`FT's store by lesson is wrong: ${JSON.stringify(ft)}`);
 
 // 3. other programs by line, under their course's prefix; an EA / PA trainee on an older id (the alias)
 await post({ first: 'Jamie', last: 'Cruz', batch: 'B100526', call: call({ id: 'pd_cs_intake', program: 'PD', line: 'Claim Setup', lesson: null, score: 71 }) });
@@ -64,7 +69,7 @@ if (r.data.username !== 'cms:pat.lee' || !kv.has('ft:callsim:pat-lee--b9')) fail
 // 4. an Admin lists them
 const tok = await createSessionToken({ username: 'boss', userType: 'Admin', fullName: 'Tina Trainer', batchId: 'B1' }, env.SESSION_SECRET);
 const g = await (await onRequestGet({ request: new Request('https://portal.test/api/call-results', { headers: { cookie: `lsh_session=${tok}` } }), env })).json();
-if (!g.success || g.results.length !== 6) fail(`an Admin's list of graded calls: ${JSON.stringify(g).slice(0, 200)}`);
+if (!g.success || g.results.length !== 7) fail(`an Admin's list of graded calls: ${JSON.stringify(g).slice(0, 200)}`);
 
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-console.log('Call results test passed (only the CMS; the trainee\'s Portal results; each course\'s store by lesson or line, with its prefix and id; the EA / PA alias).');
+console.log('Call results test passed (only a Call Simulator with the shared secret; Ring Channel\'s and the CMS\'s; the trainee\'s Portal results; each course\'s store by lesson or line, with its prefix and id; the EA / PA alias).');
