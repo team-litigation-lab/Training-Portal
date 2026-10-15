@@ -164,19 +164,30 @@
    .first-screen shows through all three continuously. */
 /* The ramp is held at 78% rather than painted solid, so the office photo on
    the body (index.html, behind its cream wash) reads through the first screen
-   as texture instead of being hidden by it. Same five stops, same tones — only
-   the cover changes. The alpha goes on the gradient and NOT on a background-
-   colour underneath: two translucent layers on one box multiply back to
-   opaque, which is the whole effect gone. */
+   as texture instead of being hidden by it. The alpha goes on the gradient and
+   NOT on a background-colour underneath: two translucent layers on one box
+   multiply back to opaque, which is the whole effect gone.
+   The five stops are bluer than the solid ramp they replace — red pulled down,
+   blue pushed up, same five positions. A translucent navy over a warm, largely
+   neutral photo composites toward grey, which drained the brand colour out of
+   the screen; oversaturating the stops is what pays that back, so what lands on
+   the glass is the navy the solid version read as. The mobile block below keeps
+   the original hexes precisely because nothing shows through there to drain.
+   The alpha closes back to opaque over the last stretch, and the final stop is
+   the band's own #132a5c again. Letting the photo through to the very bottom
+   edge lifted it clear of the solid "Meet the training team" band beneath, and
+   the step that put back across the full width is the one thing this ramp was
+   shaped to avoid. The photo reads where it is worth reading — the hero and the
+   cards — and the screen still hands off to the band without a seam. */
 .first-screen {
     position: relative;
     background-color: transparent;
     background-image: linear-gradient(170deg,
-        rgba(8, 18, 38, .78) 0%,
-        rgba(10, 24, 54, .78) 32%,
-        rgba(16, 39, 90, .78) 56%,
-        rgba(26, 58, 120, .78) 78%,
-        rgba(19, 42, 92, .78) 100%);
+        rgba(6, 16, 48, .78) 0%,
+        rgba(7, 24, 74, .78) 32%,
+        rgba(10, 40, 112, .78) 56%,
+        rgba(16, 62, 150, .86) 78%,
+        #132a5c 100%);
 }
 /* index.html drops the photo below 860px, so there is nothing to show through
    and a translucent ramp would only let the cream lift it: solid again. */
