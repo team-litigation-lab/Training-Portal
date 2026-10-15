@@ -144,14 +144,14 @@ function shellHtml(){
     <div class="gm-progress"><i style="width:${Math.round(handled/Math.max(total,1)*100)}%"></i></div>
     <div class="gm-body">
       <nav class="gm-nav"><button class="gm-compose" disabled title="Not needed for this exercise">${WS_ICON.pencil} Compose</button>
-        ${WS_FOLDERS.map(f=>`<button class="gm-folder ${f.sub?'two':''} ${W.folder===f.id?'on':''}" onclick="wsFolder('${f.id}')">${WS_ICON[f.icon]}<span>${f.name}${f.sub?`<small>${f.sub}</small>`:''}</span><em>${f.id==='inbox' ? (unreadIn||'') : (counts[f.id]||'')}</em></button>`).join('')}
+        ${WS_FOLDERS.map(f=>`<button class="gm-folder ${f.sub?'two':''} ${W.folder===f.id?'on':''}" onclick="wsFolder('${f.id}')" ondragenter="wsDragOver(event,'folder','${f.id}')" ondragover="wsDragOver(event,'folder','${f.id}')" ondragleave="wsDragLeave(event)" ondrop="wsDrop(event,'folder','${f.id}')">${WS_ICON[f.icon]}<span>${f.name}${f.sub?`<small>${f.sub}</small>`:''}</span><em>${f.id==='inbox' ? (unreadIn||'') : (counts[f.id]||'')}</em></button>`).join('')}
         <div class="gm-lblhead">Labels <button title="Create new label" onclick="wsNewLabel()">+</button></div>
-        ${lblTree(null).map(({l,depth})=>`<button class="gm-lbl ${W.folder==='label:'+l.id?'on':''}" style="padding-left:${16+depth*16}px" onclick="wsFolder('label:${l.id}')" title="${esc(lblPath(l.id))}"><i style="background:${l.color}"></i><span>${esc(l.name)}</span><em>${lc[l.id]||''}</em></button>`).join('')}
+        ${lblTree(null).map(({l,depth})=>`<button class="gm-lbl ${W.folder==='label:'+l.id?'on':''}" style="padding-left:${16+depth*16}px" onclick="wsFolder('label:${l.id}')" ondragenter="wsDragOver(event,'label','${l.id}')" ondragover="wsDragOver(event,'label','${l.id}')" ondragleave="wsDragLeave(event)" ondrop="wsDrop(event,'label','${l.id}')" title="${esc(lblPath(l.id))} — drop emails here to file them"><i style="background:${l.color}"></i><span>${esc(l.name)}</span><em>${lc[l.id]||''}</em></button>`).join('')}
       </nav>
       <section class="gm-main">${open ? readerHtml(open) : listHtml()}</section>
     </div>
     <div class="gm-legend">
-      <span><b>Do:</b> Reply or ⭐</span><span><b>Schedule:</b> 🕒 Snooze</span><span><b>Delegate:</b> ↪ Forward</span><span><b>Defer:</b> Archive / 🗑</span><span><b>Suspicious:</b> 🚩 Report</span><span><b>File:</b> 🏷 Label</span>
+      <span><b>Do:</b> Reply or ⭐</span><span><b>Schedule:</b> 🕒 Snooze</span><span><b>Delegate:</b> ↪ Forward</span><span><b>Defer:</b> Archive / 🗑</span><span><b>Suspicious:</b> 🚩 Report</span><span><b>File:</b> 🏷 Label</span><span class="gm-dnd"><b>🖱 Drag</b> an email onto a folder or label</span>
       <span>⌨ <span class="gm-kbd">j</span>/<span class="gm-kbd">k</span> · <span class="gm-kbd">o</span> open · <span class="gm-kbd">u</span> back · <span class="gm-kbd">e</span> archive · <span class="gm-kbd">#</span> delete · <span class="gm-kbd">s</span> star · <span class="gm-kbd">b</span> snooze · <span class="gm-kbd">f</span> forward · <span class="gm-kbd">r</span> reply · <span class="gm-kbd">l</span> label · <span class="gm-kbd">!</span> report · <span class="gm-kbd">z</span> undo</span>
       <span class="gm-submit">${handled}/${total} handled · ${filed}/${total} filed ${ready ? `<button class="sim-btn primary" onclick="wsSubmit()">Submit for grading</button>` : ''}</span>
     </div>
@@ -169,7 +169,7 @@ function listHtml(){
     body = inInbox && !W.search ? `<div class="gm-done"><div class="sun">☀️</div><b>You're all done!</b><div>Nothing in Inbox — that's Inbox Zero.</div>${allDone && !unfiled ? `<button class="sim-btn primary" style="margin-top:12px;" onclick="wsSubmit()">Submit for grading</button>` : (unfiled ? `<div style="margin-top:8px;color:#b06000;">${unfiled} email${unfiled>1?'s':''} still need a label — find them in the other folders.</div>` : '')}</div>`
       : `<div class="gm-empty">${W.search ? 'No messages matched your search.' : 'No conversations here.'}</div>`;
   }else body = rows.map((e,i)=>{ const n = nm(e.from), m = W.meta[e.id], live = !m;
-    return `<div class="gm-row ${W.read[e.id]?'':'unread'} ${W.focus===i?'focus':''} ${W.sel[e.id]?'sel':''}" onclick="wsOpen('${e.id}')">
+    return `<div class="gm-row ${W.read[e.id]?'':'unread'} ${W.focus===i?'focus':''} ${W.sel[e.id]?'sel':''}" onclick="wsOpen('${e.id}')" draggable="true" ondragstart="wsDragStart(event,'${e.id}')" ondragend="wsDragEnd()" title="Drag onto a folder or a label on the left">
       <input type="checkbox" class="gm-chk" ${W.sel[e.id]?'checked':''} onclick="event.stopPropagation();wsSelect('${e.id}',this.checked)" aria-label="Select">
       <button class="gm-ib gm-star ${m&&m.action==='star'?'on':''}" onclick="event.stopPropagation();${live?`wsAct(['${e.id}'],'star')`:''}">${m&&m.action==='star'?WS_ICON.starOn:WS_ICON.star}</button>
       <div class="gm-from">${esc(n.name)}</div>
@@ -287,6 +287,66 @@ function wsKeyDown(ev){
   else hit = false;
   if(hit){ ev.preventDefault(); ev.stopPropagation(); }
 }
+/* ---------- drag and drop (drag emails onto a folder or a label) ----------
+   Mouse and pen only: HTML5 drag events don't fire on touch, so every drop here
+   is also reachable from the row buttons, the toolbar and the keyboard. */
+let WS_DRAG = null;
+function wsDragStart(ev, id){
+  const selected = visible().filter(e=>W.sel[e.id]).map(e=>e.id);
+  const ids = (W.sel[id] && selected.length) ? selected : [id];
+  WS_DRAG = {ids};
+  try{
+    ev.dataTransfer.effectAllowed = 'move';
+    const e0 = W.emails.find(x=>x.id===ids[0]);
+    ev.dataTransfer.setData('text/plain', ids.length>1 ? `${ids.length} conversations` : (e0 ? e0.subject : ''));
+    if(ids.length>1){
+      const g = document.createElement('div'); g.className = 'gm-drag-ghost'; g.id = 'wsGhost';
+      g.textContent = `${ids.length} conversations`; document.body.appendChild(g);
+      ev.dataTransfer.setDragImage(g, 12, 12);
+    }
+  }catch(err){}
+  document.body.classList.add('gm-dragging');
+  ids.forEach(i=>{ const r = document.querySelector(`#wsZone .gm-row[ondragstart*="'${i}'"]`); if(r) r.classList.add('dragging'); });
+}
+function wsDragEnd(){
+  WS_DRAG = null; document.body.classList.remove('gm-dragging');
+  const g = document.getElementById('wsGhost'); if(g) g.remove();
+  document.querySelectorAll('#wsZone .dragging, #wsZone .drop, #wsZone .nodrop').forEach(el=>el.classList.remove('dragging','drop','nodrop'));
+}
+// Which of the dragged emails a drop would act on ([] means "not here").
+function wsDropIds(kind, key){
+  if(!WS_DRAG) return [];
+  const ids = WS_DRAG.ids;
+  if(kind==='label') return ids;
+  if(key==='inbox') return ids.filter(id=>W.meta[id]);          // undo a decision
+  if(key==='forwarded') return ids.filter(id=>!W.meta[id]).slice(0,1); // a handoff note, one at a time
+  return ids.filter(id=>!W.meta[id]);                            // a fresh decision
+}
+function wsDragOver(ev, kind, key){
+  if(!WS_DRAG) return;
+  const t = ev.currentTarget, ok = wsDropIds(kind, key).length > 0;
+  t.classList.toggle('drop', ok); t.classList.toggle('nodrop', !ok);
+  ev.dataTransfer.dropEffect = ok ? 'move' : 'none';
+  if(ok) ev.preventDefault();  // only an allowed target accepts the drop
+}
+function wsDragLeave(ev){ ev.currentTarget.classList.remove('drop','nodrop'); }
+function wsDrop(ev, kind, key){
+  ev.preventDefault(); ev.stopPropagation();
+  const ids = wsDropIds(kind, key), many = WS_DRAG ? WS_DRAG.ids.length : 0;
+  wsDragEnd();
+  if(!ids.length) return;
+  W.sel = {};
+  if(kind==='label'){ W.menu = {type:'label', ids}; wsSetLabel(key); return; }
+  if(key==='inbox'){ wsToInbox(ids); return; }
+  if(key==='snoozed'){ wsSnoozeMenu(ids); return; }            // Gmail asks for a time
+  if(key==='forwarded'){
+    if(many>1) snack('Forward one email at a time — a handoff needs its own note.', false, 5000);
+    wsCompose(ids[0], 'forward'); return;
+  }
+  const action = {starred:'star', archive:'archive', trash:'trash', spam:'report'}[key];
+  if(action) wsAct(ids, action);
+}
+
 /* ---------- grading ---------- */
 async function wsSubmit(){
   const total = W.emails.length;
