@@ -123,12 +123,11 @@
     .sim-banner:hover { transform: translateY(-2px); }
     .sim-banner-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
     .sim-banner-row .sim-banner { margin-bottom: 0; padding: 10px 12px; gap: 10px; border-radius: 14px; }
-    /* Two lines, with the rest on the title attribute — these are signposts to
-       four tools, not the tools' documentation, and at four lines each they
-       pushed the actual programs off the screen. */
-    .sim-banner-row .sim-banner-tx span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 11.5px; line-height: 1.35; }
-    .sim-banner-row .sim-banner-ic { width: 34px; height: 34px; border-radius: 10px; font-size: 17px; }
-    .sim-banner-row .sim-banner-tx b { font-size: 13px; line-height: 1.25; margin-bottom: 1px; }
+    /* The name alone — these are signposts to four tools, not the tools'
+       documentation. The blurb lives on the title attribute, so it is still
+       one hover away, and the name gets the room it used to take. */
+    .sim-banner-row .sim-banner-ic { width: 38px; height: 38px; border-radius: 10px; font-size: 19px; }
+    .sim-banner-row .sim-banner-tx b { font-size: 16px; line-height: 1.25; }
     .sim-banner-row .sim-banner-go { font-size: 10.5px; padding: 6px 10px; }
     @media (max-width: 1150px) { .sim-banner-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 620px) { .sim-banner-row { grid-template-columns: 1fr; } }
@@ -191,8 +190,8 @@
         .idx-head h1 { font-size: clamp(17px, 1.5vw, 20px); }
         .sim-banner-row { gap: 8px; margin-bottom: 8px; }
         .sim-banner-row .sim-banner { padding: 7px 10px; gap: 9px; }
-        .sim-banner-row .sim-banner-ic { width: 30px; height: 30px; font-size: 15px; }
-        .sim-banner-row .sim-banner-tx span { -webkit-line-clamp: 1; }
+        .sim-banner-row .sim-banner-ic { width: 32px; height: 32px; font-size: 16px; }
+        .sim-banner-row .sim-banner-tx b { font-size: 14.5px; }
         .topic-group { margin-bottom: 9px; }
         .topic-group-head { margin-bottom: 5px; padding-bottom: 3px; }
         .topic-group-head h2 { font-size: 14px; }
@@ -251,22 +250,22 @@
     <div class="sim-banner-row">
     <a class="sim-banner" href="/simulators.html">
         <span class="sim-banner-ic">🛠</span>
-        <span class="sim-banner-tx" title="SimulatorsCalls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>Simulators</b><span>Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way.</span></span>
+        <span class="sim-banner-tx" title="Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>Simulators</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" href="/kb.html">
         <span class="sim-banner-ic">📚</span>
-        <span class="sim-banner-tx" title="Knowledge BaseOfficial SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know."><b>Knowledge Base</b><span>Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know.</span></span>
+        <span class="sim-banner-tx" title="Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know."><b>Knowledge Base</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="ring-banner" href="/api/launch?tool=ringchannel" target="_blank" rel="noopener">
         <span class="sim-banner-ic">☎</span>
-        <span class="sim-banner-tx" title="LSH Ring ChannelMock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal."><b>LSH Ring Channel</b><span>Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal.</span></span>
+        <span class="sim-banner-tx" title="Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal."><b>LSH Ring Channel</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="cms-banner" href="/api/launch?tool=cms" target="_blank" rel="noopener">
         <span class="sim-banner-ic">🗂</span>
-        <span class="sim-banner-tx" title="Case Management SystemThe practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer."><b>Case Management System</b><span>The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer.</span></span>
+        <span class="sim-banner-tx" title="The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer."><b>Case Management System</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     </div>
