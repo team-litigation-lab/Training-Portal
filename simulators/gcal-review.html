@@ -18,9 +18,9 @@
     .rv-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px 16px; min-width: 0; overflow-wrap: anywhere; }   /* a long address or link in a description wraps instead of widening the page */
     .rv-list { max-height: calc(100vh - 220px); overflow: auto; }
     .rv-row { display: block; width: 100%; text-align: left; font: inherit; color: inherit; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 10px; margin: 6px 0; cursor: pointer; background: #fff; }   /* a button: Tab reaches it, Enter and Space open it */
-    .rv-row:hover { border-color: #94a3b8; } .rv-row.on { border-color: #0b57d0; box-shadow: 0 0 0 2px #c2e7ff; } .rv-row.new { animation: rvNew 2.4s ease-out; }
+    .rv-row:hover { border-color: #334155; } .rv-row.on { border-color: #0b57d0; box-shadow: 0 0 0 2px #c2e7ff; } .rv-row.new { animation: rvNew 2.4s ease-out; }
     @keyframes rvNew { from { background: #fff7d6; } to { background: #fff; } }
-    .rv-row b { font-size: 14px; } .rv-sub { font-size: 12px; color: #64748b; } .rv-blk { display: block; }
+    .rv-row b { font-size: 14px; } .rv-sub { font-size: 12px; color: #334155; } .rv-blk { display: block; }
     .rv a:focus-visible, .rv button:focus-visible, .rv select:focus-visible, .rv textarea:focus-visible, .rv input:focus-visible, .rv summary:focus-visible { outline: 2px solid #0b57d0; outline-offset: 2px; }
     .rv h2:focus { outline: none; }
     .rv-banner:empty { display: none; }
@@ -33,7 +33,7 @@
     .rv-l { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.5; } .rv-l li { margin: 4px 0; animation: rvIn .45s ease-out both; }
     @keyframes rvIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
     .rv-l.ok li::marker { color: #188038; } .rv-l.mid li::marker { color: #e37400; } .rv-l.no li::marker { color: #d93025; }
-    .rv-none { color: #64748b; font-size: 13px; margin: 2px 0; }
+    .rv-none { color: #334155; font-size: 13px; margin: 2px 0; }
     .rv-wait { display: flex; align-items: center; gap: 10px; padding: 14px; background: #f8fafc; border-radius: 10px; color: #334155; }
     .rv-spin { width: 18px; height: 18px; border: 3px solid #c2e7ff; border-top-color: #0b57d0; border-radius: 50%; animation: rvSpin 1s linear infinite; }
     @keyframes rvSpin { to { transform: rotate(360deg); } }
@@ -44,7 +44,7 @@
     .rv .btn { border: 1px solid transparent; border-radius: 10px; padding: 8px 14px; font: inherit; font-weight: 700; font-size: 13.5px; cursor: pointer; }
     .rv .btn-navy { background: #0b1633; color: #fff; } .rv .btn-orange { background: #f97316; color: #fff; } .rv .btn-ghost { background: #fff; color: #0b1633; border-color: #cbd5e1; }
     .rv .btn:disabled { opacity: .5; cursor: not-allowed; }
-    .rv-saved { font-size: 12.5px; color: #64748b; }
+    .rv-saved { font-size: 12.5px; color: #334155; }
     .rv-tw { overflow-x: auto; }
     .rv table { width: 100%; border-collapse: collapse; font-size: 12.5px; } .rv td, .rv th { border-top: 1px solid #e5e7eb; padding: 5px 6px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
     .rv details summary { cursor: pointer; font-weight: 700; font-size: 13.5px; margin: 10px 0 4px; }
@@ -53,7 +53,7 @@
     /* the trainee's calendar, read only: Monday to Friday, 7 AM to 7 PM (Eastern) */
     .wk { border: 1px solid #dadce0; border-radius: 10px; overflow: hidden; background: #fff; }
     .wk-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #dadce0; font-size: 14px; flex-wrap: wrap; }
-    .wk-bar b { flex: 1; } .wk-key { font-size: 12px; color: #64748b; } .wk-key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin: 0 3px 0 8px; }
+    .wk-bar b { flex: 1; } .wk-key { font-size: 12px; color: #334155; } .wk-key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin: 0 3px 0 8px; }
     .wk-head, .wk-body { display: grid; grid-template-columns: 52px repeat(5, minmax(0, 1fr)); }
     .wk-head div { text-align: center; font-size: 12px; color: #70757a; padding: 6px 0; border-left: 1px solid #eee; } .wk-head div.today b { background: #0b57d0; color: #fff; border-radius: 50%; width: 30px; height: 30px; line-height: 30px; margin: 0 auto; }
     .wk-head b { display: block; font-size: 17px; color: #1f1f1f; font-weight: 500; }

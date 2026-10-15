@@ -5,7 +5,7 @@
         --navy-deep:#081226;
         --navy-mid:#132a5c;
         --orange:#f97316;
-        --slate:#64748b;
+        --slate:#334155;
         --paper:#f8fafc;
         --classified-red:#b91c1c;
         --success:#166534;
@@ -95,7 +95,7 @@
     /* placeholders — single, non-flickering, CSS-driven */
     [contenteditable="true"]:empty:before {
         content: attr(data-ph);
-        color: #94a3b8;
+        color: #334155;
         font-style: italic;
         font-weight: 400;
     }
@@ -142,7 +142,7 @@
     }
     [contenteditable="true"]:focus { background: #ffffff; border-color: var(--orange); box-shadow: 0 0 0 2px rgba(249,115,22,0.12); }
 
-    label { font-size: 10px !important; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; display: block; letter-spacing: 0.05em; }
+    label { font-size: 10px !important; font-weight: 800; color: #334155; text-transform: uppercase; margin-bottom: 6px; display: block; letter-spacing: 0.05em; }
 
     /* "Contact" label: darker navy blue by default; shifts to a lighter blue for contrast if a background photo is active */
 
@@ -150,7 +150,7 @@
     select.prof-input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
 
     .treat-table { width: 100%; border-collapse: collapse; }
-    .treat-table th { background: #f8fafc; text-align: left; font-size: 10px; text-transform: uppercase; color: #64748b; padding: 12px; border-bottom: 2px solid #e2e8f0; letter-spacing:0.04em; }
+    .treat-table th { background: #f8fafc; text-align: left; font-size: 10px; text-transform: uppercase; color: #334155; padding: 12px; border-bottom: 2px solid #e2e8f0; letter-spacing:0.04em; }
     .treat-table td { padding: 12px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
     .treat-table tbody tr { transition: background 0.12s ease; }
     .treat-table tbody tr:hover { background: #fafaf9; }
@@ -190,7 +190,7 @@
     .stat-icon-badge.green { background: linear-gradient(135deg, #15803d, #22c55e); }
     .stat-icon-badge.red { background: linear-gradient(135deg, #b91c1c, #ef4444); }
     .stat-card-v2 .val { font-size: 20px; font-weight: 800; color: var(--navy); line-height: 1.1; }
-    .stat-card-v2 .lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #94a3b8; margin-top: 2px; }
+    .stat-card-v2 .lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #334155; margin-top: 2px; }
 
     /* ===== DASHBOARD SECTION CARD (replaces bare .pdf-card in dashboard views) ===== */
     .dash-card { background: #fff; border-radius: 18px; padding: 22px; border: 1px solid rgba(15,33,72,0.06); box-shadow: 0 6px 18px rgba(15,33,72,0.05); }
@@ -207,7 +207,7 @@
     .side-nav-btn {
         width: 100%; text-align: left; padding: 12px 16px; border-radius: 12px; font-weight: 700; font-size: 12px;
         text-transform: uppercase; letter-spacing: 0.02em; transition: background 0.15s ease, color 0.15s ease;
-        display: flex; align-items: center; gap: 10px; border: none; cursor: pointer; background: none; color: #94a3b8;
+        display: flex; align-items: center; gap: 10px; border: none; cursor: pointer; background: none; color: #cbd5e1;
     }
     .side-nav-btn:hover { background: rgba(255,255,255,0.06); color: #fff; }
     .side-nav-btn.active { background: rgba(249,115,22,0.14); color: var(--orange, #f97316); }
@@ -223,7 +223,7 @@
        space-between has only one child left to work with. */
     .top-bar-right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
     .top-ticker-mini {
-        display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: #64748b;
+        display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: #334155;
         max-width: 340px; overflow: hidden; white-space: nowrap;
     }
     .top-ticker-mini .tag { font-weight: 800; color: var(--orange, #f97316); text-transform: uppercase; font-size: 10px; flex-shrink: 0; }
@@ -232,9 +232,15 @@
         width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--navy), var(--navy-mid));
         color: var(--orange); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; flex-shrink: 0;
     }
-    .top-user-name { font-size: 12.5px; font-weight: 700; color: var(--navy); line-height: 1.2; }
-    .top-user-role { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.03em; }
-    .top-clock { font-size: 11px; color: #94a3b8; font-weight: 600; white-space: nowrap; }
+    /* .top-bar-modern declares a white background, but core.html gives that
+       same element id="classification-bar", and the ID rule above paints it
+       --navy-deep — so everything in this bar is read off navy, not paper.
+       These were navy and slate on navy: the name measured 1.18:1. */
+    .top-user-name { font-size: 12.5px; font-weight: 700; color: #ffffff; line-height: 1.2; }
+    .top-user-role { font-size: 10px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.03em; }
+    .top-clock { font-size: 11px; color: #cbd5e1; font-weight: 600; white-space: nowrap; }
+    #classification-bar a { color: #cbd5e1; }
+    #classification-bar select { color: #fdba74; }
 
     .add-btn {
         background: var(--orange) !important;
@@ -282,7 +288,7 @@
     #agency-seal span { font-size: 40px !important; }
     #agency-seal img { width: 100%; height: 100%; object-fit: contain; aspect-ratio: 1 / 1; }
 
-    .session-user-tag { text-align:center; font-size:10.5px; line-height:1.45; color:#94a3b8; margin-bottom:8px; font-family:'IBM Plex Mono','Courier New',monospace; }
+    .session-user-tag { text-align:center; font-size:10.5px; line-height:1.45; color:#334155; margin-bottom:8px; font-family:'IBM Plex Mono','Courier New',monospace; }
     .session-user-tag b { color:#cbd5e1; font-size:10.5px; font-weight:700; }
 
     /* ===== MODALS ===== */
@@ -301,7 +307,7 @@
     @keyframes modalPop { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
     .modal-box.wide { width: 560px; }
     .modal-box h2 { font-family:'IBM Plex Mono', 'Courier New', monospace; font-size:19px; font-weight:800; margin:0 0 4px; }
-    .modal-box .sub { font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:18px; }
+    .modal-box .sub { font-size:11px; color:#334155; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:18px; }
     .modal-box input[type=text], .modal-box input[type=password] {
         width:100%; padding:10px 12px; border:1px solid #e2e8f0; border-radius:10px;
         font-family:'IBM Plex Mono', 'Courier New', monospace; font-size:13px; margin-bottom:12px; outline:none;
@@ -317,16 +323,16 @@
     .modal-btn-row button:active { transform: scale(0.97); }
     .btn-primary { background: var(--navy); color: var(--orange); }
     .btn-primary:hover { background: var(--navy-deep); }
-    .btn-ghost { background: #f1f5f9; color:#64748b; }
+    .btn-ghost { background: #f1f5f9; color:#334155; }
     .btn-ghost:hover { background:#e2e8f0; }
     #admin-error { color:var(--classified-red); font-size:11px; font-weight:700; margin-bottom:8px; display:none; }
 
     .admin-panel-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:6px; }
     .admin-tile { background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:16px; transition: box-shadow 0.2s ease; }
     .admin-tile:hover { box-shadow: 0 8px 20px rgba(15, 33, 72, 0.06); }
-    .admin-tile h4 { font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8; font-weight:800; margin:0 0 10px; }
+    .admin-tile h4 { font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:#334155; font-weight:800; margin:0 0 10px; }
     .admin-stat { font-family:'IBM Plex Mono', 'Courier New', monospace; font-size:22px; font-weight:800; color:var(--navy); }
-    .admin-stat-label { font-size:10px; color:#64748b; font-weight:700; text-transform:uppercase; }
+    .admin-stat-label { font-size:10px; color:#334155; font-weight:700; text-transform:uppercase; }
 
     /* ===== AUTH GATE (Login / Register) ===== */
     #auth-gate {
@@ -352,7 +358,7 @@
     }
     .auth-submit:hover { background: var(--auth-accent-hover); transform: translateY(-1px); }
     .auth-submit:active { transform: translateY(0) scale(0.98); }
-    .auth-switch { text-align:center; margin-top:16px; font-size:11px; color:#94a3b8; }
+    .auth-switch { text-align:center; margin-top:16px; font-size:11px; color:#334155; }
     .auth-switch a { color: var(--auth-accent); cursor:pointer; font-weight:700; text-decoration:underline; }
     .auth-msg { font-size:11px; font-weight:700; margin-bottom:12px; padding:10px 14px; border-radius:10px; display:none; }
     .auth-msg.error { background:rgba(185,28,28,0.15); color:#fca5a5; display:block; animation: msgPop .25s ease; }
@@ -393,7 +399,9 @@
     /* One admin screen: Master Control opens beside the admin menu (it no longer covers it), and its own header and tab row give way to that menu. */
     body.admin-merged #master-control-page { inset: 0 0 0 280px; }
     body.admin-merged #master-control-page .mc-header, body.admin-merged #master-control-page .mc-tabs { display:none; }
-    .admin-nav-group { font-size:9.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:#64748b; margin:14px 0 4px 4px; }
+    /* On the navy sidebar, not on paper: a muted grey here has to be lighter
+       than the surface, not darker. #94a3b8 reads 7.0:1 on --navy-deep. */
+    .admin-nav-group { font-size:9.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:#94a3b8; margin:14px 0 4px 4px; }
     .admin-nav-group:first-child { margin-top:0; }
     .admin-nav-badge:not(:empty) { background:#f97316; color:#fff; border-radius:999px; padding:1px 7px; font-size:10.5px; margin-left:auto; }
     a.side-nav-btn { display:flex; align-items:center; gap:10px; }
@@ -415,7 +423,7 @@
     .mc-tabs { display:flex; gap:2px; background:#e2e8f0; padding:0 20px; flex-shrink:0; overflow-x:auto; }
     .mc-tab {
         padding:13px 18px; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em;
-        color:#64748b; cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap; background:none; border-left:none;border-right:none;border-top:none;
+        color:#334155; cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap; background:none; border-left:none;border-right:none;border-top:none;
         transition: color .2s ease, border-color .2s ease;
     }
     .mc-tab.active { color: var(--orange); border-bottom-color: var(--orange); background:#f8fafc; }
@@ -429,7 +437,7 @@
     .status-pending { background:#fff7ed; color:#c2410c; }
     .status-approved { background:#f0fdf4; color:#166534; }
 
-    .status-closed { background:#f1f5f9; color:#64748b; }
+    .status-closed { background:#f1f5f9; color:#334155; }
 
     .mini-btn { font-size:10px; font-weight:800; text-transform:uppercase; padding:6px 12px; border-radius:5px; cursor:pointer; border:none; }
     .mini-btn.approve { background:#166534; color:white; }

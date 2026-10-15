@@ -103,6 +103,12 @@
     box-shadow: var(--glow-navy);
     transition: box-shadow .2s ease, transform .12s ease, filter .2s ease;
 }
+/* The ramp lightens these buttons to #1d3f86 at one end, where --orange
+   measures 3.55:1 — so an orange label on a navy body takes the soft orange,
+   which reads 5.91:1 at that same end and unchanged elsewhere. */
+.auth-submit,
+.sim-btn.primary,
+.topic-action-btn.primary { color: #fdba74; }
 .btn-navy:hover,
 .auth-submit:hover,
 .sim-btn.primary:hover,

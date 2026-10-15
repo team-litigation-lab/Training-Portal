@@ -50,7 +50,7 @@
             </div>
             <div class="top-clock">
                 <span id="live-clock">--:--:--</span>
-                <select id="tz-select" onchange="refreshClock()" style="border:none;background:none;color:#94a3b8;font-size:11px;font-weight:600;">
+                <select id="tz-select" onchange="refreshClock()" style="border:none;background:none;font-size:11px;font-weight:600;">
                     <option value="Asia/Manila">Manila (PHT)</option>
                     <option value="UTC">UTC</option>
                     <option value="America/New_York">New York (ET)</option>
@@ -60,8 +60,8 @@
             <!-- ?stay=1: functions/_middleware.js sends a signed-in person who asks
                  for /index.html on to /programs.html, so without it this button would
                  land an admin back on the Training Directory, not the landing page. -->
-            <a href="/index.html?stay=1" style="font-size:11.5px; font-weight:700; color:#64748b; text-decoration:none; white-space:nowrap;" title="The LSH Upskill Hub landing page">&#127968; Main Portal</a>
-            <a href="/programs.html" style="font-size:11.5px; font-weight:700; color:#64748b; text-decoration:none; white-space:nowrap;" title="Back to all programs">&larr; Training Index</a>
+            <a href="/index.html?stay=1" style="font-size:11.5px; font-weight:700; text-decoration:none; white-space:nowrap;" title="The LSH Upskill Hub landing page">&#127968; Main Portal</a>
+            <a href="/programs.html" style="font-size:11.5px; font-weight:700; text-decoration:none; white-space:nowrap;" title="Back to all programs">&larr; Training Index</a>
             <div class="top-user">
                 <div class="top-user-avatar" id="top-user-avatar">--</div>
                 <div>
@@ -180,20 +180,20 @@
                             <span class="font-bold" style="color:var(--orange);" id="trainee-progress-pct">—</span>
                         </div>
                         <div class="dash-progress-track mb-1"><div class="dash-progress-fill" style="width:0%; background:linear-gradient(90deg, var(--orange), #fb923c);" id="trainee-progress-bar"></div></div>
-                        <div class="text-[10px] text-slate-400 mb-5" id="trainee-progress-detail">Loading your progress...</div>
+                        <div class="text-[10px] text-slate-700 mb-5" id="trainee-progress-detail">Loading your progress...</div>
 
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-xs font-bold text-slate-500 uppercase">Batch Progress</span>
                             <span class="font-bold text-emerald-600" id="batch-progress-pct">—</span>
                         </div>
                         <div class="dash-progress-track"><div class="dash-progress-fill" style="width:0%; background:linear-gradient(90deg, #15803d, #22c55e);" id="batch-progress-bar"></div></div>
-                        <div class="text-[10px] text-slate-400 mt-1" id="batch-progress-detail">Loading batch progress...</div>
+                        <div class="text-[10px] text-slate-700 mt-1" id="batch-progress-detail">Loading batch progress...</div>
                     </div>
 
                     <div class="dash-card">
                         <div class="dash-card-head">
                             <h3>Batch Leaderboard</h3>
-                            <span class="dash-live-pill"><span class="dot"></span>Live<span id="leaderboard-updated" class="text-slate-400 font-normal normal-case" style="margin-left:4px;"></span></span>
+                            <span class="dash-live-pill"><span class="dot"></span>Live<span id="leaderboard-updated" class="text-slate-700 font-normal normal-case" style="margin-left:4px;"></span></span>
                         </div>
                         <table class="treat-table w-full">
                             <thead>
@@ -206,7 +206,7 @@
                                 </tr>
                             </thead>
                             <tbody id="leaderboard-body">
-                                <tr><td colspan="5" class="text-xs text-slate-400 p-4">Loading leaderboard...</td></tr>
+                                <tr><td colspan="5" class="text-xs text-slate-700 p-4">Loading leaderboard...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -248,7 +248,7 @@
                                 </tr>
                             </thead>
                             <tbody id="trainee-grades-body">
-                                <tr><td colspan="6" class="text-xs text-slate-400 p-4">Loading your submissions...</td></tr>
+                                <tr><td colspan="6" class="text-xs text-slate-700 p-4">Loading your submissions...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -306,7 +306,7 @@
                                 </tr>
                             </thead>
                             <tbody id="admin-progress-tracker-body">
-                                <tr><td colspan="5" class="text-xs text-slate-400 p-4">Loading trainee progress...</td></tr>
+                                <tr><td colspan="5" class="text-xs text-slate-700 p-4">Loading trainee progress...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -314,7 +314,7 @@
                     <div class="dash-card">
                         <div class="dash-card-head">
                             <h3>Live Leaderboard — All Trainees</h3>
-                            <span class="dash-live-pill"><span class="dot"></span>Live<span id="admin-leaderboard-updated" class="text-slate-400 font-normal normal-case" style="margin-left:4px;"></span></span>
+                            <span class="dash-live-pill"><span class="dot"></span>Live<span id="admin-leaderboard-updated" class="text-slate-700 font-normal normal-case" style="margin-left:4px;"></span></span>
                         </div>
                         <table class="treat-table w-full">
                             <thead>
@@ -327,7 +327,7 @@
                                 </tr>
                             </thead>
                             <tbody id="admin-leaderboard-body">
-                                <tr><td colspan="5" class="text-xs text-slate-400 p-4">Loading leaderboard...</td></tr>
+                                <tr><td colspan="5" class="text-xs text-slate-700 p-4">Loading leaderboard...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -346,7 +346,7 @@
                         <div class="text-xs text-slate-500 p-4">Loading decks &amp; activities...</div>
                     </div>
 
-                    <div id="admin-archive-panel" class="hidden pdf-card border-l-4 mt-6" style="border-left-color:#94a3b8;">
+                    <div id="admin-archive-panel" class="hidden pdf-card border-l-4 mt-6" style="border-left-color:#334155;">
                         <div class="section-head" style="background:#f8fafc; color:#475569;">Archived Activities</div>
                         <table class="treat-table w-full">
                             <thead>
@@ -359,7 +359,7 @@
                                 </tr>
                             </thead>
                             <tbody id="admin-archive-body">
-                                <tr><td colspan="5" class="text-xs text-slate-400 p-4">Loading archive...</td></tr>
+                                <tr><td colspan="5" class="text-xs text-slate-700 p-4">Loading archive...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -438,7 +438,7 @@
             <div class="sub" id="ad-day-label" style="margin-bottom:14px;">Day &mdash;</div>
 
             <div id="ad-action-row" class="flex gap-2 mb-4" style="flex-wrap:wrap;"></div>
-            <div id="ad-lock-notice" class="hidden text-[10px] text-slate-400 mb-3" style="margin-top:-8px;">This activity is locked from editing in its current status.</div>
+            <div id="ad-lock-notice" class="hidden text-[10px] text-slate-700 mb-3" style="margin-top:-8px;">This activity is locked from editing in its current status.</div>
 
             <label>Instructions</label>
             <textarea id="ad-instructions-input" rows="4" class="prof-input" style="width:100%; font-family:inherit; margin-bottom:12px;" placeholder="Instructions for the trainee..."></textarea>
@@ -465,7 +465,7 @@
             </div>
 
             <div id="ad-add-item-form" class="hidden admin-tile" style="text-align:left; margin-bottom:12px;">
-                <label style="font-size:10px; display:block; margin-bottom:4px;">Scenario <span style="text-transform:none; color:#94a3b8;">(case context, optional)</span></label>
+                <label style="font-size:10px; display:block; margin-bottom:4px;">Scenario <span style="text-transform:none; color:#334155;">(case context, optional)</span></label>
                 <textarea id="ad-item-scenario" rows="3" style="width:100%; margin-bottom:8px;" placeholder="Describe the situation the trainee is responding to..."></textarea>
                 <label style="font-size:10px; display:block; margin-bottom:4px;">Question</label>
                 <input type="text" id="ad-item-prompt" style="width:100%; margin-bottom:8px;" placeholder="What is the trainee being asked?">
@@ -551,7 +551,7 @@
         <div class="modal-box wide" style="max-height:88vh; overflow-y:auto;">
             <h2>Submission Details</h2>
             <div class="sub" id="my-submission-subtitle">Activity Title</div>
-            <div id="my-submission-meta" style="font-size:12px; color:#64748b; margin-bottom:14px;"></div>
+            <div id="my-submission-meta" style="font-size:12px; color:#334155; margin-bottom:14px;"></div>
             <div id="my-submission-answers" class="mb-4"></div>
             <div class="modal-btn-row">
                 <button class="btn-ghost" onclick="downloadSubmissionReport(Number(document.getElementById('modal-my-submission').dataset.submissionId))">Download Report</button>
@@ -644,7 +644,7 @@
             <!-- REGISTRATIONS -->
             <div class="mc-pane" id="admin-dash-registrations">
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;">
-                    <p style="font-size:11px;color:#64748b;margin:0;">Pending registrations, whether someone signed up on the login screen or a trainer set the account up here. Approve to move an account into the <b>Users</b> tab and issue its Batch ID.</p>
+                    <p style="font-size:11px;color:#334155;margin:0;">Pending registrations, whether someone signed up on the login screen or a trainer set the account up here. Approve to move an account into the <b>Users</b> tab and issue its Batch ID.</p>
                     <button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;flex-shrink:0;" onclick="openCreateUser()">+ Create account</button>
                 </div>
                 <div id="registrations-list"></div>
@@ -652,18 +652,18 @@
 
             <!-- USERS -->
             <div class="mc-pane" id="admin-dash-users">
-                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">All approved logins, grouped by batch (newest first). <b>Edit</b> changes a login's Batch ID, name, email, username or password; Suspend, Reactivate and Revoke are on each row.</p>
+                <p style="font-size:11px;color:#334155;margin-bottom:14px;">All approved logins, grouped by batch (newest first). <b>Edit</b> changes a login's Batch ID, name, email, username or password; Suspend, Reactivate and Revoke are on each row.</p>
                 <div id="users-list"></div>
             </div>
 
             <!-- MONITORING -->
             <div class="mc-pane" id="admin-dash-monitoring">
                 <div class="mc-section-title">🟢 Users Online</div>
-                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Live view of every Admin and Trainee currently signed in to this page, separated by type and sorted by the B&lt;XXXXXX&gt; portion of their Batch ID. Click a name to view their latest activity, read-only.</p>
+                <p style="font-size:11px;color:#334155;margin-bottom:14px;">Live view of every Admin and Trainee currently signed in to this page, separated by type and sorted by the B&lt;XXXXXX&gt; portion of their Batch ID. Click a name to view their latest activity, read-only.</p>
                 <div id="monitoring-online-list"></div>
 
                 <div class="mc-section-title">🗄 Server Logs</div>
-                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Timestamped log of log-ins, log-outs, and the functions used by Admins and Trainees on this page.</p>
+                <p style="font-size:11px;color:#334155;margin-bottom:14px;">Timestamped log of log-ins, log-outs, and the functions used by Admins and Trainees on this page.</p>
                 <div class="admin-tile" style="cursor:pointer;" onclick="openServerLogs()" onkeydown="if(event.key==='Enter')openServerLogs()" tabindex="0" role="button">
                     <h4>Server Logs</h4>
                     <p style="font-size:12px;color:var(--navy);font-weight:700;margin:0;">Click to view the full activity record &rarr;</p>
@@ -676,7 +676,7 @@
                 <input type="text" id="activity-logs-search" oninput="renderActivityLogs()" placeholder="Search by trainee name or activity title..." style="width:100%; padding:9px 12px; margin-bottom:16px; border-radius:6px; border:1px solid #e2e8f0; font-size:13px; outline:none;">
 
                 <div class="mc-section-title">📄 Timestamped Activity Logs — Most Recent First</div>
-                <p style="font-size:11px;color:#64748b;margin-bottom:14px;">Complete audit trail of activity uploads (by Admins), submissions (by Trainees), and gradings, each timestamped as they occur.</p>
+                <p style="font-size:11px;color:#334155;margin-bottom:14px;">Complete audit trail of activity uploads (by Admins), submissions (by Trainees), and gradings, each timestamped as they occur.</p>
                 <div id="activity-logs-list">
                 </div>
             </div>
@@ -697,10 +697,10 @@
                 <div class="admin-tile">
                     <div id="alert-status-line" style="font-size:12px; font-weight:800; color:var(--classified-red); margin-bottom:12px;">No alert is currently active.</div>
 
-                    <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;">Alert Text</label>
+                    <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#334155;">Alert Text</label>
                     <textarea id="alert-text-input" placeholder="Type the full-screen alert message..." style="width:100%;min-height:60px;padding:10px;border:1px solid #e2e8f0;border-radius:6px;font-family:'IBM Plex Sans',Arial,sans-serif;font-size:13px;margin:6px 0 14px;"></textarea>
 
-                    <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;">Attach Image (optional)</label>
+                    <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#334155;">Attach Image (optional)</label>
                     <div style="display:flex;align-items:center;gap:12px;margin:6px 0 14px;">
                         <label class="btn-ghost" style="cursor:pointer;padding:8px 14px;border-radius:6px;font-size:10.5px;">
                             Choose Image
@@ -710,13 +710,13 @@
                         <button class="btn-ghost" style="border-radius:6px;padding:8px 14px;font-size:10.5px;" onclick="clearAlertImage()">Remove Image</button>
                     </div>
 
-                    <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;">Background Color</label>
+                    <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#334155;">Background Color</label>
                     <div class="swatch-row" id="alert-bg-swatches" style="margin-top:6px;"></div>
                     <input type="color" id="alert-bg-color" value="#b91c1c" style="width:60px;height:32px;border:none;border-radius:6px;cursor:pointer;margin-bottom:14px;">
 
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
                         <div>
-                            <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;">Duration</label><br>
+                            <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#334155;">Duration</label><br>
                             <select id="alert-duration-select" style="width:100%;padding:9px;border-radius:6px;border:1px solid #e2e8f0;font-size:12px;margin-top:6px;">
                                 <option value="0">Until manually stopped</option>
                                 <option value="15">15 seconds</option>
@@ -728,7 +728,7 @@
                             </select>
                         </div>
                         <div>
-                            <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;">Set Alert Time (optional — leave blank to fire immediately)</label><br>
+                            <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#334155;">Set Alert Time (optional — leave blank to fire immediately)</label><br>
                             <input type="datetime-local" id="alert-schedule-input" style="width:100%;padding:8px;border-radius:6px;border:1px solid #e2e8f0;font-size:12px;margin-top:6px;">
                         </div>
                     </div>
@@ -741,7 +741,7 @@
 
                 <div class="mc-section-title">📣 Ping (instant toast notification with a loud, distinct alert tone)</div>
                 <div class="admin-tile">
-                    <p style="font-size:11px;color:#64748b;margin-bottom:12px;">Sends an instant on-screen notification to one user or to everyone currently on this page. It uses its own louder, longer alert tone (not the login-confirmation sound) so it actually gets noticed, and shows who it's from — no full-screen takeover, no ticker change, just a quick attention-getter.</p>
+                    <p style="font-size:11px;color:#334155;margin-bottom:12px;">Sends an instant on-screen notification to one user or to everyone currently on this page. It uses its own louder, longer alert tone (not the login-confirmation sound) so it actually gets noticed, and shows who it's from — no full-screen takeover, no ticker change, just a quick attention-getter.</p>
 
                     <div style="display:flex; gap:8px; margin-bottom:12px;">
                         <button type="button" class="mini-btn" id="ping-mode-single-btn" style="background:var(--navy);color:white;padding:8px 14px;" onclick="setPingMode('single')">👤 Specific User(s)</button>
@@ -749,7 +749,7 @@
                     </div>
 
                     <div id="ping-user-row" style="margin-bottom:12px;">
-                        <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;">Recipient(s)</label><br>
+                        <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#334155;">Recipient(s)</label><br>
                         <div id="ping-user-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
                         <div style="position:relative;">
                             <input type="text" id="ping-user-search" placeholder="Search by name, username, batch ID, or type…" autocomplete="off"
@@ -758,10 +758,10 @@
                                 onkeydown="if(event.key==='Escape'){closePingUserList();this.blur();}">
                             <div id="ping-user-list" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:230px;overflow-y:auto;background:white;border:1px solid #e2e8f0;border-radius:6px;box-shadow:0 10px 26px rgba(0,0,0,0.14);z-index:80;margin-top:4px;"></div>
                         </div>
-                        <div style="font-size:10px;color:#94a3b8;margin-top:4px;">Click a name to toggle it &middot; click outside or press Esc to close the list</div>
+                        <div style="font-size:10px;color:#334155;margin-top:4px;">Click a name to toggle it &middot; click outside or press Esc to close the list</div>
                     </div>
 
-                    <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b;">Message</label>
+                    <label style="font-size:10px;font-weight:800;text-transform:uppercase;color:#334155;">Message</label>
                     <textarea id="ping-text-input" placeholder="Type the ping message..." style="width:100%;min-height:56px;padding:10px;border:1px solid #e2e8f0;border-radius:6px;font-family:'IBM Plex Sans',Arial,sans-serif;font-size:13px;margin:6px 0 14px;"></textarea>
 
                     <button class="btn-primary" style="border-radius:6px;padding:10px 16px;font-size:11px;" onclick="sendPing()">📣 Send Ping</button>
@@ -771,7 +771,7 @@
             <!-- ACCESS CONTROL (Pause vs Lock) -->
             <div class="mc-pane" id="admin-dash-program-access">
                 <div class="mc-section-title">🔑 Program Access</div>
-                <p style="font-size:11px;color:#64748b;margin-bottom:12px;">Who can open which program. <b>Revoke</b> closes a program for one trainee at once (their open session there ends at the next sign-in); <b>Grant</b> opens it again. To remove a whole account, use <b>Users &amp; Revoke Access</b>.</p>
+                <p style="font-size:11px;color:#334155;margin-bottom:12px;">Who can open which program. <b>Revoke</b> closes a program for one trainee at once (their open session there ends at the next sign-in); <b>Grant</b> opens it again. To remove a whole account, use <b>Users &amp; Revoke Access</b>.</p>
                 <input type="text" id="pa-search" placeholder="Search by name or username" oninput="renderProgramAccess()" style="width:100%;max-width:360px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:12px;font-size:12px;">
                 <div id="program-access-list"></div>
             </div>
@@ -779,7 +779,7 @@
             <div class="mc-pane" id="admin-dash-access">
                 <div class="mc-section-title">🔒 Site-Wide Access Control</div>
                 <div class="admin-tile">
-                    <p style="font-size:11px; color:#64748b; margin-bottom:14px; line-height:1.6;">Pause and Lock now live on a dedicated, server-gated page rather than here in the main dashboard — the session check happens before that page is ever sent to your browser, so this content can't be revealed by anyone without a valid admin session, even via browser dev tools.</p>
+                    <p style="font-size:11px; color:#334155; margin-bottom:14px; line-height:1.6;">Pause and Lock now live on a dedicated, server-gated page rather than here in the main dashboard — the session check happens before that page is ever sent to your browser, so this content can't be revealed by anyone without a valid admin session, even via browser dev tools.</p>
                     <a href="/access-control" class="btn-primary" style="display:inline-block;text-decoration:none;border-radius:6px;padding:10px 16px;font-size:11px;">🔒 Open Access Control &rarr;</a>
                 </div>
             </div>
@@ -813,7 +813,7 @@
         <div style="font-size:40px;">🔒</div>
         <h2 class="serif" style="margin:14px 0 4px;">Page Locked by Administrator</h2>
         <div id="lock-locked-by">Locked By: Batch ID —</div>
-        <p class="mono" style="font-size:11px; color:#94a3b8; margin-bottom:20px;">Enter the system administrator's credentials to resume access.</p>
+        <p class="mono" style="font-size:11px; color:#334155; margin-bottom:20px;">Enter the system administrator's credentials to resume access.</p>
         <div style="width:300px;">
             <input type="text" id="unlock-user" placeholder="Username" style="width:100%;padding:10px;margin-bottom:8px;border-radius:6px;border:none;font-family:'IBM Plex Mono', 'Courier New', monospace;background:#ffffff;color:#0f172a;">
             <input type="password" id="unlock-pass" placeholder="Password" style="width:100%;padding:10px;margin-bottom:12px;border-radius:6px;border:none;font-family:'IBM Plex Mono', 'Courier New', monospace;background:#ffffff;color:#0f172a;">
@@ -923,7 +923,7 @@
             text-align: center;
             font-family: 'IBM Plex Sans', Arial, sans-serif;
             font-size: 12px;
-            color: #64748b;
+            color: #334155;
         }
     </style>
     <div id="deck-viewer-pane" class="no-print">
@@ -1018,7 +1018,7 @@
             text-align: center;
             font-family: 'IBM Plex Sans', Arial, sans-serif;
             font-size: 12px;
-            color: #94a3b8;
+            color: #334155;
         }
         #lecture-viewer-fallback a { color: var(--classified-red, #dc2626); font-weight: 700; }
     </style>
