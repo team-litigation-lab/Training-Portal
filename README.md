@@ -96,7 +96,7 @@ It has two tracks, switched at the top of the page:
 
 How to use it:
 - In the deck: **← →** (or Page Up / Page Down) change slides, the contents strip jumps to one, and **Esc** closes it.
-- **⬇ Download PDF** saves the current track as a PDF, one page per slide, from the deck or from the page. The cover and each page carry the deployed version (the page's ETag) and the date, so it's always made from what's live: nothing to rebuild by hand after a deploy.
+- **⬇ Download PDF** (signed-in admins only) saves the current track as a PDF, one page per slide. The cover and each page carry the deployed version (the page's ETag) and the date, so it's always made from what's live: nothing to rebuild by hand after a deploy. **Trainees and visitors read the blueprint on screen and have no download** — the PDF is a trainer's, for sharing the deck outside the portal.
 - **Numbering:** the cover is the Cover, then the pages are `1 / 8` to `8 / 8` (headed "1 of 8" to "8 of 8"), the same as the page's numbered contents. The cover isn't counted, so nothing says 9.
 - Deep links: `?track=admin&slide=3` opens the deck straight on that slide.
 - Links to it: **Blueprint** in the main page header and in the admin bar on every main page. Signed-in admins get the admin track.
