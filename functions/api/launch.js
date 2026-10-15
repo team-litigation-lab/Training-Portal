@@ -38,11 +38,10 @@ const TICKET_TTL_MS = 5 * 60 * 1000;
 // Call Simulator (to=calls: every platform's Call Simulator opens there, on the tab and line the link names, callsQuery),
 // or LSH Ring Channel's 🎧 Practice (to=aicall: an AI caller rings the trainee) or console (to=console: a trainer sends AI callers).
 // Only these are allowed, and each only on its own tool, so a link can't send anyone anywhere else.
-// blueprint: a program's (or the Knowledge Base's) own Blueprint, the only way in: the No Blueprint rule keeps every
-// Blueprint button and link out of the programs and tools, and the Portal's 🧭 Blueprint page links here instead.
+// There is no blueprint landing: every blueprint link leads to the Portal's own 🧭 Blueprint page (/blueprint.html),
+// never into a program or a tool, so a link here can't send anyone to a program's deck.
 const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1', tool: 'cms' }, calls: { tool: 'cms' },
-    aicall: { hash: '#/practice', tool: 'ringchannel' }, console: { hash: '#/console', tool: 'ringchannel' },
-    blueprint: { hash: '#/blueprint', also: ['kb', 'cms', 'ringchannel'] } };
+    aicall: { hash: '#/practice', tool: 'ringchannel' }, console: { hash: '#/console', tool: 'ringchannel' } };
 function landing(to, isTool, params, tool) {
     const l = Object.prototype.hasOwnProperty.call(LANDINGS, to) ? LANDINGS[to] : null;
     if (!l || (l.tool && (!isTool || l.tool !== tool)) || (!l.tool && isTool && !(l.also || []).includes(tool))) return { query: '', hash: '' };
