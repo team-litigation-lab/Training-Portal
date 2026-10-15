@@ -14,6 +14,11 @@
         --navy: #0f2148;
         --navy-deep: #081226;
         --navy-mid: #132a5c;
+        /* The nav sits on the office photo instead of hiding it: the same
+           navy, held just short of opaque so the backdrop reads through as
+           texture. The first screen below it gets the matching 78% on its own
+           ramp, in theme.css, so the two meet at the same tone. */
+        --navy-veil: rgba(8, 18, 38, 0.78);
         --orange: #f97316;
         --orange-soft: #fb923c;
         --slate: #64748b;
@@ -51,7 +56,8 @@
     /* ===== NAV — dark, sits flush with the hero below it ===== */
     nav {
         position: sticky; top: 0; z-index: 50;
-        background: var(--navy-deep);
+        background: var(--navy-veil);
+        backdrop-filter: blur(2px);
         border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     .nav-inner {
@@ -133,7 +139,10 @@
     }
     .hero h1 span { color: var(--orange); }
     .hero p.tagline { font-size: 19px; font-weight: 700; color: var(--orange-soft); margin: 0 0 16px; }
-    .hero p.lead { font-size: 16.5px; line-height: 1.65; color: rgba(255,255,255,0.62); max-width: 640px; margin-bottom: 32px; }
+    /* 0.78, not the old 0.62: the hero no longer sits on flat #081226 but on
+       the office photo through the veil, and the lighter, uneven backdrop ate
+       the margin the dimmer white had. */
+    .hero p.lead { font-size: 16.5px; line-height: 1.65; color: rgba(255,255,255,0.78); max-width: 640px; margin-bottom: 32px; }
     .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
 
     .reveal { opacity: 0; transform: translateY(16px); animation: revealUp 0.7s ease forwards; }
@@ -582,6 +591,14 @@
        plus a full screen and start out scrollable. */
     .first-screen { display: flex; flex-direction: column; min-height: calc(100vh - var(--nav-h, 105px)); background: var(--navy-deep); }
     .main-screen { flex: 1; display: flex; flex-direction: column; min-height: 0; background: var(--navy-deep); }
+    /* theme.css holds the first screen's own paint (and the veil that lets the
+       office photo through it); the nav is this file's, so its mobile fallback
+       is here. No photo below 860px — see the body rule above — so there is
+       nothing to show through and the bar goes back to solid. Stated after the
+       veil because a media query adds no specificity. */
+    @media (max-width: 860px) {
+        nav { background: var(--navy-deep); }
+    }
     .main-screen .hero { flex: 1; display: flex; align-items: center; }
     .main-screen .hero-inner { width: 100%; }
     .main-screen .stats-strip { padding-bottom: 34px; padding-top: 0; }

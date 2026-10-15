@@ -149,8 +149,9 @@
    The tilt is slight on purpose. A 135deg sweep would put mid-tone in the
    top-right corner, against a nav that stays flat, and the seam would show;
    near-vertical keeps the top edge uniform and spends the travel where it
-   reads. Contrast was the other reason to go gently: the lead paragraph is
-   white at 62%, and holding the copy over the deep end keeps it above 7:1.
+   reads. Contrast was the other reason to go gently: holding the copy over the
+   deep end keeps the lead paragraph clear of AA — it measures 6.2:1 there now
+   that the photo shows through the ramp and the paragraph answers at 78% white.
    It crests rather than climbs. Running the ramp straight up to its lightest
    value left the screen ending brighter than the "Meet the training team"
    band directly beneath it (--navy-mid), so the first screen looked cut off
@@ -161,9 +162,29 @@
    .main-screen, .hero and .stats-strip each paint their own --navy-deep, which
    would cover the ramp, so they go transparent and the one gradient on
    .first-screen shows through all three continuously. */
+/* The ramp is held at 78% rather than painted solid, so the office photo on
+   the body (index.html, behind its cream wash) reads through the first screen
+   as texture instead of being hidden by it. Same five stops, same tones — only
+   the cover changes. The alpha goes on the gradient and NOT on a background-
+   colour underneath: two translucent layers on one box multiply back to
+   opaque, which is the whole effect gone. */
 .first-screen {
     position: relative;
-    background-image: linear-gradient(170deg, #081226 0%, #0a1836 32%, #10275a 56%, #1a3a78 78%, #132a5c 100%);
+    background-color: transparent;
+    background-image: linear-gradient(170deg,
+        rgba(8, 18, 38, .78) 0%,
+        rgba(10, 24, 54, .78) 32%,
+        rgba(16, 39, 90, .78) 56%,
+        rgba(26, 58, 120, .78) 78%,
+        rgba(19, 42, 92, .78) 100%);
+}
+/* index.html drops the photo below 860px, so there is nothing to show through
+   and a translucent ramp would only let the cream lift it: solid again. */
+@media (max-width: 860px) {
+    .first-screen {
+        background-color: #081226;
+        background-image: linear-gradient(170deg, #081226 0%, #0a1836 32%, #10275a 56%, #1a3a78 78%, #132a5c 100%);
+    }
 }
 .first-screen .main-screen,
 .first-screen .hero,
