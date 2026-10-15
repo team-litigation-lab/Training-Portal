@@ -2851,3 +2851,59 @@ async function saveEditUser(id) {
         loadUsersData();
     } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
 }
+
+// ===== Create an account as a trainer (functions/api/create-user.js) =====
+// The team is four trainers with their own sign-ins rather than one shared Master Account, and a
+// trainer onboarding a batch shouldn't have to walk each person through the registration page. What
+// this makes is a *pending* registration, exactly as signing up does: it appears below for an
+// administrator to approve, and the approval is what issues the Batch ID and turns the login on.
+function openCreateUser() {
+    const old = document.getElementById('create-user-overlay'); if (old) old.remove();
+    const el = document.createElement('div');
+    el.id = 'create-user-overlay'; el.className = 'modal-overlay open'; el.style.zIndex = '2500';   // above Master Control (1500)
+    const f = (idn, label, type = 'text', hint = '') => `<label style="display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;color:#64748b;margin:10px 0 4px;">${label}</label><input id="cu-${idn}" type="${type}" autocomplete="off" style="width:100%;padding:9px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;">${hint ? `<div style="font-size:10.5px;color:#94a3b8;margin-top:3px;">${hint}</div>` : ''}`;
+    el.innerHTML = `<div class="modal-box"><h3 style="margin:0 0 4px;font-size:16px;">Create an account</h3>
+        <div style="font-size:11px;color:#64748b;">It is created as a pending registration: an administrator approves it below, and that issues the Batch ID.</div>
+        <label style="display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;color:#64748b;margin:10px 0 4px;">Account type</label>
+        <select id="cu-usertype" onchange="onCreateUserTypeChange()" style="width:100%;padding:9px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;">
+            <option value="Trainee" selected>Trainee</option>
+            <option value="Admin">Admin / Trainer</option>
+        </select>
+        ${f('first', 'First name')}${f('mi', 'Middle initial (optional)')}${f('last', 'Last name')}${f('suffix', 'Suffix (optional)')}
+        ${f('email', 'Email', 'email')}
+        ${f('username', 'Username', 'text', '3 to 30 letters, numbers or underscores.')}
+        ${f('password', 'Password', 'password', 'At least 8 characters, any of them. Pass it to them and have them change it.')}
+        <div id="cu-startwrap">${f('start', 'Start of training', 'date', 'Dates their batch when the registration is approved.')}</div>
+        <div id="cu-error" style="color:#b91c1c;font-size:12px;font-weight:700;margin-top:10px;display:none;"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+            <button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="document.getElementById('create-user-overlay').remove()">Cancel</button>
+            <button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="submitCreateUser()">Create</button>
+        </div></div>`;
+    document.body.appendChild(el);
+    onCreateUserTypeChange();
+}
+// Only a trainee has a start of training; an Admin / Trainer's batch is dated from when it was created.
+function onCreateUserTypeChange() {
+    const sel = document.getElementById('cu-usertype'), wrap = document.getElementById('cu-startwrap');
+    if (sel && wrap) wrap.style.display = sel.value === 'Trainee' ? '' : 'none';
+}
+async function submitCreateUser() {
+    const v = k => (document.getElementById('cu-' + k) || {}).value || '';
+    const userType = v('usertype');
+    const payload = {
+        userType,
+        firstName: v('first').trim(), lastName: v('last').trim(),
+        mi: v('mi').trim(), suffix: v('suffix').trim(),
+        email: v('email').trim(), username: v('username').trim(),
+        password: document.getElementById('cu-password').value
+    };
+    if (userType === 'Trainee') payload.trainingStartDate = v('start').trim();
+    const err = document.getElementById('cu-error'); err.style.display = 'none';
+    try {
+        const res = await postJson('/api/create-user', payload);
+        document.getElementById('create-user-overlay').remove();
+        const who = (res && res.user && res.user.fullName) || payload.username;
+        showToast(`${who} created — approve the registration to issue the Batch ID.`, 'success');
+        loadUsersData();
+    } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
+}
