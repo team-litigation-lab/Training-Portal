@@ -23,7 +23,7 @@
     .cs-wrap .fp-batch { margin: 10px 0; } .cs-wrap .fp-batch-hd { cursor: pointer; padding: 6px 2px; font-size: 14px; }
     .cs-wrap .fp-arow { border: 1px solid #e5e7eb; border-radius: 10px; margin: 6px 0; padding: 8px 12px; background: #fff; }
     .cs-wrap .fp-arow-hd { cursor: pointer; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13.5px; }
-    .cs-wrap .fp-muted { color: #64748b; font-size: 13px; }
+    .cs-wrap .fp-muted { color: #334155; font-size: 13px; }
     .cs-wrap h1, .cs-wrap h3 { font-family: inherit; }
     .cs-wrap input[type=text], .cs-wrap input[type=number], .cs-wrap textarea { font: inherit; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 8px; }
     #cs-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: #0b1633; color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 14px; opacity: 0; pointer-events: none; transition: all .2s; z-index: 9999; }
@@ -31,7 +31,7 @@
 </style>
 <link rel="stylesheet" href="/theme.css">
 </head>
-<body>
+<body class="portal-bg">
 <div id="topbar"></div>
 <div class="cs-wrap">
     <div id="cs-root"><div class="sim-loading" style="padding:40px;text-align:center;">Loading…</div></div>
@@ -65,13 +65,13 @@ async function gsList(only) {
     const E = (t) => Sim.esc(t), todo = rows.filter(x => !x.rv).length;
     box.innerHTML = `<div style="max-width:1180px;margin:0 auto;padding:10px 16px"><div class="card" style="padding:16px 18px;background:#fff;border:1px solid #e5e7eb;border-radius:14px">
         <h3 style="margin:0 0 4px;font-family:inherit">📅 Google Calendar Simulator submissions${only ? ' · ' + E(NAMES[only] || only) : ''}</h3>
-        <p style="margin:0 0 10px;font-size:13.5px"><a class="sim-btn orange" style="text-decoration:none" href="/simulators/gcal-review.html${only ? '?track=' + E(only) : ''}">🖥 Trainee evaluations →</a> <span style="color:#64748b">New submissions (📤 Submit for evaluation) are there: the trainee’s calendar, the automated check, the AI review, your feedback and the final report.</span></p>
-        <p style="margin:0 0 10px;color:#64748b;font-size:13px">Earlier submissions: open one to see the calendar the trainee built, the automated check, and add your score and feedback. ${rows.length ? `${rows.length} submitted${todo ? `, ${todo} to review` : ', all reviewed'}.` : ''}</p>
+        <p style="margin:0 0 10px;font-size:13.5px"><a class="sim-btn orange" style="text-decoration:none" href="/simulators/gcal-review.html${only ? '?track=' + E(only) : ''}">🖥 Trainee evaluations →</a> <span style="color:#334155">New submissions (📤 Submit for evaluation) are there: the trainee’s calendar, the automated check, the AI review, your feedback and the final report.</span></p>
+        <p style="margin:0 0 10px;color:#334155;font-size:13px">Earlier submissions: open one to see the calendar the trainee built, the automated check, and add your score and feedback. ${rows.length ? `${rows.length} submitted${todo ? `, ${todo} to review` : ', all reviewed'}.` : ''}</p>
         ${rows.length ? `<div style="display:grid;gap:6px">${rows.map(x => `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px;font-size:13.5px">
-            <b style="min-width:150px">${E(x.r.name)}</b><span style="color:#64748b">${E(x.r.batch || 'No batch')}</span><span>${E(NAMES[x.g.track] || x.g.track)}</span>
-            <span style="color:#64748b">${E(new Date(x.g.at).toLocaleString())}</span><span>🤖 ${E(x.g.result && x.g.result.score)}%</span>
+            <b style="min-width:150px">${E(x.r.name)}</b><span style="color:#334155">${E(x.r.batch || 'No batch')}</span><span>${E(NAMES[x.g.track] || x.g.track)}</span>
+            <span style="color:#334155">${E(new Date(x.g.at).toLocaleString())}</span><span>🤖 ${E(x.g.result && x.g.result.score)}%</span>
             <span>${x.rv ? '👤 ' + E(x.rv.score) + '/100' : '<b style="color:#b45309">To review</b>'}</span>
-            <a class="sim-btn orange" style="text-decoration:none;margin-left:auto" href="/simulators/gcal.html?${x.g.track === 'standard' ? '' : 'track=' + E(x.g.track) + '&'}review=${encodeURIComponent(x.r.username + '|' + x.g.at)}">${x.rv ? 'Open' : 'Review'} →</a></div>`).join('')}</div>` : '<div style="color:#64748b">No one has submitted a Google Calendar Simulator yet.</div>'}</div></div>`;
+            <a class="sim-btn orange" style="text-decoration:none;margin-left:auto" href="/simulators/gcal.html?${x.g.track === 'standard' ? '' : 'track=' + E(x.g.track) + '&'}review=${encodeURIComponent(x.r.username + '|' + x.g.at)}">${x.rv ? 'Open' : 'Review'} →</a></div>`).join('')}</div>` : '<div style="color:#334155">No one has submitted a Google Calendar Simulator yet.</div>'}</div></div>`;
 }
 (async function () {
     await Sim.restore();   // a new tab has the cookie but no copy of the session: ask who is signed in first (a trainer is not asked who is practicing)
@@ -150,7 +150,7 @@ async function gsList(only) {
             <h3 style="margin:0;color:#0b1633;font-size:19px">${t.icon} ${Sim.esc(t.title)}</h3><p style="margin:0;color:#475569;font-size:14px;flex:1">${Sim.esc(t.desc)}</p>
             ${reviewHTML(t.id)}
             <div><a class="sim-btn orange" style="text-decoration:none" href="${Sim.esc(go(t.id))}">📅 Open →</a></div></div>`).join('')}</div>
-        ${me.admin ? '<p style="margin:14px 0 0;color:#64748b;font-size:13.5px">Your trainees’ calendars, to view and score, are under <a id="cs-evals" href="/simulators/gcal-review.html" title="Trainee Evaluations: what trainees submit for evaluation, with the AI review and your feedback, and your trainees’ calendars.">📋 Trainee Evaluations</a>; their scores from these simulators are under <a href="/simulators.html#results">Recent results</a> on the Simulators page.</p>' : ''}</div>`;
+        ${me.admin ? '<p style="margin:14px 0 0;color:#334155;font-size:13.5px">Your trainees’ calendars, to view and score, are under <a id="cs-evals" href="/simulators/gcal-review.html" title="Trainee Evaluations: what trainees submit for evaluation, with the AI review and your feedback, and your trainees’ calendars.">📋 Trainee Evaluations</a>; their scores from these simulators are under <a href="/simulators.html#results">Recent results</a> on the Simulators page.</p>' : ''}</div>`;
 })();
 </script>
 </body>

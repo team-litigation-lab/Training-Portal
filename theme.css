@@ -103,6 +103,12 @@
     box-shadow: var(--glow-navy);
     transition: box-shadow .2s ease, transform .12s ease, filter .2s ease;
 }
+/* The ramp lightens these buttons to #1d3f86 at one end, where --orange
+   measures 3.55:1 — so an orange label on a navy body takes the soft orange,
+   which reads 5.91:1 at that same end and unchanged elsewhere. */
+.auth-submit,
+.sim-btn.primary,
+.topic-action-btn.primary { color: #fdba74; }
 .btn-navy:hover,
 .auth-submit:hover,
 .sim-btn.primary:hover,
@@ -199,9 +205,32 @@
    .main-screen, .hero and .stats-strip each paint their own --navy-deep, which
    would cover the ramp, so they go transparent and the one gradient on
    .first-screen shows through all three continuously. */
+/* See-through, like every other surface: the ramp is the same five colours,
+   each one now carrying alpha, with the page's photo behind it. The two ends
+   stay fully opaque on purpose — the top meets the flat navy nav and the
+   bottom meets the "Meet the training team" band, and both joins are
+   seamless only if the screen ends on exactly their colour. The travel in
+   between, where the rings and the case-file cards are, is where the office
+   comes through. The cream wash on the body would flatten the photo to about
+   six levels of tone under this much navy, so the screen paints the photo
+   itself, unwashed, and the navy ramp is its wash.
+   Contrast was measured on the hero's lead paragraph, which is the faintest
+   text here (white at 62%): it holds 5.2:1 over the brightest part of the
+   photo at the mid-ramp, against 4.5 for AA. */
 .first-screen {
     position: relative;
-    background-image: linear-gradient(170deg, #081226 0%, #0a1836 32%, #10275a 56%, #1a3a78 78%, #132a5c 100%);
+    background:
+        linear-gradient(170deg,
+            rgba(8, 18, 38, 1) 0%,
+            rgba(10, 24, 54, .92) 32%,
+            rgba(16, 39, 90, .90) 56%,
+            rgba(26, 58, 120, .90) 78%,
+            rgba(19, 42, 92, 1) 100%),
+        var(--portal-photo) center center / cover no-repeat fixed,
+        #081226;
+}
+@media (max-width: 860px) {
+    .first-screen { background-attachment: scroll, scroll, scroll; }
 }
 .first-screen .main-screen,
 .first-screen .hero,
@@ -271,6 +300,17 @@ body.portal-bg.portal-bg-dark {
    look like the surface it opens onto. */
 .mc-tabs { background: rgba(226, 232, 240, .66); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); }
 .mc-tab.active { background: var(--surface-glass-strong); }
+/* Muted text that sits straight on the backdrop rather than on a panel —
+   the simulators' notes and their inactive tab labels. --slate measures
+   1.60:1 over the darkest part of the photo under the page wash, so on a
+   backdrop page it steps to the darkest slate that still reads as muted
+   next to the navy headings (4.91:1 bare, 7.96:1 where it falls on glass).
+   `:not(.on)` keeps the active tab's navy, which would otherwise lose on
+   specificity to this rule. */
+body.portal-bg .sim-muted,
+body.portal-bg .lx-tabs button:not(.on),
+body.portal-bg .dk-tabs button:not(.on) { color: #1e293b; }
+
 /* The sign-in pages: the navy rings panel IS the page there, so the photo goes
    behind its gradient rather than behind the body. The navy stays at .86 here
    because the panel carries the headline and the small print in white. */

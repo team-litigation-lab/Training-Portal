@@ -13,7 +13,7 @@
 <style>
     :root {
         --navy: #0f2148; --navy-deep: #081226; --navy-mid: #132a5c;
-        --orange: #f97316; --orange-soft: #fb923c; --slate: #64748b; --paper: #faf8f4;
+        --orange: #f97316; --orange-soft: #fb923c; --slate: #334155; --paper: #faf8f4;
     }
     * { box-sizing: border-box; }
     body {
@@ -106,7 +106,7 @@
     .topic-status.approved { background: #f0fdf4; color: #166534; }
     .topic-status.passed { background: #fff7ed; color: #9a3412; }
     .topic-status.pending { background: #fffbeb; color: #b45309; }
-    .topic-status.locked { background: #f1f5f9; color: #64748b; }
+    .topic-status.locked { background: #f1f5f9; color: #334155; }
     .topic-status.denied { background: #fef2f2; color: #b91c1c; }
     .topic-action-btn {
         margin-top: auto; padding: 9px; border-radius: 999px; border: none; font-weight: 800; font-size: 11.5px;
@@ -114,7 +114,7 @@
     }
     .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
     .topic-action-btn.request { background: var(--orange); color: #0f172a; }
-    .topic-action-btn.disabled { background: #f1f5f9; color: #94a3b8; cursor: default; }
+    .topic-action-btn.disabled { background: #f1f5f9; color: #334155; cursor: default; }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
     .sim-banner-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
@@ -267,7 +267,7 @@
     </div>
     <div id="idx-queue-wrap"></div>
     <div id="idx-topics" class="topic-grid">
-        <div style="grid-column:1/-1; font-size:13px; color:#94a3b8; padding:20px;">Loading programs...</div>
+        <div style="grid-column:1/-1; font-size:13px; color:#334155; padding:20px;">Loading programs...</div>
     </div>
 </div>
 

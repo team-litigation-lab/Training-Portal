@@ -27,7 +27,7 @@
     :root {
         --navy: #0f2148; --navy-deep: #081226; --navy-mid: #132a5c;
         --orange: #f97316; --orange-soft: #fb923c; --orange-deep: #c2410c; --orange-pale: #fff7ed;
-        --slate: #64748b; --paper: #faf8f4; --line: rgba(15,33,72,.1);
+        --slate: #334155; --paper: #faf8f4; --line: rgba(15,33,72,.1);
     }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif; background: var(--paper); color: var(--navy); -webkit-font-smoothing: antialiased; }
@@ -35,7 +35,11 @@
 
     .or-wrap { max-width: 1240px; margin: 0 auto; padding: 22px 16px 40px; }
     .or-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
-    .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--orange); }
+    /* This label sits straight on the page's photo backdrop. No orange in the
+       brand's range clears AA there (--orange measures 1.25:1, the darkest
+       burnt orange 3.15:1), so the eyebrow takes the navy ink, 5.31:1, and
+       keeps its size, weight and letter-spacing to stay a label. */
+    .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--navy); }
     .or-head h1 { margin: 4px 0 0; font-size: clamp(24px, 3.2vw, 32px); font-weight: 900; letter-spacing: -.01em; }
     .or-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .or-tabs { display: inline-flex; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
@@ -44,7 +48,11 @@
     .btn { font: inherit; font-size: 13px; font-weight: 700; border-radius: 10px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--navy); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
     .btn:hover { border-color: var(--orange); }
     .btn.pri { background: var(--orange); border-color: var(--orange); color: #111827; }
-    .or-tip { font-size: 12.5px; color: var(--slate); }
+    /* This line sits straight on the page's photo backdrop with no card
+       under it, and --slate measures 3.49:1 over the darkest part of that
+       photo — under AA for 12.5px. The navy ink reads 5.31:1 there, so the
+       tip keeps its size and loses the grey. */
+    .or-tip { font-size: 12.5px; color: var(--navy); }
 
     /* The front door for the deck. The deck itself is the engine's, full screen over this page:
        the navy cover band, the numbered contents and the slides, exactly as on every program. */
@@ -54,14 +62,16 @@
     .bp-open .btn.pri { font-size: 15px; padding: 12px 22px; }
     .bp-contents { margin: 26px auto 0; max-width: 940px; list-style: none; padding: 0; columns: 2; column-gap: 40px; text-align: left; }
     .bp-contents li { break-inside: avoid; display: flex; align-items: center; gap: 12px; font-size: 14.5px; color: #e8ebf5; margin-bottom: 11px; }
-    .bp-contents li span { flex: 0 0 auto; width: 26px; height: 23px; border-radius: 6px; background: var(--orange); color: #fff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+    /* White on the orange fill is 2.80:1; the dark navy every other orange
+       control on the portal uses for its label is 6.66:1. */
+    .bp-contents li span { flex: 0 0 auto; width: 26px; height: 23px; border-radius: 6px; background: var(--orange); color: #081226; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
     @media (max-width: 640px) { .bp-contents { columns: 1; } }
 </style>
 <link rel="stylesheet" href="/simulators/sim.css">
 <script src="/portal-nav.js"></script>
 <link rel="stylesheet" href="/theme.css">
 </head>
-<body>
+<body class="portal-bg">
 
 <script>
 // Who is reading this page: the header (the standard portal bar) and the deck both ask.

@@ -25,7 +25,7 @@ const TraineesCalendars = (function () {
     function filter() { const q = S.q.trim().toLowerCase(); S.box.querySelectorAll('.cs-ttable tbody tr').forEach(tr => { tr.style.display = !q || tr.dataset.find.includes(q) ? '' : 'none'; }); }
     function paint() {
         if (!S.box) return;
-        if (S.err && !S.people.length) { S.box.innerHTML = card(head + `<p style="margin:6px 0 0;color:#b91c1c">${E(S.err)} <button type="button" class="sim-btn ghost" data-tc="reload">Try again</button></p>`); return; }
+        if (S.err && !S.people.length) { S.box.innerHTML = card(head + `<p class="sim-error" style="margin:6px 0 0">${E(S.err)} <button type="button" class="sim-btn ghost" data-tc="reload">Try again</button></p>`); return; }
         S.box.innerHTML = card(`${head}
         <p style="margin:6px 0 10px;color:#475569;font-size:14px">Open a trainee’s calendar as they last saved it, read only, with the automated check, and score it on the <b>CALENDAR MANAGEMENT MOCK CALL</b> scorecard (each metric 0 to 5 with your feedback). The trainee sees your scorecard on their card here and in the simulator.</p>
         ${S.people.length ? `<input id="cs-tfind" type="search" aria-label="Find a trainee or batch" placeholder="Find a trainee or batch…" value="${E(S.q)}" style="width:min(100%,320px);font:inherit;padding:7px 10px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:10px">
