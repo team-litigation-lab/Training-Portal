@@ -93,6 +93,9 @@
 .gm-lblhead button{border:none;background:none;font-size:20px;line-height:1;cursor:pointer;color:#444746;width:28px;height:28px;border-radius:50%;} .gm-lblhead button:hover{background:#e9eaed;}
 .gm-lbl{display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;font:inherit;font-size:13.5px;color:#202124;height:30px;border-radius:0 16px 16px 0;cursor:pointer;text-align:left;padding-right:12px;}
 .gm-lbl:hover{background:#e9eaed;} .gm-lbl.on{background:#d3e3fd;font-weight:700;}
+.gm-lbl.drop{background:#c2e7ff;box-shadow:inset 0 0 0 2px #0b57d0;font-weight:700;}
+.gm-ghost{position:fixed;top:-1000px;left:-1000px;background:#0b57d0;color:#fff;font:600 12.5px/1 Arial,Helvetica,sans-serif;padding:8px 12px;border-radius:14px;white-space:nowrap;pointer-events:none;}
+.gm-row[draggable=true]:active{cursor:grabbing;}
 .gm-lbl i{width:10px;height:10px;border-radius:2px;flex-shrink:0;} .gm-lbl span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} .gm-lbl em{font-style:normal;font-size:12px;color:#5f6368;}
 .gm-chip{display:inline-block;font-size:11.5px;font-weight:600;border-radius:4px;padding:1px 6px;margin-right:6px;color:#fff;vertical-align:1px;}
 .gm-dialog{position:absolute;inset:0;background:rgba(32,33,36,.45);display:flex;align-items:center;justify-content:center;z-index:40;}

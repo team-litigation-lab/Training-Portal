@@ -46,7 +46,7 @@ function wsMe(){ const s = Sim.session(), w = Sim.who(); return s.userType==='Ad
 function wsKey(){ const s = Sim.session(); return `lsh_email_ws:${(s.userType==='Admin' ? s.username : Sim.who().name) || 'me'}`; }
 // ?program=CM or EA (or the program saved with the trainee's name) puts that inbox first.
 const WS_START = (()=>{ const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'cm' : p.startsWith('EA') ? 'ea' : ''; })();
-function wsSave(){ try{ if(W.phase==='ws'){ const {menu,compose,dialog,snack,undo,sel,...keep} = W; localStorage.setItem(wsKey(), JSON.stringify(keep)); } else localStorage.removeItem(wsKey()); }catch(e){} }
+function wsSave(){ try{ if(W.phase==='ws'){ const {menu,compose,dialog,snack,undo,sel,drag,...keep} = W; localStorage.setItem(wsKey(), JSON.stringify(keep)); } else localStorage.removeItem(wsKey()); }catch(e){} }
 function wsLoad(){ try{ const v = JSON.parse(localStorage.getItem(wsKey())||'null'); if(v && v.pack) { W = Object.assign({sel:{}}, v); return true; } }catch(e){} return false; }
 
 /* ---------- starting a pack ---------- */
@@ -146,12 +146,12 @@ function shellHtml(){
       <nav class="gm-nav"><button class="gm-compose" disabled title="Not needed for this exercise">${WS_ICON.pencil} Compose</button>
         ${WS_FOLDERS.map(f=>`<button class="gm-folder ${f.sub?'two':''} ${W.folder===f.id?'on':''}" onclick="wsFolder('${f.id}')">${WS_ICON[f.icon]}<span>${f.name}${f.sub?`<small>${f.sub}</small>`:''}</span><em>${f.id==='inbox' ? (unreadIn||'') : (counts[f.id]||'')}</em></button>`).join('')}
         <div class="gm-lblhead">Labels <button title="Create new label" onclick="wsNewLabel()">+</button></div>
-        ${lblTree(null).map(({l,depth})=>`<button class="gm-lbl ${W.folder==='label:'+l.id?'on':''}" style="padding-left:${16+depth*16}px" onclick="wsFolder('label:${l.id}')" title="${esc(lblPath(l.id))}"><i style="background:${l.color}"></i><span>${esc(l.name)}</span><em>${lc[l.id]||''}</em></button>`).join('')}
+        ${lblTree(null).map(({l,depth})=>`<button class="gm-lbl ${W.folder==='label:'+l.id?'on':''}" style="padding-left:${16+depth*16}px" onclick="wsFolder('label:${l.id}')" title="${esc(lblPath(l.id))} — open it, or drop a conversation here to file it" ondragover="wsDragOver(event,'${l.id}')" ondragleave="wsDragLeave('${l.id}')" ondrop="wsDrop(event,'${l.id}')"><i style="background:${l.color}"></i><span>${esc(l.name)}</span><em>${lc[l.id]||''}</em></button>`).join('')}
       </nav>
       <section class="gm-main">${open ? readerHtml(open) : listHtml()}</section>
     </div>
     <div class="gm-legend">
-      <span><b>Do:</b> Reply or ⭐</span><span><b>Schedule:</b> 🕒 Snooze</span><span><b>Delegate:</b> ↪ Forward</span><span><b>Defer:</b> Archive / 🗑</span><span><b>Suspicious:</b> 🚩 Report</span><span><b>File:</b> 🏷 Label</span>
+      <span><b>Do:</b> Reply or ⭐</span><span><b>Schedule:</b> 🕒 Snooze</span><span><b>Delegate:</b> ↪ Forward</span><span><b>Defer:</b> Archive / 🗑</span><span><b>Suspicious:</b> 🚩 Report</span><span><b>File:</b> 🏷 Label, or drag a conversation onto a label</span>
       <span>⌨ <span class="gm-kbd">j</span>/<span class="gm-kbd">k</span> · <span class="gm-kbd">o</span> open · <span class="gm-kbd">u</span> back · <span class="gm-kbd">e</span> archive · <span class="gm-kbd">#</span> delete · <span class="gm-kbd">s</span> star · <span class="gm-kbd">b</span> snooze · <span class="gm-kbd">f</span> forward · <span class="gm-kbd">r</span> reply · <span class="gm-kbd">l</span> label · <span class="gm-kbd">!</span> report · <span class="gm-kbd">z</span> undo</span>
       <span class="gm-submit">${handled}/${total} handled · ${filed}/${total} filed ${ready ? `<button class="sim-btn primary" onclick="wsSubmit()">Submit for grading</button>` : ''}</span>
     </div>
@@ -169,7 +169,7 @@ function listHtml(){
     body = inInbox && !W.search ? `<div class="gm-done"><div class="sun">☀️</div><b>You're all done!</b><div>Nothing in Inbox — that's Inbox Zero.</div>${allDone && !unfiled ? `<button class="sim-btn primary" style="margin-top:12px;" onclick="wsSubmit()">Submit for grading</button>` : (unfiled ? `<div style="margin-top:8px;color:#b06000;">${unfiled} email${unfiled>1?'s':''} still need a label — find them in the other folders.</div>` : '')}</div>`
       : `<div class="gm-empty">${W.search ? 'No messages matched your search.' : 'No conversations here.'}</div>`;
   }else body = rows.map((e,i)=>{ const n = nm(e.from), m = W.meta[e.id], live = !m;
-    return `<div class="gm-row ${W.read[e.id]?'':'unread'} ${W.focus===i?'focus':''} ${W.sel[e.id]?'sel':''}" onclick="wsOpen('${e.id}')">
+    return `<div class="gm-row ${W.read[e.id]?'':'unread'} ${W.focus===i?'focus':''} ${W.sel[e.id]?'sel':''}" onclick="wsOpen('${e.id}')" draggable="true" ondragstart="wsDragStart(event,'${e.id}')" ondragend="wsDragEnd()">
       <input type="checkbox" class="gm-chk" ${W.sel[e.id]?'checked':''} onclick="event.stopPropagation();wsSelect('${e.id}',this.checked)" aria-label="Select">
       <button class="gm-ib gm-star ${m&&m.action==='star'?'on':''}" onclick="event.stopPropagation();${live?`wsAct(['${e.id}'],'star')`:''}">${m&&m.action==='star'?WS_ICON.starOn:WS_ICON.star}</button>
       <div class="gm-from">${esc(n.name)}</div>
@@ -232,7 +232,13 @@ function wsAct(ids, action, detail){
   W.focus = Math.min(W.focus||0, Math.max(0, visible().length-1));
   wsSave(); draw();
 }
-function wsUndo(){ if(!W.undo) return; W.undo.forEach(id=>{ delete W.meta[id]; delete W.notes[id]; }); W.undo = null; snack('Action undone.', false, 3000); wsSave(); draw(); }
+function wsUndo(){
+  if(!W.undo) return;
+  if(W.undo.kind === 'label'){                 // a drop onto a label: put each one back where it was
+    Object.entries(W.undo.prev).forEach(([id, was])=>{ if(was) W.lab[id] = was; else delete W.lab[id]; });
+  }else W.undo.forEach(id=>{ delete W.meta[id]; delete W.notes[id]; });
+  W.undo = null; snack('Action undone.', false, 3000); wsSave(); draw();
+}
 function wsToInbox(ids){ ids = ids || visible().filter(e=>W.sel[e.id]).map(e=>e.id); ids.forEach(id=>{ delete W.meta[id]; delete W.sel[id]; delete W.notes[id]; }); if(W.open && ids.includes(W.open)) W.open = null; snack(ids.length>1 ? `${ids.length} conversations moved to Inbox.` : 'Conversation moved to Inbox.'); wsSave(); draw(); }
 function wsBulk(a){ const ids = visible().filter(e=>W.sel[e.id]).map(e=>e.id); if(ids.length) wsAct(ids, a); }
 function wsOpen(id){ W.open = id; W.read[id] = true; W.menu = null; wsSave(); draw(); const s = document.getElementById('gmShell'); if(s) s.focus({preventScroll:true}); }
@@ -247,6 +253,50 @@ function wsLabelMenu(ids){ ids = ids || visible().filter(e=>W.sel[e.id]).map(e=>
 function wsCloseMenu(){ W.menu = null; draw(); }
 function wsSnooze(label){ if(!W.menu) return; const o = WS_SNOOZE.find(x=>x[0]===label); wsAct(W.menu.ids, 'snooze', o ? o[1] : 'a date you picked'); }
 function wsSetLabel(id){ if(!W.menu) return; const ids = W.menu.ids; ids.forEach(x=>{ if(id) W.lab[x] = id; else delete W.lab[x]; }); W.menu = null; snack(id ? `${ids.length>1 ? ids.length+' conversations' : 'Conversation'} labelled "${lblPath(id)}".` : 'Label removed.'); wsSave(); draw(); }
+/* ---------- drag a conversation onto a label (Gmail's own gesture) ----------
+   Dropping files the whole conversation under that label: the same single assignment the 🏷 Label
+   menu makes (W.lab), so it shows under the label in the sidebar and opens there like anywhere else.
+   Filing and clearing the Inbox stay two separate steps, as the exercise asks — a drop files the
+   email, it does not decide it, so the Inbox count only moves when the trainee acts on it.
+   Dragging a row that is part of a selection takes the whole selection, as Gmail does.
+   Dragging is a pointer gesture, so the 🏷 Label menu and the "l" shortcut stay the way to file
+   without a mouse. */
+function wsDragStart(ev, id){
+  const ids = W.sel[id] ? visible().filter(e=>W.sel[e.id]).map(e=>e.id) : [id];
+  W.drag = ids;
+  try{
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.dataTransfer.setData('text/plain', ids.join(','));   // some browsers need data set for a drag to start
+    const ghost = document.createElement('div');
+    ghost.className = 'gm-ghost';
+    ghost.textContent = ids.length > 1 ? ids.length + ' conversations' : 'Move to label';
+    document.body.appendChild(ghost);
+    ev.dataTransfer.setDragImage(ghost, 12, 12);
+    setTimeout(()=>ghost.remove(), 0);
+  }catch(e){}
+}
+// The highlight is put straight on the element, never through draw(): re-rendering the sidebar
+// mid-drag replaces the very node the pointer is over, and the browser then fires no drop at all.
+function wsDropClear(){ document.querySelectorAll('.gm-lbl.drop').forEach(el=>el.classList.remove('drop')); }
+function wsDragEnd(){ W.drag = null; wsDropClear(); }
+function wsDragOver(ev, lid){
+  if(!W.drag) return;                       // ignore anything dragged in from outside
+  ev.preventDefault();                      // without this the drop never fires
+  ev.dataTransfer.dropEffect = 'move';
+  const el = ev.currentTarget;
+  if(el && !el.classList.contains('drop')){ wsDropClear(); el.classList.add('drop'); }
+}
+function wsDragLeave(lid){ wsDropClear(); }
+function wsDrop(ev, lid){
+  if(!W.drag) return;
+  ev.preventDefault();
+  const ids = W.drag; W.drag = null; wsDropClear();
+  const prev = {}; ids.forEach(x=>{ prev[x] = W.lab[x] || null; W.lab[x] = lid; });
+  W.sel = {};
+  W.undo = {kind:'label', prev};
+  snack(`${ids.length>1 ? ids.length+' conversations' : 'Conversation'} filed under "${lblPath(lid)}".`, true);
+  wsSave(); draw();
+}
 function wsNewLabel(fromMenu){ W.dialog = {applyTo: fromMenu && W.menu ? W.menu.ids : null}; W.menu = null; draw(); setTimeout(()=>{ const i = document.getElementById('wsLblName'); if(i) i.focus(); }, 30); }
 function wsCloseDialog(){ W.dialog = null; draw(); }
 function wsCreateLabel(){
