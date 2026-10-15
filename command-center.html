@@ -119,6 +119,11 @@
     .cc-err { background: rgba(248, 113, 113, .14); border: 1px solid rgba(248, 113, 113, .5); border-radius: 12px; padding: 10px 14px; font-size: 13px; }
     .cc-open { font-size: 12px; font-weight: 800; color: var(--orange); text-decoration: none; }
     .cc-open:hover { text-decoration: underline; }
+    /* sim.css styles .sim-brand but never its <small>, so the page name runs straight on from
+       the portal's ("LSH Training PortalCommand Center"). Put it on its own line. Scoped here,
+       not fixed in sim.css, because that file dresses every simulator page and this change is
+       not the Command Center's to make for all of them. */
+    .sim-brand small { display: block; font-weight: 600; font-size: 11.5px; letter-spacing: .04em; color: rgba(255, 255, 255, .72); }
 </style>
 <script src="/portal-nav.js"></script>
 <link rel="stylesheet" href="/theme.css">
