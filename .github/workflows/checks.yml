@@ -100,6 +100,10 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/my-evaluations.cjs
+      - name: Trainer Command Center (the metrics bar, the focus list ranked with approvals first, ranking and tiers, Program - Batch - Trainee scorecards, the one-screen fit, trainees turned away)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/command-center.cjs
       - name: Trainees' calendars on Trainee Evaluations (the table with View & score, search, each trainee's submission and a button into its review)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules

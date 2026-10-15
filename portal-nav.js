@@ -4,8 +4,11 @@
    they open from the Home page and the Training Directory. Portal pages open in the
    same tab; only the training programs themselves (separate sites) open in a new tab.
    Signed-in admins get one admin bar on every main page instead (PortalNav.adminHtml):
-   🏠 Main Portal · Blueprint · System Management · Trainee Monitoring · Attendance ·
-   Referrals · Switch view · Logout. Everything else is on the System Management page (system.html).
+   🏠 Main Portal · Command Center · Blueprint · System Management · Trainee Monitoring ·
+   Attendance · Referrals · Switch view · Logout. Everything else is on the System
+   Management page (system.html). The Command Center is the trainer's own dashboard
+   (/command-center.html): the metrics bar, the focus list, the ranking and the
+   Program → Batch → Trainee scorecards.
    Every link to the landing page carries ?stay=1: functions/_middleware.js redirects a
    signed-in person who asks for /index.html on to /programs.html, so without it a
    "Main Portal" / "Home" button lands them back on the Training Directory. */
@@ -65,7 +68,7 @@ const PortalNav = {
         try { if (tv) sessionStorage.removeItem('LSH_VIEW_AS'); else sessionStorage.setItem('LSH_VIEW_AS', 'trainee'); } catch (e) {}
         if (location.pathname === '/programs.html') location.reload(); else location.href = '/programs.html';
     },
-    // The admin top bar. active: 'orient' | 'sys' | 'monitor' | 'attendance' | 'referrals'; opts.back as in html()
+    // The admin top bar. active: 'cc' | 'orient' | 'sys' | 'monitor' | 'attendance' | 'referrals'; opts.back as in html()
     adminHtml(active, opts) {
         opts = opts || {};
         const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -74,6 +77,7 @@ const PortalNav = {
         const tv = PortalNav.traineeView();
         return back
             + pill('home', '/index.html?stay=1', '🏠 Main Portal', 'The LSH Upskill Hub landing page')
+            + pill('cc', '/command-center.html', 'Command Center', 'Your dashboard: what needs you, the rankings, and every batch and trainee scorecard')
             + pill('orient', '/blueprint.html?track=admin', 'Blueprint', 'The Platform Blueprint: how the portal works, for screen sharing')
             + pill('sys', '/system.html', 'System Management <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Master Control: access, AI usage, feedback, referrals, GitHub and Cloudflare, the Blueprint')
             + pill('monitor', '/progress.html', 'Trainee Monitoring', "Every trainee's progress and feedback in every program")

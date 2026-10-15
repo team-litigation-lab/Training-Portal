@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trainer Command Center — LSH Training Portal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/simulators/sim.css">
+<style>
+    /* ===== Trainer Command Center =====================================
+       The trainer's single screen: the metrics bar across the top, then
+       FOCUS and Ranking down the left, and the Program → Batch → Trainee
+       cascade with the centralized scorecard filling the right.
+
+       One-screen fit: the page itself never scrolls (the spec asks for the
+       dashboard to sit inside 100vh on a desktop). Each panel scrolls on
+       its own instead, so the metrics bar and the cascade stay put while a
+       long trainee list moves. Below 1100px the columns stack and the page
+       scrolls normally, because a phone has no screen to fit.
+
+       The status colours are the platform's three: cyan in progress,
+       emerald approved/clear, orange flagged and needing the trainer.
+       ================================================================= */
+    :root {
+        --cc-line: rgba(255, 255, 255, .16);
+        --cc-panel: rgba(255, 255, 255, .06);
+        --cc-progress: #22d3ee; --cc-approved: #34d399; --cc-focus: #fb923c; --cc-bad: #f87171;
+    }
+    body { background: var(--navy); color: #fff; }
+    html, body { overflow-x: clip; }
+
+    @media (min-width: 1100px) {
+        html, body { height: 100%; overflow: hidden; }
+        .cc-shell { height: 100vh; display: grid; grid-template-rows: auto auto 1fr; gap: 12px; padding: 0 20px 16px; box-sizing: border-box; }
+        .cc-body { min-height: 0; display: grid; grid-template-columns: minmax(330px, 30%) 1fr; gap: 12px; }
+        .cc-col { min-height: 0; display: grid; grid-template-rows: 1fr 1fr; gap: 12px; }
+        .cc-panel { min-height: 0; display: flex; flex-direction: column; }
+        .cc-scroll { overflow-y: auto; min-height: 0; }
+    }
+    @media (max-width: 1099px) {
+        .cc-shell { padding: 0 16px 24px; }
+        .cc-body { display: grid; gap: 12px; }
+        .cc-scroll { max-height: 60vh; overflow-y: auto; }
+    }
+
+    /* the title band, the same one Monitoring and Feedback uses */
+    .cc-band { margin: 0 calc(50% - 50vw) 0; padding: 14px 24px; background: var(--navy-mid); border-bottom: 3px solid var(--orange); display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+    .cc-band h1 { margin: 0; color: #fff; font-size: clamp(16px, 2vw, 23px); font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+    .cc-band .cc-asof { font-size: 12px; color: rgba(255, 255, 255, .6); }
+
+    /* ---- the top metrics bar ---- */
+    .cc-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 10px; }
+    .cc-metric { background: var(--cc-panel); border: 1.5px solid var(--cc-line); border-radius: 14px; padding: 10px 14px; }
+    .cc-metric .k { font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: rgba(255, 255, 255, .62); }
+    .cc-metric .v { font-size: clamp(20px, 2.2vw, 28px); font-weight: 900; line-height: 1.15; margin: 2px 0 0; }
+    .cc-metric .s { font-size: 11.5px; color: rgba(255, 255, 255, .6); }
+    .cc-metric.focus { border-color: var(--cc-focus); } .cc-metric.focus .v { color: var(--cc-focus); }
+
+    /* ---- panels ---- */
+    .cc-panel { background: var(--cc-panel); border: 1.5px solid var(--cc-line); border-radius: 18px; padding: 12px 14px; }
+    .cc-panel > h2 { margin: 0 0 8px; font-size: 11px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: rgba(255, 255, 255, .72); display: flex; align-items: center; gap: 8px; }
+    .cc-panel > h2 .n { background: rgba(255, 255, 255, .14); border-radius: 999px; padding: 2px 8px; font-size: 11px; }
+    .cc-panel > h2 .n.focus { background: var(--cc-focus); color: var(--navy-deep); }
+
+    /* ---- FOCUS and action engine ---- */
+    .cc-act { display: block; width: 100%; text-align: left; background: rgba(255, 255, 255, .05); border: 1px solid var(--cc-line); border-left: 3px solid var(--cc-focus); border-radius: 12px; padding: 9px 12px; margin-bottom: 8px; color: #fff; font: inherit; cursor: pointer; text-decoration: none; }
+    .cc-act:hover { background: rgba(255, 255, 255, .11); }
+    .cc-act.p2 { border-left-color: var(--cc-progress); } .cc-act.p3 { border-left-color: rgba(255, 255, 255, .3); }
+    .cc-act .t { font-size: 13.5px; font-weight: 700; display: flex; gap: 8px; align-items: baseline; }
+    .cc-act .t b { margin-left: auto; font-size: 16px; font-weight: 900; color: var(--cc-focus); }
+    .cc-act.p2 .t b { color: var(--cc-progress); } .cc-act.p3 .t b { color: rgba(255, 255, 255, .75); }
+    .cc-act .w { font-size: 11.5px; color: rgba(255, 255, 255, .6); margin-top: 2px; }
+    .cc-clear { font-size: 13px; color: var(--cc-approved); padding: 6px 2px; }
+
+    /* ---- ranking and tier ---- */
+    .cc-rank { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .cc-rank th { text-align: left; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: rgba(255, 255, 255, .55); padding: 3px 6px; font-weight: 800; }
+    .cc-rank td { padding: 4px 6px; border-top: 1px solid rgba(255, 255, 255, .08); }
+    .cc-rank td.r { font-weight: 900; color: rgba(255, 255, 255, .5); width: 26px; }
+    .cc-rank tr.me td { background: rgba(249, 115, 22, .16); }
+    .cc-tier { font-size: 9.5px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; border-radius: 999px; padding: 2px 7px; }
+    .cc-tier.gold { background: #fef3c7; color: #92400e; } .cc-tier.silver { background: #e2e8f0; color: #334155; }
+    .cc-tier.bronze { background: #fed7aa; color: #9a3412; } .cc-tier.none { background: rgba(255, 255, 255, .12); color: rgba(255, 255, 255, .7); }
+    .cc-you { background: rgba(249, 115, 22, .12); border: 1px solid rgba(249, 115, 22, .45); border-radius: 12px; padding: 8px 12px; margin-bottom: 9px; font-size: 12.5px; }
+    .cc-you b { font-size: 14px; }
+
+    /* ---- the cascade: program → batch → trainee → scorecard ---- */
+    .cc-cascade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; min-height: 0; }
+    @media (max-width: 760px) { .cc-cascade { grid-template-columns: 1fr; } }
+    .cc-list { min-height: 0; display: flex; flex-direction: column; }
+    .cc-list h3 { margin: 0 0 6px; font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: rgba(255, 255, 255, .5); }
+    .cc-pick { display: block; width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: 10px; padding: 7px 10px; color: #fff; font: inherit; font-size: 13px; cursor: pointer; margin-bottom: 4px; }
+    .cc-pick:hover { background: rgba(255, 255, 255, .09); }
+    .cc-pick.on { background: var(--orange); color: var(--navy-deep); font-weight: 800; }
+    .cc-pick .m { display: block; font-size: 11px; opacity: .72; }
+    .cc-pick.on .m { opacity: .85; }
+    .cc-pick.flag { border-color: var(--cc-focus); }
+
+    /* ---- the centralized scorecard ---- */
+    .cc-sc { border-top: 1px solid var(--cc-line); margin-top: 10px; padding-top: 10px; min-height: 0; }
+    .cc-sc-hd { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
+    .cc-sc-hd h3 { margin: 0; font-size: 16px; font-weight: 900; }
+    .cc-sc-hd .ov { margin-left: auto; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: rgba(255, 255, 255, .6); text-align: right; }
+    .cc-sc-hd .ov b { display: block; font-size: 24px; letter-spacing: 0; }
+    .cc-rub { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .cc-rub th { text-align: left; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: rgba(255, 255, 255, .55); padding: 4px 8px; font-weight: 800; }
+    .cc-rub td { padding: 5px 8px; border-top: 1px solid rgba(255, 255, 255, .08); vertical-align: middle; }
+    .cc-rub td.n { font-weight: 700; } .cc-rub td.p { text-align: right; font-weight: 900; white-space: nowrap; }
+    .cc-bar { height: 7px; border-radius: 999px; background: rgba(255, 255, 255, .13); overflow: hidden; min-width: 60px; }
+    .cc-bar i { display: block; height: 100%; background: var(--cc-progress); }
+    .cc-bar.ok i { background: var(--cc-approved); } .cc-bar.low i { background: var(--cc-focus); }
+    .cc-src { font-size: 11px; color: rgba(255, 255, 255, .5); }
+    .cc-empty, .cc-muted { color: rgba(255, 255, 255, .55); font-size: 12.5px; }
+    .cc-note { background: rgba(249, 115, 22, .13); border: 1px solid rgba(249, 115, 22, .4); border-radius: 12px; padding: 8px 12px; font-size: 12.5px; margin-bottom: 10px; }
+    .cc-err { background: rgba(248, 113, 113, .14); border: 1px solid rgba(248, 113, 113, .5); border-radius: 12px; padding: 10px 14px; font-size: 13px; }
+    .cc-open { font-size: 12px; font-weight: 800; color: var(--orange); text-decoration: none; }
+    .cc-open:hover { text-decoration: underline; }
+</style>
+<script src="/portal-nav.js"></script>
+<link rel="stylesheet" href="/theme.css">
+</head>
+<body>
+<script>
+    // Trainers only (the API enforces it too: /api/program-progress is adminOnly).
+    // Anyone else is sent to admin sign-in rather than shown an empty dashboard.
+    (function () {
+        try {
+            const raw = sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1');
+            const s = raw && raw !== 'null' ? JSON.parse(raw) : null;
+            if (!s || s.userType !== 'Admin') window.location.replace('/admin-login.html');
+        } catch (e) { window.location.replace('/admin-login.html'); }
+    })();
+</script>
+<div class="sim-top">
+    <a class="sim-brand" href="/programs.html"><img src="/img/logo.png" alt="Legal Support Help" width="70" height="46"><span>LSH Training Portal<small>Command Center</small></span></a>
+    <div class="sim-nav">
+        <script>document.write(PortalNav.adminHtml('cc', { back: '/programs.html' }));</script>
+    </div>
+</div>
+<section class="cc-band"><h1>Trainer Command Center</h1><span class="cc-asof" id="ccAsOf"></span></section>
+<div class="cc-shell">
+    <div class="cc-metrics" id="ccMetrics"><div class="cc-metric"><div class="k">Loading</div><div class="v">…</div><div class="s">reading every program</div></div></div>
+    <div class="cc-body">
+        <div class="cc-col">
+            <section class="cc-panel"><h2>🎯 Focus &amp; actions <span class="n focus" id="ccFocusN"></span></h2>
+                <div class="cc-scroll" id="ccFocus"><div class="cc-muted">Loading…</div></div></section>
+            <section class="cc-panel"><h2>🏅 Ranking &amp; tier</h2>
+                <div class="cc-scroll" id="ccRank"><div class="cc-muted">Loading…</div></div></section>
+        </div>
+        <section class="cc-panel">
+            <h2>📊 Program → Batch → Trainee</h2>
+            <div class="cc-scroll">
+                <div id="ccNote"></div>
+                <div class="cc-cascade" id="ccCascade"></div>
+                <div class="cc-sc" id="ccScorecard"></div>
+            </div>
+        </section>
+    </div>
+</div>
+<script src="/command-center.js"></script>
+</body>
+</html>
