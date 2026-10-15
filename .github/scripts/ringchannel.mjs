@@ -34,13 +34,13 @@ else {
     const v = await verifyTicket(env.PORTAL_SSO_SECRET, au.searchParams.get('ticket'));
     if (!v.ok || !v.admin || v.name !== 'Coach Ana') fail(`the admin's ticket Ring Channel gets: ${JSON.stringify(v)}`);
 }
-// ... every training program too (single sign-on for trainers: no second password). Every blueprint link leads to the
-// Portal's own 🧭 Blueprint page, so ?to=blueprint sends nobody into a program: it lands on the program itself.
+// ... every training program too (single sign-on for trainers: no second password), with the blueprint landing kept:
+// the programs carry no Blueprint link of their own, so the Main Portal's 🧭 Blueprint menu is the way into each deck.
 for (const key of Object.keys(SSO_PROGRAMS)) {
     const o = await go(admin, 'program=' + encodeURIComponent(key) + '&to=blueprint');
     const ou = o.at ? new URL(o.at) : null;
     const v = ou && ou.searchParams.get('ticket') ? await verifyTicket(env.PORTAL_SSO_SECRET, ou.searchParams.get('ticket')) : null;
-    if (o.status !== 302 || !ou || ou.origin + ou.pathname !== SSO_PROGRAMS[key] || !v || !v.ok || !v.admin || ou.hash) fail(`an admin's ${key} launch: ${o.status} ${o.at}`);
+    if (o.status !== 302 || !ou || ou.origin + ou.pathname !== SSO_PROGRAMS[key] || !v || !v.ok || !v.admin || ou.hash !== '#/blueprint') fail(`an admin's ${key} launch: ${o.status} ${o.at}`);
 }
 // ... and the CMS and the Knowledge Base too: the trainer's own admin ticket, no admin password there
 for (const q of ['tool=cms', 'tool=kb']) {
@@ -53,14 +53,21 @@ for (const q of ['tool=cms', 'tool=kb']) {
 const master = await createSessionToken({ username: 'LSHADMIN123', userType: 'Admin', fullName: 'System Administrator', batchId: '' }, env.SESSION_SECRET);
 { const o = await go(master, 'tool=cms'); const v = await verifyTicket(env.PORTAL_SSO_SECRET, new URL(o.at).searchParams.get('ticket'));
   if (!v.ok || !v.admin || v.name) fail(`the Master Account's CMS ticket: ${JSON.stringify(v)}`); }
-// ... and no tool has a blueprint landing either: ?to=blueprint opens the tool itself, never a deck inside it
+// ... and the CMS's, Ring Channel's and the Knowledge Base's own blueprints open the same way
 for (const q of ['tool=cms', 'tool=kb', 'tool=ringchannel']) {
     const o = await go(admin, q + '&to=blueprint');
-    if (/#\/blueprint$/.test(o.at || '')) fail(`an admin's ${q} link still lands on a blueprint: ${o.at}`);
+    if (!/\?ticket=[^#&]+#\/blueprint$/.test(o.at || '')) fail(`an admin's ${q} blueprint link: ${o.at}`);
 }
-// The 🧭 Blueprint page keeps every blueprint link on itself: no launch link into a program's or a tool's deck.
+// The Main Portal's 🧭 Blueprint menu holds them all: the Platform Blueprint, then every program's and tool's deck.
+const ix = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+if (!/id="pill-blueprint"/.test(ix)) fail("the Main Portal has no 🧭 Blueprint menu");
+if (!ix.includes('"/blueprint.html"')) fail("the Main Portal's 🧭 Blueprint menu has no Platform Blueprint");
+for (const q of ['tool=cms', 'tool=ringchannel', 'tool=kb', ...Object.keys(SSO_PROGRAMS).map((k) => 'program=' + encodeURIComponent(k))]) {
+    if (!ix.includes(`/api/launch?${q}&to=blueprint`)) fail(`the Main Portal's 🧭 Blueprint menu has no ${q} blueprint`);
+}
+// ... and the 🧭 Blueprint page itself still links no deck inside a program or a tool (the menu is the one way in).
 const bp = readFileSync(new URL('../../blueprint.html', import.meta.url), 'utf8');
-if (/to=blueprint/.test(bp)) fail("the 🧭 Blueprint page still links a blueprint inside a program or a tool");
+if (/to=blueprint/.test(bp)) fail("the 🧭 Blueprint page links a blueprint inside a program or a tool");
 // 3. signed out: no way in
 const o = await go(null);
 if (o.status !== 401) fail(`a signed-out launch: ${o.status} ${o.at}`);

@@ -14,7 +14,7 @@ The landing page, sign-in, registration, claim and referral pages, and their sha
 | `_redirects` | 16 | Cloudflare Pages redirects: keeps repo files (wrangler.toml, *.md, topics_seed.sql, .github/, functions/) off the published site, forwards old KB URLs through /api/launch?tool=kb SSO (kb target exists in functions/api/launch.js), and bridges retired /bridge.html to /programs.html. |
 | `auth.css` | 91 | Shared chrome of the two sign-in pages (split card, visual panel, form styles), extracted from the byte-identical blocks trainee-login.html and admin-login.html carried; registration.html keeps its own tuned variant. |
 | `admin-login.html` | 92 | Admin sign-in page; during a site-wide lock portal.js swaps the login form for the Master-Account unlock form (admin-unlock-content); loads show-password.js. |
-| `index.html` | 622 | Public landing page: hero, team org chart, about/mission/values, FAQ, footer, plus the 'Got a referral?' modal that posts multipart form data to /api/referrals. |
+| `index.html` | 1025 | Public landing page: hero, team org chart, about/mission/values, FAQ, footer, the nav's 🧭 Blueprint menu (the Platform Blueprint, plus every program's and tool's own deck for a signed-in admin), plus the 'Got a referral?' modal that posts multipart form data to /api/referrals. |
 | `referrals.html` | 162 | Admin-only referrals manager over /api/referrals: list/filter/search, status + admin note (PATCH), CV download (?cv=id), CSV export with formula-injection quoting, delete. |
 | `registration.html` | 195 | New-account request form (Trainee/Admin) handled by portal.js submitRegistration() → POST /api/register; lock-aware via AUTH_PAGE_TYPE='registration'. |
 | `show-password.js` | 37 | Injects a Show/Hide toggle into every password input, including ones added later, via a MutationObserver; loaded only by admin-login.html (per its own 'admin pages' comment). |
@@ -121,7 +121,7 @@ Login/session plumbing, user management, site lock/pause/alert, logs and monitor
 | `functions/api/announcement.js` | 60 | GET public announcement ticker text; POST/DELETE set or clear it (admin), stored in TRAINING_DB site_settings. |
 | `functions/api/create-user.js` | 111 | POST /api/create-user (admin): a trainer makes an account for someone — same checks as registration, creates a Pending users row for an administrator to approve. |
 | `functions/api/heartbeat.js` | 62 | GET who's-online list (admin); POST session heartbeat upsert with lighter-than-requireSession checks. |
-| `functions/api/launch.js` | 146 | GET /api/launch: opens a program or tool for the signed-in person with a short-lived signed SSO ticket (trainee/admin/system variants), plus landing/?to= routing and callsQuery. |
+| `functions/api/launch.js` | 161 | GET /api/launch: opens a program or tool for the signed-in person with a short-lived signed SSO ticket (trainee/admin/system variants), plus landing/?to= routing and callsQuery. |
 | `functions/api/live.js` | 22 | GET /api/live: one-request aggregation of site-state, alert and pings for every open page's 20s poll. |
 | `functions/api/login.js` | 133 | POST /api/login for Trainee and Admin portals: password verify, legacy-hash upgrade, throttle, master-account path, status checks, session cookie + heartbeat seed. |
 | `functions/api/logout.js` | 25 | POST /api/logout: logs the logout, deletes the heartbeat row, clears the cookie; deliberately skips requireSession. |
