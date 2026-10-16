@@ -5,11 +5,10 @@ body{margin:0;font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;background:
 a{color:inherit;}
 .sim-top{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 28px;background:var(--navy-deep);border-bottom:2px solid var(--orange);position:sticky;top:0;z-index:30;}
 .sim-brand{display:flex;align-items:center;gap:12px;color:#fff;font-weight:800;font-size:14px;text-decoration:none;}
-/* On a light plate: half the mark and all of the wordmark are navy, and on the navy bar
-   that half dropped out, which read as a logo cut off down its left side. The height is
-   also what the wordmark needs to stay legible rather than smear. */
+/* The reversed mark (img/logo-light.svg) carries this bar: the standard one is navy down
+   its left side and through its wordmark, which dropped out against the navy and read as
+   a logo cut off. The height is what the wordmark needs to stay legible rather than smear. */
 .sim-brand img{height:56px;width:auto;border-radius:0;padding:0;object-fit:contain;background:none;display:block;}
-.sim-brand .sim-mark{display:block;background:#fff;border-radius:12px;padding:7px 12px;box-shadow:0 10px 24px -14px rgba(8,18,38,.9);flex-shrink:0;}
 /* the page's name under "LSH Training Portal", the same on every page that carries this bar */
 .sim-brand small{display:block;font-size:11px;font-weight:600;color:#fdba74;letter-spacing:.08em;text-transform:uppercase;}
 /* The standard page header (the Training Directory's): the mark, then the page's name in capitals, and nothing beside it. */

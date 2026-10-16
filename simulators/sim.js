@@ -96,7 +96,7 @@ const Sim = {
             : s.userType === 'Trainee' ? `<span class="who" title="Your results are saved to your account">Practicing as ${Sim.esc(w.name)}${w.batch ? ' · ' + Sim.esc(typeof batchLabel === 'function' ? batchLabel(w.batch) : w.batch) : ''}</span>`
             : `<a class="who" onclick="Sim.askWho(true)" title="Change who is practicing">${w.name ? `Practicing as ${Sim.esc(w.name)}${w.batch ? ' · ' + Sim.esc(w.batch) : ''} ✎` : 'Add your name ✎'}</a>`;
         return `<div class="sim-top">
-            <a class="sim-brand" href="/index.html?stay=1"><span class="sim-mark"><img src="/img/logo.svg" alt="Legal Support Help" width="75" height="46"></span><span class="sim-title">Simulators</span></a>
+            <a class="sim-brand" href="/index.html?stay=1"><img src="/img/logo-light.svg" alt="Legal Support Help" width="75" height="46"><span class="sim-title">Simulators</span></a>
             <div class="sim-nav">
                 ${PortalNav.html(active === 'hub' ? 'sims' : '', { back: active === 'hub' ? '/programs.html' : '/simulators.html', blueprint: false })}
                 ${active === 'hub' ? `<a href="${admin ? '/simulators/gcal-review.html' : '/simulators/my-evaluations.html'}" title="${admin ? 'Each trainee\u2019s calendars with their AI review and your feedback' : 'My calendars and the reports my trainer sent'}">${admin ? '\u{1F5A5} Trainee Evaluations' : '\u{1F4CB} My Evaluations'}</a>` : ''}

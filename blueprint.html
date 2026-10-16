@@ -84,7 +84,7 @@ function signedIn() { return !!lshSession(); }
 </script>
 
 <div class="sim-top">
-    <a class="sim-brand" href="/programs.html"><span class="sim-mark"><img src="/img/logo.svg" alt="Legal Support Help" width="75" height="46"></span><span>LSH Training Portal<small>Blueprint</small></span></a>
+    <a class="sim-brand" href="/programs.html"><img src="/img/logo-light.svg" alt="Legal Support Help" width="75" height="46"><span>LSH Training Portal<small>Blueprint</small></span></a>
     <div class="sim-nav">
         <script>document.write(isAdmin() ? PortalNav.adminHtml('orient', { back: '/programs.html' })
             : PortalNav.traineeHtml('orient', { back: '/index.html?stay=1', signedIn: signedIn() }));</script>

@@ -33,10 +33,19 @@ for i, n in enumerate(names):
         d.append("Z")
     paths.append((n, '#%02x%02x%02x' % COLORS[n], ''.join(d)))
 
-svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" role="img" aria-label="Legal Support Help">',
-       '<title>Legal Support Help</title>']
-for n, col, d in paths:
-    svg.append(f'<path fill="{col}" fill-rule="evenodd" d="{d}"/>')
-svg.append('</svg>')
-open('img/logo.svg', 'w').write('\n'.join(svg) + '\n')
+def write(path, recolour=None, drop=()):
+    svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" role="img" aria-label="Legal Support Help">',
+           '<title>Legal Support Help</title>']
+    for n, col, d in paths:
+        if n in drop:
+            continue
+        svg.append(f'<path fill="{(recolour or {}).get(n, col)}" fill-rule="evenodd" d="{d}"/>')
+    svg.append('</svg>')
+    open(path, 'w').write('\n'.join(svg) + '\n')
+
+write('img/logo.svg')
+# The reversed mark, for the navy bars. Navy ink becomes white, and the white
+# separators are simply left out so the bar itself shows through them — which is
+# what keeps the L, the square and the SH reading as separate shapes.
+write('img/logo-light.svg', recolour={'navy': '#ffffff'}, drop=('white',))
 print('layers:', [n for n, _, _ in paths])
