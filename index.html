@@ -57,7 +57,18 @@
     /* ===== NAV — dark, sits flush with the hero below it ===== */
     nav {
         position: sticky; top: 0; z-index: 50;
-        background: var(--navy-deep);
+        /* A light panel at the left edge, fading into the navy before the wordmark starts:
+           the standard logo is navy down its left side and through its own wordmark, and on
+           flat navy that half simply disappeared. */
+        background:
+            linear-gradient(100deg,
+                #ffffff 0, #ffffff 176px,
+                rgba(255, 255, 255, .70) 202px,
+                rgba(255, 255, 255, .38) 226px,
+                rgba(255, 255, 255, .16) 248px,
+                rgba(255, 255, 255, .05) 268px,
+                rgba(255, 255, 255, 0) 292px),
+            var(--navy-deep);
         border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     .nav-inner {
@@ -67,7 +78,7 @@
            half out of view never looks like it is running into the wordmark */
         gap: 20px;
     }
-    .brand { display: flex; align-items: center; gap: 14px; font-weight: 800; font-size: 16px; color: #fff; }
+    .brand { display: flex; align-items: center; gap: 62px; font-weight: 800; font-size: 16px; color: #fff; }
     .brand-mark {
         width: 36px; height: 36px; border-radius: 0;
         background: #fff; padding: 3px; box-sizing: border-box;
@@ -79,8 +90,11 @@
     /* Between the phone layout and a roomy desktop the wordmark is the widest
        thing that can afford to give: 425px of brand against a 965px pill row is
        what forced the row to scroll at all below ~1300px. */
-    @media (max-width: 1280px) { .brand-logo { height: 70px; } .brand .brand-title { font-size: 14.5px; } .brand { gap: 10px; } }
-    @media (max-width: 760px) { .brand-logo { height: 60px; } .brand .brand-title { font-size: 15px; white-space: normal; } }
+    @media (max-width: 1280px) { .brand-logo { height: 70px; } .brand .brand-title { font-size: 14.5px; } .brand { gap: 52px; } }
+    @media (max-width: 760px) { .brand-logo { height: 60px; } .brand .brand-title { font-size: 15px; white-space: normal; } .brand { gap: 20px; }
+        /* Wrapped bar: the panel is held to the brand's own row, clear of the pills below. */
+        nav { background: linear-gradient(100deg, #ffffff 0, #ffffff 118px, rgba(255,255,255,.55) 146px, rgba(255,255,255,.20) 174px, rgba(255,255,255,0) 206px), var(--navy-deep);
+              background-size: 100% 86px, auto; background-repeat: no-repeat, no-repeat; background-position: left top, left top; } }
     /* The standard page header (the Training Directory's): the mark, then the page's name in capitals. */
     .brand-title { font-size: 18px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
     .nav-links { display: flex; gap: 28px; align-items: center; }
@@ -641,7 +655,7 @@
 
 <nav>
     <div class="nav-inner">
-        <div class="brand"><img class="brand-logo" src="/img/logo-light.svg" alt="Legal Support Help" width="137" height="84"> <span class="brand-title">Legal Support Help Upskill Hub</span></div>
+        <div class="brand"><img class="brand-logo" src="/img/logo.svg" alt="Legal Support Help" width="137" height="84"> <span class="brand-title">Legal Support Help Upskill Hub</span></div>
         <div class="nav-pills">
             <!-- The pills that scroll this page come first, in the order the sections appear on it
                  (team, about, vision, values, faq), then the places that leave it, then the actions. -->

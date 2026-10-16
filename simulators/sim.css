@@ -4,7 +4,7 @@
 body{margin:0;font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;background:var(--paper);color:var(--navy);height:auto;overflow:visible;}
 a{color:inherit;}
 .sim-top{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 28px;background:var(--navy-deep);border-bottom:2px solid var(--orange);position:sticky;top:0;z-index:30;}
-.sim-brand{display:flex;align-items:center;gap:12px;color:#fff;font-weight:800;font-size:14px;text-decoration:none;}
+.sim-brand{display:flex;align-items:center;gap:44px;color:#fff;font-weight:800;font-size:14px;text-decoration:none;}
 /* The reversed mark (img/logo-light.svg) carries this bar: the standard one is navy down
    its left side and through its wordmark, which dropped out against the navy and read as
    a logo cut off. The height is what the wordmark needs to stay legible rather than smear. */

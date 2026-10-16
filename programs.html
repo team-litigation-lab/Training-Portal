@@ -119,7 +119,7 @@
 
     /* The top bar: the LSH logo, the page's name, and the pill bar (trainees, visitors, or the admin bar). */
     .idx-top { position: relative; z-index: 5; gap: 20px; padding: 14px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
-    .idx-brand { flex-shrink: 0; }
+    .idx-brand { flex-shrink: 0; margin-right: 46px; }
     .idx-logo { height: 58px; width: auto; display: block; }
     .idx-title { flex: 0 1 auto; margin: 0 auto 0 0; font-size: clamp(16px, 2vw, 28px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: #fff; white-space: nowrap; }
     .idx-title span { color: var(--orange); }
@@ -212,7 +212,7 @@
 </script>
 
 <div class="idx-top">
-    <a class="idx-brand" href="/index.html?stay=1" title="The LSH Upskill Hub main page"><img class="idx-logo" src="/img/logo-light.svg" alt="Legal Support Help"></a>
+    <a class="idx-brand" href="/index.html?stay=1" title="The LSH Upskill Hub main page"><img class="idx-logo" src="/img/logo.svg" alt="Legal Support Help"></a>
     <h1 class="idx-title" id="idx-heading">Training <span>Directory</span></h1>
     <div class="idx-user" id="idx-user">
         <script>document.write(PortalNav.traineeHtml('', { back: '/index.html?stay=1' }));</script>
