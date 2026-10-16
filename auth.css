@@ -60,10 +60,13 @@
         width: auto; height: auto; border-radius: 10px; background: #c3cfe0; padding: 6px 12px; box-sizing: border-box;
         display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
     }
-    /* Slate, the same panel colour as the top bars. The navy chip that used to be here
-       swallowed the logo's navy half and its wordmark; the white card behind it would
-       swallow the logo's white lining instead. */
-    .auth-card-mark img { height: 46px; width: auto; display: block; }
+    /* Slate, the same colour the top bars' panel is at full strength. The navy chip that
+       used to be here swallowed the logo's navy half and its wordmark; the white card
+       behind it would swallow the logo's white lining instead. It does not fade out the
+       way the bars' panel does: a chip is only as wide as the logo, so there is no run of
+       bar for it to fade into, and fading would drop the lining at the logo's right. The
+       height matches the bars, so the wordmark is as legible here as it is there. */
+    .auth-card-mark img { height: 54px; width: auto; display: block; }
     .auth-card-brand span { font-weight: 800; font-size: 14px; color: var(--navy); }
     .auth-card h2 { font-size: 20px; font-weight: 800; margin: 0 0 5px; color: var(--navy); }
     .auth-card .sub { font-size: 12.5px; line-height: 1.5; color: var(--slate); margin: 0 0 18px; }
@@ -140,7 +143,7 @@
        just narrow: a 250px card with full-size type would look cramped. */
     body.auth-compact-right .auth-card-brand { gap: 8px; margin-bottom: 14px; }
     body.auth-compact-right .auth-card-mark { border-radius: 8px; padding: 5px 9px; }
-    body.auth-compact-right .auth-card-mark img { height: 36px; }
+    body.auth-compact-right .auth-card-mark img { height: 44px; }
     body.auth-compact-right .auth-card-brand span { font-size: 12px; }
     body.auth-compact-right .auth-card h2 { font-size: 15.5px; margin-bottom: 4px; }
     body.auth-compact-right .auth-card .sub { font-size: 10.5px; margin-bottom: 13px; }
