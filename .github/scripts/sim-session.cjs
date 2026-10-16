@@ -63,7 +63,7 @@ const server = http.createServer(async (req, res) => {
     }
     const store = (page) => page.evaluate(() => { const o = {}; for (let i = 0; i < localStorage.length; i++) o[localStorage.key(i)] = localStorage.getItem(localStorage.key(i)); return o; });
     const sess = (page) => page.evaluate(() => sessionStorage.getItem('LSH_SESSION_V1'));
-    const hub = (page) => page.evaluate(() => document.getElementById('hub-grid').innerText + '\n' + (document.getElementById('topbar') || document.body).innerText + '\n' + document.getElementById('results-title').innerText);
+    const hub = (page) => page.evaluate(() => document.getElementById('hub-grid').innerText + '\n' + (document.getElementById('topbar') || document.body).innerText);
 
     /* ---------- a Trainee's tab keeps its session and beats ---------- */
     me = BOB;
@@ -88,7 +88,7 @@ const server = http.createServer(async (req, res) => {
         t = await hub(page);
         if (who === ANN) {
             if (!/Trainee Evaluations/.test(t) || /My Evaluations/.test(t)) fail('an admin in a new tab is treated as a trainee on the hub: ' + t.slice(-300));
-            if (!/all trainees/.test(t) || !count('/api/sim-results')) fail('an admin in a new tab does not get the admin results: ' + t.slice(-120));
+            if (count('/api/sim-results')) fail('the hub still asks for simulator results: the results table was removed from simulators.html');
             if (!/Log Out/.test(await page.evaluate(() => document.getElementById('topbar').innerText))) fail('an admin in a new tab has no Log Out in the top bar');
         } else if (!/My Evaluations/.test(t) || /Trainee Evaluations/.test(t)) fail('a trainee in a new tab should see My Evaluations: ' + t.slice(-300));
         await page.context().close();

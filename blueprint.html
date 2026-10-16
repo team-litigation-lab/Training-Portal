@@ -47,6 +47,8 @@
     .or-tabs button.on { background: var(--navy); color: #fff; }
     .btn { font: inherit; font-size: 13px; font-weight: 700; border-radius: 10px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--navy); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
     .btn:hover { border-color: var(--orange); }
+    /* .btn sets display, which beats the browser's own [hidden] rule — without this a hidden button still shows. */
+    .btn[hidden] { display: none !important; }
     .btn.pri { background: var(--orange); border-color: var(--orange); color: #111827; }
     /* This line sits straight on the page's photo backdrop with no card
        under it, and --slate measures 3.49:1 over the darkest part of that
@@ -133,7 +135,7 @@ trainee: [
 { icon: '🔑', title: 'Register once, then log in once', points: [
     'New to LSH? Press Register on the log-in page and choose a username and password. An admin approves your registration and gives you your Batch ID.',
     'After that, press Log In on the main page and use your username and password. You land on the Training Directory.',
-    "You won't be asked to sign in again inside a program, a simulator or the Knowledge Base: the portal signs you in for you.",
+    "You won't be asked to sign in again inside a Program, a Simulator or the Knowledge Base: the portal signs you in for you.",
     'Your progress is saved to your account, not your browser, so you can pick up on any computer.',
     'Log-in details for work tools (email, CMS, time tracker) are never posted on the portal. Your trainer shares them privately.'],
   where: 'Log In on the main page (/trainee-login.html).',
@@ -150,12 +152,12 @@ trainee: [
 { icon: '🎓', title: 'What you do inside your program', points: [
     '📚 Lessons: slides you move through one at a time, with Full screen. Your trainer opens each lesson or day for your batch.',
     '▶ Videos and files: lecture videos and documents open right on the page, or in a new tab.',
-    '🧪 Practice: activities, Knowledge Checks and practice labs. Your work saves as you go.',
-    "🎯 Trainer feedback: your trainer's notes on your work — strengths, areas to build and what to focus on next.",
+    '🧪 Practice: activities, Knowledge Checks and Practice Labs. Your work saves as you go.',
+    "🎯 Trainer Feedback: your trainer's notes on your work — strengths, areas to build and what to focus on next.",
     '💬 Your feedback: rate the lessons and the training. You can send it anonymously.',
     '🎓 Certificate: unlocks when you complete the program.'],
   where: 'Training Directory → Enter Program, which opens in a new tab.',
-  tip: 'Leave the portal tab open. It is what signs you in to the program, the simulators and the Knowledge Base.' },
+  tip: 'Leave the portal tab open. It is what signs you in to the Program, the Simulators and the Knowledge Base.' },
 { icon: '🛠', title: 'Practice on the Simulators', points: [
     'The Simulators let you practice real work safely, with fictional cases, and send your scores to your trainer.',
     '📞 Call Simulator on ☎ LSH Ring Channel: every mock call on one training phone — a caller rings your line, you answer with a headset, and the call is graded on your line\'s Mock Calls Metrics (practice with an 🤖 AI caller, take a graded call, or answer a trainer-led mock call).',
@@ -164,7 +166,7 @@ trainee: [
     '⚖️ Docket, 🗂 Records and 🏛 E-Filing: docket court deadlines, request medical records and bills, and file with the court.',
     "You're already signed in, so every run is saved under your name and batch. My recent results shows your scores."],
   where: 'Training Directory → Simulators (/simulators.html).',
-  tip: 'Put your name in when a simulator asks for it, or the run is practice only and your trainer never sees the score.' },
+  tip: 'Put your name in when a Simulator asks for it, or the run is practice only and your trainer never sees the score.' },
 { icon: '📖', title: 'Look things up in the Knowledge Base', points: [
     "The Knowledge Base is where LSH VAs find the firm's SOPs and share what they know. It's for the team only.",
     'Open it from the Training Directory: the portal signs you in, so there is no access code to type.',
@@ -191,8 +193,8 @@ trainee: [
   tip: 'Something not working? Message your trainer with your name, your Batch ID and a screenshot — that is everything they need to fix it.' }
 ],
 admin: [
-{ icon: '🔒', title: 'Running training from the master portal', points: [
-    'Trainers and admins sign in to the portal to run every batch, monitor trainees, and review what they share.',
+{ icon: '🔒', title: 'Running training from the Master Portal', points: [
+    'Trainers and Admins sign in to the Portal to run every batch, monitor trainees, and review what they share.',
     'Sign in with Admin in the main page header.',
     'Every main page then has the same admin bar: Blueprint · System Management ▾ · Trainee Monitoring · Attendance · Referrals · Switch view · Logout.',
     "The portal signs you in to each program's admin, the Knowledge Base and the Simulators: one admin password everywhere."],
@@ -215,7 +217,7 @@ admin: [
   tip: "Approving a registration is what issues the trainee's Batch ID — clear the queue before the batch's first day, not during it." },
 { icon: '📈', title: 'Trainee Monitoring: every trainee on one page', points: [
     'A tab per program, with trainees grouped by batch, the latest batch first.',
-    'For each trainee: days completed, Knowledge Check and practice averages, trainer feedback, their own feedback, simulator scores, and when they were last active.',
+    'For each trainee: days completed, Knowledge Check and practice averages, Trainer Feedback, their own feedback, Simulator scores, and when they were last active.',
     'Click a trainee for the full record. Filter, sort by "furthest behind", search, and download a CSV.',
     '📦 Archive batch when a batch finishes: its records are kept and can be restored.',
     '💬 Feedback from trainees shows ratings and comments; anonymous feedback stays anonymous.'],
@@ -231,22 +233,22 @@ admin: [
     "Each program's own 🛡 Admin is where you run it day to day.",
     "Open lessons or days for a batch when you're ready to teach them.",
     'Run the live session in 🖥 Presenter view, and check what trainees see with 👁 Trainee view.',
-    'Grade activities, and write each trainee’s trainer feedback.',
+    'Grade activities, and write each trainee’s Trainer Feedback.',
     'Credentials are never posted on the platform. Share log-in details with trainees privately.'],
   where: 'The program’s own 🛡 Admin, reached with Enter Program.',
   tip: 'Open only the day you are teaching. Trainees read ahead, and a day you have opened cannot be un-seen.' },
-{ icon: '🤝', title: 'Knowledge Base review, referrals and simulator reviews', points: [
+{ icon: '🤝', title: 'Knowledge Base review, Referrals and Simulator reviews', points: [
     '📚 Knowledge Base review: approve posts, comments and profile changes, or send a post back with a note. Feature, archive, mark obsolete, edit or delete articles.',
     '🤝 Referrals: people referred with "Got a referral?" on the main page — contact details and CV. Set a status, keep a note, delete when done.',
-    "📆 Calendar reviews: trainees' Google Calendar submissions come to you for review; your result shows at the bottom of their requests panel.",
-    "🛠 Simulator scores: every run is saved under the trainee's name and batch, and shows in Trainee Monitoring."],
+    "📆 Calendar Reviews: trainees' Google Calendar submissions come to you for review; your result shows at the bottom of their requests panel.",
+    "🛠 Simulator Scores: every run is saved under the trainee's name and batch, and shows in Trainee Monitoring."],
   where: 'Knowledge Base review inside the KB; Referrals in the admin bar.',
   tip: 'Send a post back with a note rather than deleting it — every post carries its contributor’s profile, so the author can fix it themselves.' },
 { icon: '📋', title: 'Your daily checklist', points: [
     '1. Approve new registrations and program requests.',
     "2. Take attendance, and open today's lessons for the batch.",
     '3. Post an announcement in Broadcast & Ping if the batch needs it.',
-    '4. Grade activities and calendar submissions, and write trainer feedback.',
+    '4. Grade activities and Calendar submissions, and write Trainer Feedback.',
     '5. Check Trainee Monitoring for anyone falling behind.',
     '6. Review new Knowledge Base posts and comments, and any new referrals.'],
   where: 'The admin bar, left to right: System Management, Trainee Monitoring, Attendance, Referrals.',
@@ -284,9 +286,13 @@ window.LSH_BLUEPRINT = {
 function renderTrack() {
     const slides = track === 'admin' ? SLIDES.admin : SLIDES.trainee;
     $('bpTitle').textContent = track === 'admin' ? 'The Trainer blueprint' : 'The Trainee blueprint';
-    $('bpSub').textContent = `${SUBS[track]} — ${slides.length} slides. ← → or the contents strip move through it${isAdmin() ? ', ⬇ Download PDF saves it' : ''}, Esc closes it.`;
+    $('bpSub').textContent = `${SUBS[track]} — ${slides.length} slides. ← → or the contents strip move through it${isAdmin() && track === 'admin' ? ', ⬇ Download PDF saves it' : ''}, Esc closes it.`;
     $('bpContents').innerHTML = slides.map((s, i) => `<li><span>${i + 1}</span>${s.title}</li>`).join('');
     document.querySelectorAll('.or-tabs button').forEach(b => { const on = b.dataset.track === track; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+    // ⬇ Download PDF belongs to the Trainers & Admins track alone: it is a trainer's way of sharing
+    // the deck outside the portal, so it is not on the Trainees track even for an admin.
+    const pdf = $('orPdf');
+    if (pdf) pdf.hidden = !(isAdmin() && track === 'admin');
     document.title = (track === 'admin' ? 'Trainer Blueprint' : 'Blueprint') + ' — LSH Training Portal';
     const q = new URLSearchParams(location.search);
     q.set('track', track);
@@ -307,9 +313,8 @@ function setTrack(t) {
 function downloadTrackPdf() { return window.LSHBlueprint ? LSHBlueprint.pdf(deckKey()) : null; }
 
 // A trainee (or a visitor) reads the blueprint on screen: no track to switch to, and no PDF to take
-// away. ⬇ Download PDF is a trainer's, for sharing the deck outside the portal.
+// away. ⬇ Download PDF is a trainer's, and renderTrack() shows it on the Trainers & Admins track only.
 if (!isAdmin()) { delete SLIDES.admin; document.querySelectorAll('.or-tabs').forEach(t => t.hidden = true); }
-else document.querySelectorAll('#orPdf').forEach(b => { b.hidden = false; });
 
 (function init() {
     const q = new URLSearchParams(location.search);

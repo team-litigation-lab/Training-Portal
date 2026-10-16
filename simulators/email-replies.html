@@ -72,6 +72,7 @@
 <script src="/portal.js"></script>
 <script src="/simulators/sim.js"></script>
 <script src="/simulators/cm-case.js"></script>
+<script src="/simulators/email-scorecard.js"></script>
 <script>
 /* Scenarios live in /simulators/reply-packs/emails.json — the server sends only these. */
 const START_PROGRAM = (() => { const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'CM' : p.startsWith('EA') ? 'EA' : 'All'; })();
@@ -81,6 +82,7 @@ const SENT_KEY = 'LSH_EMAIL_REPLIES_SENT';
 function sent() { try { return JSON.parse(localStorage.getItem(SENT_KEY) || '[]'); } catch (e) { return []; } }
 function saveSent(list) { try { localStorage.setItem(SENT_KEY, JSON.stringify(list.slice(0, 30))); } catch (e) {} }
 function initials(n) { return String(n).replace(/[^A-Za-z ]/g, '').split(' ').filter(Boolean).map(x => x[0]).join('').slice(0, 2).toUpperCase() || '✉'; }
+const n1 = (v) => String(Math.round((Number(v) || 0) * 10) / 10);
 function byId(id) { return E.emails.find(m => m.id === id); }
 function progLabel(p) { return p === 'All' ? 'All programs' : p === 'CM' ? 'Case Management' : 'EA / PA'; }
 
@@ -194,20 +196,25 @@ WHAT THE TRAINEE KNEW: ${m.facts}
 INCOMING EMAIL from ${m.from.name} (${m.from.role}), subject "${m.subject}"${(m.attachments || []).length ? `, attachments: ${m.attachments.join(', ')}` : ''}:
 ${m.body}
 
-GOALS TO GRADE:
+WHAT A GOOD REPLY TO THIS ONE DOES (evidence for the metrics below — do not score these separately):
 ${m.goals.map((g, i) => `${i + 1}. ${g}`).join('\n')}
 
 THE TRAINEE'S REPLY:
 ${text}
 
-Also judge professional email craft: clear subject handling, greeting and sign-off, concise paragraphs, a clear next step, no typos that change meaning. Any legal advice, case valuation, guarantee, or disclosure of confidential information should pull the score well below 70.
-Return ONLY JSON:
-{"score": 0-100, "verdict": "one sentence overall", "goals": [{"goal": "…", "met": true|false, "note": "what they did or missed, quoting briefly"}], "strengths": ["…"], "improve": ["concrete next step", "…"], "betterVersion": "a short model reply (under 140 words) that meets every goal"}`;
+${EmailScorecard.promptBlock()}
+Score only what the reply actually says; quote a few words as proof in each feedback line, and where a metric is not yet a 5 say the better way in one sentence. Any legal advice, case valuation, guarantee, or disclosure of confidential information is a 0 or 1 on Accuracy & Staying In Role. A metric the scenario cannot test (nothing urgent in the incoming email, nothing asked) is a 5 only if the reply still handles it sensibly.
+Return ONLY JSON (no overall score — it is worked out from the metrics):
+{"metrics": [{"key": "urgency|answers|accuracy|nextstep|tone", "score": 0-5, "feedback": "one or two sentences, quoting briefly"}, … all five],
+ "verdict": "one sentence overall", "goals": [{"goal": "…", "met": true|false, "note": "what they did or missed, quoting briefly"}], "strengths": ["…"], "improve": ["concrete next step", "…"], "betterVersion": "a short model reply (under 140 words) that meets every goal"}`;
     try {
         const r = await Sim.ai({ system, messages: [{ role: 'user', text: prompt }], json: true, maxTokens: 1100 });
-        E.debrief = Object.assign({ text, mode }, r);
-        Sim.saveResult({ simulator: 'Email Replies', scenario: m.title, score: r.score, summary: r.verdict, details: { emailId: m.id, program: m.program, mode, reply: text, goals: r.goals } });
-        if (E.token) saveSent(sent().map(s => s.token === E.token ? Object.assign({}, s, { scored: Math.round(r.score || 0) }) : s));
+        // The score is the scorecard's, never a number the AI invents: the same five metrics on every scenario.
+        const metrics = EmailScorecard.normalize(r.metrics);
+        const total = EmailScorecard.average(metrics);
+        E.debrief = Object.assign({ text, mode }, r, { metrics, total, score: total.pct });
+        Sim.saveResult({ simulator: 'Email Replies', scenario: m.title, score: total.pct, summary: r.verdict, details: { emailId: m.id, program: m.program, mode, reply: text, metrics, average: total.average, goals: r.goals } });
+        if (E.token) saveSent(sent().map(s => s.token === E.token ? Object.assign({}, s, { scored: total.pct }) : s));
     } catch (e) { E.debrief = { error: 'Couldn’t score the reply: ' + e.message, text, mode }; }
     render();
 }
@@ -218,7 +225,9 @@ function renderDebrief() {
     if (d.error) { $app().innerHTML = `<div class="sim-card"><div class="sim-error">${Sim.esc(d.error)}</div>${again}</div>`; return; }
     $app().innerHTML = `<div class="sim-card">
         <div class="deb-top"><div class="ring">${Math.round(d.score || 0)}</div><div><div class="sim-kicker">Email debrief · ${d.mode === 'inbox' ? 'replied from your inbox' : 'answered here'}</div><h2 style="margin:0 0 4px;font-size:21px;">${Sim.esc(m.title)}</h2><div class="sim-muted" style="font-size:14px;">${Sim.esc(d.verdict || '')}</div></div></div>
-        <div class="sim-kicker">Goals</div>
+        <div class="sim-kicker">Scorecard · ${d.total ? n1(d.total.average) : '0'} / 5</div>
+        ${EmailScorecard.html(d.metrics || [])}
+        <div class="sim-kicker" style="margin-top:16px;">What a good reply to this one does</div>
         <ul class="goals">${(d.goals || []).map(g => `<li><span class="${g.met ? 'ok' : 'no'}">${g.met ? '✓' : '○'}</span><div>${Sim.esc(g.goal)}<small>${Sim.esc(g.note || '')}</small></div></li>`).join('')}</ul>
         <div class="cols2"><div><h4>What worked</h4><ul>${(d.strengths || []).map(x => `<li>${Sim.esc(x)}</li>`).join('')}</ul></div><div><h4>Not yet — next time</h4><ul>${(d.improve || []).map(x => `<li>${Sim.esc(x)}</li>`).join('')}</ul></div></div>
         ${d.betterVersion ? `<div class="better"><b>A stronger reply:</b>\n${Sim.esc(d.betterVersion)}</div>` : ''}

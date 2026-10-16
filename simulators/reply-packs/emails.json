@@ -242,6 +242,31 @@
    ],
    "attachments": [],
    "caseFile": false
+  },
+  {
+   "id": "cm_client_bills_collections",
+   "program": "CM",
+   "level": "Foundational",
+   "title": "Client chased by bills and a collections letter",
+   "caseFile": false,
+   "from": {
+    "name": "Carla Nguyen",
+    "email": "carla.nguyen88@example.com",
+    "role": "Client"
+   },
+   "subject": "any update?? bills keep coming",
+   "body": "Hi,\n\nsorry to bother again but I got two more bills from Harbor PT this week and a collections letter from the ambulance company. Is there any update on my case? When will this be over? I just want to know what is going on.\n\nThanks,\n\nCarla",
+   "you": "You are the Case Manager on Carla Nguyen's auto case at LSH Law Group. You handle client, provider and billing correspondence; settlement value, timing promises and legal advice belong to the handling attorney, Dana Carter.",
+   "facts": "Treatment is ongoing at Harbor PT (she is about 6 weeks in, discharge not yet scheduled). The firm has her ER and imaging records; Harbor PT's complete file and billing are still outstanding. A letter of representation went to the ambulance company's billing office on 03/04/2026 but has not been acknowledged — a collections notice means it needs to be re-sent with the lien/LOP paperwork. Clients forward all medical bills to the firm and pay nothing out of pocket. Nobody can give her a settlement date; the demand is not sent until treatment ends.",
+   "goals": [
+    "Deals with the collections letter first: don't pay it, don't call them back, forward it today, the firm re-sends the representation notice",
+    "Tells her to forward the Harbor PT bills too and to pay no medical bills out of pocket",
+    "Gives the actual status of the file (what is in, what is outstanding) rather than 'I will investigate'",
+    "Commits to a written update on a named day instead of 'as soon as possible'",
+    "Explains honestly why there is no end date yet (demand follows the end of treatment) without promising a settlement or a figure",
+    "Warm and unhurried about her apologising for 'bothering' the firm"
+   ],
+   "attachments": []
   }
  ]
 }

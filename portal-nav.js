@@ -63,6 +63,25 @@ const PortalNav = {
         ['/api/admin-password-check', '🔑 Admin Password Check', 'Does every platform accept the admin password?'],
         ['/api/ai-usage', '🤖 AI Usage', "Today's use of the shared AI budget, flow by flow"]
     ],
+    // 🧭 Blueprint: the Platform Blueprint, then (for an admin) every program's and tool's own blueprint.
+    // Those decks have no link of their own, so this menu is the only way in — and it lives on the
+    // Training Directory alone, never on the landing page. /api/launch opens each one signed in.
+    BLUEPRINT_DECKS: [
+        ['Standard Foundational Training', '/api/launch?program=STANDARD%20TRAINING&to=blueprint'],
+        ['EA/PA Upskill Program', '/api/launch?program=EA%20%20PA%20TRAINING-OUTSOURCED%20MANP&to=blueprint'],
+        ['Case Management Training', '/api/launch?program=CM%20TRAINING&to=blueprint'],
+        ['Property Damage Claims Training', '/api/launch?program=PROPERTY%20DAMAGE&to=blueprint'],
+        ['Medsum & Demand Training', '/api/launch?program=MEDSUM%20AND%20DEMAND&to=blueprint'],
+        ['Case Management System', '/api/launch?tool=cms&to=blueprint'],
+        ['LSH Ring Channel', '/api/launch?tool=ringchannel&to=blueprint'],
+        ['Knowledge Base', '/api/launch?tool=kb&to=blueprint']
+    ],
+    // The Blueprint pill as a drop-down: the Platform Blueprint first, the program and tool decks under it.
+    blueprintMenuHtml(active, href) {
+        const items = `<a href="${href}">Platform Blueprint</a>`
+            + PortalNav.BLUEPRINT_DECKS.map(([name, url]) => `<a href="${url}" target="_blank" rel="noopener">${name}</a>`).join('');
+        return `<button type="button" class="pn-pill${active === 'orient' ? ' on' : ''}" aria-haspopup="true" aria-expanded="false" onclick="PortalNav.toggleMenu(this, event)" title="The Platform Blueprint, and every program's and tool's own blueprint">Blueprint ▾</button><div class="pn-menu">${items}</div>`;
+    },
     // 👁 Switch view: an admin sees the Training Directory as a trainee does (this tab only).
     traineeView() { try { return sessionStorage.getItem('LSH_VIEW_AS') === 'trainee'; } catch (e) { return false; } },
     switchView() {
@@ -83,7 +102,8 @@ const PortalNav = {
         const tv = PortalNav.traineeView();
         return back
             + (PortalNav.isMain(backTo) ? '' : pill('home', '/index.html?stay=1', '🏠 Main Portal', 'The LSH Upskill Hub landing page'))
-            + pill('orient', '/blueprint.html?track=admin', 'Blueprint', 'The Platform Blueprint: how the portal works, for screen sharing')
+            + (opts.blueprintMenu ? PortalNav.blueprintMenuHtml(active, '/blueprint.html?track=admin')
+                : pill('orient', '/blueprint.html?track=admin', 'Blueprint', 'The Platform Blueprint: how the portal works, for screen sharing'))
             + pill('sys', '/system.html', 'System Management <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Master Control: access, AI usage, feedback, referrals, GitHub and Cloudflare, the Blueprint')
             + pill('monitor', '/progress.html', 'Trainee Monitoring', "Every trainee's progress and feedback in every program")
             + pill('attendance', '/attendance.html', 'Attendance', 'Take and review attendance in every program, batch by batch')
