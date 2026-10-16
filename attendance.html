@@ -110,7 +110,7 @@ function shiftDay(iso, n) { const d = new Date(iso + 'T12:00:00Z'); do d.setUTCD
 const longDate = iso => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 const mdy = iso => { const [y, m, d] = String(iso || '').split('-'); return y && m && d ? `${m}/${d}/${y}` : String(iso || ''); };
 const time12 = v => { const m = /^(\d{1,2}):(\d{2})/.exec(String(v || '')); if (!m) return ''; const h = +m[1]; return `${h % 12 || 12}:${m[2]} ${h < 12 ? 'AM' : 'PM'}`; };
-const progLabel = id => ((A.data && A.data.programs || []).find(p => p.id === id) || {}).label || { ft: 'Standard Foundational Training', eapa: 'EA / PA Training', cm: 'CM Training', pd: 'PD Claims Training', md: 'Medsum & Demand Training' }[id] || id;
+const progLabel = id => ((A.data && A.data.programs || []).find(p => p.id === id) || {}).label || { ft: 'Standard Foundational Training', eapa: 'EA / PA Training', cm: 'Case Management Training', pd: 'PD Claims Training', md: 'Medsum & Demand Training' }[id] || id;
 const batchOf = key => ((A.data && A.data.batches) || []).find(b => b.key === key);
 const rec = b => b.record || (b.record = { v: 1, batch: b.batch, date: A.date, day: b.day, training: b.training, rows: {} });   // a day not saved yet
 const trainingOf = b => (b.record && b.record.training) || b.training || '';

@@ -106,7 +106,7 @@ function cards() {
 }
 
 function programTabs() {
-    const progs = P.programs || PROGRAM_ORDER.map(id => ({ id, label: { ft: 'Standard Foundational Training', eapa: 'EA / PA Training', cm: 'CM Training', pd: 'PD Claims Training', md: 'Medsum & Demand Training' }[id] || id }));
+    const progs = P.programs || PROGRAM_ORDER.map(id => ({ id, label: { ft: 'Standard Foundational Training', eapa: 'EA / PA Training', cm: 'Case Management Training', pd: 'PD Claims Training', md: 'Medsum & Demand Training' }[id] || id }));
     return `<div class="pg-ptabs" role="tablist">${PROGRAM_ORDER.map(id => progs.find(p => p.id === id)).filter(Boolean).map(p =>
         `<button role="tab" class="${P.program === p.id ? 'on' : ''}" onclick="switchProgram('${p.id}')">${esc(p.label)}</button>`).join('')}</div>`;
 }
