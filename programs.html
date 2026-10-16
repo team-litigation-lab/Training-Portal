@@ -49,20 +49,6 @@
     @media (max-width: 760px) { .idx-top { flex-wrap: wrap; gap: 10px; padding: 14px 16px; } .idx-user { flex-wrap: wrap; gap: 10px 14px; } }
 
     .idx-wrap { max-width: 1880px; margin: 0 auto; padding: 12px 32px 12px; }
-    /* Directory hero — the same navy and orange rings as the home page hero. */
-    .idx-head { position: relative; overflow: hidden; margin-bottom: 9px; padding: 10px 26px 11px; border-radius: 16px; color: #fff;
-        background: radial-gradient(120% 140% at 100% 0%, var(--navy-mid) 0%, var(--navy-deep) 62%); box-shadow: 0 18px 40px -22px rgba(8,18,38,.7); }
-    .idx-head::before, .idx-head::after { content: ""; position: absolute; border-radius: 50%; pointer-events: none; }
-    .idx-head::before { width: 360px; height: 360px; right: -90px; top: -150px; border: 44px solid rgba(249,115,22,.16); }
-    .idx-head::after { width: 200px; height: 200px; right: 40px; top: -40px; border: 2px solid rgba(251,146,60,.35); }
-    .idx-head > * { position: relative; z-index: 1; }
-    .idx-head .eyebrow { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--orange-soft);
-        padding: 4px 11px; border: 1px solid rgba(251,146,60,.45); border-radius: 999px; background: rgba(249,115,22,.10); margin-bottom: 10px; }
-    .idx-head h1 { font-size: clamp(19px, 1.9vw, 24px); font-weight: 900; line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 4px; color: #fff; }
-    .idx-head h1 span { color: var(--orange); }
-    .idx-head p { font-size: 12.5px; line-height: 1.45; color: rgba(255,255,255,.68); margin: 0; max-width: 72ch; }
-    @media (max-width: 640px) { .idx-head { padding: 28px 22px 26px; border-radius: 18px; } .idx-head::before { right: -180px; } .idx-head::after { display: none; } }
-
     .queue-card { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; padding: 18px 20px; margin-bottom: 28px; }
     .topic-free { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; vertical-align: middle; }
     .queue-card h3 { font-size: 13px; font-weight: 800; color: #9a3412; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.03em; }
@@ -132,10 +118,11 @@
     .sim-banner-go { background: var(--orange); color: #0f172a; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 8px 16px; white-space: nowrap; }
 
     /* The top bar: the LSH logo, the page's name, and the pill bar (trainees, visitors, or the admin bar). */
-    .idx-top { position: relative; z-index: 5; gap: 18px; padding: 10px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
-    .idx-brand { flex-shrink: 0; }
-    .idx-logo { height: 46px; width: auto; display: block; }
-    .idx-title { flex: 0 1 auto; margin-right: auto; font-size: clamp(16px, 2vw, 26px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: #fff; white-space: nowrap; }
+    .idx-top { position: relative; z-index: 5; gap: 20px; padding: 14px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
+    .idx-brand { flex-shrink: 0; display: block; background: #fff; border-radius: 12px; padding: 7px 12px; box-shadow: 0 10px 24px -14px rgba(8,18,38,.9); }
+    .idx-logo { height: 58px; width: auto; display: block; }
+    .idx-title { flex: 0 1 auto; margin: 0 auto 0 0; font-size: clamp(16px, 2vw, 28px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: #fff; white-space: nowrap; }
+    .idx-title span { color: var(--orange); }
     .idx-user { gap: 6px; }
     .idx-user .pn-pill { font-size: 11.5px !important; padding: 5px 10px !important; }
     .idx-user .pn-back { font-size: 12px; font-weight: 700; padding: 5px 10px !important; }
@@ -170,20 +157,17 @@
        full text is on hover.*/
     @media (max-height: 940px) {
         .idx-wrap { padding: 10px 24px 10px; }
-        .idx-logo { height: 40px; }
-        .idx-head { padding: 9px 24px 10px; margin-bottom: 8px; }
-        .idx-head .eyebrow { display: none; }
-        .idx-head p { display: none; }
-        .idx-head h1 { font-size: clamp(18px, 1.7vw, 22px); margin: 0; }
+        .idx-top { padding: 11px 24px; }
+        .idx-logo { height: 50px; }
         .sim-banner-row { gap: 9px; margin-bottom: 9px; }
         .sim-banner-row .sim-banner { padding: 9px 11px; }
         .topic-card { padding: 8px 10px; gap: 6px; }
     }
     @media (max-height: 800px) {
-        .idx-logo { height: 34px; }
+        .idx-top { padding: 9px 22px; gap: 16px; }
+        .idx-logo { height: 44px; }
+        .idx-brand { padding: 6px 10px; border-radius: 10px; }
         .idx-user .pn-pill { font-size: 10.5px !important; padding: 4px 8px !important; }
-        .idx-head { padding: 7px 22px 8px; margin-bottom: 7px; }
-        .idx-head h1 { font-size: clamp(17px, 1.5vw, 20px); }
         .sim-banner-row { gap: 8px; margin-bottom: 8px; }
         .sim-banner-row .sim-banner { padding: 7px 10px; gap: 9px; }
         .sim-banner-row .sim-banner-ic { width: 32px; height: 32px; font-size: 16px; }
@@ -199,9 +183,8 @@
     }
     @media (max-height: 730px) {
         .idx-wrap { padding: 8px 20px 8px; }
-        .idx-logo { height: 30px; }
-        .idx-head { padding: 6px 18px 7px; margin-bottom: 6px; }
-        .idx-head h1 { font-size: 17px; }
+        .idx-top { padding: 8px 20px; }
+        .idx-logo { height: 38px; }
         .sim-banner-row { gap: 7px; margin-bottom: 7px; }
         .sim-banner-row .sim-banner { padding: 6px 9px; }
         .topic-grid { gap: 7px; }
@@ -231,7 +214,7 @@
 
 <div class="idx-top">
     <a class="idx-brand" href="/index.html?stay=1" title="The LSH Upskill Hub main page"><img class="idx-logo" src="/img/logo.png" alt="Legal Support Help"></a>
-    <span class="idx-title">Training Directory</span>
+    <h1 class="idx-title" id="idx-heading">Training <span>Directory</span></h1>
     <div class="idx-user" id="idx-user">
         <script>document.write(PortalNav.traineeHtml('', { back: '/index.html?stay=1' }));</script>
         <a class="pn-pill" href="/admin-login.html" title="Admin monitoring (sign-in required)">Admin</a>
@@ -239,10 +222,6 @@
 </div>
 
 <div class="idx-wrap">
-    <div class="idx-head">
-        <h1 id="idx-heading">Training <span>Directory</span></h1>
-    </div>
-
     <div class="sim-banner-row">
     <a class="sim-banner" href="/simulators.html">
         <span class="sim-banner-ic">🛠</span>
