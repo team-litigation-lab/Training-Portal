@@ -22,7 +22,7 @@ export const PROGRAMS = [
         days: ['Foundations of the Legal Executive Assistant Role', 'Managing Up & How to Leverage AI with Precision', 'Time, Calendar & Travel Management',
             'Data & Outreach', 'Household, Risk & Lifestyle Support', 'Business Setup, Compliance & Project Leadership', 'Financial Operations Support',
             'Access, Confidentiality & Crisis Management', 'Events, Compliance Tracking & Reputation', 'Digital Presence & Social Media Support'] },
-    { id: 'cm', label: 'CM Training', prefix: 'cm:',
+    { id: 'cm', label: 'Case Management Training', prefix: 'cm:',
         days: ['Case Management Fundamentals, Intake & Treatment', 'Pre-Demand, BI Demand & BI Settlement', 'UM Demand, UM Settlement, Lien Reduction & Disbursement',
             'Mediation, Arbitration & Their Bottlenecks', 'Litigation, Property Damage, Liability Disputes & MIA Clients'] },
     { id: 'pd', label: 'PD Claims Training', prefix: 'pd:',
