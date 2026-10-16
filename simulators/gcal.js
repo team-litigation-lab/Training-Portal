@@ -1492,7 +1492,7 @@ function onKey(ev) {
     if (!S || !gc()) return;
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName) || ev.target.isContentEditable;
     if (ev.key === 'Escape') { if (G.meet) return; if (document.querySelector('.gc-dlg')) { document.querySelector('.gc-dlg').remove(); return; } if (G.ed) { G.ed = null; $('#gc-ed').remove(); G.temp = null; renderMain(); return; } closeAll(); if (G.searching) { G.searching = false; G.q = ''; renderHead(); renderMain(); } return; }
-    if (typing || G.ed || G.meet || document.querySelector('.gc-dlg') || document.getElementById('sim-who')) return;
+    if (typing || G.ed || G.meet || document.querySelector('.gc-dlg')) return;
     const k = ev.key;
     const map = { c: () => createAt(S.view === 'day' ? S.anchor : null), t: () => { S.anchor = etNow().date; S.mini = S.anchor.slice(0, 7); G.q = ''; G.searching = false; save(); closeAll(); render(); }, j: () => step(1), n: () => step(1), k: () => step(-1), p: () => step(-1),
         d: () => setView('day'), w: () => setView('week'), m: () => setView('month'), a: () => setView('agenda'), '/': () => { G.searching = true; renderHead(); setTimeout(() => { const q = $('#gc-q'); if (q) q.focus(); }, 10); }, '?': () => shortcuts(),

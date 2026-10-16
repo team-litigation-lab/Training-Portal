@@ -117,7 +117,6 @@ document.addEventListener('click', (ev) => {
 });
 document.addEventListener('DOMContentLoaded', async () => {
     if (!Sim.isAdmin()) await Sim.restore();   // a new tab: the cookie says who is signed in
-    Sim._asked = true;   // a trainee here is signed in to the Portal: no "Who's practicing?" box
     document.getElementById('topbar').innerHTML = Sim.topbar('my-evaluations');
     if (!Sim.isAdmin()) fetch('/api/me', { credentials: 'include', cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
         const w = document.querySelector('.sim-nav .who'); if (w && d && d.user) w.outerHTML = '<span class="who">' + esc(d.user.fullName || d.user.username) + '</span>';

@@ -54,18 +54,19 @@ progress: Standard Training by lesson (Reception 4, Calendar Management 5, Intak
   page that decides by who is signed in calls `await Sim.restore()` before its first render** (every simulator page does): it
   asks `/api/me` once, keeps the answer (Admin or Trainee) with `setSession()`, starts the heartbeat,
   and resolves to the session (`{}` when signed out). **`Sim.ready`** is that one question, started by `sim.js` itself at load,
-  so a page cannot forget it: the top bar, the "Who's practicing?" card and `Sim.saveResult` all wait for it, and the top bar
+  so a page cannot forget it: the top bar and `Sim.saveResult` both wait for it, and the top bar
   draws itself again (`Sim.retopbar()`) once the answer is in. Before that, a signed-in trainee read as an anonymous visitor on
-  a page that rendered first — the editable *Practicing as … ✎*, the "Who's practicing?" card, no heartbeat, and the score
-  written under a name typed in this browser or dropped as "just practice". `Sim.fetchRetry(url, opts)` is `fetch` that, on a
+  a page that rendered first — the editable *Practicing as … ✎*, no heartbeat, and the score written under a name typed in
+  this browser. `Sim.fetchRetry(url, opts)` is `fetch` that, on a
   401 `SESSION_EXPIRED`,
   asks `/api/me` once (it re-seeds the heartbeat) and sends the request again once: use it for the Portal's own APIs
   (`Sim.ai`, `Sim.saveResult` and `Sim.results` do). Tests: `.github/scripts/sim-session.cjs`,
   `.github/scripts/sim-identity.cjs` (whose score it is, on every simulator page).
 - `Sim.who()` → `{ name, batch, program }` is what the trainer sees with the scores. For a **signed-in trainee it is always
-  their account** (the name and batch from the session, never editable): the "Who's practicing?" card is a visitor's only, and a
-  name typed earlier in this browser or passed by a link (`?name=&batch=`) never replaces it. Only `?program=` is kept from the
-  link. A visitor's is typed, and kept in this browser with the calendars
+  their account** (the name and batch from the session, never editable): a name typed earlier in this browser or passed by a
+  link (`?name=&batch=`) never replaces it. **Nobody is asked who is practicing** — everyone reaches the simulators signed in
+  through the Portal, so the "Who's practicing?" card is gone. For a signed-in trainee only `?program=` is kept from the link.
+  A visitor is named by the link alone, and that name is kept in this browser with the calendars
   (`lsh_gcal[.track]:<name>`, `lsh_gcal_seen`) and the results history (`LSH_SIM_HISTORY`). `LSH_SIM_USER` remembers whose they
   are: when `Sim.restore()` (or the tab's own session) names a different person, `Sim.claim()` clears all of them, so a second
   trainee on a shared browser never inherits the first one's calendar nor uploads it as their draft. This needs who is signed
