@@ -57,20 +57,19 @@
     /* ===== NAV — dark, sits flush with the hero below it ===== */
     nav {
         position: sticky; top: 0; z-index: 50;
-        /* A light panel at the left edge, fading into the navy before the wordmark starts:
-           the standard logo is navy down its left side and through its own wordmark, and on
-           flat navy that half simply disappeared. */
-        background:
-            linear-gradient(100deg,
-                #c3cfe0 0, #c3cfe0 176px,
-                rgba(195, 207, 224, .70) 202px,
-                rgba(195, 207, 224, .38) 226px,
-                rgba(195, 207, 224, .16) 248px,
-                rgba(195, 207, 224, .05) 268px,
-                rgba(195, 207, 224, 0) 292px),
-            var(--navy-deep);
+        background: var(--navy-deep);
         border-bottom: 1px solid rgba(255,255,255,0.06);
     }
+    /* Frosted panel behind the logo, faded out before the wordmark: the standard logo is
+       navy down its left side and through its own wordmark, and on flat navy that half
+       disappeared. Same treatment as the portal's top bars (theme.css). */
+    nav::before {
+        content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 248px;
+        background: linear-gradient(to right, rgba(210,223,239,.50) 0, rgba(210,223,239,.50) 26%, rgba(210,223,239,.41) 44%,
+            rgba(210,223,239,.26) 60%, rgba(210,223,239,.13) 76%, rgba(210,223,239,.045) 88%, rgba(210,223,239,0) 100%);
+        pointer-events: none;
+    }
+    .nav-inner { position: relative; z-index: 1; }
     .nav-inner {
         max-width: none; margin: 0; padding: 10px 32px;
         display: flex; align-items: center; justify-content: space-between;
@@ -78,7 +77,7 @@
            half out of view never looks like it is running into the wordmark */
         gap: 20px;
     }
-    .brand { display: flex; align-items: center; gap: 62px; font-weight: 800; font-size: 16px; color: #fff; }
+    .brand { display: flex; align-items: center; gap: 74px; font-weight: 800; font-size: 16px; color: #fff; }
     .brand-mark {
         width: 36px; height: 36px; border-radius: 0;
         background: #fff; padding: 3px; box-sizing: border-box;
@@ -93,8 +92,7 @@
     @media (max-width: 1280px) { .brand-logo { height: 70px; } .brand .brand-title { font-size: 14.5px; } .brand { gap: 52px; } }
     @media (max-width: 760px) { .brand-logo { height: 60px; } .brand .brand-title { font-size: 15px; white-space: normal; } .brand { gap: 20px; }
         /* Wrapped bar: the panel is held to the brand's own row, clear of the pills below. */
-        nav { background: linear-gradient(100deg, #c3cfe0 0, #c3cfe0 118px, rgba(195,207,224,.55) 146px, rgba(195,207,224,.20) 174px, rgba(195,207,224,0) 206px), var(--navy-deep);
-              background-size: 100% 86px, auto; background-repeat: no-repeat, no-repeat; background-position: left top, left top; } }
+        nav::before { width: 186px; bottom: auto; height: 86px; } }
     /* The standard page header (the Training Directory's): the mark, then the page's name in capitals. */
     .brand-title { font-size: 18px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
     .nav-links { display: flex; gap: 28px; align-items: center; }
