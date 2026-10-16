@@ -70,7 +70,9 @@
 .sim-top::before {
     content: ""; position: absolute; left: 0; top: 0; bottom: 0;
     width: var(--brand-panel, 200px);
-    background: rgba(255, 255, 255, .62);
+    /* A cool slate-blue rather than plain white, and half-transparent: the navy ramp
+       reads through it, so it looks like glass over the bar instead of paint on it. */
+    background: rgba(210, 223, 239, .50);
     -webkit-backdrop-filter: var(--surface-blur);
     backdrop-filter: var(--surface-blur);
     -webkit-mask-image: linear-gradient(100deg, #000 0, #000 26%, rgba(0, 0, 0, .82) 44%, rgba(0, 0, 0, .52) 60%, rgba(0, 0, 0, .26) 76%, rgba(0, 0, 0, .09) 88%, transparent 100%);
