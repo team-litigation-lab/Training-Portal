@@ -324,6 +324,16 @@ body.no-portal-bg { background: var(--portal-base); }
 .lx-tabs button:not(.on),
 .dk-tabs button:not(.on) { color: #1e293b; }
 
+/* The last panels that were still painting a flat sheet over the backdrop.
+   Each keeps its own hue — the Mission/Vision card its white, the error strip
+   its pink, the attendance note its amber — and gives up only its opacity, so
+   the page reads as one surface rather than a backdrop with holes punched in
+   it. The error strip stays the densest of the three: it is the one surface
+   whose whole job is to be read in a hurry. */
+.vm-body { background: var(--surface-glass); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); }
+.sim-error { background: rgba(254, 242, 242, .78); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); }
+.at-note { background: rgba(255, 247, 237, .66); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); }
+
 /* The sign-in pages: the navy rings panel IS the page there, so the photo goes
    behind its gradient rather than behind the body. The navy stays at .86 here
    because the panel carries the headline and the small print in white. */
