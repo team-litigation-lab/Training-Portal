@@ -11,6 +11,11 @@ export async function onRequestGet({ request, env }) {
             "SELECT id FROM activities WHERE type = 'Activity'"
         ).all();
         const totalActivities = (activityRows || []).length;
+        // Archiving an activity hard-deletes its row (api/activities.js), but its
+        // submissions stay. Counting those would put a trainee over 100% — and
+        // paint a progress bar wider than its track — so the numerator below is
+        // limited to activities that still exist.
+        const liveActivityIds = new Set((activityRows || []).map(a => a.id));
 
         const { results: subRows } = await env.TRAINING_DB.prepare(
             "SELECT trainee_username, activity_id, status, score FROM submissions"
@@ -42,7 +47,7 @@ export async function onRequestGet({ request, env }) {
         for (const s of submissions) {
             const st = statsByUsername.get(s.trainee_username);
             if (!st) continue; // submission from a user no longer an approved trainee
-            st.completedIds.add(s.activity_id);
+            if (liveActivityIds.has(s.activity_id)) st.completedIds.add(s.activity_id);
             if (s.status === 'Needs Review') st.pendingChecks++;
             if (s.status === 'Graded' && s.score !== null && s.score !== undefined) {
                 st.gradedScores.push(Number(s.score));

@@ -213,7 +213,7 @@ function initDataAllowFilters() {
 // pentatonic scale, with a quiet octave-up harmonic layered on each note
 // for a touch of real bell overtone character. One system, used
 // app-wide — see the individual call sites (attemptLogin, showToast,
-// the window.confirm wrapper below, pollAlert, pollPings, togglePause,
+// the window.confirm wrapper below, pollAlert, togglePause,
 // confirmLock/attemptUnlock, makeAnnouncement) for where each fires.
 // ==========================================
 let __soundCtx = null;
@@ -779,17 +779,6 @@ async function sendPing() {
 // generated via Web Audio API since no sound asset exists in the project.
 let __pingsInitialized = false;
 
-async function pollPings() {
-    // Unlike /api/alert and /api/site-state, GET /api/pings requires a
-    // session (requireSession, not adminOnly) — skip silently while logged out
-    // rather than generating a 401 on every tick.
-    if (!getSession()) return;
-    try {
-        const url = '/api/pings' + (__lastPingAt ? ('?since=' + encodeURIComponent(__lastPingAt)) : '');
-        const res = await fetch(url, { credentials: 'include' });
-        applyPingsData(await res.json().catch(() => null));
-    } catch (e) { /* retry next tick */ }
-}
 // New pings from /api/pings or /api/live (pollLive).
 function applyPingsData(data) {
     try {

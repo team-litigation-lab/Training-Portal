@@ -361,7 +361,10 @@ function download(name, lines) {
     a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
     a.download = `${name}-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
 }
-const csvq = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+// A cell a spreadsheet would read as a formula is prefixed with an apostrophe:
+// trainee-supplied names reach these exports (program-progress.js), and Excel and
+// Sheets execute =, +, -, @ and a leading tab/CR on open.
+const csvq = (v) => { const s = String(v == null ? '' : v); return `"${(/^[=+\-@\t\r]/.test(s) ? `'${s}` : s).replace(/"/g, '""')}"`; };
 function exportCsv() {
     const head = ['Name', 'Program', 'Batch', 'Status', 'Days done', 'Days total', 'Knowledge Check avg', 'Practice avg', 'Practice done', 'Random task avg', 'Roleplay avg',
         'Trainer feedback sent', 'Trainer feedback drafts', 'Latest trainer rating', 'Feedback they sent', 'Their avg stars', 'Simulator runs', 'Simulator avg', 'Portal activities', 'Portal avg', 'Last active', 'Registered'];

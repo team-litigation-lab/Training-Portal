@@ -312,7 +312,6 @@ function applyLockPermissionUI() {
 function exitMasterControl() {
     document.getElementById('master-control-page').classList.remove('open');
 }
-const MC_TABS = ['overview', 'registrations', 'users', 'program-access', 'monitoring', 'activity-logs', 'announce', 'access'];
 const MC_TAB_LABELS = {
     overview: 'Master Control — Overview', registrations: 'Master Control — Registrations',
     users: 'Master Control — Users', monitoring: 'Master Control — Monitoring',
