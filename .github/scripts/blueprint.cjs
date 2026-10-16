@@ -5,6 +5,7 @@
 // ?track=admin); a signed-in Admin gets both tracks and starts on the admin one; ⬇ Download PDF saves the track
 // that's showing, a page per slide (plus the cover) with each slide's title, and the trainee PDF has no admin slides.
 // Trainees and visitors read the blueprint on screen: ⬇ Download PDF is an Admin's, and is not there for them.
+// It belongs to the Trainers & Admins track alone: an Admin on the Trainees track has no button either.
 // Numbering: the slide numbers match everywhere. Each PDF's cover is "Cover", then its pages are "1 / n" to "n / n",
 // headed "1 of n" to "n of n", the same as the page's numbered contents (1 to n); nothing says n + 1 (an 8-slide
 // track's PDF used to end on "9 / 9"). The deck itself is the engine's, opened over the page: the counter reads
@@ -50,8 +51,11 @@ function inspect(buf) {
         await page.goto(base + '/blueprint.html' + q, { waitUntil: 'load' }); await page.waitForTimeout(500);
         return page;
     };
-    const hidden = (page, sel) => page.evaluate((s) => { const el = document.querySelector(s); return !el || el.hidden || !el.offsetParent; }, sel);
-    const pdfOf = async (page) => { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#orPdf')]); return { name: dl.suggestedFilename(), ...inspect(fs.readFileSync(await dl.path())) }; };
+    // Really hidden, not just carrying the hidden attribute: a class that sets display beats the browser's own
+    // [hidden] rule, which is how a hidden ⬇ Download PDF stayed on screen while this check passed.
+    const hidden = (page, sel) => page.evaluate((s) => { const el = document.querySelector(s); return !el || (!el.offsetParent && getComputedStyle(el).position !== 'fixed'); }, sel);
+    const pdfVia = async (page, go) => { const [dl] = await Promise.all([page.waitForEvent('download'), go()]); return { name: dl.suggestedFilename(), ...inspect(fs.readFileSync(await dl.path())) }; };
+    const pdfOf = (page) => pdfVia(page, () => page.click('#orPdf'));
     const state = (page) => page.evaluate(() => ({ tabs: !document.querySelector('.or-tabs').hidden, track: new URLSearchParams(location.search).get('track'), admin: 'admin' in SLIDES, slides: SLIDES.trainee.length, adminSlides: SLIDES.admin ? SLIDES.admin.length : 0, adminTitles: (SLIDES.admin || []).map(s => s.title) }));
     // the PDF's numbers: the cover's footer is "Cover", then the pages' footers are "1 / n" to "n / n" and their headers
     // "… · 1 OF n" to "… · n OF n", in order; nothing says n + 1
@@ -129,7 +133,10 @@ function inspect(buf) {
     c = await counts(page);
     if (c.join() !== Array.from({ length: st.adminSlides }, (_, k) => k + 1).join()) fail(`the admin track's contents should be numbered 1 to ${st.adminSlides}, as the PDF's pages: ${JSON.stringify(c)}`);
     await page.click('.or-tabs button[data-track="trainee"]');
-    pdf = await pdfOf(page);
+    // ⬇ Download PDF is the Trainers & Admins track's: on the Trainees track it is gone, for an Admin too.
+    // The trainee deck's PDF is still the engine's to make, and is checked here through the engine itself.
+    if (!await hidden(page, '#orPdf')) fail('⬇ Download PDF is still there on the Trainees track');
+    pdf = await pdfVia(page, () => page.evaluate(() => LSHBlueprint.pdf('trainee')));
     if (pdf.name !== 'LSH_Training_Portal_Blueprint_Trainee.pdf' || !pdf.pdf || pdf.pages !== st.slides + 1) fail(`an Admin on the Trainees track downloaded ${pdf.name}, ${pdf.pages} pages for ${st.slides} slides`);
     if (!/One portal for all of your LSH training/.test(pdf.text) || !/deploy 7a1c9e0b/.test(pdf.text)) fail('the trainee PDF is missing its first slide or the deploy stamp');
     if (/Master Control|Access queue/.test(pdf.text)) fail('the trainee PDF has admin slides');
