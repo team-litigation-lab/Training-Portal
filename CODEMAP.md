@@ -30,7 +30,7 @@ The signed-in portal: Training Directory, dashboard, progress, attendance, orien
 | File | Lines | What it is |
 |---|---|---|
 | `app.js` | 2919 | Core dashboard script: session/heartbeat, view switching, Master Control (users, registrations, logs, monitoring, program access), activities/lectures/submissions CRUD, grading, PDF reports, leaderboard/progress, toasts, celebration. |
-| `attendance.html` | 365 | Admin attendance per program/batch/day: debounced autosave with retry, batch summaries, CSV export, Google Sheet sync setup helper. |
+| `attendance.html` | 365 | The one place attendance is taken — admin attendance per program/batch/day: debounced autosave with retry, batch summaries, CSV export, Google Sheet sync setup helper. The courses' own Admin → 🕘 Attendance tabs were removed in favour of this page. |
 | `core.html` | 1062 | Admin dashboard (CM Training workspace + Master Control): sidebars, views, modals, overlays (pause/alert/lock), deck/lecture viewer panes, hash deep links into Master Control tabs. |
 | `blueprint.html` | 328 | Platform Blueprint: the two tracks, with the deck itself drawn by `lsh-blueprint.js` (the shared Blueprint engine) — the former Platform Orientation. |
 | `orientation.html` | 15 | Stub pointing the old Orientation URL at /blueprint.html. |

@@ -106,7 +106,7 @@ const PortalNav = {
                 : pill('orient', '/blueprint.html?track=admin', 'Blueprint', 'The Platform Blueprint: how the portal works, for screen sharing'))
             + pill('sys', '/system.html', 'System Management <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Master Control: access, AI usage, feedback, referrals, GitHub and Cloudflare, the Blueprint')
             + pill('monitor', '/progress.html', 'Trainee Monitoring', "Every trainee's progress and feedback in every program")
-            + pill('attendance', '/attendance.html', 'Attendance', 'Take and review attendance in every program, batch by batch')
+            + pill('attendance', '/attendance.html', 'Attendance', 'Take and review attendance: every program, batch by batch. The one place it is taken.')
             + pill('referrals', '/referrals.html', 'Referrals', 'People referred from “Got a referral?” on the home page')
             + `<button type="button" class="pn-pill${tv ? ' on' : ''}" onclick="PortalNav.switchView()" title="${tv ? 'Back to the admin view' : 'See the Training Directory as a trainee does'}"${tv ? ' aria-pressed="true"' : ''}>Switch view</button>`
             + `<button type="button" class="pn-pill" onclick="PortalNav.logout()">Logout</button>`;

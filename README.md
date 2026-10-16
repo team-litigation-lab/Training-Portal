@@ -150,7 +150,7 @@ Ring Channel has **no sign-in of its own**: everyone opens it from here.
 
 ## 🕘 Attendance (admin)
 
-**Admin → 🕘 Attendance** (`/attendance.html`; linked from Master Control and the Directory's admin bar) is every program's attendance, batch by batch. It shows and edits the same records as each course's own **Admin → 🕘 Attendance** tab (`js/attendance.js`, the same file in every course), so trainers can take attendance in either place.
+**Admin → 🕘 Attendance** (`/attendance.html`; linked from Master Control and the Directory's admin bar) is every program's attendance, batch by batch, and **the one place it is taken**. The courses used to carry their own **Admin → 🕘 Attendance** tab (`js/attendance.js`); that tab has been removed from every course repo (Foundational-Training, EA-PA-TRAINING, Case-Management-Training, propertydamageclaimstraining), so attendance is taken here and nowhere else. The courses still record the automatic Time In (their Worker's `/api/checkin`), and the Google Sheet still syncs both ways.
 
 - **A tab per program**, then a day: today's date in Eastern time (EST, or EDT in summer), ◀ ▶ through the training days, or any date.
 - **Each batch** lists its approved, active trainees. Each row has:
