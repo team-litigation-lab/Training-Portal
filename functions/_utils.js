@@ -86,11 +86,43 @@ export function getCookie(request, name) {
     const match = header.split(';').map(c => c.trim()).find(c => c.startsWith(name + '='));
     return match ? decodeURIComponent(match.slice(name.length + 1)) : null;
 }
+// SameSite=None, not Lax, because a course opens a simulator in a frame beside the lesson
+// (Case Management's ⧉ Side by side), and that frame is cross-site: the course is on
+// …workers.dev, the simulator here on …pages.dev. A Lax cookie is not sent in a cross-site
+// frame at all, so the ticket signed the trainee in, the browser dropped the cookie, and the
+// frame showed the sign-in page — measured in Chromium: Lax never comes back in the frame,
+// None does, while both work in a new tab.
+//
+// SameSite=None costs the browser's built-in CSRF protection, so requireSession() below now
+// refuses an unsafe method from any origin but this site's. That is a stricter rule than Lax
+// was, not a looser one: Lax still allowed top-level cross-site GETs to carry the session.
+//
+// Partitioned (CHIPS) keeps the cookie in a jar per top-level site: the session a frame gets
+// from its ticket is the frame's own, and cannot be read by another site that frames us.
+// Browsers that do not know the attribute ignore it and keep SameSite=None.
+const SESSION_ATTRS = 'HttpOnly; Secure; SameSite=None; Partitioned; Path=/';
 export function sessionCookie(token, maxAgeSeconds) {
-    return `lsh_session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}`;
+    return `lsh_session=${token}; ${SESSION_ATTRS}; Max-Age=${maxAgeSeconds}`;
 }
 export function clearSessionCookie() {
-    return `lsh_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
+    return `lsh_session=; ${SESSION_ATTRS}; Max-Age=0`;
+}
+
+// The origins allowed to make a state-changing call with the session cookie. Every page that
+// does so — including a simulator running inside a course's frame — is served from this site,
+// so its fetch carries this site's origin; a course or the CMS talks to us with a signed
+// ticket, never with this cookie. Previews (<hash>.cm-training-activity.pages.dev) count.
+const SAME_SITE_ORIGIN = /^https:\/\/([a-z0-9-]+\.)?cm-training-activity\.pages\.dev$/;
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+// A browser always sends Origin on a cross-site POST, so an unknown origin is refused. A call
+// with no Origin at all is not a browser (the attendance Google Apps Script, uptime checks,
+// the test harness); those endpoints carry their own key, so a missing header is let through
+// rather than breaking them.
+export function originAllowed(request) {
+    if (SAFE_METHODS.has(request.method)) return true;
+    const origin = request.headers.get('Origin');
+    if (!origin) return true;
+    return SAME_SITE_ORIGIN.test(origin);
 }
 
 /**
@@ -139,6 +171,12 @@ export async function upsertSessionHeartbeat(db, { username, fullName, batchId, 
  * username/batchId/userType sent in the request body or query string.
  */
 export async function requireSession(request, env, { adminOnly = false } = {}) {
+    // CSRF: with SameSite=None the browser will attach this cookie to a cross-site request, so
+    // the origin is checked here instead — at the one gate every endpoint that touches real
+    // data already goes through.
+    if (!originAllowed(request)) {
+        return { ok: false, response: json({ success: false, error: 'Request blocked: wrong origin.', code: 'BAD_ORIGIN' }, 403) };
+    }
     const token = getCookie(request, 'lsh_session');
     const payload = await verifySessionToken(token, env.SESSION_SECRET);
     if (!payload) {
