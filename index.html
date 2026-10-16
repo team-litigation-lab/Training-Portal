@@ -65,10 +65,8 @@
        disappeared. Same treatment as the portal's top bars (theme.css). */
     nav::before {
         content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 248px;
-        background: rgba(210, 223, 239, .50);
-        -webkit-backdrop-filter: var(--surface-blur); backdrop-filter: var(--surface-blur);
-        -webkit-mask-image: linear-gradient(100deg, #000 0, #000 26%, rgba(0,0,0,.82) 44%, rgba(0,0,0,.52) 60%, rgba(0,0,0,.26) 76%, rgba(0,0,0,.09) 88%, transparent 100%);
-        mask-image: linear-gradient(100deg, #000 0, #000 26%, rgba(0,0,0,.82) 44%, rgba(0,0,0,.52) 60%, rgba(0,0,0,.26) 76%, rgba(0,0,0,.09) 88%, transparent 100%);
+        background: linear-gradient(to right, rgba(210,223,239,.50) 0, rgba(210,223,239,.50) 26%, rgba(210,223,239,.41) 44%,
+            rgba(210,223,239,.26) 60%, rgba(210,223,239,.13) 76%, rgba(210,223,239,.045) 88%, rgba(210,223,239,0) 100%);
         pointer-events: none;
     }
     .nav-inner { position: relative; z-index: 1; }
