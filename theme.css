@@ -55,11 +55,45 @@
 /* ---------- dark chrome: top bars, panels, heroes ---------- */
 /* Each gets the navy ramp plus a lit hairline along its bottom edge, which is
    what reads as "futuristic" at a glance without touching any text colour. */
+/* The bars carry the standard logo — navy down its left side, navy wordmark — so the
+   navy ramp alone swallowed half of it. The ramp now starts from a soft slate panel at
+   the left edge and reaches full navy by the time the page's title begins, which gives
+   the logo something to read against without a box drawn around it. Slate rather than
+   white: the logo's white lining — the gap between the L and the square, and the SH —
+   needs a background a shade down from it or those shapes run together. */
 .idx-top,
-.sim-top,
+.sim-top {
+    background-image:
+        linear-gradient(100deg,
+            #c3cfe0 0, #c3cfe0 112px,
+            rgba(195, 207, 224, .72) 142px,
+            rgba(195, 207, 224, .40) 172px,
+            rgba(195, 207, 224, .18) 202px,
+            rgba(195, 207, 224, .06) 232px,
+            rgba(195, 207, 224, 0) 268px),
+        var(--g-navy);
+    position: relative;
+}
 .auth-visual {
     background-image: var(--g-navy);
     position: relative;
+}
+@media (max-width: 760px) {
+    .idx-top,
+    .sim-top {
+        background-image:
+            linear-gradient(100deg,
+                #c3cfe0 0, #c3cfe0 84px,
+                rgba(195, 207, 224, .55) 112px,
+                rgba(195, 207, 224, .20) 140px,
+                rgba(195, 207, 224, 0) 172px),
+            var(--g-navy);
+        /* The bar wraps to two or three rows at this width, and the pills land on the rows
+           below: the panel is held to the brand's own row so it never sits behind them. */
+        background-size: 100% 72px, auto;
+        background-repeat: no-repeat, no-repeat;
+        background-position: left top, left top;
+    }
 }
 .idx-top::after,
 .sim-top::after {

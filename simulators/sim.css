@@ -4,8 +4,11 @@
 body{margin:0;font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;background:var(--paper);color:var(--navy);height:auto;overflow:visible;}
 a{color:inherit;}
 .sim-top{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 28px;background:var(--navy-deep);border-bottom:2px solid var(--orange);position:sticky;top:0;z-index:30;}
-.sim-brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:800;font-size:14px;text-decoration:none;}
-.sim-brand img{height:44px;width:auto;border-radius:0;padding:0;object-fit:contain;background:none;}
+.sim-brand{display:flex;align-items:center;gap:44px;color:#fff;font-weight:800;font-size:14px;text-decoration:none;}
+/* The bar's own slate panel (theme.css) is what this logo reads against: it is navy down
+   its left side and through its wordmark, which dropped out against the navy. The height
+   is what the wordmark needs to stay legible rather than smear. */
+.sim-brand img{height:56px;width:auto;border-radius:0;padding:0;object-fit:contain;background:none;display:block;}
 /* the page's name under "LSH Training Portal", the same on every page that carries this bar */
 .sim-brand small{display:block;font-size:11px;font-weight:600;color:#fdba74;letter-spacing:.08em;text-transform:uppercase;}
 /* The standard page header (the Training Directory's): the mark, then the page's name in capitals, and nothing beside it. */
