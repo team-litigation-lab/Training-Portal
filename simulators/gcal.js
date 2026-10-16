@@ -1139,8 +1139,6 @@ function checkSection(r, rm, head) {
         ${head && r.open && !r.results.length ? '<p class="lead">There are no appointments on the calendar to check yet.</p>' : ''}
         ${resRows(r, rm)}</div>`;
 }
-const slimResult = (r) => ({ score: r.score, right: r.right, penalty: r.penalty || 0, extra: r.extra || [], at: r.at,
-    results: r.results.map(x => ({ head: x.head, when: x.when || '', pts: Math.round(x.pts * 10) / 10, max: x.max, items: x.items.map(i => ({ ok: !!i.ok, t: i.t })) })) });
 const resRows = (r, rm) => r.results.map(x => `<div class="res-r"><h5><span>${esc(x.head)}</span><span>${Math.round(x.pts * 10) / 10}/${x.max}${rm && x.id ? ` <button class="txt" data-a="tv-skip" data-id="${esc(x.id)}" title="Take this appointment out of this review and its score">✕ Remove</button>` : ''}</span></h5>${x.when ? `<div style="color:#70757a;margin-bottom:4px">${esc(x.when)}</div>` : ''}<ul>${x.items.map(i => `<li class="${i.ok ? 'ok' : 'no'}"><span>${esc(i.t)}</span></li>`).join('')}</ul></div>`).join('')
     + (r.extra && r.extra.length ? `<div class="res-r"><h5><span>Changed without a request</span><span>−${r.penalty}</span></h5><ul>${r.extra.map(t => `<li class="no"><span>${esc(t)}</span></li>`).join('')}</ul></div>` : '');
 async function recFetch(user) {

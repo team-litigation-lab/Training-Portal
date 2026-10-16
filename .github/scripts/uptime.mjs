@@ -10,7 +10,10 @@ const CHECKS = [
     { name: 'PD Claims Training course', url: 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/', expect: '<html' },
     { name: 'Medsum & Demand Training course', url: 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/', expect: '<html' },
     { name: 'CMS (home)', url: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/', expect: 'front-desk-drill.js' },
-    { name: 'CMS (database)', url: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/api/state', json: (b) => b && typeof b.locked === 'boolean' }
+    { name: 'CMS (database)', url: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/api/state', json: (b) => b && typeof b.locked === 'boolean' },
+    // The two other tools a signed-in person reaches through SSO (functions/api/launch.js SSO_TOOLS).
+    { name: 'Knowledge Base', url: 'https://lsh-knowledge-base.legalsupporthelp.workers.dev/', expect: '<html' },
+    { name: 'LSH Ring Channel', url: 'https://lshringchannel.legalsupporthelp.workers.dev/', expect: '<html' }
 ];
 
 async function run(c) {

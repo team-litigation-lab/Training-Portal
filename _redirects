@@ -1,9 +1,14 @@
 # Keep repository files that aren't part of the site off the web.
 # (Cloudflare Pages publishes everything in the output directory, which is the repo root.)
+# A new file at the repo root is public the moment it is committed, so a rule has to be
+# added here for it. Check with: curl -o /dev/null -w '%{http_code}' <site>/<file>
+# — 302 means covered, 200 means it is being served.
 /wrangler.toml / 302
 /README.md / 302
 /SIMULATORS.md / 302
+/CODEMAP.md / 302
 /topics_seed.sql / 302
+/attendance-sync.gs / 302
 /.github/* / 302
 /functions/* / 302
 

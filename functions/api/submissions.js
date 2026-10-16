@@ -84,6 +84,14 @@ export async function onRequestPost({ request, env, waitUntil }) {
             if (!activityRow) {
                 return json({ success: false, error: "Activity not found." }, 404);
             }
+
+            // The title is taken from the row just loaded, not from the request:
+            // the client sends one (checked above) but a mismatched value would
+            // label the submission with the wrong activity everywhere it is read
+            // back — the grading queue, the activity log, the trainee's grades
+            // table and the AI review — while activity_id still pointed at this
+            // one, so a grader would see an answer key that did not match.
+            const storedTitle = activityRow.title || activityTitle;
             if (activityRow.status !== 'Published') {
                 return json({ success: false, error: "This activity isn't open for submissions." }, 403);
             }
@@ -107,7 +115,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
                         `INSERT INTO submissions (activity_id, activity_title, trainee_username, trainee_name, notes, answers, auto_score, status, score, graded_at)
                          VALUES (?, ?, ?, ?, ?, ?, ?, 'Graded', ?, datetime('now'))`
                     ).bind(
-                        activityId, activityTitle, auth.session.username,
+                        activityId, storedTitle, auth.session.username,
                         auth.session.fullName || auth.session.username, notes || '',
                         answersJson, autoScore, autoScore
                     ).run();
@@ -118,7 +126,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
                         `INSERT INTO submissions (activity_id, activity_title, trainee_username, trainee_name, notes, answers, auto_score, status)
                          VALUES (?, ?, ?, ?, ?, ?, ?, 'Needs Review')`
                     ).bind(
-                        activityId, activityTitle, auth.session.username,
+                        activityId, storedTitle, auth.session.username,
                         auth.session.fullName || auth.session.username, notes || '',
                         answersJson, autoScore
                     ).run();
@@ -130,7 +138,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
                     `INSERT INTO submissions (activity_id, activity_title, trainee_username, trainee_name, notes, answers, status)
                      VALUES (?, ?, ?, ?, ?, ?, 'Needs Review')`
                 ).bind(
-                    activityId, activityTitle, auth.session.username,
+                    activityId, storedTitle, auth.session.username,
                     auth.session.fullName || auth.session.username, notes || '', answersJson
                 ).run();
             }
@@ -140,7 +148,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
                 auth.session.username,
                 auth.session.batchId,
                 'ACTIVITY_SUBMITTED',
-                { activityTitle }
+                { activityTitle: storedTitle }
             );
 
             // AI-Assisted Review (Gemini): generates the trainee's commentary
@@ -153,7 +161,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
             const submissionId = res.meta.last_row_id;
             waitUntil(generateAiReview(env, {
                 submissionId,
-                activityTitle,
+                activityTitle: storedTitle,
                 questions,
                 answers: Array.isArray(answers) ? answers : [],
                 notes
@@ -168,15 +176,29 @@ export async function onRequestPost({ request, env, waitUntil }) {
                 return json({ success: false, error: "Only Admins can release grades." }, 403);
             }
 
-            if (!submissionId || score === undefined) {
+            if (!submissionId || score === undefined || score === null) {
                 return json({ success: false, error: "Submission ID and score are required." }, 400);
+            }
+
+            // Only the browser checked this before (app.js isNaN), so a replayed
+            // or hand-made request could store text in the score column. That
+            // then poisons every reader: Number("95%") is NaN, so the admin's
+            // batch average (api/progress.js) serialises as null and the tile
+            // reads "—", and the value is interpolated into the trainee's grades
+            // table unescaped. A score is a number from 0 to 100 or nothing.
+            // An empty string is not a zero, and Number('') would silently make
+            // it one. Whether a score above 100 should be refused is a grading
+            // policy question, so this only insists on a real number.
+            const numericScore = typeof score === 'string' && score.trim() === '' ? NaN : Number(score);
+            if (!Number.isFinite(numericScore)) {
+                return json({ success: false, error: "Score must be a number." }, 400);
             }
 
             await env.TRAINING_DB.prepare(
                 `UPDATE submissions
                  SET status = 'Graded', score = ?, feedback = ?, graded_at = datetime('now')
                  WHERE id = ?`
-            ).bind(score, feedback || '', submissionId).run();
+            ).bind(numericScore, feedback || '', submissionId).run();
 
             await logActivity(
                 env.TRAINING_DB,
