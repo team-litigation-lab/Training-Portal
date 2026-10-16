@@ -3,7 +3,7 @@
 // /api/launch?tool=ringchannel&to=calls), on 🎧 Practice, on the line the link names and with a graded call when it asks
 // for one, and nobody signs in again. Run: node .github/scripts/calls-route.mjs
 import { onRequest } from '../../functions/_middleware.js';
-import { onRequestGet as launch, callsQuery } from '../../functions/api/launch.js';
+import { onRequestGet as launch, callsQuery, messagesQuery } from '../../functions/api/launch.js';
 import { createSessionToken } from '../../functions/_utils.js';
 
 const failures = []; const fail = (m) => failures.push(m);
@@ -55,6 +55,12 @@ const cmsCalls = await go('/api/launch?tool=cms&to=calls&track=reception', train
 if (/track=|#\/practice/.test(cmsCalls.at)) fail(`to=calls worked on the CMS: ${cmsCalls.at}`);
 const drill = await go('/api/launch?tool=cms&to=drill', trainee);
 if (!/&drill=1$/.test(drill.at)) fail(`to=drill no longer opens the CMS drill: ${drill.at}`);
+// 3. to=messages opens the CMS's 💬 Client Messaging: only its program, a conversation's id and graded go along, and only to the CMS
+const msgs = await go('/api/launch?tool=cms&to=messages&program=MD&thread=md_demand&mode=graded&line=<x>', trainee);
+if (!/^https:\/\/lshcasemanagementtraining-trainingcrm\.pages\.dev\/\?ticket=[^#&]+&messages=1&program=md&thread=md_demand&mode=graded$/.test(msgs.at)) fail(`to=messages: ${msgs.at}`);
+if (messagesQuery(new URLSearchParams('program=nope&thread=../../x&mode=practice')) !== 'messages=1') fail('a link\'s unknown values went along to Client Messaging');
+const rcMsgs = await go('/api/launch?tool=ringchannel&to=messages', trainee);
+if (/messages=1/.test(rcMsgs.at)) fail(`to=messages worked on Ring Channel: ${rcMsgs.at}`);
 
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
 console.log('Call Simulator route test passed (the Portal\'s Call Simulator opens LSH Ring Channel\'s practice phone, signed in, on the link\'s line, graded when it asks).');

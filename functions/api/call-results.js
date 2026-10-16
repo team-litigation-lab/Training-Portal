@@ -1,13 +1,16 @@
 import { json, requireSession, sameSecret } from '../_utils.js';
 
-// Graded calls from the Call Simulator, so they count in the trainee's course. Every Call Simulator is LSH Ring Channel's
+// Graded calls from the Call Simulator, and graded text conversations from the CMS's 💬 Client Messaging (kind: 'message'),
+// so they count in the trainee's course. Every Call Simulator is LSH Ring Channel's
 // (the training phone: the Portal's /api/launch?tool=ringchannel&to=calls opens it), and Ring Channel sends each graded
 // call here, server to server, with the shared secret of the AI gateway (?via=ringchannel). The CMS's older Call Simulator
 // panel sends them the same way (via=cms), so calls taken there still count.
 //
 //   POST /api/call-results   header X-Gateway-Key: <AI_GATEWAY_SECRET>
-//        { first, last, batch, username, via: 'ringchannel'|'cms',
-//          call: { id, program: 'FT'|'CM'|'PD'|'EA', line, lesson, title, score, verdict, secs, voice, at } }
+//        { first, last, batch, username, via: 'ringchannel'|'cms', kind: 'call'|'message',
+//          call: { id, program: 'FT'|'CM'|'PD'|'EA'|'MD', line, lesson, title, score, verdict, secs, voice, at } }
+//   A conversation is filed as the 'Client Messaging' simulator on its own line ('Client Messaging'); Medical Summary &
+//   Demand ('MD') takes conversations only, kept under md:callsim:<id> for its course.
 //        → { success, course: { key, best } }
 //   It's kept in two places:
 //   - the Portal's simulator_results (the trainee's Portal account, found by first name, last name and batch; otherwise
@@ -17,7 +20,7 @@ import { json, requireSession, sameSecret } from '../_utils.js';
 //     course shows it on its progress. EA / PA's trainee may be on an older id (trainee-alias:<id> points to it).
 //     { traineeId, updatedAt, calls: [{ id, line, lesson, title, score, at }] (the latest 60), best: { <lesson or line>: { score, calls, at } } }
 //   GET  /api/call-results   (a signed-in admin) the latest graded calls.
-const COURSES = { FT: { prefix: 'ft:' }, CM: { prefix: 'cm:' }, PD: { prefix: 'pd:' }, EA: { prefix: '' } };
+const COURSES = { FT: { prefix: 'ft:' }, CM: { prefix: 'cm:' }, PD: { prefix: 'pd:' }, EA: { prefix: '' }, MD: { prefix: 'md:' } };
 const clip = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, n);
 
 // The course Workers' trainee id (worker.js candidateIds, in every course): "first last" and the batch, slugged.
@@ -64,10 +67,12 @@ export async function onRequestPost({ request, env }) {
     const c = (body && body.call) || {};
     const first = clip(body.first, 60), last = clip(body.last, 60), batch = clip(body.batch, 40);
     const via = clip(body.via, 20).toLowerCase() === 'ringchannel' ? 'ringchannel' : 'cms';   // which Call Simulator it came from
+    const kind = clip(body.kind, 10).toLowerCase() === 'message' ? 'message' : 'call';             // a call, or a Client Messaging conversation
     const call = { id: clip(c.id, 60), program: clip(c.program, 4).toUpperCase(), line: clip(c.line, 80), lesson: Number.isInteger(Number(c.lesson)) && Number(c.lesson) > 0 ? Number(c.lesson) : null,
         title: clip(c.title, 140), verdict: clip(c.verdict, 400), secs: Math.max(0, Math.min(3600, Math.round(Number(c.secs) || 0))), voice: clip(c.voice, 12),
         score: Math.max(0, Math.min(100, Math.round(Number(c.score)))), at: /^\d{4}-\d{2}-\d{2}T/.test(String(c.at || '')) ? String(c.at).slice(0, 30) : new Date().toISOString() };
     if (!first || !last || !call.id || !COURSES[call.program] || !Number.isFinite(call.score) || !call.line) return json({ success: false, error: 'first, last, and a call with its id, program, line and score are required.' }, 400);
+    if (call.program === 'MD' && kind !== 'message') return json({ success: false, error: 'Medical Summary & Demand takes text conversations only.' }, 400);
 
     // 1. the Portal's simulator results, on the trainee's Portal account
     const db = env.DB, tdb = env.TRAINING_DB;
@@ -80,8 +85,8 @@ export async function onRequestPost({ request, env }) {
     if (!username) username = 'cms:' + clip(body.username || `${first} ${last}`, 80).toLowerCase();
     await ensureSimResultsTable(tdb);
     await tdb.prepare(`INSERT INTO simulator_results (username, full_name, simulator, scenario, score, summary, details, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-        .bind(username, fullName, 'Call Simulator', call.title, call.score, call.verdict,
-            JSON.stringify({ graded: true, via, program: call.program, line: call.line, lesson: call.lesson, call: call.id, secs: call.secs, voice: call.voice, batch }), call.at).run();
+        .bind(username, fullName, kind === 'message' ? 'Client Messaging' : 'Call Simulator', call.title, call.score, call.verdict,
+            JSON.stringify({ graded: true, via, kind, program: call.program, line: call.line, lesson: call.lesson, call: call.id, secs: call.secs, voice: call.voice, batch }), call.at).run();
 
     // 2. the course's own store, where the course shows it on the trainee's progress
     let course = null;

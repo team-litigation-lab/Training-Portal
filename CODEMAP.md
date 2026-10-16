@@ -36,10 +36,10 @@ The signed-in portal: Training Directory, dashboard, progress, attendance, orien
 | `orientation.html` | 15 | Stub pointing the old Orientation URL at /blueprint.html. |
 | `system.html` | 120 | System Management page (admin). |
 | `portal-nav.js` | 166 | Shared nav: PortalNav.html/adminHtml top bars, System Management menu, trainee-view switch, logout, injected styles, floating Back-button safety net. |
-| `portal.js` | 846 | Public-portal runtime: registration/login, password validation, input filters, sound engine, full-screen alert, site lock/pause UI, pings, and the consolidated /api/live poller. |
+| `portal.js` | 835 | Public-portal runtime: registration/login, password validation, input filters, sound engine, full-screen alert, site lock/pause UI, pings, and the consolidated /api/live poller. |
 | `programs.html` | 682 | Training Directory: grouped program cards with access request/approve flow, SSO launch wake-up, admin queue, client-side certificate PDF. |
 | `progress.html` | 136 | Admin Trainee Progress & Feedback shell: admin gate, styles and hero; all rendering lives in progress-records.js. |
-| `simulators.html` | 106 | Simulators hub: card grid from the SIMULATORS array plus recent results table (admin sees all trainees). |
+| `simulators.html` | 108 | Simulators hub: card grid from the SIMULATORS array plus recent results table (admin sees all trainees). |
 
 ## Data and deck scripts
 
@@ -123,7 +123,7 @@ Login/session plumbing, user management, site lock/pause/alert, logs and monitor
 | `functions/api/announcement.js` | 60 | GET public announcement ticker text; POST/DELETE set or clear it (admin), stored in TRAINING_DB site_settings. |
 | `functions/api/create-user.js` | 111 | POST /api/create-user (admin): a trainer makes an account for someone — same checks as registration, creates a Pending users row for an administrator to approve. |
 | `functions/api/heartbeat.js` | 62 | GET who's-online list (admin); POST session heartbeat upsert with lighter-than-requireSession checks. |
-| `functions/api/launch.js` | 161 | GET /api/launch: opens a program or tool for the signed-in person with a short-lived signed SSO ticket (trainee/admin/system variants), plus landing/?to= routing and callsQuery. |
+| `functions/api/launch.js` | 176 | GET /api/launch: opens a program or tool for the signed-in person with a short-lived signed SSO ticket (trainee/admin/system variants), plus landing/?to= routing, callsQuery and messagesQuery (the CMS's 💬 Client Messaging). |
 | `functions/api/live.js` | 22 | GET /api/live: one-request aggregation of site-state, alert and pings for every open page's 20s poll. |
 | `functions/api/login.js` | 133 | POST /api/login for Trainee and Admin portals: password verify, legacy-hash upgrade, throttle, master-account path, status checks, session cookie + heartbeat seed. |
 | `functions/api/logout.js` | 25 | POST /api/logout: logs the logout, deletes the heartbeat row, clears the cookie; deliberately skips requireSession. |
@@ -159,7 +159,7 @@ Simulator results and reviews, program progress, attendance, the AI gateway and 
 | `functions/api/ai-usage.js` | 29 | Admin-only server-rendered HTML page of today's shared AI budget per call flow, from usageSummary. |
 | `functions/api/attendance-feed.js` | 86 | Google Sheet sync endpoint (Bearer ATTENDANCE_FEED_KEY, constant-time): GET rows for the last N days incl. untagged check-ins; POST a sheet edit back onto the platform record. |
 | `functions/api/attendance.js` | 89 | Admin attendance page API: per-program day view (batches, check-ins, default training), batch history, and merge-writes via _attendance.saveRows; preview deployments can't write. |
-| `functions/api/call-results.js` | 108 | Server-to-server intake of graded Call Simulator calls from Ring Channel (via=ringchannel) and the CMS's older panel (X-Gateway-Key): writes simulator_results and the course's KV callsim record (courseTraineeId/addCall/courseSlot); admin GET lists them. |
+| `functions/api/call-results.js` | 113 | Server-to-server intake of graded Call Simulator calls from Ring Channel (via=ringchannel) and the CMS's older panel, and graded Client Messaging conversations from the CMS (kind=message; MD conversations only) (X-Gateway-Key): writes simulator_results and the course's KV callsim record (courseTraineeId/addCall/courseSlot); admin GET lists the calls. |
 | `functions/api/calsim.js` | 128 | Calendaring Simulators record store (D1 calsim_records): trainee saves, admin reviews, CALENDAR MANAGEMENT MOCK CALL scorecards and per-track exclusions; trainer-owned fields survive trainee saves. |
 | `functions/api/email-inbound.js` | 36 | Postmark inbound webhook (keyed URL, constant-time compare): stores the first reply onto the matching email_practice row. |
 | `functions/api/email-practice.js` | 123 | Email Replies delivery: sends a fixed scenario via Postmark with a tokenized Reply-To, per-address daily cap; GET polls a token's reply status, ?status=1 reports configuration. |
@@ -185,8 +185,8 @@ The Checks suite (node + Playwright) and the Uptime monitor.
 | `.github/scripts/ai-gateway.mjs` | 186 | functions/_ai-gateway.js + api/ai-gateway.js: one shared ledger across flows, minute/daily/per-user/module-share limits, key-pool failover and rest, relay fallback, live-token cost, abort deadlines, review reserve, endpoint auth. |
 | `.github/scripts/batch.mjs` | 42 | Batch IDs: nextBatchId (functions/_utils.js) mints B+MMDDYY; app.js batchLabel/batchCohort show and group older IDs. |
 | `.github/scripts/blueprint.cjs` | 143 | Orientation decks and PDFs: trainee vs admin tracks, PDF page-per-slide with deploy stamp, consistent numbering across page counter, PDF footers/headers and the engine's own deck. |
-| `.github/scripts/call-results.mjs` | 75 | functions/api/call-results.js: the gateway secret, Ring Channel's and the CMS's graded calls land in simulator_results and each course's KV store by lesson/line, EA/PA alias, admin listing. |
-| `.github/scripts/calls-route.mjs` | 60 | /simulators/call.html routes through /api/launch?tool=ringchannel&to=calls to Ring Channel's practice phone, with the link's line/program/graded call sanitized (callsQuery); signed-out and admin paths. |
+| `.github/scripts/call-results.mjs` | 92 | functions/api/call-results.js: the gateway secret, Ring Channel's and the CMS's graded calls land in simulator_results and each course's KV store by lesson/line, EA/PA alias, admin listing; Client Messaging conversations on their own line, MD's under md:. |
+| `.github/scripts/calls-route.mjs` | 66 | /simulators/call.html routes through /api/launch?tool=ringchannel&to=calls to Ring Channel's practice phone, with the link's line/program/graded call sanitized (callsQuery); signed-out and admin paths.; to=messages opens the CMS's Client Messaging with only its program, conversation and graded (messagesQuery). |
 | `.github/scripts/calsim.mjs` | 58 | functions/api/calsim.js: trainee save/read, admin-only reviews/scorecards/exclusions kept through trainee saves, scorecard metrics match simulators/cal-scorecard.js. |
 | `.github/scripts/check-site.mjs` | 86 | Static checks: syntax of every JS file and inline <script>, local file references in HTML exist, JSON parses. |
 | `.github/scripts/front-door.mjs` | 126 | functions/_middleware.js + /api/me on node:sqlite: signed-in users redirected to /programs.html, signed-out/revoked/tampered/locked cases, heartbeat restart. |
