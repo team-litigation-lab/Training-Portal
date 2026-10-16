@@ -360,7 +360,7 @@
         if (session.userType === 'Admin') {
             const userEl = document.getElementById('idx-user');
             // One admin bar on every main page (portal-nav.js); everything else is under System Management.
-            if (userEl) userEl.innerHTML = PortalNav.adminHtml('', { back: '/index.html?stay=1' });
+            if (userEl) userEl.innerHTML = PortalNav.adminHtml('', { back: '/index.html?stay=1', blueprintMenu: true });
             if (asTrainee) document.querySelector('.idx-top').insertAdjacentHTML('afterend',
                 `<div class="pn-trainee-view">👁 Trainee view: the Training Directory as trainees see it.<button type="button" onclick="PortalNav.switchView()">Back to the admin view</button></div>`);
         }
