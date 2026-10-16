@@ -96,7 +96,7 @@ It has two tracks, switched at the top of the page:
 
 How to use it:
 - In the deck: **← →** (or Page Up / Page Down) change slides, the contents strip jumps to one, and **Esc** closes it.
-- **⬇ Download PDF** saves the current track as a PDF, one page per slide, from the deck or from the page. The cover and each page carry the deployed version (the page's ETag) and the date, so it's always made from what's live: nothing to rebuild by hand after a deploy.
+- **⬇ Download PDF** (signed-in admins only) saves the current track as a PDF, one page per slide. The cover and each page carry the deployed version (the page's ETag) and the date, so it's always made from what's live: nothing to rebuild by hand after a deploy. **Trainees and visitors read the blueprint on screen and have no download** — the PDF is a trainer's, for sharing the deck outside the portal.
 - **Numbering:** the cover is the Cover, then the pages are `1 / 8` to `8 / 8` (headed "1 of 8" to "8 of 8"), the same as the page's numbered contents. The cover isn't counted, so nothing says 9.
 - Deep links: `?track=admin&slide=3` opens the deck straight on that slide.
 - Links to it: **Blueprint** in the main page header and in the admin bar on every main page. Signed-in admins get the admin track.
@@ -219,6 +219,51 @@ Where the records come from:
 - Simulator and activity records are matched to trainees by name, because the programs have separate sign-ins.
 
 The API (`/api/program-progress`) is admin-only. It writes only to archive and restore batches; feedback is written and marked reviewed in each course. It stays under Workers KV's 1,000-operations-per-request limit and says so on the page if a very large program doesn't fit. To add a program, add it to `PROGRAMS` in `functions/api/program-progress.js` with its key prefix, number of days and course address, and to `PROGRAM_ORDER` in `progress-records.js`.
+
+## 🎨 The standard page style
+
+Every page loads `theme.css` last, and that file is what makes a page look like
+the portal. A new page needs nothing but the stylesheet: the look below is the
+default, not something to opt into.
+
+**The backdrop.** The page sits on a photo behind a wash — the scales image by
+default, the office on the landing page. Three variables on the page's own
+`body` change it, and nothing else should:
+
+| | |
+|---|---|
+| `--portal-photo` | the image, e.g. `url('/img/landing-bg-office.webp')` |
+| `--portal-wash` | how much of it shows through (lower alpha = more photo) |
+| `--portal-base` | the flat colour under both, before the image loads |
+
+A page whose body copy is white adds `class="portal-bg-dark"` to its `<body>`
+for the navy wash instead of the cream one (Progress and System Management do).
+A page that genuinely must be flat adds `class="no-portal-bg"`. Both are the
+exception; `class="portal-bg"` is the old opt-in name and still harmless.
+
+**The panels.** Cards are translucent so the backdrop carries on underneath —
+`.sim-card`, `.topic-card`, `.pdf-card`, `.dash-card`, `.stat-card-v2`,
+`.admin-tile`, the Master Control pane. Use one of those classes and the page
+is right automatically. A new panel of your own gets
+`background: var(--surface-glass)` and `backdrop-filter: var(--surface-blur)`.
+Declare `background` (the shorthand), never `background-image`: these classes
+each carry a flat white of their own, and an alpha gradient layered over an
+opaque colour changes nothing.
+
+**The colours, which exist because of the backdrop.** Text has to clear WCAG AA
+(4.5:1, or 3:1 at 24px/18.7px bold) against the photo, not against a white card
+that is no longer white:
+
+- Muted text is `--slate` / `#334155`, not `#64748b` — 5.6:1 on a glass panel.
+  Text sitting straight on the backdrop with no panel is `#1e293b`.
+- Orange is a **fill** colour. As lettering on navy use `#fdba74`
+  (`--orange-lift` on the landing page); on white or paper use `#9a3412` or
+  `#c2410c`; on an orange fill the label is `#081226`, never white.
+- On a dark surface, "muted" means *lighter* (`#cbd5e1`, `#94a3b8`), not darker.
+
+The audit that produced those numbers screenshots a page twice — normally and
+with every glyph transparent — and scores each text run against the pixels
+actually behind its own lettering. Worth re-running after a visual change.
 
 ## 📉 Server requests (every LSH site shares one monthly allowance)
 

@@ -4,6 +4,7 @@
 // Checks: a visitor or trainee gets the Trainees track only (no tab to the Trainers & Admins track, even with
 // ?track=admin); a signed-in Admin gets both tracks and starts on the admin one; ⬇ Download PDF saves the track
 // that's showing, a page per slide (plus the cover) with each slide's title, and the trainee PDF has no admin slides.
+// Trainees and visitors read the blueprint on screen: ⬇ Download PDF is an Admin's, and is not there for them.
 // Numbering: the slide numbers match everywhere. Each PDF's cover is "Cover", then its pages are "1 / n" to "n / n",
 // headed "1 of n" to "n of n", the same as the page's numbered contents (1 to n); nothing says n + 1 (an 8-slide
 // track's PDF used to end on "9 / 9"). The deck itself is the engine's, opened over the page: the counter reads
@@ -49,6 +50,7 @@ function inspect(buf) {
         await page.goto(base + '/blueprint.html' + q, { waitUntil: 'load' }); await page.waitForTimeout(500);
         return page;
     };
+    const hidden = (page, sel) => page.evaluate((s) => { const el = document.querySelector(s); return !el || el.hidden || !el.offsetParent; }, sel);
     const pdfOf = async (page) => { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#orPdf')]); return { name: dl.suggestedFilename(), ...inspect(fs.readFileSync(await dl.path())) }; };
     const state = (page) => page.evaluate(() => ({ tabs: !document.querySelector('.or-tabs').hidden, track: new URLSearchParams(location.search).get('track'), admin: 'admin' in SLIDES, slides: SLIDES.trainee.length, adminSlides: SLIDES.admin ? SLIDES.admin.length : 0, adminTitles: (SLIDES.admin || []).map(s => s.title) }));
     // the PDF's numbers: the cover's footer is "Cover", then the pages' footers are "1 / n" to "n / n" and their headers
@@ -100,11 +102,8 @@ function inspect(buf) {
     let page = await open({ username: 'jo', userType: 'Trainee', fullName: 'Jo Cruz' }, '?track=admin');
     let st = await state(page);
     if (st.tabs || st.admin || st.track !== 'trainee') fail(`a trainee should get the Trainees track only: ${JSON.stringify(st)}`);
-    let pdf = await pdfOf(page);
-    if (pdf.name !== 'LSH_Training_Portal_Blueprint_Trainee.pdf' || !pdf.pdf || pdf.pages !== st.slides + 1) fail(`the trainee PDF: ${pdf.name}, ${pdf.pages} pages for ${st.slides} slides`);
-    if (!/One portal for all of your LSH training/.test(pdf.text) || !/deploy 7a1c9e0b/.test(pdf.text)) fail('the trainee PDF is missing its first slide or the deploy stamp');
-    if (/Master Control|Access queue/.test(pdf.text)) fail('the trainee PDF has admin slides');
-    numbered(pdf, st.slides, 'trainee');
+    // a trainee reads the blueprint on screen: no PDF to take away
+    if (!await hidden(page, '#orPdf')) fail('a trainee can still download the blueprint as a PDF');
     let c = await counts(page);
     if (c.join() !== Array.from({ length: st.slides }, (_, k) => k + 1).join()) fail(`the page's contents should be numbered 1 to ${st.slides}, as the PDF's pages: ${JSON.stringify(c)}`);
     (await walk(page, 'trainee')).forEach(fail);
@@ -114,12 +113,14 @@ function inspect(buf) {
     page = await open(null);
     st = await state(page);
     if (st.tabs || st.admin) fail(`a visitor should get the Trainees track only: ${JSON.stringify(st)}`);
+    if (!await hidden(page, '#orPdf')) fail('a visitor can still download the blueprint as a PDF');
     await page.context().close();
 
     // ---- an Admin ----
     page = await open({ username: 'trainer1', userType: 'Admin', fullName: 'Matt G.' });
     st = await state(page);
     if (!st.tabs || !st.admin || st.track !== 'admin') fail(`an Admin should get both tracks, starting on the admin one: ${JSON.stringify(st)}`);
+    if (await hidden(page, '#orPdf')) fail('an Admin has no ⬇ Download PDF button');
     pdf = await pdfOf(page);
     if (pdf.name !== 'LSH_Training_Portal_Blueprint_Trainer.pdf' || pdf.pages !== st.adminSlides + 1) fail(`the admin PDF: ${pdf.name}, ${pdf.pages} pages for ${st.adminSlides} slides`);
     const missing = st.adminTitles.map(t => t.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/[^\x00-\xff]/g, '').trim()).filter(t => !pdf.text.includes(t));
@@ -129,12 +130,14 @@ function inspect(buf) {
     if (c.join() !== Array.from({ length: st.adminSlides }, (_, k) => k + 1).join()) fail(`the admin track's contents should be numbered 1 to ${st.adminSlides}, as the PDF's pages: ${JSON.stringify(c)}`);
     await page.click('.or-tabs button[data-track="trainee"]');
     pdf = await pdfOf(page);
-    if (pdf.name !== 'LSH_Training_Portal_Blueprint_Trainee.pdf') fail(`an Admin on the Trainees track downloaded ${pdf.name}`);
+    if (pdf.name !== 'LSH_Training_Portal_Blueprint_Trainee.pdf' || !pdf.pdf || pdf.pages !== st.slides + 1) fail(`an Admin on the Trainees track downloaded ${pdf.name}, ${pdf.pages} pages for ${st.slides} slides`);
+    if (!/One portal for all of your LSH training/.test(pdf.text) || !/deploy 7a1c9e0b/.test(pdf.text)) fail('the trainee PDF is missing its first slide or the deploy stamp');
+    if (/Master Control|Access queue/.test(pdf.text)) fail('the trainee PDF has admin slides');
     numbered(pdf, st.slides, 'trainee (an Admin\'s)');
     (await walk(page, 'trainer')).forEach(fail);
     await page.context().close();
 
     await browser.close(); server.close();
     if (failures.length) { console.log(`\n${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-    console.log(`Blueprint test passed (trainees get the Trainees track only; an Admin gets both; each track downloads as a PDF with every slide and the deploy stamp; numbered Cover, then 1 / n to n / n, as the page: trainees ${st.slides} slides, admins ${st.adminSlides}).`);
+    console.log(`Blueprint test passed (trainees and visitors get the Trainees track only, read on screen with no PDF to download; an Admin gets both tracks and both PDFs, every slide and the deploy stamp, numbered Cover then 1 / n to n / n as the page: trainees ${st.slides} slides, admins ${st.adminSlides}).`);
 })().catch(e => { console.error(e); process.exit(1); });

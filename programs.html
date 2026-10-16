@@ -13,33 +13,27 @@
 <style>
     :root {
         --navy: #0f2148; --navy-deep: #081226; --navy-mid: #132a5c;
-        --orange: #f97316; --orange-soft: #fb923c; --slate: #64748b; --paper: #faf8f4;
+        --orange: #f97316; --orange-soft: #fb923c; --slate: #334155; --paper: #faf8f4;
     }
     * { box-sizing: border-box; }
     body {
         margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif; color: var(--navy);
-        /* Scales-of-justice backdrop at 30%. The flat --paper colour is laid
-           over the photo at 70% opacity rather than putting the photo itself
-           behind an opacity:.30 layer: one background property, no extra
-           stacking context, so nothing on the page needs a z-index to stay on
-           top of it. background-attachment:fixed keeps the image still while
-           the directory scrolls. */
-        background:
-            linear-gradient(rgba(250,248,244,.70), rgba(250,248,244,.70)),
-            url('/img/directory-bg-scales.webp') center center / cover no-repeat fixed,
-            var(--paper);
+        /* The scales-of-justice backdrop itself now comes from theme.css
+           (body.portal-bg), which every portal screen shares; the photo and
+           the iOS-Safari fallback live there. What stays here is this page's
+           own wash: 40% rather than the 30% it used to be, because the
+           program cards above it are translucent now — the photo reads
+           through the cards, so the page no longer has to spend its whole
+           contrast budget on the gaps between them.
+           --paper is the fallback colour under both layers. */
+        --portal-wash: rgba(250, 248, 244, .60);
+        --portal-base: var(--paper);
         /* styles.css (shared with core.html) sets body to height:100vh +
            overflow:hidden — correct for core.html's fixed "app shell" with
            its own internally-scrolling panels, but this page has no such
            inner scroll container, so inheriting that rule blocked the
            whole page from scrolling at all. Restored to normal flow. */
         height: auto; overflow: visible;
-    }
-    /* background-attachment:fixed is the one that misbehaves on iOS Safari
-       (the image jumps or renders at the wrong scale while scrolling), so
-       phones get a scrolling backdrop instead. */
-    @media (max-width: 860px) {
-        body { background-attachment: scroll, scroll; }
     }
 
     .idx-top { display: flex; align-items: center; justify-content: space-between; padding: 16px 28px; background: var(--navy-deep); }
@@ -89,12 +83,14 @@
     .topic-group { margin-bottom: clamp(8px, 1.1vh, 12px); }
     .topic-group-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 7px; padding-bottom: 4px; border-bottom: 2px solid rgba(249,115,22,.35); }
     .topic-group-head h2 { font-size: 15px; font-weight: 900; margin: 0; color: var(--navy); letter-spacing: .01em; }
-    /* These section notes sit directly on the body backdrop, not on a card.
-       At 30% the photo's darkest area composites to about rgb(176,175,174),
-       where the old #64748b measured 2.17:1 — under WCAG AA for 12px text.
-       #334155 is the lightest step that clears 4.5:1 (4.73:1) and still reads
-       as a muted grey next to the navy heading. */
-    .topic-group-head span { font-size: 12px; color: #334155; font-weight: 600; }
+    /* These section notes sit directly on the body backdrop, not on a card,
+       so the wash behind them is all the contrast they get. The photo's
+       darkest area composites to about rgb(151,149,150) under the 40% wash
+       this page now uses, where the old #334155 measures 3.49:1 — under WCAG
+       AA for 12px text. The navy ink reads 5.31:1 on that same spot, so the
+       note takes the heading's colour and separates itself by weight and
+       size instead of by being a lighter grey. */
+    .topic-group-head span { font-size: 12px; color: var(--navy); font-weight: 600; }
     @media (max-width: 1000px) { .topic-grid, .topic-grid.cols-3 { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 560px) { .topic-grid, .topic-grid.cols-3 { grid-template-columns: 1fr; } }
     /* The cards keep their gridlines: the navy frame around the card and around its title,
@@ -110,7 +106,7 @@
     .topic-status.approved { background: #f0fdf4; color: #166534; }
     .topic-status.passed { background: #fff7ed; color: #9a3412; }
     .topic-status.pending { background: #fffbeb; color: #b45309; }
-    .topic-status.locked { background: #f1f5f9; color: #64748b; }
+    .topic-status.locked { background: #f1f5f9; color: #334155; }
     .topic-status.denied { background: #fef2f2; color: #b91c1c; }
     .topic-action-btn {
         margin-top: auto; padding: 9px; border-radius: 999px; border: none; font-weight: 800; font-size: 11.5px;
@@ -118,17 +114,16 @@
     }
     .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
     .topic-action-btn.request { background: var(--orange); color: #0f172a; }
-    .topic-action-btn.disabled { background: #f1f5f9; color: #94a3b8; cursor: default; }
+    .topic-action-btn.disabled { background: #f1f5f9; color: #334155; cursor: default; }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
     .sim-banner-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
     .sim-banner-row .sim-banner { margin-bottom: 0; padding: 10px 12px; gap: 10px; border-radius: 14px; }
-    /* Two lines, with the rest on the title attribute — these are signposts to
-       four tools, not the tools' documentation, and at four lines each they
-       pushed the actual programs off the screen. */
-    .sim-banner-row .sim-banner-tx span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 11.5px; line-height: 1.35; }
-    .sim-banner-row .sim-banner-ic { width: 34px; height: 34px; border-radius: 10px; font-size: 17px; }
-    .sim-banner-row .sim-banner-tx b { font-size: 13px; line-height: 1.25; margin-bottom: 1px; }
+    /* The name alone — these are signposts to four tools, not the tools'
+       documentation. The blurb lives on the title attribute, so it is still
+       one hover away, and the name gets the room it used to take. */
+    .sim-banner-row .sim-banner-ic { width: 38px; height: 38px; border-radius: 10px; font-size: 19px; }
+    .sim-banner-row .sim-banner-tx b { font-size: 16px; line-height: 1.25; }
     .sim-banner-row .sim-banner-go { font-size: 10.5px; padding: 6px 10px; }
     @media (max-width: 1150px) { .sim-banner-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 620px) { .sim-banner-row { grid-template-columns: 1fr; } }
@@ -191,8 +186,8 @@
         .idx-head h1 { font-size: clamp(17px, 1.5vw, 20px); }
         .sim-banner-row { gap: 8px; margin-bottom: 8px; }
         .sim-banner-row .sim-banner { padding: 7px 10px; gap: 9px; }
-        .sim-banner-row .sim-banner-ic { width: 30px; height: 30px; font-size: 15px; }
-        .sim-banner-row .sim-banner-tx span { -webkit-line-clamp: 1; }
+        .sim-banner-row .sim-banner-ic { width: 32px; height: 32px; font-size: 16px; }
+        .sim-banner-row .sim-banner-tx b { font-size: 14.5px; }
         .topic-group { margin-bottom: 9px; }
         .topic-group-head { margin-bottom: 5px; padding-bottom: 3px; }
         .topic-group-head h2 { font-size: 14px; }
@@ -251,28 +246,28 @@
     <div class="sim-banner-row">
     <a class="sim-banner" href="/simulators.html">
         <span class="sim-banner-ic">🛠</span>
-        <span class="sim-banner-tx" title="SimulatorsCalls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>Simulators</b><span>Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way.</span></span>
+        <span class="sim-banner-tx" title="Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>Simulators</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" href="/kb.html">
         <span class="sim-banner-ic">📚</span>
-        <span class="sim-banner-tx" title="Knowledge BaseOfficial SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know."><b>Knowledge Base</b><span>Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know.</span></span>
+        <span class="sim-banner-tx" title="Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know."><b>Knowledge Base</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="ring-banner" href="/api/launch?tool=ringchannel" target="_blank" rel="noopener">
         <span class="sim-banner-ic">☎</span>
-        <span class="sim-banner-tx" title="LSH Ring ChannelMock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal."><b>LSH Ring Channel</b><span>Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal.</span></span>
+        <span class="sim-banner-tx" title="Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal."><b>LSH Ring Channel</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="cms-banner" href="/api/launch?tool=cms" target="_blank" rel="noopener">
         <span class="sim-banner-ic">🗂</span>
-        <span class="sim-banner-tx" title="Case Management SystemThe practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer."><b>Case Management System</b><span>The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer.</span></span>
+        <span class="sim-banner-tx" title="The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer."><b>Case Management System</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     </div>
     <div id="idx-queue-wrap"></div>
     <div id="idx-topics" class="topic-grid">
-        <div style="grid-column:1/-1; font-size:13px; color:#94a3b8; padding:20px;">Loading programs...</div>
+        <div style="grid-column:1/-1; font-size:13px; color:#334155; padding:20px;">Loading programs...</div>
     </div>
 </div>
 

@@ -35,20 +35,36 @@ export const SSO_TOOLS = {
 // (the Master Account's ticket has no name: it opens as the Master Account there). No platform asks for a password again.
 export const ADMIN_TICKET_TOOLS = ['ringchannel', 'cms', 'kb'];
 const TICKET_TTL_MS = 5 * 60 * 1000;
-// Where inside a program or tool a link lands (?to=): a program's own Live Roleplay, the CMS Front Desk Drill, or the
+// Where inside a program or tool a link lands (?to=): a program's own Live Roleplay, the CMS Front Desk Drill, the CMS's
+// 💬 Client Messaging (to=messages, messagesQuery), or the
 // Call Simulator (to=calls: every platform's Call Simulator opens on LSH Ring Channel's 🎧 Practice, on the line the link
 // names, callsQuery), or Ring Channel's 🎧 Practice (to=aicall: an AI caller rings the trainee) or console (to=console: a
 // trainer sends AI callers).
 // Only these are allowed, and each only on its own tool, so a link can't send anyone anywhere else.
-// There is no blueprint landing: every blueprint link leads to the Portal's own 🧭 Blueprint page (/blueprint.html),
-// never into a program or a tool, so a link here can't send anyone to a program's deck.
-const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1', tool: 'cms' }, calls: { hash: '#/practice', tool: 'ringchannel' },
-    aicall: { hash: '#/practice', tool: 'ringchannel' }, console: { hash: '#/console', tool: 'ringchannel' } };
+// blueprint: a program's (or a tool's) own Blueprint, the only way in: the No Blueprint rule keeps every Blueprint
+// button and link out of the programs and tools, and the Main Portal's 🧭 Blueprint menu links here instead.
+const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1', tool: 'cms' }, messages: { tool: 'cms' }, calls: { hash: '#/practice', tool: 'ringchannel' },
+    aicall: { hash: '#/practice', tool: 'ringchannel' }, console: { hash: '#/console', tool: 'ringchannel' },
+    blueprint: { hash: '#/blueprint', also: ['kb', 'cms', 'ringchannel'] } };
 function landing(to, isTool, params, tool) {
     const l = Object.prototype.hasOwnProperty.call(LANDINGS, to) ? LANDINGS[to] : null;
     if (!l || (l.tool && (!isTool || l.tool !== tool)) || (!l.tool && isTool && !(l.also || []).includes(tool))) return { query: '', hash: '' };
     if (to === 'calls') { const q = callsQuery(params); return { query: q ? '&' + q : '', hash: l.hash }; }
+    if (to === 'messages') return { query: '&' + messagesQuery(params), hash: '' };
     return { query: l.query || '', hash: l.hash || '' };
+}
+/* 💬 Client Messaging in the CMS (to=messages): its conversations on the Training Library files, by program. What a link
+   may say: ?program= reception | intake | cm | md | pd | ea (the tab it opens on), ?thread= a conversation's id (it starts
+   it), ?mode=graded (graded). Anything else is dropped. */
+const MESSAGE_PROGRAMS = ['reception', 'intake', 'cm', 'md', 'pd', 'ea'];
+export function messagesQuery(params) {
+    const q = new URLSearchParams({ messages: '1' });
+    const program = String(params.get('program') || '').trim().toLowerCase();
+    if (MESSAGE_PROGRAMS.includes(program)) q.set('program', program);
+    const thread = String(params.get('thread') || '').trim().toLowerCase();
+    if (/^[a-z]{2}_[a-z]{2,24}$/.test(thread)) q.set('thread', thread);
+    if (String(params.get('mode') || '').toLowerCase() === 'graded') q.set('mode', 'graded');
+    return q.toString();
 }
 /* The Call Simulator's line from a link (the Portal's /simulators/call.html and Simulators page, a course, a program).
    Every Call Simulator is LSH Ring Channel's: the calls are taken on the training phone itself, graded on the line's

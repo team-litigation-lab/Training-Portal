@@ -126,7 +126,7 @@ window.addEventListener('scroll', () => PortalNav.closeMenus(), true);
     const st = document.createElement('style');
     st.textContent = `.pn-back{display:inline-flex;align-items:center;gap:4px;padding:6px 12px !important;border-radius:999px;border:1px solid rgba(255,255,255,.28);color:#fff !important;cursor:pointer;text-decoration:none;white-space:nowrap;}
         .pn-back:hover{background:rgba(255,255,255,.1);}
-        .pn-pill{display:inline-flex;align-items:center;padding:5px 14px !important;border:2px solid #fff;border-radius:999px;background:transparent;color:#f97316 !important;font-family:inherit;font-size:12.5px !important;font-weight:800 !important;line-height:1.2;text-decoration:none;white-space:nowrap;cursor:pointer;}
+        .pn-pill{display:inline-flex;align-items:center;padding:5px 14px !important;border:2px solid #fff;border-radius:999px;background:transparent;color:#fdba74 !important;font-family:inherit;font-size:12.5px !important;font-weight:800 !important;line-height:1.2;text-decoration:none;white-space:nowrap;cursor:pointer;}
         .pn-pill:hover{background:rgba(255,255,255,.1);}
         .pn-pill.on{background:#f97316;border-color:#f97316;color:#081226 !important;}
         .pn-sys{display:inline-flex;}

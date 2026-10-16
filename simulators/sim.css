@@ -1,5 +1,5 @@
 /* LSH Training Portal — shared simulator styles */
-:root{--navy:#0f2148;--navy-deep:#081226;--navy-mid:#132a5c;--orange:#f97316;--orange-soft:#fb923c;--slate:#64748b;--paper:#faf8f4;--line:#e5e7eb;--ok:#166534;--bad:#b91c1c;}
+:root{--navy:#0f2148;--navy-deep:#081226;--navy-mid:#132a5c;--orange:#f97316;--orange-soft:#fb923c;--slate:#334155;--paper:#faf8f4;--line:#e5e7eb;--ok:#166534;--bad:#991b1b;}
 *{box-sizing:border-box;}
 body{margin:0;font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;background:var(--paper);color:var(--navy);height:auto;overflow:visible;}
 a{color:inherit;}

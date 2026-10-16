@@ -16,7 +16,13 @@
         --navy-mid: #132a5c;
         --orange: #f97316;
         --orange-soft: #fb923c;
-        --slate: #64748b;
+        /* Orange as TEXT on a navy panel. --orange is a fill colour: as
+           lettering on navy it measures 2.6-3.3:1, and the panels are
+           translucent now, which lifts the navy and costs a little more.
+           This is the step that clears AA (6.97:1 on --navy) while still
+           reading as the brand's orange. */
+        --orange-lift: #fdba74;
+        --slate: #334155;
         /* Slate on the page's own backdrop. #64748b measures 4.52 on bare
            paper — a hair over AA — and the office photo behind the wash takes
            it to 3.6. This is the lightest step that still clears 4.5 there
@@ -327,13 +333,22 @@
     .sub-head { font-size: clamp(22px, 2.6vw, 30px); font-weight: 800; letter-spacing: -0.01em; color: var(--navy); margin: 0; }
     .founder-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 44px; align-items: start; margin-top: 36px; }
     .founder-photo { width: 100%; height: auto; border-radius: 18px; box-shadow: 0 24px 50px -24px rgba(15,33,72,.45); }
-    .founder-text, .about-text { background: var(--navy); border: 2px solid rgba(255,255,255,.18); border-radius: 22px;
+    /* Navy, but see-through: --panel-navy is the one place the whole page's
+       panel colour is set, so the backdrop reads through the cards instead of
+       stopping at them. At .82 the office photo is visible in the panel
+       without the copy on it dropping below 9:1. */
+    .founder-text, .about-text { background: var(--panel-navy); border: 2px solid rgba(255,255,255,.18); border-radius: 22px;
         box-shadow: 0 16px 34px -20px rgba(15,33,72,.6); padding: 26px 30px; }
     .founder-text p { font-size: 16.5px; line-height: 1.75; color: rgba(255,255,255,.88); margin: 0 0 16px; }
     /* on the card the pill's navy would vanish into it, so it keeps the orange on a lift */
-    .founder-text .name-pill { background: rgba(255,255,255,.08); border: 1px solid rgba(253,186,116,.45); }
-    .name-pill { display: inline-block; font-size: 22px; font-weight: 800; color: var(--orange); background: var(--navy); border-radius: 14px; padding: 12px 24px; margin-bottom: 20px; }
-    .hl { color: var(--orange); }
+    /* A white lift on a card that is translucent now can land over a bright
+       part of the photo, which took the pill's label to 4.35:1. Lifting with
+       the deep navy instead holds it at 7:1 wherever the photo goes. */
+    .founder-text .name-pill { background: rgba(8,18,38,.45); border: 1px solid rgba(253,186,116,.45); }
+    /* Orange on a navy card: --orange measures 2.62:1 there, the soft orange
+       6.97:1. Every orange-on-navy label on this page uses --orange-lift. */
+    .name-pill { display: inline-block; font-size: 22px; font-weight: 800; color: var(--orange-lift); background: var(--navy); border-radius: 14px; padding: 12px 24px; margin-bottom: 20px; }
+    .hl { color: var(--orange-lift); }
     /* The team chart is sized to sit in one screen, heading and all, on a laptop. */
     /* One full screen of its own: exactly the height left under the sticky nav,
        so the chart neither shares the screen with the section below it nor runs
@@ -434,7 +449,10 @@
        colour, not ink typed onto photo; the tag strip stays flush against it so
        the two read as one piece, label and statement. */
     .vm-body { background: #fff; border: 1px solid rgba(15,33,72,.08); border-radius: 18px; padding: 16px 20px; box-shadow: 0 18px 36px -26px rgba(15,33,72,.5); }
-    .vm-body h3 { margin: 0 0 5px; font-size: 17px; font-weight: 900; color: var(--orange); letter-spacing: .02em; text-transform: uppercase; }
+    /* On a white card, orange has to go darker, not lighter: --orange is
+       2.80:1 on white and --orange-lift 1.69:1, while this burnt orange is
+       7.31:1 and still unmistakably the brand's. */
+    .vm-body h3 { margin: 0 0 5px; font-size: 17px; font-weight: 900; color: #9a3412; letter-spacing: .02em; text-transform: uppercase; }
     /* 600 (semibold), not just higher contrast: on bare paper the navy was
        already well past AA, so the ask was presence, not legibility. */
     .vm-body p { font-size: 13.5px; font-weight: 600; line-height: 1.6; color: var(--navy); margin: 0 0 14px; }
@@ -460,12 +478,12 @@
        card with a pale hairline, a soft shadow and a 22px corner. Anything that would
        otherwise sit straight on the page's photo backdrop goes in one, so the words
        are read off a solid colour rather than off a picture of an office. */
-    .std-panel { background: var(--navy); border: 2px solid rgba(255,255,255,.18); border-radius: 22px;
+    .std-panel { background: var(--panel-navy); border: 2px solid rgba(255,255,255,.18); border-radius: 22px;
         box-shadow: 0 16px 34px -20px rgba(15,33,72,.6); }
 
     /* ===== FAQ ===== */
     #faq-list { display: flex; flex-direction: column; gap: 10px; margin-inline: auto; }   /* the measure cap above stays; this just centres it under its band */
-    .faq-item { background: var(--navy); border: 2px solid rgba(255,255,255,.18); border-radius: 18px;
+    .faq-item { background: var(--panel-navy); border: 2px solid rgba(255,255,255,.18); border-radius: 18px;
         box-shadow: 0 16px 34px -20px rgba(15,33,72,.6); overflow: hidden; }
     .faq-question {
         width: 100%; text-align: left; background: none; border: none; cursor: pointer;
@@ -474,7 +492,7 @@
         font-family: inherit;
     }
     .faq-item.open .faq-question { color: var(--orange); }
-    .faq-question .chev { transition: transform 0.2s ease; color: var(--orange); font-size: 13px; flex-shrink: 0; }
+    .faq-question .chev { transition: transform 0.2s ease; color: var(--orange-lift); font-size: 13px; flex-shrink: 0; }
     .faq-item.open .faq-question .chev { transform: rotate(180deg); }
     .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
     .faq-item.open .faq-answer { max-height: 240px; }
@@ -517,7 +535,7 @@
     }
     .social-link:hover { background: var(--navy); color: var(--orange); }
     .footer-bottom { max-width: 1180px; margin: 0 auto; border-top: 1px solid rgba(15,33,72,0.06); padding: 16px 0; font-size: 11.5px; color: var(--slate-on-paper); text-align: center; }
-    .footer-bottom em { color: #94a3b8; }
+    .footer-bottom em { color: #334155; }
 
     /* Section bands ("segregators"): a full-width navy bar, the title in white capitals, a thin orange rule under it. */
     html, body { overflow-x: clip; }
@@ -540,7 +558,7 @@
 
     @media (max-width: 760px) { .section > .band { padding: 16px 16px; } .band h2 { letter-spacing: .08em; } }
     /* Log In / Log Out: one of the two shows, from /api/me. */
-    .nav-pills .pill.pill-auth { background: var(--orange); border-color: var(--orange); color: #fff !important; }
+    .nav-pills .pill.pill-auth { background: var(--orange); border-color: var(--orange); color: #081226 !important; }
     .nav-pills .pill.pill-auth:hover { background: var(--orange-soft); }
     /* Sign in is the one thing on the bar that must never be the pill you have to
        go looking for, so once the row is narrow enough to scroll it stays pinned
@@ -549,6 +567,18 @@
        behind, and the shadow gives that edge somewhere to land. */
     .nav-pills .pill.pill-auth { position: sticky; right: 0; margin-left: 2px; box-shadow: -8px 0 10px -6px var(--navy-deep); }
     .pill[hidden] { display: none !important; }
+    /* The 🧭 Blueprint menu wears the pill: the <select> inside it carries the pill's own type, not the browser's. */
+    .nav-pills .pill-menu { position: relative; display: inline-flex; align-items: center; }
+    /* The closed pill is the width of the word "Blueprint". The word is a <span> of its own and the <select> is
+       stretched invisibly over the whole pill, because a <select> left to size the pill takes the width of its
+       longest option — for an administrator (eight program and tool decks) that drew a pill wide enough to strand
+       the label at its left edge, and capping it at 11em only stopped it pushing the rest of the row off the bar.
+       The menu itself is still the browser's own, opened by a click anywhere on the pill. */
+    .nav-pills .pill-menu .pill-menu-label { pointer-events: none; }
+    .nav-pills .pill-menu select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font: inherit; border: 0; padding: 0; cursor: pointer; -webkit-appearance: none; appearance: none; }
+    .nav-pills .pill-menu:has(select:focus-visible) { outline: 2px solid var(--orange); outline-offset: 2px; }
+    /* The list itself is the browser's own, so it needs readable colors of its own. */
+    .nav-pills .pill-menu option { color: #0f2148; background: #fff; text-transform: none; font-weight: 600; }
     /* Footer: the copyright line in italics, the three icons in orange. */
     footer .footer-bottom { font-style: italic; margin: 0; }
     .social-link, .social-link:hover { background: transparent !important; color: var(--navy) !important; }
@@ -556,22 +586,26 @@
     .social-link svg { width: 24px; height: 24px; }
 
     /* ===== Main screen: the dark hero and the three feature cards fill the first screen; everything below is on cream ===== */
-    /* The office behind the whole page. One shorthand, not a pseudo-element:
-       nothing new is stacked over the content, so no z-index has to be
-       managed and the sticky nav and the dialogs are unaffected. The paper
-       wash over it is what keeps body text at its usual contrast — the photo
-       is a texture at this strength, not an image you read. */
+    /* The office behind the whole page. The backdrop itself is theme.css's
+       shared one (body.portal-bg) — one background shorthand, no
+       pseudo-element, so nothing is stacked over the content and the sticky
+       nav and the dialogs are unaffected. This page only swaps in its own
+       photo and its own wash: 28% of the office shows now rather than 12%,
+       which is as far as it goes while the section intros still sit directly
+       on it (#334155 measures 4.92:1 over the photo's darkest area at this
+       strength). The copy that reads like a document is all on navy cards,
+       which have their own surface. */
     body {
-        background:
-            linear-gradient(rgba(250, 248, 244, .88), rgba(250, 248, 244, .88)),
-            url('/img/landing-bg-office.webp') center center / cover no-repeat fixed,
-            var(--paper);
+        --portal-photo: url('/img/landing-bg-office.webp');
+        --portal-wash: rgba(250, 248, 244, .72);
+        --portal-base: var(--paper);
+        /* Every navy panel on the page — the founder and about cards, the
+           standard panel, the FAQ rows — is this one colour, so the photo
+           behind them is adjusted in one place. */
+        --panel-navy: rgba(15, 33, 72, .82);
     }
     /* A fixed backdrop on a phone either judders as the page scrolls or is
-       ignored outright, and the photo is wasted at that width anyway. */
-    @media (max-width: 860px) {
-        body { background: var(--paper); }
-    }
+       ignored outright; theme.css switches it to a scrolling one there. */
     /* The nav used to live in here, which is why it stopped sticking past the
        hero: a sticky element is only sticky inside its own parent, so once this
        box scrolled by, the nav went with it — and every anchor below it then
@@ -615,7 +649,16 @@
             <a class="pill" href="#team">Meet your training team</a>
             <a class="pill" href="#vision">Mission, Vision and Values</a>
             <a class="pill" href="#faq">FAQs</a>
-            <a class="pill" href="/blueprint.html">Platform Blueprint</a>
+            <!-- 🧭 Blueprint: the Platform Blueprint first, then (for a signed-in administrator) every program's and
+                 tool's own blueprint. The No Blueprint rule keeps those decks out of the programs themselves, so this
+                 menu is the one place they open from. -->
+            <label class="pill pill-menu" id="pill-blueprint">
+                <span class="pill-menu-label" aria-hidden="true">Blueprint</span>
+                <select aria-label="Blueprint" onchange="if (this.value) { const o = this.options[this.selectedIndex]; if (o.dataset.blank === '1') window.open(this.value, '_blank', 'noopener'); else window.location.href = this.value; this.selectedIndex = 0; }">
+                    <option value="">Blueprint</option>
+                    <option value="/blueprint.html">Platform Blueprint</option>
+                </select>
+            </label>
             <button type="button" class="pill" onclick="openReferral()">Got a referral?</button>
             <a class="pill" href="/admin-login.html" title="Admin monitoring (sign-in required)">Admin</a>
             <a class="pill pill-auth" id="pill-login" href="/trainee-login.html">Log In</a>
@@ -928,10 +971,33 @@
 <script src="/portal-nav.js"></script>
 <script>
 // Log In or Log Out in the header, from who is signed in on this browser (the cookie, via /api/me).
+// Administrators also get every program's and tool's own blueprint in the 🧭 Blueprint menu (/api/launch opens each
+// one signed in, straight on its #/blueprint): the decks have no link of their own, so this menu is the only way in.
+const ADMIN_BLUEPRINTS = [
+    ['Standard Foundational Training', '/api/launch?program=STANDARD%20TRAINING&to=blueprint'],
+    ['EA/PA Upskill Program', '/api/launch?program=EA%20%20PA%20TRAINING-OUTSOURCED%20MANP&to=blueprint'],
+    ['Case Management Training', '/api/launch?program=CM%20TRAINING&to=blueprint'],
+    ['Property Damage Claims Training', '/api/launch?program=PROPERTY%20DAMAGE&to=blueprint'],
+    ['Medsum & Demand Training', '/api/launch?program=MEDSUM%20AND%20DEMAND&to=blueprint'],
+    ['Case Management System', '/api/launch?tool=cms&to=blueprint'],
+    ['LSH Ring Channel', '/api/launch?tool=ringchannel&to=blueprint'],
+    ['Knowledge Base', '/api/launch?tool=kb&to=blueprint']
+];
 fetch('/api/me', { credentials: 'include', cache: 'no-store' }).then(r => r.json()).then(d => {
     if (!d || !d.success) return;
     document.getElementById('pill-login').hidden = true;
     document.getElementById('pill-logout').hidden = false;
+    if (!d.user || d.user.userType !== 'Admin') return;
+    const sel = document.querySelector('#pill-blueprint select');
+    if (!sel) return;
+    const group = document.createElement('optgroup');
+    group.label = 'Program and tool blueprints';
+    for (const [name, href] of ADMIN_BLUEPRINTS) {
+        const o = document.createElement('option');
+        o.value = href; o.textContent = name; o.dataset.blank = '1';
+        group.appendChild(o);
+    }
+    sel.appendChild(group);
 }).catch(() => {});
 
 // --nav-h: the sticky nav's real height, for the anchor offset and for #team's

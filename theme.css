@@ -27,6 +27,29 @@
     --glow-accent: 0 8px 26px -12px rgba(249, 115, 22, .55);
     --glow-navy: 0 10px 30px -14px rgba(29, 63, 134, .6);
     --glow-cyan: 0 0 0 1px rgba(56, 189, 248, .35), 0 8px 26px -14px rgba(56, 189, 248, .45);
+
+    /* ---- the see-through layer ----
+       The photo every portal screen shares. A page that wants a different one
+       (the landing page's office) re-points this one variable on its own body
+       and inherits everything else below. */
+    --portal-photo: url('/img/directory-bg-scales.webp');
+    /* The wash laid over the photo. Both backdrops are dark photographs — the
+       scales image has a median luminance of 31/255 — so the wash is what
+       keeps text that sits DIRECTLY on the page at its usual contrast. At .60
+       the darkest part of that photo still reads 5.3:1 against the navy ink,
+       which clears AA with room to spare; much thinner than this and bare
+       body copy starts to fail. */
+    --portal-wash: rgba(250, 248, 244, .60);
+    --portal-base: var(--paper, #f8fafc);
+    /* Panels are white, but see-through, so the backdrop reads through them
+       rather than being blocked by every card on the page. At .66-.78 over
+       the darkest spot of either photo the navy ink stays above 10:1. The
+       blur is what keeps a busy photo from competing with the text on top of
+       it; it degrades to plain translucency where it is unsupported. */
+    --surface-glass: rgba(255, 255, 255, .66);
+    --surface-glass-strong: rgba(255, 255, 255, .78);
+    --surface-glass-tint: rgba(248, 250, 252, .60);
+    --surface-blur: saturate(118%) blur(10px);
 }
 
 /* ---------- dark chrome: top bars, panels, heroes ---------- */
@@ -80,6 +103,12 @@
     box-shadow: var(--glow-navy);
     transition: box-shadow .2s ease, transform .12s ease, filter .2s ease;
 }
+/* The ramp lightens these buttons to #1d3f86 at one end, where --orange
+   measures 3.55:1 — so an orange label on a navy body takes the soft orange,
+   which reads 5.91:1 at that same end and unchanged elsewhere. */
+.auth-submit,
+.sim-btn.primary,
+.topic-action-btn.primary { color: #fdba74; }
 .btn-navy:hover,
 .auth-submit:hover,
 .sim-btn.primary:hover,
@@ -105,11 +134,26 @@
 
 /* ---------- cards ---------- */
 /* Off-white rather than flat white, with a lit top edge that only appears on
-   hover — the card itself stays calm while a list of them is being read. */
+   hover — the card itself stays calm while a list of them is being read.
+   See-through, too: the `background` shorthand (not background-image) is what
+   makes that work, because it resets the flat white background-COLOUR each of
+   these cards declares for itself — an alpha gradient layered over that colour
+   would have changed nothing. So the page's photo backdrop now carries on
+   underneath the card instead of stopping at its edge. */
 .sim-card,
-.topic-card,
+.topic-card {
+    background: linear-gradient(170deg,
+        rgba(255, 255, 255, .74) 0%, rgba(251, 252, 255, .68) 55%, rgba(244, 247, 253, .64) 100%);
+    backdrop-filter: var(--surface-blur);
+    -webkit-backdrop-filter: var(--surface-blur);
+    position: relative;
+    transition: box-shadow .22s ease, transform .16s ease;
+}
+/* The queue card is the amber one; it keeps its own hue, just thinner. */
 .queue-card {
-    background-image: linear-gradient(170deg, #ffffff 0%, #fbfcff 55%, #f4f7fd 100%);
+    background: linear-gradient(170deg, rgba(255, 247, 237, .80) 0%, rgba(255, 237, 213, .70) 100%);
+    backdrop-filter: var(--surface-blur);
+    -webkit-backdrop-filter: var(--surface-blur);
     position: relative;
     transition: box-shadow .22s ease, transform .16s ease;
 }
@@ -161,9 +205,32 @@
    .main-screen, .hero and .stats-strip each paint their own --navy-deep, which
    would cover the ramp, so they go transparent and the one gradient on
    .first-screen shows through all three continuously. */
+/* See-through, like every other surface: the ramp is the same five colours,
+   each one now carrying alpha, with the page's photo behind it. The two ends
+   stay fully opaque on purpose — the top meets the flat navy nav and the
+   bottom meets the "Meet the training team" band, and both joins are
+   seamless only if the screen ends on exactly their colour. The travel in
+   between, where the rings and the case-file cards are, is where the office
+   comes through. The cream wash on the body would flatten the photo to about
+   six levels of tone under this much navy, so the screen paints the photo
+   itself, unwashed, and the navy ramp is its wash.
+   Contrast was measured on the hero's lead paragraph, which is the faintest
+   text here (white at 62%): it holds 5.2:1 over the brightest part of the
+   photo at the mid-ramp, against 4.5 for AA. */
 .first-screen {
     position: relative;
-    background-image: linear-gradient(170deg, #081226 0%, #0a1836 32%, #10275a 56%, #1a3a78 78%, #132a5c 100%);
+    background:
+        linear-gradient(170deg,
+            rgba(8, 18, 38, 1) 0%,
+            rgba(10, 24, 54, .92) 32%,
+            rgba(16, 39, 90, .90) 56%,
+            rgba(26, 58, 120, .90) 78%,
+            rgba(19, 42, 92, 1) 100%),
+        var(--portal-photo) center center / cover no-repeat fixed,
+        #081226;
+}
+@media (max-width: 860px) {
+    .first-screen { background-attachment: scroll, scroll, scroll; }
 }
 .first-screen .main-screen,
 .first-screen .hero,
@@ -186,6 +253,97 @@
    third line stacked above those read as clutter rather than an edge light —
    the ramp settling onto the band's colour is what the join wants. */
 
+/* ---------- the backdrop, and the surfaces you see it through ---------- */
+/* THE STANDARD PAGE. This is the portal's default now, not something a page
+   opts into: theme.css is the last stylesheet on every page, so a new page
+   that loads it is already see-through, and nobody has to remember a class.
+   One background shorthand, no pseudo-element and no extra stacking context,
+   so nothing on the page needs a z-index to stay on top of it.
+   background-attachment:fixed holds the image still while the page scrolls.
+
+   Three knobs, each set on the page's own body:
+     --portal-photo   the image (the landing page points this at the office)
+     --portal-wash    how much of it shows through
+     --portal-base    the colour under both, for the moment before it loads
+   A page whose copy is white adds class="portal-bg-dark" for the navy wash.
+   A page that must not have a backdrop at all adds class="no-portal-bg".
+   `body.portal-bg` stays valid so older pages keep working; it does nothing
+   a plain body does not already do. */
+body {
+    background:
+        linear-gradient(var(--portal-wash), var(--portal-wash)),
+        var(--portal-photo) center center / cover no-repeat fixed,
+        var(--portal-base);
+}
+/* The dark screens (Progress, System) carry white body text, so theirs is a
+   navy wash rather than a cream one: the photo still shows through it, and
+   white copy keeps better than 10:1 even over the photo's brightest areas. */
+body.portal-bg-dark {
+    --portal-wash: rgba(8, 18, 38, .82);
+    --portal-base: var(--navy, #0f2148);
+}
+/* The one way out, for a page that needs a flat surface (a print view, a
+   full-bleed canvas): it keeps the base colour and drops the photo. */
+body.no-portal-bg { background: var(--portal-base); }
+/* A fixed backdrop is the thing that misbehaves on iOS Safari — the image
+   jumps or renders at the wrong scale mid-scroll — and the photo is wasted at
+   phone width anyway, so phones scroll it instead. */
+@media (max-width: 860px) {
+    body { background-attachment: scroll, scroll; }
+}
+
+/* The panels of the portal shell (core.html) and of the shared card set in
+   styles.css. Each of these declares a flat white or near-white of its own,
+   so again it is the `background` shorthand doing the work, not an overlay. */
+.pdf-card,
+.dash-card,
+.stat-card-v2 {
+    background: var(--surface-glass);
+    backdrop-filter: var(--surface-blur);
+    -webkit-backdrop-filter: var(--surface-blur);
+}
+.admin-tile,
+.mc-body {
+    background: var(--surface-glass-tint);
+    backdrop-filter: var(--surface-blur);
+    -webkit-backdrop-filter: var(--surface-blur);
+}
+/* The tab strip reads as chrome above .mc-body, so it stays a shade denser
+   than the pane it belongs to, and the active tab denser still — a tab has to
+   look like the surface it opens onto. */
+.mc-tabs { background: rgba(226, 232, 240, .66); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); }
+.mc-tab.active { background: var(--surface-glass-strong); }
+/* Muted text that sits straight on the backdrop rather than on a panel —
+   the simulators' notes and their inactive tab labels. --slate measures
+   1.60:1 over the darkest part of the photo under the page wash, so on a
+   backdrop page it steps to the darkest slate that still reads as muted
+   next to the navy headings (4.91:1 bare, 7.96:1 where it falls on glass).
+   `:not(.on)` keeps the active tab's navy, which would otherwise lose on
+   specificity to this rule. */
+.sim-muted,
+.lx-tabs button:not(.on),
+.dk-tabs button:not(.on) { color: #1e293b; }
+
+/* The last panels that were still painting a flat sheet over the backdrop.
+   Each keeps its own hue — the Mission/Vision card its white, the error strip
+   its pink, the attendance note its amber — and gives up only its opacity, so
+   the page reads as one surface rather than a backdrop with holes punched in
+   it. The error strip stays the densest of the three: it is the one surface
+   whose whole job is to be read in a hurry. */
+.vm-body { background: var(--surface-glass); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); }
+.sim-error { background: rgba(254, 242, 242, .78); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); }
+.at-note { background: rgba(255, 247, 237, .66); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); }
+
+/* The sign-in pages: the navy rings panel IS the page there, so the photo goes
+   behind its gradient rather than behind the body. The navy stays at .86 here
+   because the panel carries the headline and the small print in white. */
+.auth-visual {
+    background:
+        linear-gradient(135deg, rgba(8, 18, 38, .88) 0%, rgba(19, 42, 92, .86) 58%, rgba(29, 63, 134, .84) 100%),
+        var(--portal-photo) center center / cover no-repeat,
+        var(--navy-deep, #081226);
+}
+
 /* ---------- honour a reduced-motion preference ---------- */
 /* The lift and the hairline fade are decoration; someone who has asked for
    less movement should get the colour without any of it. */
@@ -201,6 +359,13 @@
 @media print {
     .idx-top, .sim-top, .auth-visual, .idx-head, .sim-hero, .sim-banner,
     .sim-card, .topic-card, .queue-card, .first-screen { background-image: none; box-shadow: none; }
+    /* A photo backdrop behind a printed page costs ink and muddies every
+       line on top of it, and a backdrop-filter prints as a grey slab. */
+    body { background: #fff; }
+    .pdf-card, .dash-card, .stat-card-v2, .admin-tile, .mc-body, .mc-tabs,
+    .sim-card, .topic-card, .queue-card {
+        backdrop-filter: none; -webkit-backdrop-filter: none; background: #fff;
+    }
     .idx-top::after, .sim-top::after, .top-bar-modern::after,
     .sim-hero::after, .sim-card::before, .topic-card::before,
     .first-screen::before { display: none; }
