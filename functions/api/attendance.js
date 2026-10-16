@@ -2,8 +2,8 @@ import { json, requireSession } from '../_utils.js';
 import { PROGRAMS, DATE, KEY, str, cleanBatch, batchKeyOf, lessons, defaultTraining, makeKv, checkins, cleanFields, saveRows } from '../_attendance.js';
 
 // Attendance for every program (/attendance.html), admins only. The records are the courses' own
-// (see ../_attendance.js), so attendance can be taken here, in each course's Admin → 🕘 Attendance
-// tab, or in the Google Sheet.
+// (see ../_attendance.js), but this page is the one place attendance is taken: the courses no longer
+// have an Admin → 🕘 Attendance tab. The Google Sheet is the only other writer.
 //   GET  ?program=<id>&date=<YYYY-MM-DD> → { programs, program, date, lessons,
 //          batches: [{ batch, key, trainees, record, day, training, checkins: { <id>: { timeIn, at } } }] }
 //   GET  ?program=<id>&batch=<key>&history=1 → { records } (every day logged for that batch, oldest first)

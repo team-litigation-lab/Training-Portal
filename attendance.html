@@ -10,8 +10,10 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/simulators/sim.css">
-<!-- Admin: every program's attendance, batch by batch (/api/attendance). The same records as each
-     course's Admin → 🕘 Attendance tab; the Google Sheet syncs them (attendance-sync.gs, /api/attendance-feed). -->
+<!-- Admin: every program's attendance, batch by batch (/api/attendance). This is the ONE place
+     attendance is taken: the courses have no Admin → 🕘 Attendance tab any more, they only record the
+     automatic Time In (/api/checkin). The Google Sheet syncs these records both ways
+     (attendance-sync.gs, /api/attendance-feed). -->
 <style>
     .at-ptabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
     .at-ptabs button { font: inherit; font-size: 14px; font-weight: 800; padding: 10px 18px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; color: var(--navy, #0f2148); cursor: pointer; }
@@ -78,7 +80,7 @@
     <section class="sim-hero">
         <div class="eyebrow">Admin · Attendance by program</div>
         <h1>🕘 Attendance</h1>
-        <p>Pick a program and a day, then tag each trainee batch by batch. Their Time In fills in on its own when they open their course (marked “auto”); add the time out, their status and notes. It saves as you go, into the same records as the program’s own Admin → 🕘 Attendance tab, and the attendance Google Sheet stays in step both ways.</p>
+        <p>Pick a program and a day, then tag each trainee batch by batch. Their Time In fills in on its own when they open their course (marked “auto”); add the time out, their status and notes. This is the one place attendance is taken — the programs no longer have their own Attendance tab. It saves as you go, and the attendance Google Sheet stays in step both ways.</p>
     </section>
     <div id="app"><div class="sim-card"><div class="sim-loading">Loading attendance…</div></div></div>
 </div>
@@ -90,7 +92,7 @@
 // "Platform Attendance" tab from /api/attendance-feed every 15 minutes.
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1zs7lqZiHaDYef3XymhoK9cUj2SV-AR3_IgWRUA1iRn8/edit';
 const PROGRAM_ORDER = ['ft', 'eapa', 'cm', 'pd', 'md'];   // keep in step with PROGRAM_ORDER (and the label fallback) in progress-records.js
-// The attendance sheet's statuses and colors (the same as the courses' js/attendance.js).
+// The attendance sheet's statuses and colors (keep in step with STATUSES in functions/_attendance.js).
 const STATUSES = [
     { label: 'Present', bg: '#11734b', fg: '#ffffff' }, { label: 'Late', bg: '#d4edbc', fg: '#11734b' }, { label: 'Late with Notif', bg: '#e6cff2', fg: '#5a3286' },
     { label: 'Early Out - POC Approved', bg: '#ffe5a0', fg: '#473821' }, { label: 'Undertime - POC Approved', bg: '#b10202', fg: '#ffffff' },

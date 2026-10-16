@@ -3,8 +3,8 @@
    Keeps a "Platform Attendance" tab in this spreadsheet in step with the
    attendance on the platform, both ways, for every program and batch:
      • platform → sheet: each trainee's automatic Time In (recorded when they
-       open their course each day) and everything trainers tag in each
-       course's Admin → 🕘 Attendance tab or the portal's /attendance.html;
+       open their course each day) and everything trainers tag on the portal's
+       /attendance.html (the one place attendance is taken);
      • sheet → platform: an edit here to Training, Time In, Time Out, Status
        or Notes is sent to the platform straight away.
 
