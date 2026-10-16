@@ -71,5 +71,22 @@ const tok = await createSessionToken({ username: 'boss', userType: 'Admin', full
 const g = await (await onRequestGet({ request: new Request('https://portal.test/api/call-results', { headers: { cookie: `lsh_session=${tok}` } }), env })).json();
 if (!g.success || g.results.length !== 7) fail(`an Admin's list of graded calls: ${JSON.stringify(g).slice(0, 200)}`);
 
+// 5. a graded text conversation from the CMS's 💬 Client Messaging (kind: 'message'): filed as that simulator, on its own
+//    line in the course's store; Medical Summary & Demand (MD) takes conversations under md:, and no calls
+const convo = (over) => call(Object.assign({ id: 'cm_offer', program: 'CM', line: 'Client Messaging', lesson: null, title: '"Should I take the offer?"', score: 74, voice: 'text' }, over));
+r = await post({ first: 'Jamie', last: 'Cruz', batch: 'B100526', via: 'cms', kind: 'message', call: convo() });
+const msgRow = sql.prepare(`SELECT * FROM simulator_results ORDER BY id DESC LIMIT 1`).get();
+if (r.status !== 200 || !msgRow || msgRow.simulator !== 'Client Messaging' || !/"kind":"message"/.test(msgRow.details)) fail(`a graded conversation wasn't filed as Client Messaging: ${JSON.stringify(msgRow)}`);
+const cm = JSON.parse(kv.get('cm:callsim:jamie-cruz--b100526') || 'null');
+if (!cm || !cm.best['line:Client Messaging'] || cm.best['line:Client Messaging'].score !== 74) fail(`CM's store doesn't have the conversation on its own line: ${JSON.stringify(cm)}`);
+r = await post({ first: 'Jamie', last: 'Cruz', batch: 'B100526', kind: 'message', call: convo({ id: 'md_demand', program: 'MD', title: 'When does my demand go out?', score: 88 }) });
+const md = JSON.parse(kv.get('md:callsim:jamie-cruz--b100526') || 'null');
+if (r.status !== 200 || !md || !md.best['line:Client Messaging'] || md.best['line:Client Messaging'].score !== 88) fail(`MD's conversation wasn't kept under md: ${r.status} ${JSON.stringify(md)}`);
+r = await post({ first: 'Jamie', last: 'Cruz', batch: 'B100526', call: call({ id: 'md_call', program: 'MD', line: 'Demand Calls', lesson: null }) });
+if (r.status !== 400) fail(`an MD call (not a conversation) should be refused: ${r.status}`);
+// the Admin's list of graded calls stays calls only
+const g2 = await (await onRequestGet({ request: new Request('https://portal.test/api/call-results', { headers: { cookie: `lsh_session=${tok}` } }), env })).json();
+if (!g2.success || g2.results.length !== 7) fail(`conversations leaked into the Admin's list of graded calls: ${g2.results && g2.results.length}`);
+
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-console.log('Call results test passed (only a Call Simulator with the shared secret; Ring Channel\'s and the CMS\'s; the trainee\'s Portal results; each course\'s store by lesson or line, with its prefix and id; the EA / PA alias).');
+console.log('Call results test passed (only a Call Simulator with the shared secret; Ring Channel\'s and the CMS\'s; the trainee\'s Portal results; each course\'s store by lesson or line, with its prefix and id; the EA / PA alias; Client Messaging conversations on their own line, MD conversations only).');
