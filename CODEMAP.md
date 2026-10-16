@@ -134,6 +134,7 @@ Login/session plumbing, user management, site lock/pause/alert, logs and monitor
 | `functions/api/server-logs.js` | 45 | GET /api/server-logs (admin): the accounts DB's activity_log newest-first, with per-logout session duration computed from login pairs. |
 | `functions/api/site-state.js` | 131 | GET public lock/pause state (+pause message); POST LOCK/UNLOCK/PAUSE/RESUME with master-credential re-verification. |
 | `functions/api/sso-check.js` | 52 | Admin-only GET page that signs a test ticket and tries it on every program's /api/auth/portal. |
+| `functions/api/ticket-login.js` | 45 | POST /api/ticket-login: signs a trainee in to the Portal from a course's signed ticket, so a simulator a course opens doesn't ask them to log in again — the same step _middleware.js does for a page's own ?ticket=. |
 | `functions/api/update-access.js` | 42 | POST /api/update-access (admin): Suspend / Reactivate an approved account. |
 | `functions/api/update-status.js` | 40 | POST /api/update-status (admin): Approve / Reject a pending registration, assigning a Batch ID on approval; an Admin / Trainer registration is the Master Account's to decide. |
 | `functions/api/update-user.js` | 80 | POST /api/update-user (admin): edit batch/name/email/username/password; moves username-keyed data across TRAINING_DB tables and kills open sessions. |
@@ -195,18 +196,21 @@ The Checks suite (node + Playwright) and the Uptime monitor.
 | `.github/scripts/gcal-schedule.mjs` | 68 | functions/api/gcal-schedule.js: per-track weekly schedule (standard vs cm/ea tables), color coding, admin-only, unknown tracks refused before the DB, bound statements only. |
 | `.github/scripts/gcal-trainee-side.cjs` | 122 | Trainee side odds and ends: DRAFT_NEWER 409 handling, today follows the clock, trimPayload size cap, track names on evaluations/PDF, PDF accents, calsim cards show evaluation state, trainer new-tab view, single Trainee Evaluations link. |
 | `.github/scripts/gcal.cjs` | 483 | Google Calendar Simulator end-to-end: the attorney's week, solvable requests, the grading rules (incl. the length-color rule), full page UI (create/edit/Meet/drag/undo/views/search), scores card placement, admin weekly-schedule and color edits, the cm/ea clones. |
+| `.github/scripts/master-control.mjs` | 71 | One sign-in for admins: a trainer's own approved admin account opens Master Control's APIs and a trainee cannot; only the master account may LOCK, and UNLOCK takes the master password (and says so when the secret is missing). |
 | `.github/scripts/my-evaluations.cjs` | 66 | Trainee's My Evaluations page: drafts with a way back in, submitted statuses, final report + PDF button, New flag clears, trainer and signed-out views, phone width. |
 | `.github/scripts/requests.cjs` | 88 | Request budget from an open page: one /api/live per 20 s (none in a background tab), heartbeat per 30 s, lock/alert/ping from /api/live shown, since= cursor, signed-out asks no pings. |
 | `.github/scripts/registration.mjs` | 77 | Registering on the Portal: any password of 8+ characters, the registration lands as Pending for Master Control → Registrations, the same password signs in once approved, and the claim-account feature stays gone. |
 | `.github/scripts/ringchannel.mjs` | 92 | /api/launch?tool=ringchannel: trainee and admin tickets verified by verify-ticket, admins get tickets nowhere else, ?to=aicall/calls/console, portal pages link to it. |
+| `.github/scripts/sim-identity.cjs` | 172 | Whose score is it: every simulator page records the signed-in trainee's score under their own account, never a name from the link or the browser — including the course-opened tab that holds the signed cookie before /api/me answers. |
+| `.github/scripts/sim-results.mjs` | 64 | A simulator's result counts in the trainee's own record and, when a course opened the simulator, in that course's store with the best per simulator; a name typed in the browser never replaces the account's. |
 | `.github/scripts/sim-session.cjs` | 187 | simulators/sim.js session keeping: heartbeat cadence, Sim.restore single /api/me, Sim.fetchRetry on SESSION_EXPIRED, second trainee on the same browser starts clean, no cross-trainee draft upload. |
 | `.github/scripts/smoke.cjs` | 52 | Opens 24 portal/simulator pages at desktop and phone width; fails on page errors, sideways scroll, missing Back button, portal links opening new tabs. |
 | `.github/scripts/trainees-on-evaluations.cjs` | 64 | 'Your trainees' calendars' table on Trainee Evaluations: per-track View & score links, search survives refresh, submission state per row, button opens the review, phone width. |
-| `.github/scripts/uptime.mjs` | 42 | Fetches 9 live sites (portal, 4 course Workers, CMS, 2 JSON APIs, docket page), one 20 s retry each, prints a Markdown table, exit 1 on failure. |
+| `.github/scripts/uptime.mjs` | 45 | Fetches 11 live sites (portal, 4 course Workers, CMS, Knowledge Base, Ring Channel, 2 JSON APIs, docket page), one 20 s retry each, prints a Markdown table, exit 1 on failure. |
 | `.github/workflows/checks.yml` | 116 | CI on every PR/push to main: 10 node API tests + wrangler build in one job, 10 Playwright browser tests in a second job. |
 | `.github/workflows/uptime.yml` | 48 | Every 30 min (:07/:37) runs uptime.mjs against the live sites and opens/comments/closes a 'site-down' issue. |
 
-**133 files, ~25,528 lines** (excluding images, node_modules and this map).
+**141 files, ~27,688 lines** (excluding images, node_modules and this map).
 
 ## Duplications kept on purpose
 
