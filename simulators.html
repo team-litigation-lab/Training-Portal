@@ -23,6 +23,9 @@
     .hub-card .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
     .hub-card .uses { font-size: 11.5px; color: var(--slate); font-weight: 700; }
     .hub-card.soon { background: #fbfaf7; }
+    /* the hub uses the window's whole width (a 24px gutter), not the simulators' centred 1280px column */
+    .sim-wrap.hub-wrap { max-width: none; }
+    .hub-wrap .sim-hero p { max-width: none; }
 
     /* One screen: a room-sized window (wide enough for four columns, tall enough
        for two rows of cards) gets the compact hub — four across, a shorter hero and
@@ -46,12 +49,17 @@
     @media (min-width: 1180px) and (min-height: 700px) and (max-height: 820px) {
         .hub-card p { -webkit-line-clamp: 4; }
     }
+    @media (min-width: 1180px) and (min-height: 700px) and (max-height: 740px) {
+        .sim-wrap { padding-top: 22px; padding-bottom: 20px; }
+        .sim-hero { padding: 14px 22px; margin-bottom: 12px; }
+        .hub-card p { -webkit-line-clamp: 3; }
+    }
 </style>
 <link rel="stylesheet" href="/theme.css">
 </head>
 <body>
 <div id="topbar"></div>
-<div class="sim-wrap">
+<div class="sim-wrap hub-wrap">
     <section class="sim-hero">
         <div class="eyebrow">Shared across every program</div>
         <h1>Simulators</h1>
