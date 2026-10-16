@@ -5,15 +5,14 @@
 // (js/ft-simulators.js in Foundational-Training), and the course passes the trainee's name and batch in the address
 // (?name=&batch=). functions/_middleware.js signs the trainee in from the ticket and reloads without it, so the tab holds
 // the signed cookie but NO copy of the person in its own storage until /api/me answers. A page that drew its top bar, or
-// asked who was practicing, or saved a score before then treated a signed-in trainee as an anonymous visitor: it offered
-// the editable "Practicing as … ✎", asked "Who's practicing?" (so they could practice as someone else), started no
-// heartbeat (the Portal's APIs refuse the score 90 s later) and wrote the score under a name typed in this browser — or,
-// if they chose "Just practice (don't save)", dropped it. Sim.ready is what the top bar, the box and Sim.saveResult now
-// wait for, and each page awaits Sim.restore() before its first render.
+// or saved a score before then treated a signed-in trainee as an anonymous visitor: it offered
+// the editable "Practicing as … ✎" and wrote the score under a name typed in this browser. Sim.ready is what the top bar
+// and Sim.saveResult now wait for, and each page awaits Sim.restore() before its first render. Everyone signs in through
+// the Portal, so no page asks who is practicing any more: there is no "Who's practicing?" box on any simulator.
 //
 // Checks, for each page, with someone else's name both kept in the browser and named by the link:
 //   - the name in the top bar is the signed-in trainee's, and is not editable (no ✎, not a link);
-//   - the "Who's practicing?" box is never shown;
+//   - no page asks who is practicing (the "Who's practicing?" box is gone);
 //   - a heartbeat goes out, so the Portal keeps treating them as signed in;
 //   - Sim.saveResult posts the score, and posts it as the signed-in trainee.
 // Then two cases that hang off the same answer:
@@ -92,14 +91,14 @@ const PAGES = [
             if (!/Lei Abut/.test(who.text)) fail(`${label}: the top bar says "${who.text}", not the signed-in trainee`);
             if (/Someone Else|Maria Santos|B999999|B010126/.test(who.text)) fail(`${label}: the top bar shows a name from the link or this browser: "${who.text}"`);
         }
-        if (asked) fail(`${label}: a signed-in trainee was asked "Who's practicing?"`);
+        if (asked) fail(`${label}: the "Who's practicing?" box came back — everyone signs in through the Portal now`);
         if (!beats) fail(`${label}: no heartbeat at load, so the Portal treats the trainee as signed out after 90 s and refuses their score`);
         if (!sent.length) fail(`${label}: the score was not sent to the trainer at all`);
         else if (sent[0].name !== 'Lei Abut' || sent[0].batch !== 'B250926') fail(`${label}: the score was posted as ${JSON.stringify(sent[0])}, not the signed-in trainee`);
         if (errs.length) fail(`${label}: page error — ${errs.join(' | ')}`);
         await ctx.close();
     }
-    // "Just practice (don't save)" belongs to a visitor, not a signed-in trainee: their score is never dropped.
+    // A browser left on the old "just practice" flag (set before the box was removed) never drops a signed-in trainee's score.
     {
         const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 } });
         await ctx.route(x => !/^(localhost|127\.0\.0\.1)$/.test(x.hostname), r => r.abort());
@@ -142,31 +141,27 @@ const PAGES = [
         if (/"score":99/.test(kept.LSH_SIM_HISTORY || '')) fail("a shared browser kept the previous trainee's results history");
         await ctx.close();
     }
-    // A signed-out visitor is still asked who is practicing, and their result is still saved: only *when* that is decided
-    // changed, not the decision.
+    // A signed-out visitor is never asked who is practicing: everyone reaches the simulators signed in through the Portal.
+    // The name a course's link carries (?name=&batch=) still names them, and their score still goes to the trainer.
     {
         const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
         await ctx.route(x => !/^(localhost|127\.0\.0\.1)$/.test(x.hostname), r => r.abort());
         const page = await ctx.newPage(); page.on('dialog', d => d.dismiss());
         signedOut = true;
-        await page.goto(base + '/simulators/calendar.html', { waitUntil: 'load' });
+        await page.goto(base + '/simulators/calendar.html?name=Walk-in%20Visitor&batch=B123456', { waitUntil: 'load' });
         await page.waitForTimeout(1800);
-        if (!(await page.evaluate(() => !!document.getElementById('sim-who')))) fail('a signed-out visitor is no longer asked who is practicing, so their results could never be saved');
-        else {
-            await page.fill('#sim-who-name', 'Walk-in Visitor');
-            await page.fill('#sim-who-batch', 'B123456');
-            await page.click('#sim-who-ok'); await page.waitForTimeout(400);
-            log = [];
-            await page.evaluate(() => Sim.saveResult({ simulator: 'Test', scenario: 'visitor', score: 70, summary: 'x' }));
-            await page.waitForTimeout(500);
-            const sent = log.filter(x => x.path === '/api/sim-results' && x.method === 'POST').map(x => (JSON.parse(x.body || '{}').who) || {});
-            if (!sent.length) fail('a signed-out visitor who gave their name had the score dropped');
-            else if (sent[0].name !== 'Walk-in Visitor') fail(`a visitor's score posted as ${JSON.stringify(sent[0])}`);
-        }
+        if (await page.evaluate(() => !!document.getElementById('sim-who'))) fail('a signed-out visitor was asked "Who\'s practicing?" — the box should be gone');
+        if (await page.evaluate(() => !!document.querySelector('.sim-top a.who[onclick]'))) fail('the top bar still offers an editable name to a visitor');
+        log = [];
+        await page.evaluate(() => Sim.saveResult({ simulator: 'Test', scenario: 'visitor', score: 70, summary: 'x' }));
+        await page.waitForTimeout(500);
+        const sent = log.filter(x => x.path === '/api/sim-results' && x.method === 'POST').map(x => (JSON.parse(x.body || '{}').who) || {});
+        if (!sent.length) fail('a visitor named by the link had the score dropped');
+        else if (sent[0].name !== 'Walk-in Visitor') fail(`a visitor's score posted as ${JSON.stringify(sent[0])}`);
         signedOut = false;
         await ctx.close();
     }
     await browser.close(); server.close();
     if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-    console.log(`Simulator identity test passed (${PAGES.length} pages): a signed-in trainee practices as their own account — the name is fixed, nobody is asked who is practicing, the heartbeat beats, and the score is recorded under the account and not under a name from the link or this browser; a shared browser is taken over from the previous trainee; a signed-out visitor is still asked and still saved.`);
+    console.log(`Simulator identity test passed (${PAGES.length} pages): a signed-in trainee practices as their own account — the name is fixed, nobody is asked who is practicing, the heartbeat beats, and the score is recorded under the account and not under a name from the link or this browser; a shared browser is taken over from the previous trainee; a signed-out visitor is never asked, and a name the link carries still reaches the trainer.`);
 })();

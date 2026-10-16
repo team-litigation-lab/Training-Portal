@@ -29,8 +29,7 @@ const Sim = {
     // Who is signed in, known once per page. A page a course opened (its links open in a new tab, with noopener) and a
     // bookmark both carry the signed cookie but no copy of the person in the tab, so until /api/me answers a signed-in
     // trainee reads as a visitor. Everything that decides by who is practicing waits for this: the top bar (which would
-    // otherwise leave the editable name on screen), the "Who's practicing?" box (which would ask a signed-in trainee, and
-    // let them practice as someone else) and a saved score (which would be written under a name typed in this browser, or
+    // otherwise leave another person's name on screen) and a saved score (which would be written under a name typed in this browser, or
     // dropped as "just practice", instead of reaching the trainee's own record). Started at the foot of this file, so no
     // page has to remember; a page should still `await Sim.restore()` before its first render, to start the heartbeat at
     // once and paint the right name the first time.
@@ -48,7 +47,7 @@ const Sim = {
     },
     // Who is practicing: { name, batch, program }, typed in this browser (not taken from the account; see claim()).
     whoRaw() { try { return JSON.parse(localStorage.getItem('LSH_SIM_WHO') || '{}') || {}; } catch (e) { return {}; } },
-    // A trainee signed in to the Portal is who they are signed in as: no "Who's practicing?" box, and their name and batch always come from
+    // A trainee signed in to the Portal is who they are signed in as: their name and batch always come from
     // the account (a name typed earlier in this browser, or passed by a link, never replaces it: their results were saved under that other
     // name). Only the program (?program=) is kept from the link.
     who() { const w = Sim.whoRaw(), s = Sim.session(); if (s && s.userType === 'Trainee' && (s.fullName || s.username)) return Object.assign({}, w, { name: String(s.fullName || s.username).slice(0, 80), batch: String(s.batchId || '').slice(0, 40), skipped: false }); return w; },
@@ -90,11 +89,10 @@ const Sim = {
         // Drawn before /api/me has answered (a page that didn't await Sim.restore()): draw it again as soon as who is signed
         // in is known, so a signed-in trainee is never left with the editable name.
         if (!Sim._synced && Sim.ready) { Sim._synced = 'waiting'; Sim.ready.then(() => { Sim._synced = true; Sim.retopbar(); }); }
-        if (!Sim._asked) { Sim._asked = true; setTimeout(() => Sim.askWho(false), 400); }
         const s = Sim.session(), w = Sim.who(), admin = s.userType === 'Admin';
         const me = admin ? `<span class="who">${Sim.esc(s.fullName || s.username || '')}</span><a onclick="logoutSession()">Log Out</a>`
             : s.userType === 'Trainee' ? `<span class="who" title="Your results are saved to your account">Practicing as ${Sim.esc(w.name)}${w.batch ? ' · ' + Sim.esc(typeof batchLabel === 'function' ? batchLabel(w.batch) : w.batch) : ''}</span>`
-            : `<a class="who" onclick="Sim.askWho(true)" title="Change who is practicing">${w.name ? `Practicing as ${Sim.esc(w.name)}${w.batch ? ' · ' + Sim.esc(w.batch) : ''} ✎` : 'Add your name ✎'}</a>`;
+            : w.name ? `<span class="who" title="The link that opened this page says who is practicing">Practicing as ${Sim.esc(w.name)}${w.batch ? ' · ' + Sim.esc(w.batch) : ''}</span>` : `<a class="who" href="/trainee-login.html">Sign in</a>`;
         return `<div class="sim-top">
             <a class="sim-brand" href="/index.html?stay=1"><img src="/img/logo.svg" alt="Legal Support Help" width="75" height="46"><span class="sim-title">Simulators</span></a>
             <div class="sim-nav">
@@ -105,37 +103,6 @@ const Sim = {
     },
     // Draw the top bar again where the page put it, keeping whichever page it is.
     retopbar() { const tb = document.getElementById('topbar'); if (tb && tb.querySelector('.sim-top')) tb.innerHTML = Sim.topbar(Sim._active || ''); },
-    // First visit (not an admin, no name yet): ask once so results can be saved for the trainer.
-    async askWho(force) {
-        await Sim.ready;   // who is signed in decides whether to ask at all: a signed-in trainee is never asked
-        if (Sim.isAdmin() || Sim.session().userType === 'Trainee') return;   // (signed in to the Portal: who they are is known)
-        const w = Sim.who();
-        if (!force && (w.name || w.skipped)) return;
-        const old = document.getElementById('sim-who'); if (old) old.remove();
-        const box = document.createElement('div');
-        box.id = 'sim-who';
-        box.innerHTML = `<div class="sim-who-card" role="dialog" aria-modal="true" aria-labelledby="sim-who-h">
-            <h3 id="sim-who-h">Who's practicing?</h3>
-            <p>Your name and batch go with your scores so your trainer can see them.</p>
-            <label>Full name<input id="sim-who-name" autocomplete="name" value="${Sim.esc(w.name || '')}" placeholder="e.g. Jane Doe"></label>
-            <label>Batch ID <span>(optional)</span><input id="sim-who-batch" value="${Sim.esc(w.batch || '')}" placeholder="e.g. B-2026-014"></label>
-            <div class="sim-who-act"><button class="sim-btn primary" id="sim-who-ok">Continue</button><button class="sim-btn ghost" id="sim-who-skip">Just practice (don't save)</button></div>
-        </div>`;
-        document.body.appendChild(box);
-        const done = (save) => {
-            if (save) {
-                const name = document.getElementById('sim-who-name').value.trim();
-                if (name.length < 2) { document.getElementById('sim-who-name').focus(); return; }
-                Sim.setWho({ name, batch: document.getElementById('sim-who-batch').value.trim(), skipped: false });
-            } else Sim.setWho({ skipped: true });
-            box.remove();
-            const tb = document.getElementById('topbar'); if (tb && tb.firstElementChild) { const a = tb.querySelector('.sim-top'); if (a) tb.innerHTML = Sim.topbar(Sim._active || ''); }
-        };
-        document.getElementById('sim-who-ok').onclick = () => done(true);
-        document.getElementById('sim-who-skip').onclick = () => done(false);
-        document.getElementById('sim-who-name').addEventListener('keydown', e => { if (e.key === 'Enter') done(true); });
-        setTimeout(() => document.getElementById('sim-who-name').focus(), 30);
-    },
     label(name) { try { __currentViewLabel = name; } catch (e) { /* app.js not loaded */ } },
     // Gemini through the portal's own signed-in endpoint.
     // `module` names the call flow (standard, cms, reception, intake, calendaring, pd, ea-pa): the AI gateway counts every flow
@@ -181,6 +148,6 @@ const Sim = {
 // then the link's ?name=&batch=&program= (if it has them) says who is practicing.
 Sim.claim(Sim.session());
 Sim.fromQuery();
-// Then ask who is signed in, once, on every simulator page: Sim.ready is what the top bar, the "Who's practicing?" box and
-// Sim.saveResult wait for, so a signed-in trainee is never treated as a visitor on a page that renders before /api/me answers.
+// Then ask who is signed in, once, on every simulator page: Sim.ready is what the top bar and Sim.saveResult wait for, so a
+// signed-in trainee is never treated as a visitor on a page that renders before /api/me answers.
 Sim.ready = Sim.restore().catch(() => Sim.session());
