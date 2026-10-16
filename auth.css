@@ -57,11 +57,12 @@
     .auth-card-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
     @media (max-width: 860px) { .auth-form-side { align-items: center; justify-content: center; padding: 32px 20px; } }
     .auth-card-mark {
-        width: auto; height: auto; border-radius: 10px; padding: 0; box-sizing: border-box;
+        width: auto; height: auto; border-radius: 10px; background: #c3cfe0; padding: 6px 12px; box-sizing: border-box;
         display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
     }
-    /* No chip behind it: the card is already white, and the navy chip that used to be here
-       swallowed the logo's navy half and its wordmark. */
+    /* Slate, the same panel colour as the top bars. The navy chip that used to be here
+       swallowed the logo's navy half and its wordmark; the white card behind it would
+       swallow the logo's white lining instead. */
     .auth-card-mark img { height: 46px; width: auto; display: block; }
     .auth-card-brand span { font-weight: 800; font-size: 14px; color: var(--navy); }
     .auth-card h2 { font-size: 20px; font-weight: 800; margin: 0 0 5px; color: var(--navy); }
