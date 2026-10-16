@@ -3,6 +3,8 @@
    plus a Back button. The Simulators and the Knowledge Base aren't in the top bar:
    they open from the Home page and the Training Directory. Portal pages open in the
    same tab; only the training programs themselves (separate sites) open in a new tab.
+   The Home / 🏠 Main Portal button is left out where the page's own Back button already
+   goes to the landing page: two buttons for one destination is one too many.
    Signed-in admins get one admin bar on every main page instead (PortalNav.adminHtml):
    🏠 Main Portal · Blueprint · System Management · Trainee Monitoring · Attendance ·
    Referrals · Switch view · Logout. Everything else is on the System Management page (system.html).
@@ -42,8 +44,11 @@ const PortalNav = {
     html(active, opts) {
         opts = opts || {};
         const cls = opts.cls ? ` ${opts.cls}` : '';
-        const links = (PortalNav.embedded() ? PortalNav.EMBEDDED_LINKS : PortalNav.LINKS).filter(([id]) => !(opts.blueprint === false && id === 'orient'));
-        const back = opts.back === false ? '' : `<a class="pn-back${cls}" onclick="PortalNav.back('${opts.back || '/index.html?stay=1'}')" title="Go back">← Back</a>`;
+        const backTo = opts.back === false ? '' : (opts.back || '/index.html?stay=1');
+        const links = (PortalNav.embedded() ? PortalNav.EMBEDDED_LINKS : PortalNav.LINKS)
+            .filter(([id]) => !(opts.blueprint === false && id === 'orient'))
+            .filter(([id, href]) => !(id === 'home' && PortalNav.isMain(backTo)));   // Back already goes there
+        const back = backTo ? `<a class="pn-back${cls}" onclick="PortalNav.back('${backTo}')" title="Go back">← Back</a>` : '';
         return back + links.map(([id, href, label]) => `<a class="${active === id ? 'on' : ''}${cls}" href="${href}"${active === id ? ' aria-current="page"' : ''}>${label}</a>`).join('');
     },
     // Everything an admin uses less often, collated under ⚙ System Management: [href, label, title, opens in a new tab].
@@ -70,10 +75,14 @@ const PortalNav = {
         opts = opts || {};
         const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
         const pill = (id, href, label, title) => `<a class="pn-pill${active === id ? ' on' : ''}" href="${href}"${active === id ? ' aria-current="page"' : ''} title="${esc(title)}">${label}</a>`;
-        const back = opts.back === false ? '' : `<a class="pn-back" onclick="PortalNav.back('${opts.back || '/programs.html'}')" title="Go back">← Back</a>`;
+        const backTo = opts.back === false ? '' : (opts.back || '/programs.html');
+        const back = backTo ? `<a class="pn-back" onclick="PortalNav.back('${backTo}')" title="Go back">← Back</a>` : '';
+        // Back and 🏠 Main Portal sat side by side on the pages whose Back goes to the landing
+        // page, two buttons for one destination. There the named one is dropped: Back says where
+        // it goes on those pages, and the smoke test wants the Back button on every page.
         const tv = PortalNav.traineeView();
         return back
-            + pill('home', '/index.html?stay=1', '🏠 Main Portal', 'The LSH Upskill Hub landing page')
+            + (PortalNav.isMain(backTo) ? '' : pill('home', '/index.html?stay=1', '🏠 Main Portal', 'The LSH Upskill Hub landing page'))
             + pill('orient', '/blueprint.html?track=admin', 'Blueprint', 'The Platform Blueprint: how the portal works, for screen sharing')
             + pill('sys', '/system.html', 'System Management <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Master Control: access, AI usage, feedback, referrals, GitHub and Cloudflare, the Blueprint')
             + pill('monitor', '/progress.html', 'Trainee Monitoring', "Every trainee's progress and feedback in every program")
@@ -86,9 +95,11 @@ const PortalNav = {
     traineeHtml(active, opts) {
         opts = opts || {};
         const pill = (id, href, label, title) => `<a class="pn-pill${active === id ? ' on' : ''}" href="${href}"${active === id ? ' aria-current="page"' : ''} title="${title}">${label}</a>`;
-        const back = opts.back === false ? '' : `<a class="pn-back" onclick="PortalNav.back('${opts.back || '/index.html?stay=1'}')" title="Go back">← Back</a>`;
+        const backTo = opts.back === false ? '' : (opts.back || '/index.html?stay=1');
+        const back = backTo ? `<a class="pn-back" onclick="PortalNav.back('${backTo}')" title="Go back">← Back</a>` : '';
+        // As in adminHtml: no Home pill beside a Back button that already goes there.
         return back
-            + pill('home', '/index.html?stay=1', 'Home', 'The LSH Upskill Hub main page')
+            + (PortalNav.isMain(backTo) ? '' : pill('home', '/index.html?stay=1', 'Home', 'The LSH Upskill Hub main page'))
             + pill('orient', '/blueprint.html', 'Blueprint', 'The Platform Blueprint: how the portal works')
             + (opts.signedIn
                 ? pill('mine', '/simulators/my-evaluations.html', 'My Evaluations', 'Your calendars in progress, submitted, and your trainer’s reports')
