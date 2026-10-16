@@ -10,48 +10,36 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/simulators/sim.css">
-<!-- The platform standards on one screen: the rules we work to, collated from STANDARDS.md.
-     It never scrolls — the sheet is laid out at a fixed size and scaled to the viewport (fit() below),
-     so the whole board reads at a glance on a laptop, a projector or a phone. -->
+<!-- The platform standards on one screen, in the standard page style: the standard top bar and
+     navy hero, white sim-cards on the portal backdrop. It never scrolls — the sheet is laid out at
+     its own size and scaled to the viewport (fit() below), with a portrait shape for tall screens. -->
 <style>
     html, body { height: 100%; overflow: hidden; }
-    body { margin: 0; }
     .st-stage { position: fixed; left: 0; right: 0; top: 0; bottom: 0; overflow: hidden; }
-    .st-sheet { position: absolute; left: 50%; top: 50%; width: 1460px; height: 880px; padding: 26px 30px 22px; box-sizing: border-box;
-        display: flex; flex-direction: column; gap: 16px; transform-origin: 50% 50%; }
-    .st-head { display: flex; align-items: center; gap: 18px; border-bottom: 3px solid var(--orange); padding-bottom: 14px; }
-    .st-head img { flex: none; }
-    .st-head h1 { margin: 0; color: #fff; font-size: 30px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; line-height: 1.1; }
-    .st-head p { margin: 4px 0 0; color: rgba(255,255,255,.72); font-size: 13.5px; line-height: 1.45; }
-    .st-head .st-src { margin-left: auto; text-align: right; color: rgba(255,255,255,.6);
-        font: 600 11.5px/1.6 'IBM Plex Mono', monospace; letter-spacing: .02em; white-space: nowrap; }
-    .st-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 14px; }
-    /* A tall screen (a phone, a portrait monitor) gets the same board in one column, so the
-       scale-to-fit has a shape to fill instead of letterboxing a landscape sheet. */
-    .st-sheet.st-tall { width: 1060px; height: 1280px; }
-    .st-sheet.st-tall .st-grid { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(5, 1fr); gap: 12px; }
-    .st-sheet.st-tall .st-head h1 { font-size: 34px; }
-    .st-sheet.st-tall .st-card h2 { font-size: 15px; }
-    .st-sheet.st-tall .st-card li { font-size: 14px; }
-    .st-sheet.st-tall .st-card code { font-size: 13px; }
-    .st-card { display: flex; flex-direction: column; gap: 7px; padding: 14px 16px 13px; border-radius: 14px; color: #fff;
-        background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22); box-shadow: 0 12px 26px -16px rgba(0,0,0,.7); }
-    .st-card h2 { display: flex; align-items: baseline; gap: 8px; margin: 0; font-size: 13px; font-weight: 900;
-        letter-spacing: .07em; text-transform: uppercase; color: var(--orange-lift, #fdba74); line-height: 1.25; }
-    .st-card h2 b { font: 700 11px/1 'IBM Plex Mono', monospace; color: rgba(255,255,255,.55); letter-spacing: .04em; }
+    .st-sheet { position: absolute; left: 50%; top: 50%; width: 1380px; height: 985px;
+        padding: 26px 24px 22px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px; transform-origin: 50% 50%; }
+    .st-sheet .sim-hero { flex: none; margin: 0; padding: 20px 26px; }
+    .st-sheet .sim-hero h1 { font-size: 26px; margin-bottom: 6px; }
+    .st-sheet .sim-hero p { font-size: 13.5px; }
+    .st-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 16px; }
+    .st-card { padding: 16px 18px 15px; display: flex; flex-direction: column; gap: 8px; }
+    .st-card h3 { margin: 0; font-size: 16px; font-weight: 800; color: var(--navy); }
+    .st-card .sim-kicker { margin: 0; }
     .st-card ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
-    .st-card li { position: relative; padding-left: 13px; font-size: 12.5px; line-height: 1.42; color: rgba(255,255,255,.9); }
-    .st-card li::before { content: '▸'; position: absolute; left: 0; top: 0; color: var(--orange); font-size: 10px; line-height: 1.7; }
-    .st-card code { font: 600 11.5px/1.3 'IBM Plex Mono', monospace; color: #fdba74; }
-    .st-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px;
-        color: rgba(255,255,255,.62); font-size: 12px; }
-    .st-foot b { color: #fff; font-weight: 700; }
+    .st-card li { position: relative; padding-left: 14px; font-size: 13px; line-height: 1.5; color: var(--slate); }
+    .st-card li::before { content: ''; position: absolute; left: 0; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: var(--orange); }
+    .st-card code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #9a3412; }
+    .st-foot { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 12.5px; color: var(--slate); }
+    .st-foot b { color: var(--navy); font-weight: 700; }
+    /* A tall screen (a phone, a portrait monitor) gets the same board in two columns. */
+    .st-sheet.st-tall { width: 1040px; height: 1320px; }
+    .st-sheet.st-tall .st-grid { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(5, 1fr); }
     @media print { html, body { overflow: visible; height: auto; } }
 </style>
 <script src="/portal-nav.js"></script>
 <link rel="stylesheet" href="/theme.css">
 </head>
-<body class="portal-bg-dark">
+<body>
 <div class="sim-top">
     <a class="sim-brand" href="/programs.html"><img src="/img/logo.png" alt="Legal Support Help" width="70" height="46"><span>LSH Training Portal<small>Platform Standards</small></span></a>
     <div class="sim-nav">
@@ -61,127 +49,129 @@
 
 <div class="st-stage">
 <div class="st-sheet" id="sheet">
-    <header class="st-head">
-        <img src="/lsh-logo-dark.png" alt="Legal Support Help" width="96" height="63">
-        <div>
-            <h1>Platform standards</h1>
-            <p>The standing rules we work to on the LSH Training Portal and the LSH Knowledge Base. Already implemented — this board is the collation.</p>
-        </div>
-        <div class="st-src">STANDARDS.md<br>README · SIMULATORS · CODEMAP</div>
-    </header>
+    <section class="sim-hero">
+        <div class="eyebrow">Training Portal · Knowledge Base</div>
+        <h1>Platform standards</h1>
+        <p>The standing rules we work to across the LSH web platform. Every one of them is already implemented — this board is the collation; the detail lives in STANDARDS.md, README.md, SIMULATORS.md and CODEMAP.md.</p>
+    </section>
 
     <div class="st-grid">
-        <section class="st-card">
-            <h2><b>01</b> Sign-in &amp; access</h2>
+        <section class="sim-card st-card">
+            <p class="sim-kicker">01 · Sign-in &amp; access</p>
+            <h3>One sign-in, on the Portal</h3>
             <ul>
-                <li>One sign-in, on the Portal; a name alone never signs anyone in.</li>
+                <li>A name alone never signs anyone in.</li>
                 <li>SSO is an HMAC ticket — 5 minutes, used once; never a shared password.</li>
-                <li>A ticket never signs in an admin (Ring Channel aside): admin prompt <code>?admin=1</code>.</li>
+                <li>A ticket never signs in an admin: they get the admin prompt.</li>
                 <li>Batch ID <code>B</code> + MMDDYY; a program keys a trainee on first, last and batch.</li>
                 <li>Gating is server-side; no heartbeat for 90 s ends the session.</li>
-                <li>The site Lock is the Master Account's alone.</li>
             </ul>
         </section>
 
-        <section class="st-card">
-            <h2><b>02</b> Simulators</h2>
+        <section class="sim-card st-card">
+            <p class="sim-kicker">02 · Simulators</p>
+            <h3>The same shell, the same identity</h3>
             <ul>
-                <li>Shell order: <code>app.js · portal.js · sim.js</code>, then the simulator's own.</li>
-                <li>Identity before first paint — <code>Sim.ready</code> / <code>Sim.restore()</code>.</li>
+                <li>Shell order: <code>app.js</code>, <code>portal.js</code>, <code>sim.js</code>, then its own.</li>
+                <li>Identity before first paint — <code>Sim.ready</code>.</li>
                 <li>A signed-in trainee always practices as their own account.</li>
-                <li>Scores are computed from the scorecard; the AI writes feedback, never the number.</li>
-                <li>Extend with a pack, don't add a simulator. Claim it in SIMULATORS.md first.</li>
-                <li>Trainee-facing text avoids the word "AI".</li>
+                <li>Scores come from the scorecard; the AI writes feedback, never the number.</li>
+                <li>Extend with a pack, don't add a simulator. Claim it first.</li>
             </ul>
         </section>
 
-        <section class="st-card">
-            <h2><b>03</b> Navigation</h2>
+        <section class="sim-card st-card">
+            <p class="sim-kicker">03 · Navigation</p>
+            <h3>Every page gets back</h3>
             <ul>
                 <li>Every page loads <code>/portal-nav.js</code> and shows "← Back".</li>
                 <li>Portal pages open in the same tab; only the courses open a new one.</li>
                 <li>Home links go to <code>/index.html?stay=1</code>.</li>
-                <li>One admin bar, one trainee bar — from <code>PortalNav</code>.</li>
+                <li>One admin bar, one trainee bar — both from <code>PortalNav</code>.</li>
             </ul>
         </section>
 
-        <section class="st-card">
-            <h2><b>04</b> Page style</h2>
+        <section class="sim-card st-card">
+            <p class="sim-kicker">04 · Page style</p>
+            <h3>The portal look is the default</h3>
             <ul>
-                <li><code>theme.css</code> loads last; the portal look is the default.</li>
-                <li>Backdrop tuned only by <code>--portal-photo / --portal-wash / --portal-base</code>.</li>
-                <li>Glass panels: <code>background</code> shorthand, never <code>background-image</code>.</li>
+                <li><code>theme.css</code> loads last on every page.</li>
+                <li>The backdrop is tuned only by the three <code>--portal-*</code> variables.</li>
+                <li>Glass panels use the <code>background</code> shorthand, never <code>background-image</code>.</li>
                 <li>AA contrast against the photo, not a white card. Orange is a fill.</li>
-                <li>IBM Plex Sans + Mono; navy <code>#0f2148</code>, orange <code>#f97316</code>.</li>
-                <li>One Blueprint engine, copied to every platform.</li>
+                <li>IBM Plex Sans and Mono; navy <code>#0f2148</code>, orange <code>#f97316</code>.</li>
             </ul>
         </section>
 
-        <section class="st-card">
-            <h2><b>05</b> Request budget</h2>
+        <section class="sim-card st-card">
+            <p class="sim-kicker">05 · Request budget</p>
+            <h3>Every LSH site shares one allowance</h3>
             <ul>
-                <li>Every LSH site shares one monthly allowance — ask sparingly.</li>
                 <li>One <code>/api/live</code> every 20 s; 60 s in a background tab.</li>
-                <li>Heartbeat 30 s; progress once a minute, only when in view.</li>
+                <li>Heartbeat every 30 s.</li>
+                <li>Progress once a minute, only on a page that shows it, only in view.</li>
                 <li>Stay under KV's 1,000 operations per request.</li>
             </ul>
         </section>
 
-        <section class="st-card">
-            <h2><b>06</b> Data &amp; secrets</h2>
+        <section class="sim-card st-card">
+            <p class="sim-kicker">06 · Data &amp; secrets</p>
+            <h3>Shared databases, shared care</h3>
             <ul>
-                <li>Shared databases: a schema change stays backward compatible.</li>
-                <li>Course keys keep their prefixes — <code>ft: cm: pd: md:</code>.</li>
+                <li>A schema change stays backward compatible.</li>
+                <li>Course keys keep their prefixes — <code>ft:</code> <code>cm:</code> <code>pd:</code> <code>md:</code>.</li>
                 <li>Secrets live in Cloudflare only; a missing one says so plainly.</li>
-                <li>CSV exports quote against formula injection; files typed by content.</li>
-                <li>Helpers live once: <code>functions/_utils.js</code> · <code>src/util.js</code>.</li>
+                <li>CSV exports quote against formula injection; files are typed by content.</li>
+                <li>Shared helpers live once, in <code>_utils.js</code> and <code>util.js</code>.</li>
             </ul>
         </section>
 
-        <section class="st-card">
-            <h2><b>07</b> Knowledge Base</h2>
+        <section class="sim-card st-card">
+            <p class="sim-kicker">07 · Knowledge Base</p>
+            <h3>Nothing is lost, nothing is unreviewed</h3>
             <ul>
-                <li>Nothing is overwritten: every save is a version.</li>
+                <li>Every save is a version; nothing is overwritten.</li>
                 <li>Every edit waits for approval; nobody approves their own.</li>
                 <li>Tenured VAs, reviewers and admins edit; Info Access reads.</li>
                 <li>Safe Markdown; titles in sentence case.</li>
-                <li>Scope is the law practice. Sources de-identified, credentials never copied.</li>
-                <li>Imports are idempotent, keyed by <code>legacy_ref</code>.</li>
+                <li>Sources are de-identified; credentials are never copied.</li>
             </ul>
         </section>
 
-        <section class="st-card">
-            <h2><b>08</b> CI &amp; uptime</h2>
+        <section class="sim-card st-card">
+            <p class="sim-kicker">08 · CI &amp; uptime</p>
+            <h3>Red means broken</h3>
             <ul>
-                <li>Checks run on every PR and every push; red means broken.</li>
+                <li>Checks run on every pull request and every push.</li>
                 <li>Everything parses, every local file exists, JSON is valid, Functions build.</li>
-                <li>Smoke test opens every page at desktop and phone width — no sideways scroll.</li>
-                <li>A new page goes in <code>PAGES</code> in <code>smoke.cjs</code>.</li>
-                <li>CI never deploys. Uptime sweeps at :07 and :37 and opens a site-down issue.</li>
+                <li>The smoke test opens every page at desktop and phone width.</li>
+                <li>A new page goes in <code>PAGES</code> in <code>smoke.cjs</code>. CI never deploys.</li>
+                <li>Uptime sweeps at :07 and :37 and opens a site-down issue.</li>
             </ul>
         </section>
 
-        <section class="st-card">
-            <h2><b>09</b> Working practice</h2>
+        <section class="sim-card st-card">
+            <p class="sim-kicker">09 · Working practice</p>
+            <h3>Validate, then push</h3>
             <ul>
-                <li>Work the designated branch; no PR unless one is asked for.</li>
-                <li>Validate before pushing — a red CI costs more than the finding.</li>
-                <li>Keep each fix minimal; docs change in the same commit.</li>
+                <li>Work the designated branch; no pull request unless one is asked for.</li>
+                <li>A red CI costs more than the finding was worth.</li>
+                <li>Keep each fix minimal; the docs change in the same commit.</li>
                 <li>Weekly inventory: every finding needs a <code>file:line</code> and a failure path.</li>
             </ul>
         </section>
     </div>
 
     <footer class="st-foot">
-        <span><b>Legal Support Help</b> · LSH web platform — Training Portal &amp; Knowledge Base</span>
-        <span>The detail lives in <b>README.md</b>, <b>SIMULATORS.md</b>, <b>CODEMAP.md</b> and <b>STANDARDS.md</b></span>
+        <span><b>Legal Support Help</b> · LSH web platform — Training Portal and Knowledge Base</span>
+        <span>The detail lives in <b>STANDARDS.md</b>, <b>README.md</b>, <b>SIMULATORS.md</b> and <b>CODEMAP.md</b></span>
     </footer>
 </div>
 </div>
 
 <script>
     // One screen, no scrolling: the sheet is laid out at its own size and scaled to whatever
-    // viewport it lands in (down to a phone), so nothing is ever cut off or scrolled to.
+    // viewport it lands in, so nothing is ever cut off or scrolled to.
     (function () {
         const sheet = document.getElementById('sheet');
         const top = document.querySelector('.sim-top');
@@ -191,8 +181,7 @@
             sheet.classList.toggle('st-tall', w / h < 1.15);
             const s = Math.min(w / sheet.offsetWidth, h / sheet.offsetHeight);
             sheet.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
-            const stage = sheet.parentElement;
-            stage.style.top = chrome + 'px';
+            sheet.parentElement.style.top = chrome + 'px';
         }
         fit();
         window.addEventListener('resize', fit);
