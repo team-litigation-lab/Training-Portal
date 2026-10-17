@@ -2,9 +2,19 @@
    A records request center: check the HIPAA authorization, request records and itemized bills
    from providers, move the simulated calendar forward, and handle what comes back: rejections,
    invoices, silence, partial records. Review what arrives, flag problems, log it to the case
-   file, and score the job against the attorney's objectives. Saved in this browser. */
+   file, and score the job against the attorney's objectives. Saved in this browser.
+
+   What a provider produces is a document, not a summary: when a request is produced, the records
+   and the itemized bill are built as real files (records-docs.js) the trainee reads, downloads as
+   a PDF named the firm's way, and files into the case file on the platform they came from — the
+   CMS Platform, the Case Management course or the Medical Summary & Demand course. Logging to the
+   case file is what the objectives score; producing and filing the document is the work it stands
+   for, so the two sit side by side on each delivery. */
 (function () {
 const E = Sim.esc, KEY = 'LSH_RECORDS_V1', SC = MR_SCENARIO;
+// The case file this collection belongs to: the platform the trainee opened the simulator from.
+let DEST = MRDocs.dest();
+(function styles() { const s = document.createElement('style'); s.textContent = MRDocs.css; document.head.appendChild(s); })();
 const P = (id) => MR_PROVIDERS.find(p => p.id === id);
 const FEE_CAP = (pages) => 25 + 0.25 * pages;   // training state cap: $25 retrieval + $0.25 per page
 const money = (n) => '$' + Number(n || 0).toFixed(2);
@@ -62,11 +72,11 @@ function run(r, ev) {
     }
     case 'revised': r.invoice.amount = r.invoice.cap; r.invoice.status = 'due'; r.status = 'Awaiting payment'; note(r, `Invoice revised to ${money(r.invoice.amount)}, the state fee cap ($25 retrieval + $0.25 per page). Pay it to release the records.`, 'money'); break;
     case 'deliver': deliver(r); break;
-    case 'ledger': r.delivered.bill = clone(p.delivered.billComplete); r.ledgerComplete = true; note(r, 'Complete ledger received: 14 visits, $2,240.00 total. Review it and log it to the case file.', 'good'); r.logged = false; r.status = 'Delivered'; break;
+    case 'ledger': r.delivered.bill = clone(p.delivered.billComplete); r.ledgerComplete = true; r.deliveredOn = S.today; note(r, 'Complete ledger received: 14 visits, $2,240.00 total. Review it and log it to the case file.', 'good'); r.logged = false; r.status = 'Delivered'; break;
     }
 }
 function deliver(r) {
-    const p = P(r.provider); r.delivered = r.delivered || {};
+    const p = P(r.provider); r.delivered = r.delivered || {}; r.deliveredOn = S.today;
     r.types.forEach(t => { if (r.ts[t] === 'pending') { r.ts[t] = 'delivered'; r.delivered[t] = clone(t === 'cert' ? { pages: 1, text: 'Certification of records signed by the custodian.' } : p.delivered[t]); } });
     const pages = Object.values(r.delivered).reduce((a, x) => a + (x.pages || 0), 0);
     r.status = 'Delivered'; note(r, `Records released: ${pages} pages (${Object.keys(r.delivered).map(t => MR_TYPES[t].split(' (')[0]).join(', ')}). Review them and log them to the case file.`, 'good');
@@ -86,6 +96,14 @@ function advance(days) {
 }
 const open = (r) => ['Submitted', 'In process', 'Awaiting payment', 'Fee disputed'].includes(r.status);
 const overdue = (r) => open(r) && S.today > r.nextFollowUp;
+
+/* ---------- the documents a production actually is ----------
+   Built from the delivery on demand, so a Case ID typed later renames them, and what the trainee
+   has done with each (downloaded, filed) is kept on the request. */
+const docOf = (r, t) => MRDocs.build({ request: r, kind: t, provider: P(r.provider), scenario: SC,
+    delivered: r.delivered[t], producedOn: r.deliveredOn || r.submitted || S.today });
+const fileRec = (r, t) => ((r.files = r.files || {})[t] = r.files[t] || {});
+const produced = () => S.requests.filter(r => r.delivered && Object.keys(r.delivered).length);
 
 // ---------- scoring ----------
 const REQUIRED = [['ems', 'records'], ['ems', 'bill'], ['him', 'records'], ['pfs', 'bill'], ['rad', 'records'], ['rad', 'bill'], ['spine', 'records'], ['spine', 'bill'], ['pt', 'records'], ['pt', 'bill'],
@@ -178,8 +196,26 @@ function detail(r) {
 }
 function reviewHtml(r) {
     const p = P(r.provider), fs = MR_FINDINGS.filter(f => f.provider === r.provider);
-    return `<div class="mr-rev"><h4>Delivered: ${E(p.name)}</h4>${Object.entries(r.delivered).map(([t, d]) => `<div class="mr-doc"><b>${E(MR_TYPES[t] ? MR_TYPES[t].split(' (')[0] : t)}</b> · ${d.pages} pages<p>${E(d.text)}</p></div>`).join('')}
+    return `<div class="mr-rev"><h4>Delivered: ${E(p.name)}</h4>${Object.entries(r.delivered).map(([t, d]) => docBlock(r, t, d)).join('')}
         ${fs.length ? `<h4>Anything to flag?</h4><p class="sim-muted mr-small">Tick only what is really wrong or needs action. False alarms cost points.</p>${fs.map(f => `<label class="mr-flag"><input type="checkbox" ${(r.flags || []).includes(f.id) ? 'checked' : ''} onchange="MR.flag('${r.no}','${f.id}',this.checked)"> ${E(f.text)}</label>`).join('')}` : ''}</div>`;
+}
+
+/* One delivered document: what came back, and the file it is. The paper is shown on request so a
+   long review isn't a wall of documents, and the three ways out sit together: read it, download it
+   to add on the case file's Files yourself, or file it straight into the case you came from. */
+function docBlock(r, t, d) {
+    const doc = docOf(r, t), f = fileRec(r, t), open = (r.show || {})[t];
+    return `<div class="mr-doc"><b>${E(MR_TYPES[t] ? MR_TYPES[t].split(' (')[0] : t)}</b> · ${d.pages} pages${d.lines ? ` · ${d.lines.length} itemized line${d.lines.length === 1 ? '' : 's'} · ${E(MRDocs.money(d.lines.reduce((a, x) => a + x.amount, 0)))}` : ''}
+        <p>${E(d.text)}</p>
+        <div class="mrd-acts">
+            <button class="sim-btn ghost" onclick="MR.showDoc('${r.no}','${t}')">${open ? '▴ Hide the document' : '📄 Open the document'}</button>
+            <button class="sim-btn primary" onclick="MR.download('${r.no}','${t}')">⬇ Download PDF</button>
+            <button class="sim-btn orange" onclick="MR.sendDoc('${r.no}','${t}',this)">📤 File it in ${E(DEST.name)}</button>
+            <span class="sim-muted mr-small">${E(doc.name)}</span>
+        </div>
+        <div class="mrd-msg ${f.filed ? 'ok' : ''}" id="mrd-msg-${r.no}-${t}">${f.filed ? `✓ Filed in ${E(DEST.name)} as ${E(f.filedAs)} under ${E(doc.category)}.`
+            : f.downloaded ? `⬇ Downloaded as ${E(f.filedAs || doc.name)}. Add it on ${E(DEST.files)} under ${E(doc.category)}.` : ''}</div>
+        ${open ? MRDocs.html(doc) : ''}</div>`;
 }
 
 function renderNew() {
@@ -228,12 +264,48 @@ function renderDir() {
         </tbody></table></div></div>`;
 }
 function renderFile() {
-    const logged = S.requests.filter(r => r.logged);
-    pane().innerHTML = `<div class="sim-card"><h3 style="margin-top:0">📁 Case File: Records Logged</h3>
+    const logged = S.requests.filter(r => r.logged), prod = produced();
+    pane().innerHTML = `${destCard()}
+    ${prod.length ? `<div class="sim-card"><h3 style="margin-top:0">📄 Documents Produced</h3>
+        <p class="sim-muted mr-small">Every record and itemized bill a provider has produced, as the file it is. Download it to add on ${E(DEST.files)} yourself, or file it straight into the case open in ${E(DEST.name)}.</p>
+        <div class="sim-table-wrap"><table class="sim-table"><thead><tr><th>Produced</th><th>Provider</th><th>Document</th><th>Pages</th><th>File name</th><th>Status</th><th></th></tr></thead><tbody>
+        ${prod.flatMap(r => Object.entries(r.delivered).map(([t, d]) => {
+            const doc = docOf(r, t), f = fileRec(r, t);
+            return `<tr><td class="mono">${LR.short(r.deliveredOn || r.submitted)}</td><td>${E(P(r.provider).name.split(' — ')[0])}</td>
+                <td>${E(MR_TYPES[t] ? MR_TYPES[t].split(' (')[0] : t)}<br><small class="sim-muted">${E(doc.category)}</small></td>
+                <td>${d.pages}</td><td class="mono mr-small">${E(doc.name)}</td>
+                <td>${f.filed ? '<span class="mr-st good">Filed</span>' : f.downloaded ? '<span class="mr-st">Downloaded</span>' : '<span class="mr-st mute">Not filed</span>'}</td>
+                <td><button class="sim-btn ghost" onclick="MR.download('${r.no}','${t}')">⬇ PDF</button>
+                    <button class="sim-btn ghost" onclick="MR.sendDoc('${r.no}','${t}',this)">📤 File it</button></td></tr>`;
+        })).join('')}</tbody></table></div></div>` : ''}
+    <div class="sim-card"><h3 style="margin-top:0">📁 Case File: Records Logged</h3>
         ${logged.length ? `<div class="sim-table-wrap"><table class="sim-table"><thead><tr><th>Logged</th><th>Provider</th><th>What</th><th>Pages</th><th>Request</th></tr></thead><tbody>${logged.map(r => `<tr><td class="mono">${LR.short(r.loggedOn)}</td><td>${E(P(r.provider).name)}</td><td>${Object.keys(r.delivered).map(t => E(MR_TYPES[t] ? MR_TYPES[t].split(' (')[0] : t)).join(', ')}${r.ledgerComplete ? ' (complete ledger)' : ''}</td><td>${Object.values(r.delivered).reduce((a, x) => a + (x.pages || 0), 0)}</td><td class="mono">${r.no}</td></tr>`).join('')}</tbody></table></div>`
         : '<p class="sim-muted">Nothing logged yet. Delivered records show up here once you log them.</p>'}
         <h4>Activity</h4><ul class="mr-tl">${S.log.slice().reverse().map(l => `<li><span class="mono">${LR.short(l.date)}</span> ${E(l.text)}</li>`).join('') || '<li class="sim-muted">No activity yet.</li>'}</ul></div>`;
 }
+/* Where these documents belong: the platform the trainee is requesting from, the Case ID on that
+   case, and the one naming convention every file goes in under. Nothing is guessed — a Case ID the
+   launcher didn't pass is typed here, and until it is, files are named NO-CASE-ID_… as the CMS
+   itself names a file uploaded before the case has its ID. */
+function destCard() {
+    const id = String(DEST.caseId || '').trim(), real = /\d/.test(id) && /^[A-Za-z0-9-]+$/.test(id);
+    return `<div class="sim-card"><div class="mrd-dest"><h4>📂 These records belong to the case file in ${E(DEST.name)}</h4>
+        <p style="margin:4px 0">You opened this platform from ${E(DEST.name)}, so every record and bill you collect is filed there, on ${E(DEST.files)}, named the firm's way:
+            <br><code>&lt;Case ID&gt;_&lt;Last-First&gt;_&lt;Type&gt;_&lt;YYYY-MM-DD&gt;.pdf</code> — the Type is the category it is filed under (Medical Records, Bills).</p>
+        <label>Case ID on that case
+            <input id="mrd-case" value="${E(id)}" placeholder="e.g. LSH-2026-MVA-000041" onchange="MR.caseId(this.value)">
+            ${real ? `<span class="mrd-eg ok">Files named <code>${E(MRDocs.fileName({ caseId: id, patient: SC.client, kind: 'records' }))}</code></span>`
+                : '<span class="mrd-eg warn">Without it, files are named <code>NO-CASE-ID_…</code> — open your case and copy its Case ID in</span>'}</label>
+        <p style="margin:8px 0 0">${DEST.key === 'portal'
+            ? 'Opened on its own, from the Portal rather than from a case, so there is no case to file into: <b>⬇ Download PDF</b> each document and add it on your own case file. Open this platform from the CMS or from your course and <b>📤 File it</b> files them for you.'
+            : DEST.wired
+                ? `<b>📤 File it</b> puts the document straight into the case you have open in ${E(DEST.name)} — keep it open beside this platform. Otherwise <b>⬇ Download PDF</b> and add it on ${E(DEST.files)} yourself.
+                   <br><a href="${E(DEST.fromUrl)}" target="_blank" rel="noopener">Open ${E(DEST.name)} ↗</a>`
+                : `<b>⬇ Download PDF</b> each document and add it on ${E(DEST.files)}. <b>📤 File it</b> works when you open this platform from the CMS itself, with your case open in it.
+                   <br><a href="${E(DEST.fromUrl)}" target="_blank" rel="noopener">Open ${E(DEST.name)} ↗</a>`}</p>
+    </div></div>`;
+}
+
 function renderScore() {
     const s = score();
     pane().innerHTML = `<div class="sim-card"><div class="dk-res-top"><div class="ring">${s.total}%</div><div><h3 style="margin:0">Objectives</h3>
@@ -279,6 +351,33 @@ window.MR = {
         save(); document.getElementById('mr-review').innerHTML = reviewHtml(r);
     },
     flag(no, id, on) { const r = req(no); r.flags = (r.flags || []).filter(x => x !== id); if (on) r.flags.push(id); save(); },
+    showDoc(no, t) { const r = req(no); r.show = r.show || {}; r.show[t] = !r.show[t]; save(); MR.review(no); },
+    download(no, t) {
+        const r = req(no), doc = docOf(r, t), f = fileRec(r, t);
+        if (!MRDocs.download(doc, (m) => alert(m))) return;
+        f.downloaded = true; f.filedAs = doc.name;
+        S.log.push({ date: S.today, text: `Downloaded ${MR_TYPES[t] ? MR_TYPES[t].split(' (')[0] : t} from ${P(r.provider).name} as ${doc.name}.` });
+        save(); render(); if (S.tab === 'requests') MR.review(no);
+    },
+    async sendDoc(no, t, btn) {
+        const r = req(no), doc = docOf(r, t), f = fileRec(r, t);
+        const say = (html, cls) => { const el = document.getElementById(`mrd-msg-${no}-${t}`); if (el) { el.className = 'mrd-msg ' + (cls || ''); el.innerHTML = html; } };
+        if (btn) { btn.disabled = true; btn.textContent = 'Filing…'; }
+        say('Filing it in ' + E(DEST.name) + '…');
+        const out = await MRDocs.send(doc);
+        if (btn) { btn.disabled = false; btn.textContent = `📤 File it in ${DEST.name}`; }
+        if (out && out.ok) {
+            f.filed = true; f.filedAs = out.name || doc.name; f.at = S.today;
+            S.log.push({ date: S.today, text: `Filed ${f.filedAs} into the case file in ${DEST.name} (${no}).` });
+            save(); render(); if (S.tab === 'requests') MR.review(no);
+            return;
+        }
+        // Nothing listening, or the platform refused the name: the download is always the way through.
+        const problems = (out && out.problems) || [];
+        say(`${E((out && out.error) || 'It could not be filed.')}${problems.length ? `<ul style="margin:4px 0 0">${problems.map(x => `<li>${E(x)}</li>`).join('')}</ul>` : ''}
+            <br>Use <b>⬇ Download PDF</b> and add <b>${E(doc.name)}</b> on ${E(DEST.files)} under ${E(doc.category)}.`, 'bad');
+    },
+    caseId(v) { MRDocs.setCaseId(v); DEST = MRDocs.dest(); save(); render(); },
     logIt(no) { const r = req(no); r.logged = true; r.loggedOn = S.today; if (r.status === 'Delivered') r.status = 'Completed'; note(r, 'Logged to the case file.', 'good'); S.log.push({ date: S.today, text: `Logged ${P(r.provider).name} records to the case file (${no}).` }); save(); render(); },
     sendAuth() { S.auth.sentOn = S.today; S.log.push({ date: S.today, text: 'Sent the HIPAA authorization to John Doe for e-signature.' }); save(); render(); },
     psychAuth() { S.psychAuth = { exists: true, sentOn: S.today, signedOn: null }; S.log.push({ date: S.today, text: 'Sent a separate psychotherapy-notes authorization for signature.' }); save(); render(); },

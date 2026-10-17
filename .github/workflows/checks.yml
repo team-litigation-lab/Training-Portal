@@ -114,6 +114,10 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/gcal-trainee-side.cjs
+      - name: Medical Records Requests (a produced request is a real records document and itemized bill, a PDF named the firm's way, filed into the case the trainee came from)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/records-docs.cjs
       - name: Blueprint (the admin track for admins only; each track downloads as a PDF with the deploy stamp)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
