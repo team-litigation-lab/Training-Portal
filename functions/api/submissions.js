@@ -60,7 +60,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     if (!auth.ok) return auth.response;
 
     try {
-        const { action, activityId, activityTitle, notes, answers, submissionId, score, feedback, timeSpentSeconds } = await request.json();
+        const { action, activityId, activityTitle, notes, answers, submissionId, submissionIds, score, feedback, timeSpentSeconds } = await request.json();
         // NOTE: timeSpentSeconds arrives from the client (app.js tracks it
         // from when the activity modal opens to when SUBMIT fires) but is
         // not yet written to the submissions table below — that needs a
@@ -209,6 +209,40 @@ export async function onRequestPost({ request, env, waitUntil }) {
             );
 
             return json({ success: true });
+        }
+
+        // Delete submissions outright (Check & Release Grades → 🗑). A submission row
+        // is both the grade and the progress that /api/progress counts, so this
+        // removes both — the screen makes an admin download the CSV first, and the
+        // deletion is written to the activity log with the ids and who did it.
+        if (action === 'DELETE_SUBMISSIONS') {
+            if (auth.session.userType !== 'Admin') {
+                return json({ success: false, error: "Only Admins can delete submissions." }, 403);
+            }
+            const ids = (Array.isArray(submissionIds) ? submissionIds : [submissionId])
+                .map(Number).filter(Number.isInteger).slice(0, 500);
+            if (!ids.length) return json({ success: false, error: "No submission ids given." }, 400);
+
+            const marks = ids.map(() => '?').join(',');
+            const { results } = await env.TRAINING_DB.prepare(
+                `SELECT id, trainee_username, activity_title, score FROM submissions WHERE id IN (${marks})`
+            ).bind(...ids).all();
+            const found = results || [];
+            if (!found.length) return json({ success: false, error: "Those submissions are already gone." }, 404);
+
+            await env.TRAINING_DB.prepare(
+                `DELETE FROM submissions WHERE id IN (${found.map(() => '?').join(',')})`
+            ).bind(...found.map(r => r.id)).run();
+
+            await logActivity(
+                env.TRAINING_DB,
+                auth.session.username,
+                auth.session.batchId,
+                'SUBMISSIONS_DELETED',
+                { count: found.length, submissions: found.map(r => ({ id: r.id, trainee: r.trainee_username, activity: r.activity_title, score: r.score })) }
+            );
+
+            return json({ success: true, deleted: found.length });
         }
 
         return json({ success: false, error: "Invalid action." }, 400);

@@ -165,6 +165,13 @@
 .topic-action-btn.request,
 .cs-wrap .btn-primary {
     background-image: var(--g-accent);
+    /* The dark label the comment above promises, which this rule never actually
+       set: styles.css gives .btn-primary `color: var(--orange)` for the navy body
+       it declares there, and this rule then repaints the body orange — leaving
+       orange text on an orange button, unreadable everywhere .btn-primary is used
+       (Program Access's "Mark Passed" and "Grant access" among them). Same ink as
+       .sim-btn.orange, which had it right. */
+    color: #0f172a;
     box-shadow: var(--glow-accent);
     transition: box-shadow .2s ease, transform .12s ease, filter .2s ease;
 }
