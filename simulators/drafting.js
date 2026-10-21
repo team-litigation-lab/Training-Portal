@@ -21,30 +21,54 @@
 if (!window.LSH_DRAFTING_TEMPLATES) return;
 
 const TEMPLATES = window.LSH_DRAFTING_TEMPLATES, CASES = window.LSH_DRAFTING_CASES || [];
+const PROVIDERS = window.LSH_DRAFTING_PROVIDERS || [];
 const KEY = 'LSH_DRAFTING_V1';
 const esc = (v) => Sim.esc(String(v == null ? '' : v));
 const app = () => document.getElementById('app');
-const S = { tab: TEMPLATES[0].id, caseNo: 0, answers: {}, savedAt: null };
+// tab: a letter template's id, or 'prov' for the medical providers' letters, which are a letter
+// per provider (their own address block is part of their own file) in two kinds.
+const S = { tab: TEMPLATES[0].id, caseNo: 0, prov: 0, kind: 'medlor', answers: {}, savedAt: null };
+const LETTER_KIND = { medlor: 'Medical LOR + Unsworn Declaration', lienbv: 'Lien Balance Verification' };
 
 /* ---------- the trainee's own drafts, in their browser ---------- */
 const slot = () => (Sim.who().name || 'practice').toLowerCase().replace(/\s+/g, ' ').trim();
 function load() {
     try {
         const all = JSON.parse(localStorage.getItem(KEY) || '{}'), mine = all[slot()];
-        if (mine) { S.answers = mine.answers || {}; S.caseNo = mine.caseNo || 0; S.savedAt = mine.savedAt || null; }
+        if (mine) {
+            S.answers = mine.answers || {}; S.caseNo = mine.caseNo || 0; S.savedAt = mine.savedAt || null;
+            if (mine.prov != null) S.prov = mine.prov;
+            if (mine.kind) S.kind = mine.kind;
+        }
     } catch (e) { /* a first run, or storage turned off */ }
 }
 function save() {
     S.savedAt = new Date().toISOString();
     try {
         const all = JSON.parse(localStorage.getItem(KEY) || '{}');
-        all[slot()] = { answers: S.answers, caseNo: S.caseNo, savedAt: S.savedAt };
+        all[slot()] = { answers: S.answers, caseNo: S.caseNo, prov: S.prov, kind: S.kind, savedAt: S.savedAt };
         localStorage.setItem(KEY, JSON.stringify(all));
     } catch (e) { /* private window: the draft lives for this visit only */ }
 }
 
 /* ---------- the letter ---------- */
-const tpl = () => TEMPLATES.find(t => t.id === S.tab) || TEMPLATES[0];
+function provider() { return PROVIDERS[S.prov] || PROVIDERS[0] || null; }
+function provLetter() {
+    const p = provider(); if (!p) return null;
+    return p.letters[S.kind] || p.letters.medlor || p.letters.lienbv || null;
+}
+// The letter on screen, with where its .docx lives and the id its answers are filed under
+// (a provider's letters are per provider, so the id carries the provider and the kind).
+function tpl() {
+    if (S.tab === 'prov') {
+        const p = provider(), t = provLetter();
+        if (!t) return TEMPLATES[0];
+        return Object.assign({}, t, { id: 'prov:' + p.id + ':' + t.id, dir: 'providers', provider: p.name });
+    }
+    const t = TEMPLATES.find(x => x.id === S.tab) || TEMPLATES[0];
+    return Object.assign({}, t, { dir: 'templates' });
+}
+const srcOf = (t) => '/simulators/drafting/' + t.dir + '/' + t.file.split('/').map(encodeURIComponent).join('/');
 const key = (tid, f) => tid + ':' + f;
 const answer = (tid, f) => S.answers[key(tid, f)] || '';
 // The letter's date is the day it is drafted, as a template editor fills it in.
@@ -93,8 +117,29 @@ function paperHtml(t) {
     }).join('');
 }
 
+/* ---------- picking a provider and which of their two letters ---------- */
+function providerBar() {
+    const p = provider(); if (!p) return '';
+    const kinds = Object.keys(p.letters);
+    return `<div class="dr-bar">
+        <select onchange="LSHDrafting.pickProvider(this.value)" aria-label="Medical provider"
+            style="flex:1 1 320px;min-width:0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;font-size:12.5px;">
+            ${PROVIDERS.map((x, i) => `<option value="${i}" ${i === S.prov ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}
+        </select>
+        ${kinds.map(k => `<button class="dr-tab ${k === S.kind ? 'on' : ''}" onclick="LSHDrafting.pickKind('${esc(k)}')">${esc(LETTER_KIND[k] || k)}</button>`).join('')}
+    </div>`;
+}
+
 /* ---------- the case notes beside it ---------- */
 function caseHtml() {
+    if (S.tab === 'prov') {
+        const p = provider(); if (!p) return '';
+        return `<div class="dr-note">
+            <h3>This provider</h3>
+            <p style="margin:0 0 7px;"><b>${esc(p.name)}</b></p>
+            <p style="margin:0;color:#64748b;">Their address block and the Unsworn Declaration of Custodian of Records are part of their own letter — the firm sent one file per provider, so nothing about them is typed in.</p>
+        </div>`;
+    }
     if (!CASES.length) return '';
     const c = CASES[S.caseNo] || CASES[0], side = S.tab === 'lor3p' ? c.p3 : c.p1;
     const rows = Object.keys(side || {}).map(k => `<dt>${esc(k)}</dt><dd>${esc(side[k])}</dd>`).join('');
@@ -121,7 +166,9 @@ function render() {
     app().innerHTML = `
         <div class="dr-bar">
             ${TEMPLATES.map(x => `<button class="dr-tab ${x.id === S.tab ? 'on' : ''}" onclick="LSHDrafting.tab('${esc(x.id)}')">${esc(x.title)}</button>`).join('')}
+            ${PROVIDERS.length ? `<button class="dr-tab ${S.tab === 'prov' ? 'on' : ''}" onclick="LSHDrafting.tab('prov')">Medical provider letters</button>` : ''}
         </div>
+        ${S.tab === 'prov' ? providerBar() : ''}
         <div class="dr-grid">
             <div class="dr-paper" id="dr-paper">${paperHtml(t)}</div>
             <div class="dr-side">
@@ -132,7 +179,7 @@ function render() {
                     <div class="dr-actions" style="margin-top:12px;">
                         <button class="sim-btn orange" onclick="LSHDrafting.download()">⬇ Download the Word letter</button>
                         <button class="sim-btn ghost" onclick="LSHDrafting.submit()">✓ Send it to my trainer</button>
-                        <a class="sim-btn ghost" href="/simulators/drafting/templates/${encodeURIComponent(t.file)}" download>⬇ The blank template</a>
+                        <a class="sim-btn ghost" href="${srcOf(t)}" download>⬇ The blank template</a>
                     </div>
                     <p style="margin:12px 0 4px;color:#64748b;">Saved as</p>
                     <div class="dr-name">${esc(fileName(t))}.docx</div>
@@ -151,6 +198,13 @@ function render() {
 const API = {
     tab(id) { S.tab = id; render(); window.scrollTo(0, 0); },
     pickCase(i) { S.caseNo = Number(i) || 0; save(); render(); },
+    pickProvider(i) {
+        S.prov = Number(i) || 0;
+        const p = provider();
+        if (p && !p.letters[S.kind]) S.kind = Object.keys(p.letters)[0];   // not every provider sent both letters
+        save(); render(); window.scrollTo(0, 0);
+    },
+    pickKind(k) { S.kind = k; save(); render(); window.scrollTo(0, 0); },
     set(f, v) {
         S.answers[key(S.tab, f)] = v;
         save();
@@ -165,7 +219,7 @@ const API = {
     async download() {
         const t = tpl();
         try {
-            const res = await fetch('/simulators/drafting/templates/' + encodeURIComponent(t.file), { credentials: 'include' });
+            const res = await fetch(srcOf(t), { credentials: 'include' });
             if (!res.ok) throw new Error('The template could not be loaded (' + res.status + ').');
             const out = await LSHDraftingDocx.fill(await res.arrayBuffer(), answersFor(t));
             const a = document.createElement('a');
@@ -186,11 +240,11 @@ const API = {
         if (!total) return;
         if (done < total && !confirm(`${total - done} blank${total - done === 1 ? '' : 's'} still empty. Send it to your trainer anyway?`)) return;
         Sim.saveResult({
-            simulator: 'Drafting — LOR',
-            scenario: t.title + (CASES.length ? ` · Case ${S.caseNo + 1}` : ''),
+            simulator: S.tab === 'prov' ? 'Drafting — Medical Provider' : 'Drafting — LOR',
+            scenario: S.tab === 'prov' ? `${t.title} · ${t.provider}` : t.title + (CASES.length ? ` · Case ${S.caseNo + 1}` : ''),
             score: total ? Math.round(done / total * 100) : 0,
             summary: `${done} of ${total} blanks filled`,
-            details: { template: t.id, caseNo: S.caseNo + 1, answers: answersFor(t) }
+            details: { template: t.id, caseNo: S.tab === 'prov' ? null : S.caseNo + 1, provider: S.tab === 'prov' ? t.provider : null, answers: answersFor(t) }
         });
         alert('Sent to your trainer. Download the Word letter too if you need to upload it to SA.');
     }

@@ -21,7 +21,11 @@ import xml.etree.ElementTree as ET
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TPL = os.path.join(HERE, "templates")
+PROV = os.path.join(HERE, "providers")
 DEST = os.path.join(os.path.dirname(HERE), "drafting-data.js")
+
+LIEN_GLOB = re.compile(r"^lien.*\.docx$", re.I)
+MEDLOR_GLOB = re.compile(r"^medlor.*\.docx$", re.I)
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 LONG_FIELD = 120          # a highlighted run longer than this is a textarea, not a one-line field
@@ -106,6 +110,61 @@ def cases(path):
     return out
 
 
+# ---- the medical providers' letters (build/medprov/ in the Case Management course) ----
+# One folder per provider, each holding a "Lien BV v2…docx" (lien balance verification) and/or a
+# "MedLOR with Unsworn COR…docx" (medical LOR with the Unsworn Declaration of Custodian of Records).
+# Each provider's own address block is baked into their letters, which is why there is a file per
+# provider rather than one template with the name filled in.
+def slug(name):
+    s = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return re.sub(r"-{2,}", "-", s)
+
+
+def find_leaf_dirs(root):
+    """A provider folder holds .docx files directly and has no subfolders of its own."""
+    leaves = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        docx = [f for f in filenames if f.lower().endswith(".docx")]
+        subdirs = [d for d in dirnames if os.path.isdir(os.path.join(dirpath, d))]
+        if docx and not subdirs:
+            leaves.append((dirpath, sorted(docx)))
+    return sorted(leaves)
+
+
+def provider(root, dirpath, files):
+    rel = os.path.relpath(dirpath, root)
+    name = " \u2014 ".join(rel.split(os.sep)) if rel != "." else os.path.basename(dirpath)
+    letters = {}
+    for f in files:
+        full = os.path.join(dirpath, f)
+        # "file" is relative to simulators/drafting/providers/, which is how the page fetches it.
+        web = os.path.relpath(full, PROV).replace(os.sep, "/")
+        if LIEN_GLOB.match(f):
+            t = template(full, "lienbv", "Lien Balance Verification",
+                         "MED \u2013 " + name + " - Lien BV mm.dd.yyyy (VA's name)")
+        elif MEDLOR_GLOB.match(f):
+            t = template(full, "medlor", "Medical LOR with Unsworn Declaration",
+                         "MED \u2013 " + name + " - MedLOR mm.dd.yyyy (VA's name)")
+        else:
+            continue
+        t["file"] = web
+        letters[t["id"]] = t
+    return {"id": slug(name), "name": name, "letters": letters}
+
+
+def providers():
+    leaves = find_leaf_dirs(PROV)
+    if not leaves: sys.exit("No provider folders with .docx files under " + PROV)
+    out = [provider(PROV, d, files) for d, files in leaves]
+    out.sort(key=lambda p: p["name"])
+    for p in out:
+        if not p["letters"]: sys.exit("No letters found for provider " + p["name"])
+        for kind, t in p["letters"].items():
+            if not any(r.get("f") for b in t["blocks"] if b["t"] == "p" for r in b["runs"]):
+                sys.exit("No highlighted fields in %s's %s: is it still highlighted in yellow?" % (p["name"], kind))
+    return out
+
+
 def main():
     ts = [template(os.path.join(TPL, "1P_LOR.docx"), "lor1p",
                    "Letter of Representation (LOR) — 1P",
@@ -113,6 +172,7 @@ def main():
           template(os.path.join(TPL, "3P_LOR_with_Affidavit.docx"), "lor3p",
                    "Letter of Representation (LOR) with Affidavit — 3P",
                    "INS – 3P Insurance Provider - LOR with Affidavit mm.dd.yyyy (VA's name)")]
+    ps = providers()
     cs = cases(os.path.join(TPL, "Case_Notes_For_Drafting_Activity_SA_Demo.docx"))
     if not cs: sys.exit("No cases found in the case notes.")
     for t in ts:
@@ -133,10 +193,13 @@ def main():
    ============================================================ */
 """
     js = (head + "window.LSH_DRAFTING_TEMPLATES = " + json.dumps(ts, ensure_ascii=False, separators=(",", ":")) + ";\n"
-          + "window.LSH_DRAFTING_CASES = " + json.dumps(cs, ensure_ascii=False, separators=(",", ":")) + ";\n")
+          + "window.LSH_DRAFTING_CASES = " + json.dumps(cs, ensure_ascii=False, separators=(",", ":")) + ";\n"
+          + "window.LSH_DRAFTING_PROVIDERS = " + json.dumps(ps, ensure_ascii=False, separators=(",", ":")) + ";\n")
     open(DEST, "w", encoding="utf8").write(js)
-    print("%s: %d cases, %d fields" % (os.path.basename(DEST), len(cs),
-          sum(1 for t in ts for b in t["blocks"] if b["t"] == "p" for r in b["runs"] if r.get("f"))))
+    n = lambda bs: sum(1 for b in bs if b["t"] == "p" for r in b["runs"] if r.get("f"))
+    print("%s: %d letters, %d cases, %d providers, %d fields" % (
+        os.path.basename(DEST), len(ts) + sum(len(p["letters"]) for p in ps), len(cs), len(ps),
+        sum(n(t["blocks"]) for t in ts) + sum(n(t["blocks"]) for p in ps for t in p["letters"].values())))
 
 
 if __name__ == "__main__":
