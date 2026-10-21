@@ -76,6 +76,10 @@
 <script>
 /* Scenarios live in /simulators/reply-packs/emails.json — the server sends only these. */
 const START_PROGRAM = (() => { const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'CM' : p.startsWith('EA') ? 'EA' : 'All'; })();
+/* A course step opens the email it needs: ?email=<id> (the ids in /simulators/reply-packs/emails.json,
+   e.g. cm_hospital_lien). The id has to be one of the loaded scenarios — anything else is ignored and the
+   trainee gets the list, so a stale or mistyped link never opens a blank page. Without it nothing changes. */
+const WANTED = (() => { const v = String(new URLSearchParams(location.search).get('email') || '').trim().toLowerCase(); return /^[a-z0-9_]{2,40}$/.test(v) ? v : ''; })();
 let E = { emails: [], delivery: false, filter: START_PROGRAM, phase: 'list', cur: null, mode: 'here', to: '', draft: '', token: null, poll: null, reply: null, debrief: null, busy: false };
 const $app = () => document.getElementById('app');
 const SENT_KEY = 'LSH_EMAIL_REPLIES_SENT';
@@ -244,6 +248,8 @@ async function boot() {
             fetch('/api/email-practice?status=1').then(r => r.json()).catch(() => ({}))
         ]);
         E.emails = pack.emails || []; E.delivery = !!(status && status.delivery);
+        const want = WANTED && byId(WANTED);
+        if (want) { E.filter = want.program === 'All' ? E.filter : want.program; openEmail(want.id); return; }
         render();
     } catch (e) { $app().innerHTML = `<div class="sim-card"><div class="sim-error">Couldn’t load the practice emails: ${Sim.esc(e.message)}</div></div>`; }
 }

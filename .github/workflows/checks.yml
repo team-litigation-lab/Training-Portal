@@ -58,6 +58,8 @@ jobs:
         run: node --no-warnings .github/scripts/sim-results.mjs
       - name: Email Replies is scored on the five fixed scorecard metrics
         run: node --no-warnings .github/scripts/email-scorecard.mjs
+      - name: Email practice opens where the step needs it (?email= a scenario, ?inbox= an inbox)
+        run: node .github/scripts/email-targeting.cjs
       - name: Build the Pages Functions without deploying
         run: npx --yes wrangler@3 pages functions build --outdir "$RUNNER_TEMP/dist"
 

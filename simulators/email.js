@@ -46,6 +46,12 @@ function wsMe(){ const s = Sim.session(), w = Sim.who(); return s.userType==='Ad
 function wsKey(){ const s = Sim.session(); return `lsh_email_ws:${(s.userType==='Admin' ? s.username : Sim.who().name) || 'me'}`; }
 // ?program=CM or EA (or the program saved with the trainee's name) puts that inbox first.
 const WS_START = (()=>{ const p = String(new URLSearchParams(location.search).get('program') || Sim.who().program || '').toUpperCase(); return p.startsWith('CM') ? 'cm' : p.startsWith('EA') ? 'ea' : ''; })();
+/* A course step opens the inbox it needs instead of the chooser: ?inbox=cm (or ea), or ?inbox=1 for the
+   one this trainee's program starts on. Only a ready-made pack is opened, and never over work already in
+   progress (a resumed inbox wins), so the link can be followed again without losing anything. */
+const WS_OPEN = (()=>{ const v = String(new URLSearchParams(location.search).get('inbox') || '').trim().toLowerCase();
+  const k = v === '1' || v === 'yes' ? WS_START : v;
+  return EMAIL_PACKS[k] ? k : ''; })();
 function wsSave(){ try{ if(W.phase==='ws'){ const {menu,compose,dialog,snack,undo,sel,...keep} = W; localStorage.setItem(wsKey(), JSON.stringify(keep)); } else localStorage.removeItem(wsKey()); }catch(e){} }
 function wsLoad(){ try{ const v = JSON.parse(localStorage.getItem(wsKey())||'null'); if(v && v.pack) { W = Object.assign({sel:{}}, v); return true; } }catch(e){} return false; }
 
@@ -415,4 +421,8 @@ async function wsSubmit(){
 document.addEventListener('click', (e)=>{ if(W.menu && !e.target.closest('.gm-menu') && !e.target.closest('.gm-ib') && !e.target.closest('.gm-dialog')){ W.menu = null; draw(); } });
 // A new tab (a course's link opens with noopener, or a bookmark) has the cookie but no copy of the session: ask who is
 // signed in before the first render, so the heartbeat starts and the inbox is kept under the trainee's own account (wsKey).
-document.addEventListener('DOMContentLoaded', async ()=>{ await Sim.restore(); document.getElementById('topbar').innerHTML = Sim.topbar('email'); render(); });
+document.addEventListener('DOMContentLoaded', async ()=>{ await Sim.restore(); document.getElementById('topbar').innerHTML = Sim.topbar('email');
+  // An inbox already in progress on this device wins: wsLoad() restores it into W, and that is rendered
+  // instead of starting the pack again, so following the step's link twice never clears the work.
+  if(WS_OPEN && !wsLoad()) { wsStart(EMAIL_PACKS[WS_OPEN]); return; }   // wsStart renders
+  render(); });
