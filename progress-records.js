@@ -126,10 +126,11 @@ function render() {
         <div class="pg-tabs" role="tablist">
             <button role="tab" class="${P.tab === 'people' ? 'on' : ''}" onclick="P.tab='people';render()">👤 Trainees <span class="n">${people().filter(p => !p.enrollments.every(t => t.status === 'Archived')).length}</span></button>
             <button role="tab" class="${P.tab === 'feedback' ? 'on' : ''}" onclick="P.tab='feedback';render()">💬 Feedback from Trainees <span class="n">${nFb}</span></button>
+            <button role="tab" class="${P.tab === 'scores' ? 'on' : ''}" onclick="P.tab='scores';render()">📊 Scores by module <span class="n">${moduleCount()}</span></button>
         </div>
         <div id="pane"></div>
         <p class="pg-muted" style="margin-top:10px;">Records are matched across programs, simulators and portal activities by the trainee’s name. Updated ${esc(d.generatedAt ? ago(d.generatedAt) : '—')}.</p>`;
-    P.tab === 'feedback' ? renderFeedbackPane() : renderPeoplePane();
+    P.tab === 'feedback' ? renderFeedbackPane() : P.tab === 'scores' ? renderScoresPane() : renderPeoplePane();
 }
 
 function renderPeoplePane() {
@@ -355,6 +356,85 @@ function renderFeedbackList() {
     }).join('');
 }
 
+// ---------- scores by module ----------
+// Every score this platform holds for a trainee, in one place, segregated per
+// batch and per module. A "module" is one training day of the program — the
+// unit the courses themselves score (dayProgress[<day>] in each course's KV,
+// which /api/program-progress returns as days[<n>] = {done, score, task}).
+// The columns past the modules are the scores that aren't day-shaped: the
+// simulators (Email, Calendaring, Docket, Records, E-Filing, graded calls, by
+// /api/sim-results) and the portal's own graded activities (submissions).
+// Nothing here is a second source of truth — it is the same /api/program-progress
+// payload the Trainees tab reads, pivoted module by module.
+function moduleCount() {
+    const p = (P.data && P.data.programs || []).find(x => x.id === P.program);
+    return p ? p.days : 10;
+}
+// This program's enrollment for one person, with its per-module scores merged
+// (a person can hold more than one record in the same program after a re-enrol:
+// the later score for a module wins over an empty one).
+function moduleRow(p) {
+    const en = p.enrollments.filter(t => t.program === P.program);
+    const n = moduleCount(), mods = [];
+    for (let d = 1; d <= n; d++) {
+        const cells = en.map(t => (t.days || {})[d] || (t.days || {})[String(d)]).filter(Boolean);
+        mods.push({
+            day: d,
+            done: cells.some(c => c.done),
+            score: avg(cells.map(c => c.score)),
+            task: avg(cells.map(c => c.task))
+        });
+    }
+    const scored = mods.filter(m => m.score != null);
+    return { person: p, mods, modAvg: avg(mods.map(m => m.score)), modsScored: scored.length,
+        modsDone: mods.filter(m => m.done).length, total: n };
+}
+function moduleRows() { return rows().map(moduleRow).filter(r => r.person.enrollments.some(t => t.program === P.program)); }
+
+function renderScoresPane() {
+    document.getElementById('pane').innerHTML = `
+        <div class="pg-filters">
+            <select onchange="P.status=this.value;render()" aria-label="Status">${[['active', 'Approved'], ['Pending', 'Pending approval'], ['all', 'All statuses']].map(([k, l]) => `<option value="${k}" ${P.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+            <select onchange="P.batch=this.value;render()" aria-label="Batch">${batchOptions(P.batch)}</select>
+            <input type="search" placeholder="Search Batch or Trainee Name" value="${esc(P.q)}" oninput="P.q=this.value;renderScoresTable()">
+            <button onclick="exportScoresCsv()">⬇ CSV (per batch, per module)</button>
+            <button onclick="load(true)">↻ Refresh</button>
+        </div>
+        <div id="mxtbl"></div>
+        <p class="pg-muted" style="margin-top:10px;">One module is one training day of ${esc(progLabel(P.program))}. A cell shows that module's Knowledge Check; a random task score for the same module sits under it. <b>Batch average</b> is the batch's average for that module, counting only the trainees who have a score for it. The last columns are the scores that don't belong to a single module: simulators and the portal's graded activities.</p>`;
+    renderScoresTable();
+}
+const mxCell = (m) => m.score == null && m.task == null
+    ? `<span class="pg-muted">${m.done ? '✓' : '—'}</span>`
+    : `${m.score == null ? `<span class="pg-muted">—</span>` : score(m.score)}${m.task == null ? '' : `<div class="pg-muted" style="font-size:11px;">task ${m.task}%</div>`}`;
+function renderScoresTable() {
+    const el = document.getElementById('mxtbl'); if (!el) return;
+    const list = moduleRows(), n = moduleCount(), groups = {};
+    list.forEach(r => { (groups[batchOf(r.person)] = groups[batchOf(r.person)] || []).push(r); });
+    const keys = Object.keys(groups).sort((a, b) => (a === '') - (b === '') || b.localeCompare(a, undefined, { numeric: true }));
+    const head = `<thead><tr><th>Trainee</th>${Array.from({ length: n }, (_, i) => `<th title="Module ${i + 1} — day ${i + 1}">M${i + 1}</th>`).join('')}<th>Modules scored</th><th>Module avg</th><th>Simulators</th><th>Portal activities</th></tr></thead>`;
+    el.innerHTML = keys.length ? keys.map((b, i) => {
+        const rs = groups[b], closed = P.closed['mx:' + b] !== undefined ? !!P.closed['mx:' + b] : (i > 0 && !P.q);
+        const batchAvg = Array.from({ length: n }, (_, k) => avg(rs.map(r => r.mods[k].score)));
+        return `<section class="pg-batch${i === 0 ? ' latest' : ''}">
+            <div class="pg-batch-hd" onclick="P.closed[${esc(JSON.stringify('mx:' + b))}]=${!closed};renderScoresTable()" aria-expanded="${!closed}">
+                <span class="pg-caret">${closed ? '▸' : '▾'}</span><b class="pg-batch-pill">${esc(batchName(b))}</b>${i === 0 ? '<span class="pg-latest">Latest batch</span>' : ''}
+                <span class="pg-muted">${rs.length} trainee${rs.length === 1 ? '' : 's'} · batch average ${avg(batchAvg) == null ? '—' : avg(batchAvg) + '%'} across ${batchAvg.filter(v => v != null).length} of ${n} modules</span>
+            </div>
+            ${closed ? '' : `<div class="sim-card" style="padding:0;"><div class="sim-table-wrap"><table class="sim-table pg-table">${head}<tbody>
+                ${rs.map(r => `<tr><td class="nm"><b>${esc(r.person.name)}</b></td>
+                    ${r.mods.map(m => `<td>${mxCell(m)}</td>`).join('')}
+                    <td>${r.modsScored}/${r.total}</td><td>${score(r.modAvg)}</td>
+                    <td>${r.person.sim ? `${score(r.person.sim.avg)} <span class="pg-muted">${r.person.sim.runs}×</span>` : '<span class="pg-muted">—</span>'}</td>
+                    <td>${r.person.work ? `${score(r.person.work.avgScore)} <span class="pg-muted">${r.person.work.submitted}×</span>` : '<span class="pg-muted">—</span>'}</td></tr>`).join('')}
+                <tr class="row"><td class="nm"><b>Batch average</b></td>${batchAvg.map(v => `<td>${score(v)}</td>`).join('')}
+                    <td class="pg-muted">—</td><td>${score(avg(batchAvg))}</td>
+                    <td>${score(avg(rs.map(r => r.person.sim && r.person.sim.avg)))}</td>
+                    <td>${score(avg(rs.map(r => r.person.work && r.person.work.avgScore)))}</td></tr>
+            </tbody></table></div></div>`}
+        </section>`; }).join('') : `<div class="sim-card pg-muted">No trainees match these filters.</div>`;
+}
+
 // ---------- CSV ----------
 function download(name, lines) {
     const a = document.createElement('a');
@@ -377,6 +457,23 @@ function exportCsv() {
             p.sim ? p.sim.runs : '', p.sim ? p.sim.avg : '', p.work ? p.work.submitted : '', p.work ? p.work.avgScore : '', t.lastActive, t.registeredAt].map(csvq).join(','));
     }));
     download(`trainee-progress-${P.program}`, lines);
+}
+// One line per trainee per module, so the sheet can be pivoted per batch and
+// per module; the non-module scores (simulators, portal activities) repeat on
+// each of that trainee's lines rather than getting a row of their own.
+function exportScoresCsv() {
+    const head = ['Program', 'Batch', 'Trainee', 'Status', 'Module', 'Knowledge Check %', 'Random task %', 'Module completed',
+        'Modules scored', 'Modules completed', 'Module average %', 'Simulator avg %', 'Simulator runs', 'Portal activity avg %', 'Portal activities submitted'];
+    const lines = [head.map(csvq).join(',')];
+    moduleRows().forEach(r => {
+        const p = r.person;
+        r.mods.forEach(m => lines.push([progLabel(P.program), batchName(batchOf(p)), p.name, p.status, 'Module ' + m.day,
+            m.score == null ? '' : m.score, m.task == null ? '' : m.task, m.done ? 'Yes' : 'No',
+            r.modsScored, r.modsDone, r.modAvg == null ? '' : r.modAvg,
+            p.sim && p.sim.avg != null ? p.sim.avg : '', p.sim ? p.sim.runs : '',
+            p.work && p.work.avgScore != null ? p.work.avgScore : '', p.work ? p.work.submitted : ''].map(csvq).join(',')));
+    });
+    download(`scores-by-module-${P.program}`, lines);
 }
 function exportFeedbackCsv() {
     const head = ['Date', 'Program', 'Name', 'Batch', 'Day', ...AREAS.map(a => a[1]), 'Worked well', 'Improve', 'For facilitator', 'Status'];
