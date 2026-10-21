@@ -14,7 +14,7 @@
    },
    "subject": "WHERE IS MY MONEY",
    "body": "I just got the settlement statement. $150,000 and I get $60,746?? Who approved all these deductions? I was told the liens would be reduced. I want the check this week — I have bills. If I don't hear back today I'm calling the bar.\n\nJohn",
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
    "facts": "Gross settlement $150,000. Costs $2,090. Fee 40% of (gross − costs) = $59,164 (40% because suit was filed, per the retainer John signed 02/15/2026). Liens negotiated from $77,400 asserted down to $28,000. Net to client $60,746. Checks issue only after the settlement funds clear the trust account and every lien payoff is confirmed in writing.",
    "goals": [
     "Acknowledges his frustration first, without being defensive",
@@ -41,7 +41,7 @@
    "attachments": [
     "General_Medical_Authorization.pdf"
    ],
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
    "facts": "Claim 2026-0214-AX; insured Apex Delivery Services. The firm sent a letter of representation; all contact goes through the firm. The attorney rejected a $45,000 counter on 05/26/2026. Prior history: a 2018 lumbar strain that resolved; no MRI then.",
    "goals": [
     "Confirms the firm represents Mr. Doe and all contact goes through the firm — no direct contact",
@@ -64,7 +64,7 @@
    },
    "subject": "NOTICE OF HOSPITAL LIEN — John Doe — $45,000",
    "body": "Please be advised Metro General Hospital asserts a statutory lien of $45,000.00 against any recovery for patient John Doe (DOS 02/14/2026). This lien has first priority and must be protected in full before any disbursement. Please confirm receipt and advise the status of settlement.\n\nBrenda Sterling\nRevenue Recovery Director",
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
    "facts": "Metro General's own ER billing statement shows $12,700. PIP (Local Farm Mutual) already paid ER $4,800 and CT $3,000. BCBS (ERISA) may also have paid. No itemized statement has been received. Settlement status is confidential.",
    "goals": [
     "Confirms receipt without agreeing to the $45,000 figure",
@@ -88,7 +88,7 @@
    },
    "subject": "RE: Records request — John Doe — UNABLE TO PROCESS",
    "body": "We are unable to process your request for records for John Doe (DOS 03/15/2026). The date of birth on your authorization (08/14/1980) does not match our patient record (02/14/1980). Please submit a corrected authorization.\n\nMetro Radiology — Health Information Management",
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
    "facts": "John's correct DOB is 08/14/1980 (intake, retainer, HIPAA, driver's license). Metro Radiology registered him with 02/14/1980 — their error, which also appears on the MRI report and bill. Records fee $25, rush 3 days for $15; the mediation binder is due in 3 weeks.",
    "goals": [
     "Explains politely that the authorization is correct and their registration has the wrong DOB",
@@ -112,7 +112,7 @@
    },
    "subject": "Doe v. Apex — discovery extension",
    "body": "Hi there — Jane asked me to reach out. We need one more week on our discovery responses (currently due Monday). Can you just reply 'agreed' so we have it in writing? No need to bother your attorney, it's routine.\n\nThanks!\nKyle",
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
    "facts": "Only the attorney can agree to extensions. All extensions must be documented in writing between counsel. Dana Carter is in trial until Thursday but checks email at lunch.",
    "goals": [
     "Does not agree to the extension",
@@ -136,7 +136,7 @@
    },
    "subject": "John's case",
    "body": "Hi, it's Jane, John's wife. He's at PT and asked me to check — did the insurance make a new offer? Also, my neck still hurts from the accident. Should I be part of the case too?",
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
    "facts": "Jane is not on the retainer and there's no authorization on file to share case information with her. She was the front-seat passenger. Her own injury claim would need an intake and a conflict check before anyone advises her.",
    "goals": [
     "Warm tone; thanks her",
@@ -160,7 +160,7 @@
    },
    "subject": "Doe — where are we?",
    "body": "In trial all week. Give me Doe in 3 bullets by 5. What do you need from me?\n\nD",
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
    "facts": "Demand $250,000 sent 05/15; counter $45,000 rejected 05/26. Dr. Neil Ron's permanency report (5% WPI) arrived this week — not yet sent to the carrier. Metro General lien disputed ($45,000 asserted vs $12,700 billed). RFA responses due 07/15/2026. Need: approval to send a supplemental demand with the permanency report.",
    "goals": [
     "BLUF — bottom line in the first line",
@@ -184,7 +184,7 @@
    },
    "subject": "John Doe balance",
    "body": "John Doe has an $8,400 balance with us under the Letter of Protection. We can't keep treating without some payment or a settlement date. When is the case settling and for how much?\n\nPam",
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
+   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
    "facts": "The chiropractic billing statement in the file shows $320. The $8,400 figure came from a draft demand and may be a projection. The LOP is on file. Settlement value and timing are confidential; continuity of care matters for the claim.",
    "goals": [
     "Doesn't disclose settlement value or timing",

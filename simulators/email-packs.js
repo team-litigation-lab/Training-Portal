@@ -5,8 +5,8 @@ const EMAIL_PACKS = {
  "cm": {
   "id": "cm",
   "program": "Case Management",
-  "title": "Personal-injury team — Monday inbox",
-  "role": "You are the case manager on a personal-injury team at Patel & Associates (attorney: Anita Patel). You handle client communication, providers, records and adjusters. Settlement values and legal advice are for the attorney.",
+  "title": "John Doe v. Apex Delivery Services & Robert W. Smith — Monday inbox",
+  "role": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001, claim 2026-0214-AX) at LSH Law Group; the handling attorney is Dana Carter. You handle client, provider, lienholder and carrier correspondence. Legal advice, settlement authority and case valuation belong to the attorney. This is the same case file you work in the CMS, the Email Replies, Medical Records and Docket simulators.",
   "labels": [
    {
     "name": "Clients",
@@ -43,74 +43,75 @@ const EMAIL_PACKS = {
   ],
   "emails": [
    {
-    "from": "Carla Nguyen <carla.nguyen88@gmail.com>",
+    "from": "John Doe <johndoe@gmail.com>",
     "subject": "any update?? bills keep coming",
     "time": "9:14 AM",
     "label": "Clients",
     "decision": "do",
     "needsReply": true,
-    "body": "Hi,\n\nsorry to bother again but I got two more bills from Harbor PT this week and a collections letter from the ambulance company. Is there any update on my case? When will this be over? I just want to know what is going on.\n\nThanks,\nCarla"
+    "body": "Hi,\n\nSorry to keep bugging you but I got another statement from Metro General this week and a collections letter about the ambulance. My PIP is supposed to be covering this stuff. Is there any update on my case? When will this be over?\n\nAlso my back is worse since the surgery follow up.\n\nThanks,\nJohn Doe"
    },
    {
-    "from": "Jim Patel <jpatel@summitmutual.com>",
-    "subject": "Recorded statement — Nguyen, claim SM-44821",
+    "from": "Tom Reeves <t.reeves@aggressive-casualty.example>",
+    "subject": "Claim 2026-0214-AX — recorded statement from Mr. Doe",
     "time": "8:52 AM",
     "label": "Insurance / Adjusters",
     "decision": "delegate",
     "needsReply": false,
-    "body": "Good morning,\n\nFollowing up on claim SM-44821 (insured: Rapid Freight LLC). I would like to take a brief recorded statement from Ms. Nguyen this week. Please send me her direct cell so I can set it up with her.\n\nRegards,\nJim Patel\nSenior Claims Adjuster, Summit Mutual"
+    "body": "Good morning,\n\nTo keep claim 2026-0214-AX (insured: Apex Delivery Services / Robert W. Smith) moving I would like a brief recorded statement from Mr. Doe this week. Please send me his direct cell number so I can set it up with him myself.\n\nRegards,\nTom Reeves\nBI Adjuster, Aggressive Casualty Insurance"
    },
    {
-    "from": "Denise Ford <billing@harborpt.com>",
-    "subject": "Balance $6,450 — patient Carla Nguyen",
+    "from": "Brenda Sterling <b.sterling@metrogeneral.example>",
+    "subject": "Hospital lien $45,000 — patient John Doe, DOS 02/14/2026",
     "time": "8:31 AM",
     "label": "Billing & Liens",
     "decision": "do",
     "needsReply": true,
-    "body": "Hello,\n\nPatient Carla Nguyen has an outstanding balance of $6,450 with Harbor Physical Therapy. Please advise on the status of her case and when we can expect payment. We will consider sending the account to collections if we do not hear back.\n\nDenise Ford\nBilling Manager, Harbor Physical Therapy"
+    "body": "Hello,\n\nMetro General Hospital asserts a lien of $45,000.00 against any recovery for patient John Doe, date of service 02/14/2026. Please confirm the lien in writing and advise on the status of the case.\n\nBrenda Sterling\nRevenue Recovery, Metro General Hospital"
    },
    {
-    "from": "County Superior Court e-Filing <efiling@county-courts.gov>",
+    "from": "Superior Court e-Filing <efiling@metro-courts.example>",
     "subject": "NOTICE: Hearing set — Motion to Compel, Dept 14, Wed 9:00 AM",
     "time": "7:58 AM",
     "label": "Court & Filings",
     "decision": "do",
     "needsReply": false,
-    "body": "NOTICE OF HEARING\n\nCase: Nguyen v. Rapid Freight LLC\nMotion: Plaintiff’s Motion to Compel Further Responses\nDate/Time: Wednesday, 9:00 AM, Department 14\n\nThis notice was served electronically on all parties of record."
+    "body": "NOTICE OF HEARING\n\nCase: Doe v. Apex Delivery Services, Inc. & Robert W. Smith\nLSH File # MVA-JD-2026-001\nMotion: Plaintiff's Motion to Compel Further Responses\nDate/Time: Wednesday, 9:00 AM, Department 14\n\nThis notice was served electronically on all parties of record."
    },
    {
-    "from": "DocuSign Funds Release <release@docusign-secure-funds.com>",
-    "subject": "ACTION REQUIRED: Settlement funds release — Nguyen",
+    "from": "Settlement Funds Release <release@docusign-secure-funds.com>",
+    "subject": "ACTION REQUIRED: Settlement funds release — DOE",
     "time": "9:40 AM",
     "label": "Security Alert",
     "decision": "report",
     "needsReply": false,
     "phishing": true,
-    "body": "A settlement disbursement for NGUYEN is pending your approval. Confirm the receiving account within 24 hours or the funds will be returned to the payer.\n\n{{LINK:Review & Confirm Wire Details}}\n\nDocuSign Funds Release Team",
+    "body": "A settlement disbursement for DOE / MVA-JD-2026-001 is pending your approval. Confirm the receiving trust account within 24 hours or the funds will be returned to the payer.\n\n{{LINK:Review & Confirm Wire Details}}\n\nFunds Release Team",
     "redFlags": [
-     "Sender domain is not docusign.com",
-     "Settlement funds never move by a DocuSign “confirm account” link",
+     "Sender domain is not docusign.com and is not the carrier's",
+     "Settlement funds never move by a “confirm account” link in an email",
      "24-hour pressure to act",
-     "Asks you to confirm wire/account details"
+     "Asks you to confirm wire / trust-account details",
+     "No case is at the disbursement stage — the carrier's $45,000 counter was rejected 05/26/2026"
     ]
    },
    {
-    "from": "Mercy Hospital Records <roi@mercyhealth.org>",
+    "from": "Metro General Release of Information <roi@metrogeneral.example>",
     "subject": "Records request received — fee $38 due before release",
     "time": "8:05 AM",
     "label": "Medical Providers & Records",
     "decision": "delegate",
     "needsReply": false,
-    "body": "Your request for the medical records of Carla Nguyen (DOS 03/14) has been received. A processing fee of $38.00 is due before release. Payment can be made by firm check or through our release-of-information portal.\n\nMercy Hospital Release of Information"
+    "body": "Your request for the medical records of John Doe (DOS 02/14/2026) has been received. A processing fee of $38.00 is due before release. Payment can be made by firm check or through our release-of-information portal.\n\nNote: the authorization on file is unsigned and undated. We cannot release until a corrected authorization is received.\n\nMetro General Release of Information"
    },
    {
-    "from": "Anita Patel <apatel@patellaw.com>",
-    "subject": "Nguyen — treatment summary by Thursday",
+    "from": "Dana Carter <dcarter@lshlawgroup.example>",
+    "subject": "Doe — medical chronology and specials by Thursday",
     "time": "7:45 AM",
     "label": "Internal / Team",
     "decision": "schedule",
     "needsReply": false,
-    "body": "Hi,\n\nPlease put together a treatment summary for Nguyen (providers, dates, totals so far) by end of day Thursday. I want it before the settlement conference Friday.\n\nThanks,\nAnita"
+    "body": "Hi,\n\nPlease put together the medical chronology and an updated specials table for Doe (providers, dates, billed totals, what PIP paid) by end of day Thursday. I want it before the settlement conference Friday.\n\nReconcile the MRI while you are in there — the chronology says 3mm on 03/10 and the radiology report says 5mm on 03/15.\n\nThanks,\nDana Carter\nHandling Attorney, LSH Law Group"
    },
    {
     "from": "PI Trial Report <news@pitrialreport.com>",
@@ -119,19 +120,19 @@ const EMAIL_PACKS = {
     "label": "Marketing / Newsletters",
     "decision": "defer",
     "needsReply": false,
-    "body": "This quarter’s biggest verdicts, plus three trends every PI team should watch. Read the full report online."
+    "body": "This quarter's biggest verdicts, plus three trends every PI team should watch. Read the full report online."
    },
    {
-    "from": "D. Osei <d.osei@oseiholdings.com>",
-    "subject": "Third request — invoice discrepancy (Matter 24-0098)",
+    "from": "Jane Doe <jane.doe80@gmail.com>",
+    "subject": "My own claim — was I ever signed up?",
     "time": "9:03 AM",
     "label": "Clients",
     "decision": "do",
     "needsReply": true,
-    "body": "This is my third request regarding the discrepancy on invoice #4471. I was told two weeks ago it would be corrected. I expect a written response today with a specific resolution date.\n\nD. Osei"
+    "body": "Hi,\n\nI was in the passenger seat when the truck hit us on February 14. I turned down the ambulance at the scene but my neck and shoulder have hurt ever since and I have never been seen for it.\n\nJohn says your firm handles everything. Am I signed up too, or is it only his case? Nobody has sent me anything to sign.\n\nJane Doe"
    },
    {
-    "from": "IT Help Desk <it@patellaw.com>",
+    "from": "IT Help Desk <it@lshlawgroup.example>",
     "subject": "Scheduled password reset — Friday (use the intranet as usual)",
     "time": "7:10 AM",
     "label": "Internal / Team",

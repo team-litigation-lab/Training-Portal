@@ -36,6 +36,24 @@
         height: auto; overflow: visible;
     }
 
+    /* Announcement ticker — the same broadcast an admin sets in Master Control
+       (Broadcast & Ping → /api/announcement). It used to show only on the admin
+       screen (core.html's classification bar), so trainees never saw it; the
+       Training Directory is the first page they land on, so it belongs here.
+       The ids are the ones app.js already fills (loadAnnouncement/refreshClock),
+       and app.js is loaded further down this page. */
+    .idx-ticker-bar {
+        display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+        padding: 8px 28px; background: var(--navy-deep); color: #cbd5e1;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .idx-ticker-bar .top-ticker-mini { flex: 1 1 260px; max-width: none; min-width: 0; }
+    .idx-ticker-bar .ticker-viewport { min-width: 0; overflow: hidden; }
+    .idx-ticker-bar #ticker-text { color: #f1f5f9; font-weight: 600; }
+    .idx-ticker-bar .top-clock { color: #cbd5e1; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .idx-ticker-bar select { border: none; background: none; font: inherit; font-weight: 600; color: #fdba74; cursor: pointer; }
+    @media (max-width: 640px) { .idx-ticker-bar { padding: 8px 16px; gap: 8px 14px; } }
+
     .idx-top { display: flex; align-items: center; justify-content: space-between; padding: 16px 28px; background: var(--navy-deep); }
     .idx-brand { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 800; font-size: 14px; }
     .idx-brand-mark { width: 34px; height: 34px; border-radius: 0; background: #fff; padding: 3px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
@@ -213,6 +231,27 @@
         } catch (e) {}
     })();
 </script>
+
+<!-- Announcement ticker: the admin broadcast, now visible to trainees here on the
+     Training Directory (it used to appear only on the admin screen). Filled by
+     app.js: loadAnnouncement() → #ticker-text, refreshClock() → #live-clock. -->
+<div class="idx-ticker-bar no-print">
+    <div class="top-ticker-mini" id="announcement-ticker">
+        <span class="tag" id="announcement-tag">Announcement:</span>
+        <div class="ticker-viewport">
+            <div class="ticker-track" id="ticker-track"><span id="ticker-text">Welcome to the LSH Training Portal.</span></div>
+        </div>
+    </div>
+    <div class="top-clock">
+        <span id="live-clock">--:--:--</span>
+        <select id="tz-select" onchange="refreshClock()" aria-label="Time zone">
+            <option value="Asia/Manila">Manila (PHT)</option>
+            <option value="UTC">UTC</option>
+            <option value="America/New_York">New York (ET)</option>
+            <option value="America/Los_Angeles">Los Angeles (PT)</option>
+        </select>
+    </div>
+</div>
 
 <div class="idx-top">
     <span class="idx-brand"><img class="idx-logo" src="/img/logo.svg" alt="Legal Support Help"></span>
