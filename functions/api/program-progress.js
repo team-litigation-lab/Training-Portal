@@ -29,11 +29,12 @@ import { driveConfigured, saveBatchToDrive } from '../_drive.js';
 //     saves the batch (CSV + JSON) to a Shared Drive folder and keeps its link;
 //     SAVE_TO_DRIVE saves an already-archived batch from its snapshot.
 // To add a program: its course's KV key prefix (the CM course stores every key
-// under "cm:"), number of days and course address.
+// under "cm:"), number of days and course address. dayIds: the course's own ids for
+// its days 1, 2, … when they aren't 1, 2, … (the CM course's Case Flow days are 11–15).
 const PROGRAMS = [
     { id: 'ft', label: 'Standard Foundational Training', prefix: 'ft:', days: 10, url: 'https://foundational-training.legalsupporthelp.workers.dev/' },
     { id: 'eapa', label: 'EA / PA Training', prefix: '', days: 10, url: 'https://ea-pa-training.legalsupporthelp.workers.dev/' },
-    { id: 'cm', label: 'Case Management Training', prefix: 'cm:', days: 5, url: 'https://case-management-training.legalsupporthelp.workers.dev/' },
+    { id: 'cm', label: 'Case Management Training', prefix: 'cm:', days: 5, dayIds: [11, 12, 13, 14, 15], url: 'https://case-management-training.legalsupporthelp.workers.dev/' },
     { id: 'pd', label: 'PD Claims Training', prefix: 'pd:', days: 5, url: 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/' },
     { id: 'md', label: 'Medsum & Demand Training', prefix: 'md:', days: 5, url: 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/' }
 ];
@@ -97,12 +98,19 @@ function summarize(rec, program, fb) {
     const dp = rec.dayProgress || {}, pp = rec.practiceProgress || {};
     const days = {};
     for (let d = 1; d <= program.days; d++) {
-        const p = dp[d] || dp[String(d)] || {};
-        days[d] = { done: !!p.done, score: num(p.score) ? p.score : null, task: num(p.surpriseTaskScore) ? p.surpriseTaskScore : null };
+        const id = program.dayIds ? program.dayIds[d - 1] : d;
+        const p = dp[id] || dp[String(id)] || {};
+        days[d] = { done: !!p.done, score: num(p.score) ? p.score : null, task: num(p.surpriseTaskScore) ? p.surpriseTaskScore : null,
+            takeaway: num(p.takeaway) ? p.takeaway : null };
     }
+    // The CM course's Case Flow scores (its trainee record's caseFlow): each module's Composite (or Automated, until the
+    // trainer's part is in) counts as Practice, and the days' takeaways get their own average.
+    const cfMods = Object.values((rec.caseFlow && rec.caseFlow.days) || {}).flatMap(x => Object.values((x && x.modules) || {}));
+    const cfScores = cfMods.map(m => m && (num(m.c) ? m.c : num(m.a) ? m.a : null)).filter(num);
+    const takeaways = Object.values(days).map(x => x.takeaway).filter(num);
     const kc = Object.values(dp).filter(p => p && num(p.score)).map(p => p.score);
     const tasks = Object.values(dp).filter(p => p && num(p.surpriseTaskScore)).map(p => p.surpriseTaskScore);
-    const practice = Object.values(pp).filter(v => v && num(v.bestScore)).map(v => v.bestScore);
+    const practice = Object.values(pp).filter(v => v && num(v.bestScore)).map(v => v.bestScore).concat(cfScores);
     const rp = (rec.roleplayHistory || []).filter(h => h && num(h.score)).map(h => h.score);
     const status = rec.archived ? 'Archived' : rec.rejected ? 'Rejected' : rec.approved === true ? 'Approved' : 'Pending';
     return {
@@ -120,6 +128,7 @@ function summarize(rec, program, fb) {
         practiceDone: practice.length,
         practiceRuns: Object.values(pp).reduce((a, v) => a + ((v && v.runs) || 0), 0),
         taskAvg: avg(tasks),
+        takeawayAvg: avg(takeaways),
         roleplayAvg: avg(rp),
         roleplayRuns: rp.length,
         days,
