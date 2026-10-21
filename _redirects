@@ -11,6 +11,7 @@
 /attendance-sync.gs / 302
 /.github/* / 302
 /functions/* / 302
+/simulators/drafting/make-drafting-data.py / 302
 
 # The Knowledge Base is its own site now: the old address opens it (signed in, no second sign-in).
 /kb.html /api/launch?tool=kb 302
