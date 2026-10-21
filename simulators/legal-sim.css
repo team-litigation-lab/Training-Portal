@@ -153,3 +153,8 @@
 .ef-fees { border-collapse: collapse; font-size: 13.5px; margin: 6px 0 10px; } .ef-fees td { padding: 5px 16px 5px 0; } .ef-fees tr.t td { font-weight: 900; border-top: 1px solid var(--line); }
 .ef-sum { width: 100%; border-collapse: collapse; font-size: 13px; } .ef-sum th { text-align: left; color: var(--slate); padding: 6px 10px 6px 0; vertical-align: top; width: 150px; } .ef-sum td { padding: 6px 0; border-top: 1px solid #f1f5f9; overflow-wrap: anywhere; }
 .ef-warn { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 700; margin: 12px 0 4px; }
+
+/* Medical Records Requests: the same-day receipt switch and the note under the clock */
+.mr-sameday { display: flex !important; gap: 7px; align-items: center; font-size: 12.5px; font-weight: 700 !important; color: var(--navy); background: #fffbeb; border: 1px solid #fcd34d; border-radius: 999px; padding: 5px 11px; cursor: pointer; white-space: nowrap; }
+.mr-sd-note { margin: 0 0 12px; padding: 9px 13px; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 12px; font-size: 12.5px; line-height: 1.55; color: var(--slate); }
+.mr-sd-note b { color: var(--navy); }

@@ -1,10 +1,35 @@
 /* Medical Records Requests — scenario data (John Doe v. Apex, from the Case Management course).
    Providers respond by rules in records.js; the planted problems match the CM course documents. */
+
+/* ---------- the collection's clock ----------
+   The collection always starts on the current system date, so every date a trainee works to is a
+   real date: the MRR log, the follow-up dates, the attorney's date, and the dates on the documents
+   produced. Nothing is read from a date typed in when this scenario was written.
+
+   A weekend or a court holiday rolls to the next open day, because the whole simulation runs on
+   business days (LR.closed, legal-rules.js) and a records department is not open on a Sunday.
+
+   The clinical history below does NOT move: the accident, the treatment, the surgery and the prior
+   injuries are the case file, and the planted problems are tied to those dates (the transposed date
+   of birth on the MRI, the 2-of-14 chiropractic ledger, the brain MRI that belongs to the 2021
+   migraine history). Collecting records months after treatment ended is the normal shape of this
+   job, so the exercise reads correctly however long after the accident it is run. */
+const MR_CLOCK = (function () {
+    const d = new Date();
+    const sys = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    let start = sys, guard = 0;
+    while (LR.closed(start) && guard++ < 14) start = LR.add(start, 1);     // open the collection on an open day
+    let goal = start, open = 0;                                           // the attorney's date: 29 business days out
+    while (open < 29) { goal = LR.add(goal, 1); if (!LR.closed(goal)) open++; }
+    return { system: sys, start, goal };
+})();
+
 const MR_SCENARIO = {
     id: 'doe', title: 'John Doe v. Apex — collect records and bills for the demand',
-    start: '2026-07-06', goal: '2026-08-14',
+    start: MR_CLOCK.start, goal: MR_CLOCK.goal, system: MR_CLOCK.system,
     client: { name: 'John Doe', dob: '1980-08-14', dol: '2026-02-14', file: 'MVA-JD-2026-001', address: '4412 Oak Lane, Riverview Park, ST 90211' },
-    brief: 'Treatment has ended (discharged 07/01/2026 with permanent restrictions). The attorney wants complete medical records AND itemized bills from every accident-related provider, plus the 2018 prior-injury records, logged to the case file by Friday 08/14/2026 so the demand can go out. Nothing has been requested yet.',
+    brief: 'Treatment has ended (discharged 07/01/2026 with permanent restrictions). The attorney wants complete medical records AND itemized bills from every accident-related provider, plus the 2018 prior-injury records, logged to the case file by '
+        + LR.fmt(MR_CLOCK.goal) + ' so the demand can go out. Nothing has been requested yet.',
     intake: ['Metro Center EMS (Medic 14): scene and transport, 02/14/2026', 'Metro General Hospital: ER, CT, 14-day bed-rest order, and the 05/12/2026 microdiscectomy',
         'Metro Radiology & Imaging: lumbar MRI, 03/15/2026', 'Dr. Sarah Spine (Spine & Ortho Associates): EMC attestation, surgery and follow-up', 'Mark Motion, DPT (Motion Physical Therapy): PT, 03/20–04/02/2026',
         'Dr. Al Lign, DC (Align Chiropractic): chiropractic, March–April 2026', 'Dr. Mindy Health, PhD: neuropsychological evaluation, 04/18/2026 (explains the treatment gap)',
