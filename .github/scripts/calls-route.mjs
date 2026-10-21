@@ -2,8 +2,9 @@
 // Simulators page, a course or a program) opens it there through the Portal's sign-in (functions/_middleware.js →
 // /api/launch?tool=ringchannel&to=calls), on 🎧 Practice, on the line the link names and with a graded call when it asks
 // for one, and nobody signs in again. Run: node .github/scripts/calls-route.mjs
+import { readFileSync } from 'node:fs';
 import { onRequest } from '../../functions/_middleware.js';
-import { onRequestGet as launch, callsQuery, messagesQuery } from '../../functions/api/launch.js';
+import { onRequestGet as launch, callsQuery, messagesQuery, autoMessagesQuery } from '../../functions/api/launch.js';
 import { createSessionToken } from '../../functions/_utils.js';
 
 const failures = []; const fail = (m) => failures.push(m);
@@ -62,5 +63,22 @@ if (messagesQuery(new URLSearchParams('program=nope&thread=../../x&mode=practice
 const rcMsgs = await go('/api/launch?tool=ringchannel&to=messages', trainee);
 if (/messages=1/.test(rcMsgs.at)) fail(`to=messages worked on Ring Channel: ${rcMsgs.at}`);
 
+/* 4. to=automessages opens 💬 Automated Messaging on LSH Ring Channel: the texting simulator, where the
+   firm's automation texts a client and the trainee answers. Only a thread of its own, its program and
+   graded go along, and only to Ring Channel. A graded thread comes back to /api/call-results with
+   kind: 'message' (.github/scripts/call-results.mjs), filed as Client Messaging on its own line. */
+const auto = await go('/api/launch?tool=ringchannel&to=automessages&thread=am_reminder&program=ea&mode=graded&line=<x>', trainee);
+if (!/^https:\/\/lshringchannel\.legalsupporthelp\.workers\.dev\/\?ticket=[^#&]+&messaging=1&thread=am_reminder&program=EA&mode=graded$/.test(auto.at)) fail(`to=automessages: ${auto.at}`);
+const autoPlain = await go('/api/launch?tool=ringchannel&to=automessages', trainee);
+if (!/\?ticket=[^#&]+&messaging=1$/.test(autoPlain.at)) fail(`the Simulators card's own link (no thread named): ${autoPlain.at}`);
+if (autoMessagesQuery(new URLSearchParams('thread=../../x&program=nope&mode=practice&track=reception')) !== 'messaging=1') fail('a link\'s unknown values went along to Automated Messaging');
+if (autoMessagesQuery(new URLSearchParams('thread=AM_SETTLEMENT&graded=1')) !== 'messaging=1&thread=am_settlement&mode=graded') fail(`a thread's case and a graded thread: ${autoMessagesQuery(new URLSearchParams('thread=AM_SETTLEMENT&graded=1'))}`);
+// Medical Summary & Demand takes text conversations, so a thread may count in its course (a call may not).
+if (!/program=MD/.test(autoMessagesQuery(new URLSearchParams('program=md')))) fail('Medsum and Demand should be able to take a messaging thread');
+const cmsAuto = await go('/api/launch?tool=cms&to=automessages&thread=am_reminder', trainee);
+if (/messaging=1/.test(cmsAuto.at)) fail(`to=automessages worked on the CMS: ${cmsAuto.at}`);
+// The 🛠 Simulators hub is where a trainee finds it.
+if (!readFileSync(new URL('../../simulators.html', import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel&to=automessages')) fail('the Simulators hub has no Automated Messaging card');
+
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-console.log('Call Simulator route test passed (the Portal\'s Call Simulator opens LSH Ring Channel\'s practice phone, signed in, on the link\'s line, graded when it asks).');
+console.log('Call Simulator route test passed (the Portal\'s Call Simulator opens LSH Ring Channel\'s practice phone, signed in, on the link\'s line, graded when it asks; 💬 Automated Messaging opens its texting simulator the same way).');
