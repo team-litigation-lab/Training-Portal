@@ -131,7 +131,8 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await sim.evaluate(() => {
         MR.tab('new');
         document.getElementById('n-prov').value = 'rad';
-        document.getElementById('n-from').value = '2026-03-15'; document.getElementById('n-to').value = '2026-03-15';
+        const dos = MR_PROVIDERS.find(p => p.id === 'rad').dos;   // as this run dates them
+        document.getElementById('n-from').value = dos[0]; document.getElementById('n-to').value = dos[1];
         document.querySelector('form.mr-new').dispatchEvent(new Event('submit', { cancelable: true }));
     });
     const drive = await sim.evaluate(() => {
@@ -150,9 +151,9 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     // file the records, then the bill, through the course into the CMS
     const names = {}, hub = [], cmsWanted = {};
     for (const kind of ['records', 'bill']) {
-        names[kind] = await sim.evaluate(([no, k]) => MRDocs.build({ request: { no, dosFrom: '2026-03-15', dosTo: '2026-03-15', types: ['records', 'bill'] },
-            kind: k, provider: MR_PROVIDERS.find(p => p.id === 'rad'), scenario: MR_SCENARIO,
-            delivered: MR_PROVIDERS.find(p => p.id === 'rad').delivered[k], producedOn: '2026-07-20' }).name, [drive.no, kind]);
+        names[kind] = await sim.evaluate(([no, k]) => { const rad = MR_PROVIDERS.find(p => p.id === 'rad');
+            return MRDocs.build({ request: { no, dosFrom: rad.dos[0], dosTo: rad.dos[1], types: ['records', 'bill'] },
+                kind: k, provider: rad, scenario: MR_SCENARIO, delivered: rad.delivered[k], producedOn: MR_SCENARIO.start }).name; }, [drive.no, kind]);
         await setUp();
         await sim.evaluate(([no, k]) => MR.sendDoc(no, k), [drive.no, kind]);
         await page.waitForTimeout(2500);
