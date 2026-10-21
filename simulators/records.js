@@ -98,7 +98,7 @@ function run(r, ev) {
     }
     case 'revised': r.invoice.amount = r.invoice.cap; r.invoice.status = 'due'; r.status = 'Awaiting payment'; note(r, `Invoice revised to ${money(r.invoice.amount)}, the state fee cap ($25 retrieval + $0.25 per page). Pay it to release the records.`, 'money'); break;
     case 'deliver': deliver(r); break;
-    case 'ledger': r.delivered = r.delivered || {}; r.delivered.bill = clone(p.delivered.billComplete); r.ledgerComplete = true; r.deliveredOn = S.today; note(r, 'Complete ledger received: 14 visits, $2,240.00 total. Review it and log it to the case file.', 'good'); r.logged = false; r.status = 'Delivered'; break;
+    case 'ledger': r.delivered = r.delivered || {}; r.delivered.bill = clone(p.delivered.billComplete); r.ledgerComplete = true; r.deliveredOn = S.today; note(r, `Complete ledger received: ${p.delivered.billComplete.lines.length} visits, ${money(p.delivered.billComplete.lines.reduce((a, x) => a + x.amount, 0))} total. Review it and log it to the case file.`, 'good'); r.logged = false; r.status = 'Delivered'; break;
     }
 }
 function deliver(r) {
@@ -246,7 +246,7 @@ const statusCls = (s) => ({ 'Delivered': 'good', 'Completed': 'good', 'Rejected'
 
 function renderRequests() {
     if (!S.requests.length) { pane().innerHTML = `<div class="sim-card"><p class="mr-brief">${E(SC.brief)}</p>
-        <p class="sim-muted mr-small">Today is ${E(LR.fmt(S.today))}; the attorney wants it all logged by ${E(LR.fmt(S.goal || SC.goal))}. ${S.sameDay ? 'Same-day receipt is on, so you can work the whole collection through in one sitting.' : 'Same-day receipt is off: the providers answer over the following business days, so move the calendar forward to see what comes back.'}</p><h4>Providers named at intake</h4><ul class="mr-list">${SC.intake.map(x => `<li>${E(x)}</li>`).join('')}</ul>
+        <p class="sim-muted mr-small">Today is ${E(LR.fmt(S.today))}; the attorney wants it all logged by ${E(LR.fmt(S.goal || SC.goal))}.${MR_CLOCK.pinned ? ' The case file is pinned to the dates on the course\'s printed documents, so they agree with what you read here.' : ''} ${S.sameDay ? 'Same-day receipt is on, so you can work the whole collection through in one sitting.' : 'Same-day receipt is off: the providers answer over the following business days, so move the calendar forward to see what comes back.'}</p><h4>Providers named at intake</h4><ul class="mr-list">${SC.intake.map(x => `<li>${E(x)}</li>`).join('')}</ul>
         <p class="sim-muted">Start with the <b>🔐 Authorizations</b> tab: a request is only as good as the authorization attached to it. Then use <b>➕ New Request</b>.</p></div>`; return; }
     const r = S.open && req(S.open);
     pane().innerHTML = `<div class="sim-card"><div class="sim-table-wrap"><table class="sim-table mr-table"><thead><tr><th>Request</th><th>Provider</th><th>Asking for</th><th>Dates of service</th><th>Status</th><th>Next action</th></tr></thead><tbody>
@@ -322,8 +322,8 @@ function renderAuth() {
     pane().innerHTML = `<div class="sim-card mr-auth"><h3 style="margin-top:0">HIPAA Authorization on File (JD06)</h3>
         <div class="mr-form-doc">
             <div class="mr-fd-h">AUTHORIZATION FOR RELEASE OF PROTECTED HEALTH INFORMATION</div>
-            <p><b>Patient:</b> John Doe &nbsp; <b>DOB:</b> 08/14/1980</p>
-            <p><b>Information to be disclosed:</b> All medical records, imaging, and itemized billing relating to injuries from the motor vehicle collision of 02/14/2026, including spinal trauma and facial lacerations.</p>
+            <p><b>Patient:</b> ${E(SC.client.name)} &nbsp; <b>DOB:</b> ${LR.short(SC.client.dob)}</p>
+            <p><b>Information to be disclosed:</b> All medical records, imaging, and itemized billing relating to injuries from the motor vehicle collision of ${LR.short(SC.client.dol)}, including spinal trauma and facial lacerations.</p>
             <p><b>Who may disclose:</b> Any physician, hospital, clinic, imaging center, ambulance service or other health care provider.</p>
             <p><b>Disclose to:</b> LSH Partner Firm, attorneys for the patient.</p>
             <p><b>Purpose:</b> At the request of the individual, for a personal injury claim.</p>

@@ -44,11 +44,11 @@ const RUN_COLLECTION = () => {
     const want = [['ems', ['records', 'bill']], ['him', ['records']], ['pfs', ['bill']], ['rad', ['records', 'bill']],
         ['spine', ['records', 'bill']], ['pt', ['records', 'bill']], ['chiro', ['records', 'bill']],
         ['psych', ['records', 'bill']], ['neuro', ['records', 'bill']], ['whc', ['records']], ['mig', ['records']]];
-    const dos = { ems: ['2026-02-14', '2026-02-14'], him: ['2026-02-14', '2026-05-13'], pfs: ['2026-02-14', '2026-05-13'],
-        rad: ['2026-03-15', '2026-03-15'], spine: ['2026-03-01', '2026-07-01'], pt: ['2026-03-20', '2026-04-02'],
-        chiro: ['2026-03-15', '2026-04-02'], psych: ['2026-04-18', '2026-04-18'], neuro: ['2026-04-20', '2026-06-15'],
-        whc: ['2018-08-12', '2018-09-15'], mig: ['2021-03-10', '2021-11-22'], anes: ['2026-05-12', '2026-05-12'],
-        river: ['2026-06-24', '2026-06-24'] };
+    // the dates each provider actually holds, read from the scenario: the case file moves with the
+    // clock, so a test that typed them in would be testing last year's case
+    const held = (pid) => MR_PROVIDERS.find(p => p.id === pid).dos;
+    const dos = {};
+    MR_PROVIDERS.forEach(p => { dos[p.id] = p.dos; });
     const send = (pid, types) => {
         MR.tab('new');
         document.getElementById('n-prov').value = pid;
@@ -124,6 +124,53 @@ const RUN_COLLECTION = () => {
     const shown = await page.evaluate(() => document.querySelector('.mr-bar').innerText);
     check('the bar shows today and the attorney\'s date', shown.includes(await page.evaluate((d) => LR.fmt(d), clock.today)), shown.replace(/\n/g, ' | '));
 
+    // ---- 1b. the case file moves with the clock, keeping its own shape ----
+    const anchored = await page.evaluate(() => {
+        const DAY = 86400000, iso = (d) => d.toISOString().slice(0, 10);
+        const days = (a, b) => Math.round((LR.toD(b) - LR.toD(a)) / DAY);
+        const dow = (d) => LR.toD(d).getUTCDay();
+        const C = MR_CASE, S = MR_SCENARIO;
+        const prose = JSON.stringify([S.brief, S.intake, MR_PROVIDERS.map(p => Object.values(p.delivered || {}).map(d => d.text)), MR_FINDINGS.map(f => f.text)]);
+        return {
+            shift: MR_CLOCK.shift,
+            dolBack: days(S.client.dol, S.start),
+            dischargeBack: days(MR_D.d(C.discharge), S.start),
+            // the weekday of each authored date survives the move
+            weekdaysKept: [C.dol, C.surgery, C.discharge, C.pt[0], C.pt[5], C.chiro[13]].every(a => dow(MR_D.d(a)) === dow(a)),
+            // nothing in the case file is dated after the collection opens
+            future: MR_PROVIDERS.flatMap(p => p.dos).filter(d => d > S.start),
+            // every bill line falls inside the dates of service its provider holds
+            linesOutside: MR_PROVIDERS.flatMap(p => Object.values(p.delivered || {})
+                .flatMap(d => (d.lines || []).filter(l => l.dos < p.dos[0] || l.dos > p.dos[1]).map(l => `${p.id}:${l.dos}`))),
+            // the gaps that carry meaning are exact
+            bedRest: days(MR_D.d(C.dol), MR_D.d(C.bedRestTo)),
+            priorBack: days(MR_D.d(C.priorFrom), S.client.dol) - days(C.priorFrom, C.dol),
+            migBack: days(MR_D.d(C.migFrom), S.client.dol) - days(C.migFrom, C.dol),
+            // no date as authored is left sitting in any prose
+            leaked: MR_CLOCK.shift === 0 ? [] : (prose.match(/02\/14\/2026|07\/01\/2026|03\/15\/2026|05\/12\/2026|2026-02-14/g) || []),
+            // the planted error is the date of loss typed into the date-of-birth box
+            wrongDob: MR_WRONG_DOB, realDob: LR.short(MR_SCENARIO.client.dob), dolShort: LR.short(S.client.dol),
+            dobFinding: MR_FINDINGS.find(f => f.id === 'dob').text,
+            brainFinding: MR_FINDINGS.find(f => f.id === 'brain').text,
+            migYear: MR_D.yr(C.migFrom),
+            // the authorization on file carries the case's own dates
+            auth: (MR.tab('auth'), document.getElementById('mr-pane').innerText)
+        };
+    });
+    check('the accident always sits about five months behind today', anchored.dolBack >= 142 && anchored.dolBack <= 148, `${anchored.dolBack} days`);
+    check('treatment always ends the week before the collection opens', anchored.dischargeBack >= 5 && anchored.dischargeBack <= 11, `${anchored.dischargeBack} days`);
+    check('the move is whole weeks, so every weekday survives it', anchored.weekdaysKept === true && anchored.shift % 7 === 0, `shift ${anchored.shift}`);
+    check('nothing in the case file is dated after the collection opens', !anchored.future.length, anchored.future.join(', '));
+    check('every bill line falls inside its provider\'s dates of service', !anchored.linesOutside.length, anchored.linesOutside.join(', '));
+    check('the 14-day bed-rest order is still 14 days', anchored.bedRest === 14, `${anchored.bedRest} days`);
+    check('the prior injury is still the same years before the accident', anchored.priorBack === 0 && anchored.migBack === 0, `prior ${anchored.priorBack}, migraine ${anchored.migBack}`);
+    check('no date as authored is left sitting in the prose', !anchored.leaked.length, [...new Set(anchored.leaked)].join(', '));
+    check('the planted date of birth is the date of loss with the birth year', anchored.wrongDob.slice(0, 5) === anchored.dolShort.slice(0, 5) && anchored.wrongDob.endsWith('1980'), `${anchored.wrongDob} vs DOL ${anchored.dolShort}`);
+    check('and it is not the real date of birth, so there is something to spot', anchored.wrongDob !== anchored.realDob, anchored.wrongDob);
+    check('the finding quotes both dates as this run has them', anchored.dobFinding.includes(anchored.wrongDob) && anchored.dobFinding.includes(anchored.realDob), anchored.dobFinding);
+    check('the brain-MRI finding names the migraine year as this run has it', anchored.brainFinding.includes(anchored.migYear), anchored.brainFinding);
+    check('the authorization on file carries the case\'s own dates', anchored.auth.includes(anchored.realDob) && anchored.auth.includes(anchored.dolShort), anchored.auth.slice(0, 300));
+
     // ---- 2. same-day receipt is on, and the whole collection goes through in one sitting ----
     check('same-day receipt is on by default', await page.evaluate(() => window.__S().sameDay === true), 'off by default');
     const run = await page.evaluate(RUN_COLLECTION);
@@ -141,6 +188,7 @@ const RUN_COLLECTION = () => {
     }).then(() => page.waitForTimeout(1500)).then(() => page.evaluate(() => {
         window.__S = () => JSON.parse(localStorage.getItem('LSH_RECORDS_V1'));
         const out = {};
+        const held = (pid) => MR_PROVIDERS.find(p => p.id === pid).dos;
         const send = (pid, types, from, to) => {
             MR.tab('new');
             document.getElementById('n-prov').value = pid;
@@ -150,20 +198,21 @@ const RUN_COLLECTION = () => {
             const S = window.__S(); return S.requests[S.requests.length - 1];
         };
         // a request sent before the authorization is signed is still rejected, same day or not
-        out.rejected = send('rad', ['records'], '2026-03-15', '2026-03-15').status;
+        out.rejected = send('rad', ['records'], ...held('rad')).status;
         MR.tab('auth'); MR.sendAuth();
         // the state fee cap still has to be disputed
-        const ems = send('ems', ['records', 'bill'], '2026-02-14', '2026-02-14');
+        const ems = send('ems', ['records', 'bill'], ...held('ems'));
         out.invoice = ems.invoice ? { amount: ems.invoice.amount, cap: ems.invoice.cap, over: ems.invoice.amount > ems.invoice.cap } : null;
         // the wrong department still sends you to the other one
-        out.wrongDept = send('him', ['records', 'bill'], '2026-02-14', '2026-05-13').ts.bill;
+        out.wrongDept = send('him', ['records', 'bill'], ...held('him')).ts.bill;
         // dates of service the provider doesn't hold still find nothing
-        out.noRecords = send('whc', ['records'], '2026-02-14', '2026-07-01').status;
+        // the accident's own dates, which this prior-injury clinic does not hold
+        out.noRecords = send('whc', ['records'], held('ems')[0], held('spine')[1]).status;
         // psychotherapy notes still need their own authorization
-        out.psych = send('psych', ['records', 'psych'], '2026-04-18', '2026-04-18').ts.psych;
+        out.psych = send('psych', ['records', 'psych'], ...held('psych')).ts.psych;
         // the slow chiropractor still has to be chased before anything arrives (same-day receipt takes
         // the waiting out of the chase, not the chase out of the job), and still sends 2 of 14 visits
-        const sent = send('chiro', ['records', 'bill'], '2026-03-15', '2026-04-02');
+        const sent = send('chiro', ['records', 'bill'], ...held('chiro'));
         out.chiroBeforeChase = !sent.delivered || !sent.delivered.bill;
         MR.followUp(sent.no);
         const chased = window.__S().requests.find(r => r.no === sent.no);
@@ -204,7 +253,8 @@ const RUN_COLLECTION = () => {
         MR.advance(3);
         MR.tab('new');
         document.getElementById('n-prov').value = 'pfs';
-        document.getElementById('n-from').value = '2026-02-14'; document.getElementById('n-to').value = '2026-05-13';
+        const pfs = MR_PROVIDERS.find(p => p.id === 'pfs').dos;
+        document.getElementById('n-from').value = pfs[0]; document.getElementById('n-to').value = pfs[1];
         document.querySelectorAll('.mr-types input').forEach(i => { i.checked = i.value === 'bill'; });
         document.querySelector('form.mr-new').dispatchEvent(new Event('submit', { cancelable: true }));
         const S = window.__S(), r = S.requests[0];
@@ -239,6 +289,26 @@ const RUN_COLLECTION = () => {
     check('nobody is punished for the days they were away', after.missed === false, 'a follow-up was marked missed during the catch-up');
     check('the catch-up says so in the log', after.said === true, 'nothing in the log');
     check('the attorney\'s date is refreshed with it', after.goal === after.scenarioGoal, `${after.goal} vs ${after.scenarioGoal}`);
+
+    // ---- 5b. ?anchor=authored pins the case file to the course's printed documents ----
+    const pinnedPage = await browser.newPage({ viewport: { width: 1360, height: 900 } });
+    pinnedPage.on('pageerror', e => errors.push('pinned: ' + e.message));
+    pinnedPage.on('dialog', d => d.accept());
+    await pinnedPage.goto(base + '/simulators/records.html?anchor=authored', { waitUntil: 'load' });
+    await pinnedPage.waitForFunction(() => window.MR && document.querySelector('.mr-table, .mr-brief'), null, { timeout: 20000 });
+    const pin = await pinnedPage.evaluate(() => ({
+        shift: MR_CLOCK.shift, pinned: MR_CLOCK.pinned, dol: MR_SCENARIO.client.dol,
+        discharge: MR_PROVIDERS.find(p => p.id === 'spine').dos[1],
+        mri: MR_PROVIDERS.find(p => p.id === 'rad').dos[0],
+        wrongDob: MR_WRONG_DOB,
+        // the collection's own clock still runs on today, pinned or not
+        today: JSON.parse(localStorage.getItem('LSH_RECORDS_V1')).today, system: MR_SCENARIO.system,
+        said: document.getElementById('mr-pane').innerText.includes('pinned to the dates')
+    }));
+    check('?anchor=authored pins the case file', pin.pinned === true && pin.shift === 0, JSON.stringify(pin));
+    check('pinned, the case file reads as it was authored', pin.dol === '2026-02-14' && pin.discharge === '2026-07-01' && pin.mri === '2026-03-15' && pin.wrongDob === '02/14/1980', JSON.stringify(pin));
+    check('pinned, the collection still opens on today', pin.today >= pin.system, `${pin.today} vs ${pin.system}`);
+    check('pinned, the page says why the dates look older', pin.said === true, 'no note shown');
 
     // ---- 6. the page still behaves ----
     const sideways = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);

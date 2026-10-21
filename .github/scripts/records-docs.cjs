@@ -62,8 +62,9 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await sim.evaluate(() => {
         MR.tab('new');
         document.getElementById('n-prov').value = 'rad';
-        document.getElementById('n-from').value = '2026-03-15';
-        document.getElementById('n-to').value = '2026-03-15';
+        const dos = MR_PROVIDERS.find(p => p.id === 'rad').dos;   // the dates this provider holds, as this run dates them
+        document.getElementById('n-from').value = dos[0];
+        document.getElementById('n-to').value = dos[1];
         document.querySelector('form.mr-new').dispatchEvent(new Event('submit', { cancelable: true }));
     });
     // run the clock, paying the invoice when it is issued, until the provider produces
@@ -99,9 +100,9 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
 
     // a real PDF comes out, named the firm's way
     const pdf = await sim.evaluate((no) => {
-        const doc = MRDocs.build({ request: { no, dosFrom: '2026-03-15', dosTo: '2026-03-15', types: ['records', 'bill'] }, kind: 'bill',
-            provider: MR_PROVIDERS.find(p => p.id === 'rad'), scenario: MR_SCENARIO,
-            delivered: MR_PROVIDERS.find(p => p.id === 'rad').delivered.bill, producedOn: '2026-07-20' });
+        const rad = MR_PROVIDERS.find(p => p.id === 'rad');
+        const doc = MRDocs.build({ request: { no, dosFrom: rad.dos[0], dosTo: rad.dos[1], types: ['records', 'bill'] }, kind: 'bill',
+            provider: rad, scenario: MR_SCENARIO, delivered: rad.delivered.bill, producedOn: MR_SCENARIO.start });
         const p = MRDocs.pdfDoc(doc);
         const bytes = new Uint8Array(p.output('arraybuffer'));
         return { name: doc.name, category: doc.category, size: bytes.length, head: String.fromCharCode.apply(null, bytes.slice(0, 5)) };

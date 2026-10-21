@@ -46,7 +46,7 @@ Three simulators on the Simulators hub (`/simulators.html`) train the paperwork 
   - **State method (CM course):** add the service days first, then roll once.
   - It unlocks for an assignment after the trainee checks it, so trainees count by hand first.
 
-**🗂 Medical Records Requests** (`/simulators/records.html`): collecting John Doe's records and bills for the demand. The collection opens on today's date and the attorney's date is 29 business days out from it, so every date a trainee works to is a real date; **same-day receipt** (on by default) brings back what the providers and the client send the same day, so a whole collection can be worked through in one live session.
+**🗂 Medical Records Requests** (`/simulators/records.html`): collecting John Doe's records and bills for the demand. The collection opens on today's date, the attorney's date is 29 business days out from it, and the case file moves with the clock so the accident always sits about five months behind today (`?anchor=authored` pins it to the dates on the course's printed documents instead); **same-day receipt** (on by default) brings back what the providers and the client send the same day, so a whole collection can be worked through in one live session.
 - **Authorization:** the HIPAA authorization is unsigned and undated; review it against 45 CFR 164.508 and send it for e-signature.
 - **Requests:** go to the right department (hospital records vs. billing) for the right dates of service.
 - **Business-day clock:** providers respond with acknowledgments, rejections (bad authorization, no records for those dates, psychotherapy notes without a separate authorization), invoices, and silence until someone follows up.
