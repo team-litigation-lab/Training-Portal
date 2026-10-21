@@ -41,11 +41,13 @@ const TICKET_TTL_MS = 5 * 60 * 1000;
 // names, callsQuery), or Ring Channel's 🎧 Practice (to=aicall: an AI caller rings the trainee) or console (to=console: a
 // trainer sends AI callers).
 // Only these are allowed, and each only on its own tool, so a link can't send anyone anywhere else.
+// cmkb: the Knowledge Base's Case Management collection, where the Case Management Training course's handouts are (its
+// 📚 Knowledge Base link).
 // blueprint: a program's (or a tool's) own Blueprint, the only way in: the No Blueprint rule keeps every Blueprint
 // button and link out of the programs and tools, and the Main Portal's 🧭 Blueprint menu links here instead.
 const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1', tool: 'cms' }, messages: { tool: 'cms' }, calls: { hash: '#/practice', tool: 'ringchannel' },
     aicall: { hash: '#/practice', tool: 'ringchannel' }, console: { hash: '#/console', tool: 'ringchannel' },
-    blueprint: { hash: '#/blueprint', also: ['kb', 'cms', 'ringchannel'] } };
+    cmkb: { hash: '#/c/case-management', tool: 'kb' }, blueprint: { hash: '#/blueprint', also: ['kb', 'cms', 'ringchannel'] } };
 function landing(to, isTool, params, tool) {
     const l = Object.prototype.hasOwnProperty.call(LANDINGS, to) ? LANDINGS[to] : null;
     if (!l || (l.tool && (!isTool || l.tool !== tool)) || (!l.tool && isTool && !(l.also || []).includes(tool))) return { query: '', hash: '' };
