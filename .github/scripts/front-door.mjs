@@ -46,6 +46,13 @@ for (const p of ['/', '/index.html']) {
     const r2 = await hit(p, boss);
     check(r2.passed && r2.status === 200, `and for a signed-in admin (${p})`);
 }
+// Trainer material is for trainers: a trainee or a visitor is sent to the admin sign-in and gets none of it.
+for (const [username, userType] of [['ann', 'Trainee'], ['boss', 'Admin']]) await u.upsertSessionHeartbeat(env.DB, { username, fullName: username, batchId: 'B1', userType });
+const MODEL = '/simulators/drafting/trainers/Model%20packet%20-%20MedLOR%20with%20Unsworn%20COR%20and%20HIPAA.pdf';
+let tr = await hit(MODEL, ann); check(!tr.passed && tr.status === 302 && tr.loc === '/admin-login.html', 'a trainee cannot open the trainers\' model packet');
+tr = await hit(MODEL, null); check(!tr.passed && tr.status === 302, 'nor can a signed-out visitor');
+tr = await hit(MODEL, boss); check(tr.passed, 'a trainer (admin) can');
+tr = await hit('/simulators/drafting/hipaa/INTAKE%20-%20HIPAA%202.0%20for%20training%20purposes.pdf', ann); check(tr.passed, 'a trainee gets the HIPAA they work from');
 let rr = await hit('/trainee-login.html', ann);
 check(rr.status === 302 && rr.loc === '/programs.html', 'a signed-in trainee on the sign-in page goes to the Training Directory');
 let r = await hit('/admin-login.html', ann); check(r.passed && r.status === 200, 'a signed-in trainee gets the admin sign-in (to sign in as an admin)');

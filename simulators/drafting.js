@@ -117,6 +117,140 @@ function paperHtml(t) {
     }).join('');
 }
 
+/* ---------- the letter exactly as Word lays it out ----------
+   The blocks above are a quick sketch of the letter. Once the page has the template, it draws the
+   firm's own .docx instead (docx-preview): letterhead, logo, fonts, tabs, spacing and footer as in
+   Word. drafting-docx.js swaps each field's text for a marker first, and the marker is replaced
+   here by the same blank the sketch had, inside the run that carries the firm's formatting. */
+const docxCache = {};
+let drawing = 0;
+async function templateBytes(t) {
+    const src = srcOf(t);
+    if (!docxCache[src]) {
+        docxCache[src] = fetch(src, { credentials: 'include' }).then(res => {
+            if (!res.ok) throw new Error('The template could not be loaded (' + res.status + ').');
+            return res.arrayBuffer();
+        });
+        docxCache[src].catch(() => { delete docxCache[src]; });
+    }
+    return (await docxCache[src]).slice(0);
+}
+async function drawDocx(t) {
+    const host = document.getElementById('dr-paper');
+    if (!host || !window.docx || !window.docx.renderAsync || !window.LSHDraftingDocx || !LSHDraftingDocx.mark) return;
+    const mine = ++drawing;
+    try {
+        const marked = await LSHDraftingDocx.mark(await templateBytes(t));
+        if (mine !== drawing || !document.body.contains(host)) return;
+        // Rendered in place but hidden, under the sketch: docx-preview measures its tab stops on the
+        // live page a moment after it renders, so the letter has to be laid out (blanks and all) by then.
+        host.querySelectorAll('.dr-docx-stage').forEach(n => n.remove());
+        const box = document.createElement('div');
+        box.className = 'dr-docx-stage';
+        box.style.cssText = 'position:absolute;left:0;top:0;width:100%;visibility:hidden;pointer-events:none;';
+        host.style.position = 'relative';
+        host.appendChild(box);
+        await window.docx.renderAsync(marked, box, box, {
+            className: 'docx', inWrapper: true, ignoreWidth: false, ignoreHeight: false, breakPages: true,
+            renderHeaders: true, renderFooters: true, renderFootnotes: true, experimental: true, useBase64URL: true
+        });
+        if (mine !== drawing) { box.remove(); return; }                   // the trainee moved on to another letter
+        const runs = {};
+        fieldsOf(t).forEach(r => { runs[r.f] = r; });
+        const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT), hits = [];
+        while (walker.nextNode()) if (LSHDraftingDocx.MARK_RE.test(walker.currentNode.nodeValue)) hits.push(walker.currentNode);
+        hits.forEach(node => {
+            const m = node.nodeValue.match(LSHDraftingDocx.MARK_RE), r = runs[m[1]];
+            const after = node.splitText(node.nodeValue.indexOf(m[0]));
+            after.nodeValue = after.nodeValue.slice(m[0].length);
+            const el = r ? docxField(t, r) : document.createTextNode('');
+            node.parentNode.insertBefore(el, after);
+            // The run is highlighted in Word; the blank carries its own colour (yellow open, blue filled).
+            if (node.parentNode.style) node.parentNode.style.backgroundColor = 'transparent';
+        });
+        [].slice.call(host.childNodes).forEach(n => { if (n !== box) host.removeChild(n); });
+        host.classList.add('dr-docx');
+        box.style.cssText = '';
+        // The letterhead, office footer and signature float over the page in Word; draw them too.
+        if (window.LSHDraftingLetterhead) {
+            try { await LSHDraftingLetterhead.draw(marked, box); }
+            catch (e) { if (window.console) console.warn('Drafting: the letterhead could not be drawn —', e && e.message); }
+        }
+        fitDocx();
+    } catch (e) {
+        // Keep the sketch: it has the same blanks, so the trainee can still draft and download.
+        if (window.console) console.warn('Drafting: drawing the Word letter failed —', e && e.message);
+    }
+}
+// A blank inside the Word layout is the firm's highlighted text itself, typed over the way it is in
+// Word: it starts as the placeholder (yellow) and counts as filled once it says something else. It is
+// as wide as what is in it, so tabs and wrapping stay the file's. A tab inside it (the MedLOR's "Re:"
+// lines are one highlighted run, tabs and all) is a real tab stop, and Tab types one there.
+const TAB_HTML = '<span class="docx-tab-stop dr-wtab" contenteditable="false">\t</span>';
+const escTxt = (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const fieldHtml = (v) => String(v).split('\t').map(escTxt).join(TAB_HTML);
+const fieldText = (el) => el.innerText.replace(/ /g, ' ').replace(/\n$/, '');
+function docxField(t, r) {
+    const el = document.createElement('span');
+    if (r.k === 'date') {
+        el.className = 'dr-auto';
+        el.title = 'The date the letter is drafted — filled in for you, as a template editor does';
+        el.textContent = today();
+        return el;
+    }
+    const v = String(answer(t.id, r.f)), tabs = r.ph.indexOf('\t') >= 0;
+    el.className = 'dr-f dr-ce' + (v.trim() ? ' filled' : '') + (r.k === 'long' ? ' long' : '');
+    el.dataset.f = r.f;
+    el.title = r.k === 'manual'
+        ? 'The firm highlighted this line, but it is not a placeholder: type how the letter actually goes out.'
+        : 'The firm highlighted this — type over it, or press Enter to keep it as it is.' + (tabs ? ' Tab puts in a tab, as in Word.' : '');
+    el.setAttribute('role', 'textbox');
+    el.setAttribute('aria-label', r.ph.replace(/\t/g, ' '));
+    el.contentEditable = 'true';
+    el.spellcheck = false;
+    el.innerHTML = fieldHtml(v.trim() ? v : r.ph);
+    el.addEventListener('focus', () => {
+        // An untouched placeholder is selected whole, so typing replaces it — unless it carries labels and tabs.
+        if (el.classList.contains('filled') || tabs) return;
+        const range = document.createRange(); range.selectNodeContents(el);
+        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    });
+    el.addEventListener('input', () => {
+        const val = fieldText(el);
+        API.set(r.f, val === r.ph ? '' : val);
+        if (window.LSHDraftingLetterhead) LSHDraftingLetterhead.retab();   // a longer answer moves the tabs after it
+    });
+    el.addEventListener('blur', () => { if (!fieldText(el).trim()) el.innerHTML = fieldHtml(r.ph); });
+    el.addEventListener('keydown', (e) => {
+        // Enter keeps what is there (a line that is already right is "filled" as it stands, its highlight removed).
+        if (e.key === 'Enter' && r.k !== 'long') { e.preventDefault(); API.set(r.f, fieldText(el)); el.blur(); return; }
+        if (e.key === 'Tab' && tabs && !e.shiftKey) { e.preventDefault(); insertHtml(TAB_HTML); }
+    });
+    el.addEventListener('paste', (e) => {                                // text only, never the clipboard's formatting
+        e.preventDefault();
+        const txt = (e.clipboardData || window.clipboardData).getData('text');
+        insertHtml(fieldHtml(r.k === 'long' ? txt : txt.replace(/\s*\n\s*/g, ' ')));
+    });
+    return el;
+}
+function insertHtml(html) {
+    document.execCommand('insertHTML', false, html);
+    const el = document.activeElement;
+    if (el) el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+// A letter is 8.5 in wide; on a narrow screen it is shrunk to the column rather than scrolled sideways.
+function fitDocx() {
+    const host = document.getElementById('dr-paper'), wrap = host && host.querySelector('.docx-wrapper');
+    if (!wrap) return;
+    wrap.style.zoom = '';
+    // The page is centred, so it spills out on both sides: measure the page itself, not the wrapper.
+    const pad = parseFloat(getComputedStyle(wrap).paddingLeft) + parseFloat(getComputedStyle(wrap).paddingRight);
+    const need = Math.max.apply(null, [].map.call(wrap.querySelectorAll(':scope > section.docx'), x => x.offsetWidth).concat([0])) + pad;
+    const have = host.clientWidth;
+    if (need > have && have > 0) wrap.style.zoom = String(have / need);
+}
+window.addEventListener('resize', fitDocx);
+
 /* ---------- picking a provider and which of their two letters ---------- */
 function providerBar() {
     const p = provider(); if (!p) return '';
@@ -152,13 +286,134 @@ function caseHtml() {
     </div>`;
 }
 
-/* ---------- the file name the trainers ask for ---------- */
+/* ---------- the file name the trainers ask for ----------
+   As the 18-Day Foundational Training guide gives them (Days 11, 14 and 16):
+     INS – 1P State Farm - LOR 02.17.2026 (Michelle)
+     INS – 3P Geico - LOR with Affidavit 02.17.2026 (Michelle)
+     MED - JML(Lyons Physical Therapy) - MedLOR with Unsworn COR and HIPAA 08.11.22 (John)
+     MED - RDG(NPIM Dr. Fabito) - Lien Balance Verification 08.17.2022 (Jane)
+   The VA's first name; the client's initials before the provider; NPIM always with the doctor. */
+const pad2 = (n) => String(n).padStart(2, '0');
+const firstName = () => (String(Sim.who().name || '').trim().split(/\s+/)[0]) || 'VA';
+// The carrier: the company the trainee put in the letter, else the one in the case notes.
+function carrierOf(t) {
+    if (t.id !== 'lor1p' && t.id !== 'lor3p') return '';
+    const typed = String(answer(t.id, 'f3')).trim().replace(/[\[\]]/g, '').replace(/\.$/, '');
+    if (typed) return typed;
+    const c = CASES[S.caseNo] || {};
+    return (t.id === 'lor1p' ? (c.p1 || {})['Insurance Company Name'] : (c.p3 || {})['Defendant Insurance Company Name']) || '';
+}
+// The client, read off the letter itself ("Our Client: John Test Doe"), as the trainee has it now.
+function clientOf(t) {
+    for (const b of t.blocks) {
+        if (b.t !== 'p') continue;
+        const line = b.runs.map(r => r.f ? (r.k === 'date' ? '' : (String(answer(t.id, r.f)).trim() ? answer(t.id, r.f) : r.ph)) : r.x).join('');
+        const m = line.match(/Our Client:\s*([^\t\n]+)/);
+        if (m && m[1].trim()) return m[1].trim();
+    }
+    return '';
+}
+const initialsOf = (name) => name.split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase()).join('');
+// "Nevada Personal Injury Management — Dr. Le" → "NPIM Dr. Le"; "Las Vegas Spine & Pain Center (Dr. Brian Le)" → "… Dr. Brian Le".
+const providerLabel = (name) => String(name).replace(/^Nevada Personal Injury Management\s*—\s*/i, 'NPIM ')
+    .replace(/\s*—\s*/g, ' ').replace(/\s*\((Dr\.[^)]*)\)/g, ' $1').trim();
 function fileName(t) {
-    const d = new Date(), pad = (n) => String(n).padStart(2, '0');
-    return t.naming
-        .replace('mm.dd.yyyy', `${pad(d.getMonth() + 1)}.${pad(d.getDate())}.${d.getFullYear()}`)
-        .replace("(VA's name)", `(${Sim.who().name || 'VA'})`)
-        .replace(/[\\/:*?"<>|]/g, '');
+    const d = new Date(), mm = pad2(d.getMonth() + 1), dd = pad2(d.getDate()), yyyy = d.getFullYear();
+    let name;
+    if (t.dir === 'providers') {
+        const who = initialsOf(clientOf(t)) + '(' + providerLabel(t.provider) + ')';
+        name = t.id.endsWith(':medlor')
+            ? `MED - ${who} - MedLOR with Unsworn COR and HIPAA ${mm}.${dd}.${String(yyyy).slice(2)} (${firstName()})`
+            : `MED - ${who} - Lien Balance Verification ${mm}.${dd}.${yyyy} (${firstName()})`;
+    } else {
+        const carrier = carrierOf(t);
+        name = t.naming
+            .replace(/([13]P) Insurance Provider/, (m, side) => carrier ? side + ' ' + carrier : m)
+            .replace('mm.dd.yyyy', `${mm}.${dd}.${yyyy}`)
+            .replace("(VA's name)", `(${firstName()})`);
+    }
+    return name.replace(/[\\/:*?"<>|]/g, '');
+}
+
+/* ---------- the MedLOR packet: the letter + the client's signed HIPAA, one PDF ----------
+   The firm never sends a MedLOR on its own (18-Day guide, Day 14): the VA completes the client's
+   signed HIPAA from Intake — Validity of Authorization is the date the client signed it, Relationship
+   to Patient is Self — and merges it with the MedLOR and Unsworn COR into one PDF, HIPAA first, named
+   "MED - JTD(Provider) - MedLOR with Unsworn COR and HIPAA mm.dd.yy (Name)". The page writes the
+   HIPAA's three blanks onto the firm's own PDF and merges it with the MedLOR the trainee saved as PDF
+   from Word (pdf-lib). The finished example is a trainer's: it lives under /simulators/drafting/trainers/,
+   which only an admin can open (functions/_middleware.js). */
+const HIPAA_SRC = '/simulators/drafting/hipaa/' + encodeURIComponent('INTAKE - HIPAA 2.0 for training purposes.pdf');
+const MODEL_SRC = '/simulators/drafting/trainers/' + encodeURIComponent('Model packet - MedLOR with Unsworn COR and HIPAA.pdf');
+const HIPAA_SIGNED = { y: 2025, m: 10, d: 15 };            // "Date: October 15, 2025" under the client's signature
+// Where each blank is on the firm's PDF (points from the bottom left; page 1 or 2), and what is right.
+const HIPAA_FIELDS = [
+    { id: 'valid', label: 'Valid beginning on', page: 0, x: 249, y: 167, ok: (v) => isSigned(v) },
+    { id: 'from', label: 'Expires 5 years from', page: 0, x: 478, y: 167, ok: (v) => isSigned(v) },
+    { id: 'rel', label: 'Relationship to Patient', page: 1, x: 158, y: 445, ok: (v) => /^\s*self\s*$/i.test(v) }
+];
+function isSigned(v) {
+    const d = new Date(String(v).trim().replace(/(\d)(st|nd|rd|th)\b/i, '$1'));
+    return !isNaN(d) && d.getFullYear() === HIPAA_SIGNED.y && d.getMonth() + 1 === HIPAA_SIGNED.m && d.getDate() === HIPAA_SIGNED.d;
+}
+const hipaaKey = (t, id) => t.id + ':hipaa:' + id;
+const hipaaVal = (t, id) => String(S.answers[hipaaKey(t, id)] || '');
+const isMedlor = (t) => t.dir === 'providers' && /:medlor$/.test(t.id);
+function packetHtml(t) {
+    if (!isMedlor(t)) return '';
+    const admin = Sim.isAdmin && Sim.isAdmin();
+    return `<div class="dr-note">
+        <h3>Step 2 · The client's signed HIPAA</h3>
+        <p style="margin:0 0 8px;">Intake has the client's signed HIPAA. Open it, then fill in what the VA completes on it.</p>
+        <a class="sim-btn ghost" href="${HIPAA_SRC}" download="INTAKE - HIPAA 2.0 (John Test Doe).pdf" style="display:block;text-align:center;margin-bottom:10px;">⬇ The client's signed HIPAA (PDF)</a>
+        ${HIPAA_FIELDS.map(f => `<label style="display:block;margin:0 0 8px;font-weight:700;color:#334155;">${esc(f.label)}
+            <input class="dr-hip" data-h="${f.id}" value="${esc(hipaaVal(t, f.id))}" oninput="LSHDrafting.setHipaa('${f.id}', this.value)"
+                style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:7px 9px;border:1px solid #cbd5e1;border-radius:7px;font:inherit;font-weight:500;"></label>`).join('')}
+    </div>
+    <div class="dr-note">
+        <h3>Step 3 · One PDF, ready to send</h3>
+        <p style="margin:0 0 8px;">Download the Word letter, open it in Word and save it as PDF (File › Save As › PDF). Choose that PDF here: the page puts the HIPAA in front of it, as the firm sends it.</p>
+        <input type="file" id="dr-medpdf" accept="application/pdf,.pdf" style="width:100%;font-size:12px;margin-bottom:8px;">
+        <button class="sim-btn orange" style="width:100%;" onclick="LSHDrafting.packet()">⬇ Build the packet (PDF)</button>
+        <p style="margin:10px 0 4px;color:#64748b;">Saved as</p>
+        <div class="dr-name">${esc(fileName(t))}.pdf</div>
+        ${admin ? `<p style="margin:12px 0 0;"><b>For trainers:</b> <a href="${MODEL_SRC}" download>the firm's finished packet</a> (model answer — trainees can't open it).</p>` : ''}
+    </div>`;
+}
+async function buildPacket(t, medBytes) {
+    const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+    const res = await fetch(HIPAA_SRC, { credentials: 'include' });
+    if (!res.ok) throw new Error('The HIPAA could not be loaded (' + res.status + ').');
+    const out = await PDFDocument.load(await res.arrayBuffer());
+    const font = await out.embedFont(StandardFonts.Helvetica), pages = out.getPages();
+    HIPAA_FIELDS.forEach(f => {
+        const v = hipaaVal(t, f.id).trim();
+        if (v && pages[f.page]) pages[f.page].drawText(v, { x: f.x, y: f.y, size: 10.5, font, color: rgb(0, 0, 0) });
+    });
+    const med = await PDFDocument.load(medBytes);
+    (await out.copyPages(med, med.getPageIndices())).forEach(pg => out.addPage(pg));
+    return { bytes: await out.save(), medPages: med.getPageCount() };
+}
+
+// The trainers' own reminders for each letter, from the 18-Day Foundational Training guide.
+function guideHtml(t) {
+    const li = (xs) => '<ul style="margin:0;padding-left:18px;">' + xs.map(x => `<li style="margin:0 0 5px;">${x}</li>`).join('') + '</ul>';
+    if (t.dir === 'templates') return `<div class="dr-note"><h3>The trainers' reminders</h3>${li([
+        '<b>F/E</b> means Fax or E-mail: replace it with the actual fax number or e-mail address you are sending to (see the case notes).',
+        '<b>SENT VIA FACSIMILE AND E-MAIL</b>: keep only the method you are using and remove the other.',
+        'Check the spacing, the layout of the recipient\'s address and that the font and alignment are consistent.',
+        'These letters go to insurance companies: clear, accurate and professional.',
+        '<b>No highlighted text may be left in your final letter.</b>'])}</div>`;
+    if (t.id.endsWith(':medlor')) return `<div class="dr-note"><h3>The trainers' reminders</h3>${li([
+        'Tick the boxes for what you are requesting (bills, records or both).',
+        'Check the client\'s details against the current contact card in SA — don\'t trust what the template already has.',
+        'The final file is <b>one PDF</b>: this MedLOR with the Unsworn COR and the client\'s signed HIPAA, merged in your PDF editor.',
+        'On the HIPAA: <b>Validity of Authorization</b> is the date the client signed it (shown at the bottom); <b>Relationship to Patient</b> is <b>Self</b>.',
+        'NPIM doctors: the doctor\'s name goes in the file name after the provider.'])}</div>`;
+    return `<div class="dr-note"><h3>The trainers' reminders</h3>${li([
+        'Check the client\'s details against the current contact card in SA.',
+        'NPIM doctors: the doctor\'s name goes in the file name after the provider.',
+        'E-mail subject: <i>Client name - Lien holder (provider) - Request for Lien Verification</i>.'])}</div>`;
 }
 
 function render() {
@@ -184,15 +439,18 @@ function render() {
                     <p style="margin:12px 0 4px;color:#64748b;">Saved as</p>
                     <div class="dr-name">${esc(fileName(t))}.docx</div>
                 </div>
+                ${packetHtml(t)}
                 ${caseHtml()}
+                ${guideHtml(t)}
                 <div class="dr-note">
                     <h3>How this works</h3>
-                    <p style="margin:0 0 7px;">The wording is the firm's and can't be changed. Only what the firm highlighted in yellow is yours to fill.</p>
+                    <p style="margin:0 0 7px;">The wording is the firm's and can't be changed. Only what the firm highlighted in yellow is yours — click it and type over it, as you would in Word; if a line is already right, click it and press Enter to keep it. It turns blue once it's done.</p>
                     <p style="margin:0 0 7px;">The date writes itself — it is the day you draft the letter.</p>
                     <p style="margin:0;">Your download is this very Word file with your answers written in, so the logo and the format are the firm's own. Upload that file to SA.</p>
                 </div>
             </div>
         </div>`;
+    drawDocx(t);
 }
 
 const API = {
@@ -206,7 +464,7 @@ const API = {
     },
     pickKind(k) { S.kind = k; save(); render(); window.scrollTo(0, 0); },
     set(f, v) {
-        S.answers[key(S.tab, f)] = v;
+        S.answers[key(tpl().id, f)] = v;           // filed under the letter's own id (a provider's carries the provider)
         save();
         // Repaint only the counter: redrawing the paper would take the cursor out of the field.
         const t = tpl(), done = doneCount(t), total = theirFields(t).length;
@@ -215,6 +473,29 @@ const API = {
         if (lbl) lbl.textContent = `${done} of ${total} blanks filled · saved ${new Date(S.savedAt).toLocaleTimeString()}`;
         const el = document.querySelector(`[data-f="${f}"]`);
         if (el) el.classList.toggle('filled', !!String(v).trim());
+        document.querySelectorAll('.dr-name').forEach(nm => {           // the carrier / the client's initials are in the file name
+            nm.textContent = fileName(t) + (/\.pdf$/.test(nm.textContent) ? '.pdf' : '.docx');
+        });
+    },
+    setHipaa(id, v) { S.answers[hipaaKey(tpl(), id)] = v; save(); },
+    async packet() {
+        const t = tpl(), input = document.getElementById('dr-medpdf'), file = input && input.files && input.files[0];
+        if (!file) { alert('Choose your MedLOR saved as PDF first (open the Word letter in Word, then File › Save As › PDF).'); return; }
+        if (!window.PDFLib) { alert('The PDF tool could not be loaded. Check your connection and try again.'); return; }
+        const open = HIPAA_FIELDS.filter(f => !hipaaVal(t, f.id).trim());
+        if (open.length && !confirm(`The HIPAA still has ${open.length} blank${open.length === 1 ? '' : 's'} (${open.map(f => f.label).join(', ')}). Build the packet anyway?`)) return;
+        try {
+            const out = await buildPacket(t, await file.arrayBuffer());
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([out.bytes], { type: 'application/pdf' }));
+            a.download = fileName(t) + '.pdf';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+            S.answers[t.id + ':packet'] = new Date().toISOString(); save();
+            alert(`Packet built: the HIPAA (2 pages) and your MedLOR (${out.medPages} page${out.medPages === 1 ? '' : 's'}) in one PDF.`);
+        } catch (e) {
+            alert('The packet could not be built: ' + (/encrypt|parse|header/i.test(e.message) ? 'that file does not read as a PDF.' : e.message));
+        }
     },
     async download() {
         const t = tpl();
@@ -239,12 +520,17 @@ const API = {
         const t = tpl(), done = doneCount(t), total = theirFields(t).length;
         if (!total) return;
         if (done < total && !confirm(`${total - done} blank${total - done === 1 ? '' : 's'} still empty. Send it to your trainer anyway?`)) return;
+        // A MedLOR is graded with its HIPAA: the letter's blanks, and the HIPAA's three done the firm's way.
+        const hip = isMedlor(t) ? HIPAA_FIELDS.map(f => ({ field: f.label, answer: hipaaVal(t, f.id), correct: f.ok(hipaaVal(t, f.id)) })) : null;
+        const hipOk = hip ? hip.filter(h => h.correct).length : 0;
+        const letterPct = total ? done / total * 100 : 0;
         Sim.saveResult({
             simulator: S.tab === 'prov' ? 'Drafting — Medical Provider' : 'Drafting — LOR',
             scenario: S.tab === 'prov' ? `${t.title} · ${t.provider}` : t.title + (CASES.length ? ` · Case ${S.caseNo + 1}` : ''),
-            score: total ? Math.round(done / total * 100) : 0,
-            summary: `${done} of ${total} blanks filled`,
-            details: { template: t.id, caseNo: S.tab === 'prov' ? null : S.caseNo + 1, provider: S.tab === 'prov' ? t.provider : null, answers: answersFor(t) }
+            score: Math.round(hip ? (letterPct * 0.7 + hipOk / hip.length * 30) : letterPct),
+            summary: `${done} of ${total} blanks filled` + (hip ? ` · HIPAA ${hipOk} of ${hip.length} right` + (S.answers[t.id + ':packet'] ? ' · packet built' : ' · packet not built') : ''),
+            details: { template: t.id, caseNo: S.tab === 'prov' ? null : S.caseNo + 1, provider: S.tab === 'prov' ? t.provider : null, answers: answersFor(t),
+                hipaa: hip, packetBuiltAt: hip ? (S.answers[t.id + ':packet'] || null) : null, fileName: fileName(t) + (hip ? '.pdf' : '.docx') }
         });
         alert('Sent to your trainer. Download the Word letter too if you need to upload it to SA.');
     }
@@ -253,6 +539,18 @@ window.LSHDrafting = API;
 
 document.getElementById('topbar').innerHTML = Sim.topbar('drafting');
 Sim.label('Drafting');
-Sim.restore().then(() => { load(); render(); document.getElementById('topbar').innerHTML = Sim.topbar('drafting'); });
-load(); render();
+// A course can open a given letter: ?tab=lor1p | lor3p | prov, and for the providers' letters ?kind=medlor | lienbv
+// (Standard Foundational Training's Provider Communication days open the MedLOR + HIPAA packet this way).
+function fromLink() {
+    const q = new URLSearchParams(location.search), tab = q.get('tab'), kind = q.get('kind');
+    if (tab === 'prov' && PROVIDERS.length) S.tab = 'prov';
+    else if (tab && TEMPLATES.some(x => x.id === tab)) S.tab = tab;
+    if (S.tab === 'prov' && kind && LETTER_KIND[kind]) {
+        const p = provider();
+        if (p && !p.letters[kind]) { const i = PROVIDERS.findIndex(x => x.letters[kind]); if (i >= 0) S.prov = i; }
+        S.kind = kind;
+    }
+}
+Sim.restore().then(() => { load(); fromLink(); render(); document.getElementById('topbar').innerHTML = Sim.topbar('drafting'); });
+load(); fromLink(); render();
 }());

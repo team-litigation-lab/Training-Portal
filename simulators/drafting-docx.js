@@ -79,10 +79,14 @@
         });
         String(text).split('\n').forEach((line, i) => {
             if (i) r.appendChild(doc.createElementNS(W, 'w:br'));
-            const t = doc.createElementNS(W, 'w:t');
-            t.setAttributeNS(XML_NS, 'xml:space', 'preserve');                 // keep the spaces around a filled name
-            t.appendChild(doc.createTextNode(line));
-            r.appendChild(t);
+            line.split('\t').forEach((part, j) => {
+                if (j) r.appendChild(doc.createElementNS(W, 'w:tab'));        // a tab typed in a blank is Word's tab
+                if (!part) return;
+                const t = doc.createElementNS(W, 'w:t');
+                t.setAttributeNS(XML_NS, 'xml:space', 'preserve');             // keep the spaces around a filled name
+                t.appendChild(doc.createTextNode(part));
+                r.appendChild(t);
+            });
         });
     }
     function clearRun(r) {
@@ -128,5 +132,43 @@
         return { blob, filled: res.filled, missing: res.missing, total: res.total };
     }
 
-    return { fill, fillXml, fieldsOf };
+    // The same .docx with each field's text swapped for a marker (⟦f7⟧), for drawing the letter on
+    // the page exactly as Word lays it out: the page renders this file, then puts a blank where each
+    // marker landed. The marker sits in the field's own first run, so it carries that run's formatting.
+    const MARK = (id) => '⟦' + id + '⟧';
+    function markXml(xml) {
+        const doc = new DOMParser().parseFromString(xml, 'application/xml');
+        if (doc.getElementsByTagName('parsererror')[0]) throw new Error('Word document.xml could not be read.');
+        const fields = fieldsOf(doc);
+        Object.keys(fields).forEach(id => {
+            const runs = fields[id];
+            writeRun(doc, runs[0], MARK(id));
+            runs.slice(1).forEach(clearRun);
+        });
+        // Word treats a hanging indent as a tab stop ("Our Client:⇥name" lines up under the name above);
+        // docx-preview doesn't, so this copy, which is only ever drawn, spells that stop out.
+        [].slice.call(doc.getElementsByTagNameNS(W, 'ind')).forEach(ind => {
+            const hang = ind.getAttributeNS(W, 'hanging') || ind.getAttribute('w:hanging');
+            const left = ind.getAttributeNS(W, 'left') || ind.getAttribute('w:left') || ind.getAttributeNS(W, 'start');
+            const pPr = ind.parentNode;
+            if (!hang || !left || !pPr || pPr.localName !== 'pPr') return;
+            let tabs = first(pPr, 'tabs');
+            if (tabs && kids(tabs, 'tab').some(tb => (tb.getAttributeNS(W, 'pos') || tb.getAttribute('w:pos')) === left)) return;
+            if (!tabs) { tabs = doc.createElementNS(W, 'w:tabs'); pPr.insertBefore(tabs, pPr.firstChild); }
+            const tb = doc.createElementNS(W, 'w:tab');
+            tb.setAttributeNS(W, 'w:val', 'left');
+            tb.setAttributeNS(W, 'w:pos', left);
+            tabs.appendChild(tb);
+        });
+        return new XMLSerializer().serializeToString(doc);
+    }
+    async function mark(data) {
+        const zip = await JSZip.loadAsync(data);
+        const entry = zip.file('word/document.xml');
+        if (!entry) throw new Error('That template is not a Word document.');
+        zip.file('word/document.xml', markXml(await entry.async('string')));
+        return zip.generateAsync({ type: typeof Blob === 'undefined' ? 'nodebuffer' : 'arraybuffer' });
+    }
+
+    return { fill, fillXml, fieldsOf, mark, markXml, MARK_RE: /⟦(f\d+)⟧/ };
 }));
