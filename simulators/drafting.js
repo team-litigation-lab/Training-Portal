@@ -285,9 +285,16 @@ function caseHtml() {
     </div>`;
 }
 
-/* ---------- the file name the trainers ask for ---------- */
-// The carrier goes in the name, as the trainers' own files have it ("INS – Allstate Insurance - LOR …"):
-// the company the trainee put in the letter, else the one in the case notes.
+/* ---------- the file name the trainers ask for ----------
+   As the 18-Day Foundational Training guide gives them (Days 11, 14 and 16):
+     INS – 1P State Farm - LOR 02.17.2026 (Michelle)
+     INS – 3P Geico - LOR with Affidavit 02.17.2026 (Michelle)
+     MED - JML(Lyons Physical Therapy) - MedLOR with Unsworn COR and HIPAA 08.11.22 (John)
+     MED - RDG(NPIM Dr. Fabito) - Lien Balance Verification 08.17.2022 (Jane)
+   The VA's first name; the client's initials before the provider; NPIM always with the doctor. */
+const pad2 = (n) => String(n).padStart(2, '0');
+const firstName = () => (String(Sim.who().name || '').trim().split(/\s+/)[0]) || 'VA';
+// The carrier: the company the trainee put in the letter, else the one in the case notes.
 function carrierOf(t) {
     if (t.id !== 'lor1p' && t.id !== 'lor3p') return '';
     const typed = String(answer(t.id, 'f3')).trim().replace(/[\[\]]/g, '').replace(/\.$/, '');
@@ -295,13 +302,57 @@ function carrierOf(t) {
     const c = CASES[S.caseNo] || {};
     return (t.id === 'lor1p' ? (c.p1 || {})['Insurance Company Name'] : (c.p3 || {})['Defendant Insurance Company Name']) || '';
 }
+// The client, read off the letter itself ("Our Client: John Test Doe"), as the trainee has it now.
+function clientOf(t) {
+    for (const b of t.blocks) {
+        if (b.t !== 'p') continue;
+        const line = b.runs.map(r => r.f ? (r.k === 'date' ? '' : (String(answer(t.id, r.f)).trim() ? answer(t.id, r.f) : r.ph)) : r.x).join('');
+        const m = line.match(/Our Client:\s*([^\t\n]+)/);
+        if (m && m[1].trim()) return m[1].trim();
+    }
+    return '';
+}
+const initialsOf = (name) => name.split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase()).join('');
+// "Nevada Personal Injury Management — Dr. Le" → "NPIM Dr. Le"; "Las Vegas Spine & Pain Center (Dr. Brian Le)" → "… Dr. Brian Le".
+const providerLabel = (name) => String(name).replace(/^Nevada Personal Injury Management\s*—\s*/i, 'NPIM ')
+    .replace(/\s*—\s*/g, ' ').replace(/\s*\((Dr\.[^)]*)\)/g, ' $1').trim();
 function fileName(t) {
-    const d = new Date(), pad = (n) => String(n).padStart(2, '0'), carrier = carrierOf(t);
-    return t.naming
-        .replace(/[13]P Insurance Provider/, (m) => carrier || m)
-        .replace('mm.dd.yyyy', `${pad(d.getMonth() + 1)}.${pad(d.getDate())}.${d.getFullYear()}`)
-        .replace("(VA's name)", `(${Sim.who().name || 'VA'})`)
-        .replace(/[\\/:*?"<>|]/g, '');
+    const d = new Date(), mm = pad2(d.getMonth() + 1), dd = pad2(d.getDate()), yyyy = d.getFullYear();
+    let name;
+    if (t.dir === 'providers') {
+        const who = initialsOf(clientOf(t)) + '(' + providerLabel(t.provider) + ')';
+        name = t.id.endsWith(':medlor')
+            ? `MED - ${who} - MedLOR with Unsworn COR and HIPAA ${mm}.${dd}.${String(yyyy).slice(2)} (${firstName()})`
+            : `MED - ${who} - Lien Balance Verification ${mm}.${dd}.${yyyy} (${firstName()})`;
+    } else {
+        const carrier = carrierOf(t);
+        name = t.naming
+            .replace(/([13]P) Insurance Provider/, (m, side) => carrier ? side + ' ' + carrier : m)
+            .replace('mm.dd.yyyy', `${mm}.${dd}.${yyyy}`)
+            .replace("(VA's name)", `(${firstName()})`);
+    }
+    return name.replace(/[\\/:*?"<>|]/g, '');
+}
+
+// The trainers' own reminders for each letter, from the 18-Day Foundational Training guide.
+function guideHtml(t) {
+    const li = (xs) => '<ul style="margin:0;padding-left:18px;">' + xs.map(x => `<li style="margin:0 0 5px;">${x}</li>`).join('') + '</ul>';
+    if (t.dir === 'templates') return `<div class="dr-note"><h3>The trainers' reminders</h3>${li([
+        '<b>F/E</b> means Fax or E-mail: replace it with the actual fax number or e-mail address you are sending to (see the case notes).',
+        '<b>SENT VIA FACSIMILE AND E-MAIL</b>: keep only the method you are using and remove the other.',
+        'Check the spacing, the layout of the recipient\'s address and that the font and alignment are consistent.',
+        'These letters go to insurance companies: clear, accurate and professional.',
+        '<b>No highlighted text may be left in your final letter.</b>'])}</div>`;
+    if (t.id.endsWith(':medlor')) return `<div class="dr-note"><h3>The trainers' reminders</h3>${li([
+        'Tick the boxes for what you are requesting (bills, records or both).',
+        'Check the client\'s details against the current contact card in SA — don\'t trust what the template already has.',
+        'The final file is <b>one PDF</b>: this MedLOR with the Unsworn COR and the client\'s signed HIPAA, merged in your PDF editor.',
+        'On the HIPAA: <b>Validity of Authorization</b> is the date the client signed it (shown at the bottom); <b>Relationship to Patient</b> is <b>Self</b>.',
+        'NPIM doctors: the doctor\'s name goes in the file name after the provider.'])}</div>`;
+    return `<div class="dr-note"><h3>The trainers' reminders</h3>${li([
+        'Check the client\'s details against the current contact card in SA.',
+        'NPIM doctors: the doctor\'s name goes in the file name after the provider.',
+        'E-mail subject: <i>Client name - Lien holder (provider) - Request for Lien Verification</i>.'])}</div>`;
 }
 
 function render() {
@@ -328,6 +379,7 @@ function render() {
                     <div class="dr-name">${esc(fileName(t))}.docx</div>
                 </div>
                 ${caseHtml()}
+                ${guideHtml(t)}
                 <div class="dr-note">
                     <h3>How this works</h3>
                     <p style="margin:0 0 7px;">The wording is the firm's and can't be changed. Only what the firm highlighted in yellow is yours — click it and type over it, as you would in Word. It turns blue once it's yours.</p>
