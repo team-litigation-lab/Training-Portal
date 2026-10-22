@@ -311,12 +311,12 @@ async function tabs(zip, doc, host, page) {
     if (settings) { const d = all(parse(await settings.async('string')), 'w', 'defaultTabStop')[0]; if (d) every = num(attr(d, 'w', 'val'), 720); }
     // Body paragraphs in order, as docx-preview draws them (a text box's paragraphs are not among them,
     // and a paragraph with a page break in it is drawn as two, one on each page).
-    const xmlPs = [];
-    all(all(doc, 'w', 'body')[0], 'w', 'p').filter(p => !closestTag(p, 'txbxContent')).forEach(p => {
+    const xmlPs = [], bodyPs = all(all(doc, 'w', 'body')[0], 'w', 'p').filter(p => !closestTag(p, 'txbxContent'));
+    bodyPs.forEach(p => {
         xmlPs.push(p);
         all(p, 'w', 'br').forEach(br => { if (attr(br, 'w', 'type') === 'page') xmlPs.push(p); });
     });
-    tabState = { host, page, every, xmlPs };
+    tabState = { host, page, every, xmlPs, bodyPs };
     // docx-preview sets its own a moment after it renders; let it, then set them properly.
     await new Promise(r => setTimeout(r, 650));
     retab();
@@ -333,11 +333,15 @@ function stopsOf(p, every) {
 function retab() {
     const st = tabState; if (!st || !document.body.contains(st.host)) return;
     const domPs = [].slice.call(st.host.querySelectorAll('section.docx > article p'));
-    if (domPs.length !== st.xmlPs.length) return;                       // can't pair them up: leave docx-preview's
+    // The editor names each paragraph (data-p: its place among the body's paragraphs, which a paragraph
+    // the trainee adds with Enter inherits); without names, pair them up by count or leave docx-preview's.
+    const named = domPs.length && domPs.every(p => p.dataset.p != null);
+    if (!named && domPs.length !== st.xmlPs.length) return;
     domPs.forEach((p, i) => {
+        const xp = named ? st.bodyPs[+p.dataset.p] : st.xmlPs[i]; if (!xp) return;
         const spans = p.querySelectorAll('.docx-tab-stop'); if (!spans.length) return;
         const sec = p.closest('section.docx'), sr = sec.getBoundingClientRect(), zoom = sr.width / sec.offsetWidth || 1;
-        const marginLeft = st.page.left / EMU, { stops, every } = stopsOf(st.xmlPs[i], st.every);
+        const marginLeft = st.page.left / EMU, { stops, every } = stopsOf(xp, st.every);
         spans.forEach(sp => {
             sp.style.wordSpacing = '0'; sp.style.display = 'inline-block'; sp.style.width = '0px';
             const x = ((sp.getBoundingClientRect().left - sr.left) / zoom - marginLeft) * 15;   // px → twips from the margin
@@ -352,6 +356,8 @@ function retab() {
 // Body text never runs under the office footer: where the letter is longer on screen than on paper
 // (the browser's fonts are not quite Word's), the page grows instead.
 function clearFooters(host) {
+    // On a page cut into Word's pages (the editor's), the body ends at the bottom margin as in Word: nothing to push.
+    if (host.closest && host.closest('.wd-doc')) return;
     host.querySelectorAll('section.docx').forEach(sec => {
         const art = sec.querySelector(':scope > article'), lh = sec.querySelector(':scope > .dr-lh');
         if (!art || !lh) return;

@@ -46,6 +46,8 @@ jobs:
         run: node --no-warnings .github/scripts/calsim.mjs
       - name: Calendar evaluations (submit, AI review, the trainer's live review and final report; trainees see it only once final)
         run: node --no-warnings .github/scripts/gcal-reviews.mjs
+      - name: Drafting letters saved to the trainee's account (saved and back, an older copy never over a newer one, only their own, Start over)
+        run: node --no-warnings .github/scripts/drafting-drafts.mjs
       - name: Google Calendar weekly schedule (Standard Training as it was; the Case Management and EA / PA clones apart; Admin only; unknown tracks refused)
         run: node --no-warnings .github/scripts/gcal-schedule.mjs
       - name: AI gateway (one shared budget for every call flow; per-flow share, per-minute and per-person limits)
@@ -128,6 +130,10 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/drafting-docs.cjs
+      - name: Drafting in a Word-style editor (the whole letter editable with Word's ribbon; bullets, numbering, indents and spacing; Word's paste options; Word's pages; the download is exactly what is on screen; saved to the account; Check my letter)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/drafting-editor.cjs
       - name: Medical Records Requests clock (every date tracks the system date; same-day receipt works a whole collection in one sitting without changing a rule or a score)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
