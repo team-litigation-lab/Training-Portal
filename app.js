@@ -708,15 +708,50 @@ async function reactivateUser(id) {
     }
 }
 
+// Revoking takes their whole record with it: submitted activities and grades,
+// simulator results, calendaring work and evaluations, and the course's own
+// progress and trainer feedback. The backup comes first and the deleting second —
+// with Google Drive configured the Function files it in the person's batch folder
+// itself; without it, it hands the record back here, this downloads it, and only
+// then does the second call do the deleting. Scores are not kept behind.
 async function revokeUser(id, name) {
-    if (!confirm(`Permanently revoke ${name}'s account? This cannot be undone \u2014 they will need to submit a brand-new registration.`)) return;
+    if (!confirm(`Permanently revoke ${name}'s account?\n\nEverything of theirs goes with it \u2014 grades, submitted activities, simulator results and course progress \u2014 after a copy is filed to their batch's folder. This cannot be undone.`)) return;
     try {
-        await postJson('/api/revoke-user', { userId: id });
-        showToast('Account permanently revoked.', 'success');
+        const first = await postJson('/api/revoke-user', { userId: id });
+        if (first.needsBackup) {
+            // No Drive configured: this browser is where the only copy comes from,
+            // so it is saved before the account is touched.
+            const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ').replace(':', '');
+            const file = `${String(first.name || name).replace(/[\\/:*?"<>|]/g, '')} — records ${stamp}.json`;
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(first.records, null, 1)], { type: 'application/json' }));
+            a.download = file;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+            if (!confirm(`Their records were downloaded as "${file}".\n\nKeep that file in ${first.batch ? 'Batch ' + first.batch + "'s" : 'their batch'} folder \u2014 it is the only copy once this goes ahead.\n\nDelete everything now?`)) {
+                showToast('Nothing was deleted.', 'error');
+                return;
+            }
+            const done = await postJson('/api/revoke-user', { userId: id, backupSaved: true });
+            showToast(revokeSummary(done), 'success');
+        } else {
+            showToast(revokeSummary(first), 'success');
+        }
         loadUsersData();
     } catch (e) {
         showToast(e.message, 'error');
     }
+}
+// What actually went, so an admin sees it rather than being told "done".
+function revokeSummary(r) {
+    const g = r.removed || {};
+    const n = ['submissions', 'simulatorResults', 'simulatorResultsByName', 'calsim', 'gcalDrafts', 'gcalReviews']
+        .reduce((a, k) => a + (typeof g[k] === 'number' ? g[k] : 0), 0);
+    const left = (r.courseIncomplete || []).length
+        ? ` Course records in ${r.courseIncomplete.join(', ')} were not all read, so check them.`
+        : '';
+    return `Account revoked. ${n} record${n === 1 ? '' : 's'} and ${g.courseKeys || 0} course entr${(g.courseKeys || 0) === 1 ? 'y' : 'ies'} removed.`
+        + (r.backup ? ' Their file is in the batch folder.' : '') + left;
 }
 
 // 4. MODALS (ACTIVITIES, LECTURES, SUBMISSIONS)

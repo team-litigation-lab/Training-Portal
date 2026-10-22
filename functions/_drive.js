@@ -77,6 +77,44 @@ export function batchCsv(programLabel, batch, trainees) {
     return [head.map(csvq).join(',')].concat(rows).join('\r\n');
 }
 
+// One revoked person's whole record, filed in their batch's folder beside that
+// batch's archive — the backup functions/api/revoke-user.js takes before it deletes
+// anything. The folder is the same tree the batch archive uses, so a batch's folder
+// holds the batch and the people who left it. Returns the file's link.
+export async function saveUserRecordsToDrive(env, { programLabel, batch, name, username, records, revokedBy }) {
+    const token = await accessToken(env);
+    const root = await folder(token, 'LSH Training Archives', env.GDRIVE_ARCHIVE_FOLDER);
+    const prog = await folder(token, programLabel || 'All programs', root.id);
+    const dir = await folder(token, `Batch ${batch || 'none'}`, prog.id);
+    const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ').replace(':', '');
+    const safe = String(name || username).replace(/[\\/:*?"<>|]/g, '').trim() || username;
+    const base = `${safe} — revoked ${stamp}`;
+    await upload(token, base + '.csv', 'text/csv', userCsv(name, username, records), dir.id);
+    const file = await upload(token, base + '.json', 'application/json',
+        JSON.stringify({ name, username, revokedBy, revokedAt: new Date().toISOString(), records }, null, 1), dir.id);
+    return file.webViewLink || (dir.webViewLink || `https://drive.google.com/drive/folders/${dir.id}`);
+}
+
+// The readable half of that backup: one row per thing of theirs, so the file can be
+// opened and understood without reading the JSON.
+export function userCsv(name, username, r) {
+    const head = ['Record', 'What', 'When', 'Score', 'Detail'];
+    const out = [head.map(csvq).join(',')];
+    const add = (kind, what, when, score, detail) => out.push([kind, what, when, score, detail].map(csvq).join(','));
+    add('Account', `${name} (${username})`, (r.account && r.account.created_at) || '', '', (r.account && r.account.user_type) || '');
+    (r.submissions || []).forEach(s => add('Submission', s.activity_title, s.submitted_at, s.score == null ? '' : s.score, s.status));
+    (r.simulatorResults || []).forEach(s => add('Simulator', `${s.simulator}${s.scenario ? ' — ' + s.scenario : ''}`, s.created_at, s.score == null ? '' : s.score, s.summary || ''));
+    (r.calsim || []).forEach(c => add('Calendaring', c.scenario || c.track || '', c.updated_at || '', c.score == null ? '' : c.score, ''));
+    (r.gcalReviews || []).forEach(g => add('Calendar evaluation', g.track || '', g.updated_at || g.created_at || '', g.score == null ? '' : g.score, g.status || ''));
+    (r.course || []).forEach(c => {
+        const rec = (c.keys[0] || {}).value || {};
+        const days = Object.values(rec.dayProgress || {}).filter(d => d && typeof d.score === 'number').map(d => d.score);
+        add('Course progress', c.label, rec.lastActive || '', days.length ? Math.round(days.reduce((a, b) => a + b, 0) / days.length) : '',
+            `${Object.values(rec.dayProgress || {}).filter(d => d && d.done).length} day(s) done`);
+    });
+    return out.join('\r\n');
+}
+
 // Saves one archived batch; returns the batch folder's link.
 export async function saveBatchToDrive(env, { programLabel, batch, trainees, archivedBy }) {
     const token = await accessToken(env);
