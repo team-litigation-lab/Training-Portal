@@ -539,6 +539,18 @@ window.LSHDrafting = API;
 
 document.getElementById('topbar').innerHTML = Sim.topbar('drafting');
 Sim.label('Drafting');
-Sim.restore().then(() => { load(); render(); document.getElementById('topbar').innerHTML = Sim.topbar('drafting'); });
-load(); render();
+// A course can open a given letter: ?tab=lor1p | lor3p | prov, and for the providers' letters ?kind=medlor | lienbv
+// (Standard Foundational Training's Provider Communication days open the MedLOR + HIPAA packet this way).
+function fromLink() {
+    const q = new URLSearchParams(location.search), tab = q.get('tab'), kind = q.get('kind');
+    if (tab === 'prov' && PROVIDERS.length) S.tab = 'prov';
+    else if (tab && TEMPLATES.some(x => x.id === tab)) S.tab = tab;
+    if (S.tab === 'prov' && kind && LETTER_KIND[kind]) {
+        const p = provider();
+        if (p && !p.letters[kind]) { const i = PROVIDERS.findIndex(x => x.letters[kind]); if (i >= 0) S.prov = i; }
+        S.kind = kind;
+    }
+}
+Sim.restore().then(() => { load(); fromLink(); render(); document.getElementById('topbar').innerHTML = Sim.topbar('drafting'); });
+load(); fromLink(); render();
 }());
