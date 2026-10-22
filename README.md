@@ -33,7 +33,7 @@ The portal only sends the fixed scenarios in `simulators/reply-packs/emails.json
 
 ## Legal-work simulators: Docket, Medical Records, Court E-Filing
 
-Three simulators on the Simulators hub (`/simulators.html`) train the paperwork side of case management. All three run in the browser (progress is saved in that browser) and send scores to the trainer like the other simulators (`Sim.saveResult`). Each shows a reference number (`DKT-…`, `MRR-2026-…`, `ECF-…` / `ENV-…`) that trainees log in the CM course's tool steps.
+Three simulators on the Simulators hub (`/simulators.html`) train the paperwork side of case management. All three run in the browser (progress is saved in that browser) and send scores to the trainer like the other simulators (`Sim.saveResult`). Each shows a reference number (`DKT-…`, `MRR-…`, `ECF-…` / `ENV-…`) that trainees log in the CM course's tool steps.
 
 **⚖️ Docket System** (`/simulators/docket.html`), built from the LSH docket registry prototype:
 - **Docketing Inbox**: notices of electronic filing, mail and emails for one case. For each item, the trainee decides whether it belongs on the court docket (discovery and internal emails don't), then calendars every deadline it triggers with a responsible person and reminders. **Check My Docketing** grades each item and shows the computation for anything wrong.
@@ -46,7 +46,7 @@ Three simulators on the Simulators hub (`/simulators.html`) train the paperwork 
   - **State method (CM course):** add the service days first, then roll once.
   - It unlocks for an assignment after the trainee checks it, so trainees count by hand first.
 
-**🗂 Medical Records Requests** (`/simulators/records.html`): collecting John Doe's records and bills for the demand, from Monday 07/06/2026 to the attorney's date, 08/14/2026.
+**🗂 Medical Records Requests** (`/simulators/records.html`): collecting John Doe's records and bills for the demand. The collection opens on today's date, the attorney's date is 29 business days out from it, and the case file moves with the clock so the accident always sits about five months behind today (`?anchor=authored` pins it to the dates on the course's printed documents instead); **same-day receipt** (on by default) brings back what the providers and the client send the same day, so a whole collection can be worked through in one live session.
 - **Authorization:** the HIPAA authorization is unsigned and undated; review it against 45 CFR 164.508 and send it for e-signature.
 - **Requests:** go to the right department (hospital records vs. billing) for the right dates of service.
 - **Business-day clock:** providers respond with acknowledgments, rejections (bad authorization, no records for those dates, psychotherapy notes without a separate authorization), invoices, and silence until someone follows up.
@@ -155,6 +155,7 @@ The Portal links to it from the Training Directory's banners, the home page's Si
 Ring Channel has **no sign-in of its own**: everyone opens it from here.
 - **Trainees** land on their phone, signed in with the short-lived signed ticket (their name and batch). Any signed-in, approved trainee can open it (no program access to request).
 - **🤖 AI calls:** `?to=aicall` lands a trainee on Ring Channel's 🎧 Practice (an AI caller rings them), `?to=calls` the same with the Call Simulator's line and graded call from the link, and `?to=console` lands a trainer on the console, where **🤖 AI caller** on the dialer sends one to a trainee. The 🛠 Simulators hub links them on the 📞 Call Simulator card.
+- **📚 Case Management handouts:** `/api/launch?tool=kb&to=cmkb` opens the Knowledge Base on its Case Management collection, where the Case Management Training course's handouts are, one section per day. The course's 📚 Knowledge Base link uses it.
 - **Admins** land on its console as trainers, under their Portal name, with a ticket `{ r: 'a', n: name }`. Ring Channel is the only place an admin ticket signs anyone in (`ADMIN_TICKET_TOOLS` in `functions/api/launch.js`); every other platform still asks admins for the admin password.
 - **Checking tickets:** Ring Channel checks them with `PORTAL_SSO_SECRET` if it has the secret; otherwise it asks this Portal's `/api/verify-ticket` (which returns the admin's name), like the CMS. Each ticket works there only once.
 

@@ -87,6 +87,10 @@ const drill = await go(trainee, 'tool=cms&to=drill');
 if (!/&drill=1$/.test(drill.at)) fail(`the CMS drill link broke: ${drill.at}`);
 const kbDrill = await go(trainee, 'tool=kb&to=drill');
 if (/drill=1/.test(kbDrill.at)) fail(`to=drill worked on the Knowledge Base: ${kbDrill.at}`);
+// to=cmkb: the CM Training course's 📚 Knowledge Base link lands on the Case Management collection, and only on the Knowledge Base
+const cmkb = await go(trainee, 'tool=kb&to=cmkb');
+if (!/\?ticket=[^#&]+#\/c\/case-management$/.test(cmkb.at)) fail(`the CM Training Knowledge Base link: ${cmkb.at}`);
+if (/case-management/.test((await go(trainee, 'tool=cms&to=cmkb')).at)) fail('to=cmkb worked on the CMS');
 // 4. the Portal links to it: the Training Directory and Master Control (the home page no longer lists the simulators).
 // The Simulators hub no longer carries a Ring Channel card: it duplicated the Directory's own banner, so the hub was
 // the redundant one. Dropping simulators.html from this list is the point of that change, not an oversight — the two

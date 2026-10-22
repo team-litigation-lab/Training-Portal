@@ -116,6 +116,18 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/gcal-trainee-side.cjs
+      - name: Medical Records Requests (a produced request is a real records document and itemized bill, a PDF named the firm's way, filed into the case the trainee came from)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/records-docs.cjs
+      - name: Drafting Activities filing (each letter's Doc Hub tab, the firm's file name and no drift from records-docs.js, a wrong tab or name refused, the drafted PDF filed into the case the trainee came from, and the grade)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/drafting-docs.cjs
+      - name: Medical Records Requests clock (every date tracks the system date; same-day receipt works a whole collection in one sitting without changing a rule or a score)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/records-clock.cjs
       - name: Blueprint (the admin track for admins only; each track downloads as a PDF with the deploy stamp)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
