@@ -94,18 +94,26 @@ function open(opts) {
     async function drawNow() {
         // while the letter is drawn again it can't be typed in: what was typed would be drawn over
         arts().forEach(a => { a.contentEditable = 'false'; });
-        E.runFmt0 = {}; E.pFmt0 = {};
-        const marked = D().markEditXml(E.baseXml);
-        const zip = await D().pack(E.bytes, marked, 'arraybuffer');
         const stage = document.createElement('div');
         stage.className = 'dr-stage';
         stage.style.cssText = 'position:absolute;left:0;top:0;width:100%;visibility:hidden;pointer-events:none;';
-        host.style.position = 'relative';
-        host.appendChild(stage);
-        await window.docx.renderAsync(zip, stage, stage, {
-            className: 'docx', inWrapper: true, ignoreWidth: false, ignoreHeight: false, breakPages: true,
-            renderHeaders: true, renderFooters: true, renderFootnotes: true, experimental: true, useBase64URL: true
-        });
+        let zip;
+        try {
+            const marked = D().markEditXml(E.baseXml);
+            zip = await D().pack(E.bytes, marked, 'arraybuffer');
+            host.style.position = 'relative';
+            host.appendChild(stage);
+            await window.docx.renderAsync(zip, stage, stage, {
+                className: 'docx', inWrapper: true, ignoreWidth: false, ignoreHeight: false, breakPages: true,
+                renderHeaders: true, renderFooters: true, renderFootnotes: true, experimental: true, useBase64URL: true
+            });
+        } catch (e) {
+            // the letter on screen stays as it was (and so does what the editor knows about it), and can be typed in again
+            stage.remove();
+            arts().forEach(a => { a.contentEditable = 'true'; });
+            throw e;
+        }
+        E.runFmt0 = {}; E.pFmt0 = {};
         [].slice.call(host.childNodes).forEach(n => { if (n !== stage) host.removeChild(n); });
         stage.style.cssText = '';
         stage.classList.remove('dr-stage');
@@ -135,11 +143,19 @@ function open(opts) {
     // back to XML with the change, and drawn again from it, so the page shows exactly what Word will.
     async function rebase(x, sel) {
         const canvas = host.closest('.wd-canvas'), top = canvas ? canvas.scrollTop : 0, y = window.scrollY;
+        const was = E.baseXml;
         E.baseXml = x;
-        await draw();
+        try { await draw(); }
+        catch (e) {
+            E.baseXml = was;
+            say('That change couldn’t be drawn, so it wasn’t made. Try again.');
+            if (window.console) console.warn('Drafting: redrawing the letter failed —', e && e.message);
+            return false;
+        }
         if (canvas) canvas.scrollTop = top;
         window.scrollTo(window.scrollX, y);
         if (sel) { const a = arts()[0]; if (a) a.focus({ preventScroll: true }); setSel(sel.s, sel.e); }
+        return true;
     }
     // The bookmarks markEditXml put in: which paragraph, which run, which check box.
     function resolveMarkers(root) {
@@ -328,7 +344,12 @@ function open(opts) {
         await drawing;
         const s = from.pop(); if (!s) return;
         to.push({ base: E.baseXml, nodes: copy(), sel: selOffsets() });
-        if (s.base !== E.baseXml) { E.baseXml = s.base; await draw(); }
+        if (s.base !== E.baseXml) {
+            const was = E.baseXml;
+            E.baseXml = s.base;
+            try { await draw(); }
+            catch (e) { E.baseXml = was; from.push(s); to.pop(); say('Undo couldn’t be drawn. Try again.'); return; }
+        }
         arts().forEach((a, i) => { if (s.nodes[i]) a.replaceChildren(...[].map.call(s.nodes[i], n => n.cloneNode(true))); });
         if (s.sel) setSel(s.sel.s, s.sel.e);
         E.lastKind = '';
@@ -404,7 +425,7 @@ function open(opts) {
         const ps = selectedParas(); if (!ps.length) return;
         const sel = selOffsets();
         snap('para');
-        await rebase(D().applyEditsXml(E.baseXml, edit({ targets: new Set(ps), ppr })), sel);
+        if (!await rebase(D().applyEditsXml(E.baseXml, edit({ targets: new Set(ps), ppr })), sel)) { E.undo.pop(); return; }   // nothing was made: nothing to undo
         E.lastKind = '';
         changed(); state();
     }

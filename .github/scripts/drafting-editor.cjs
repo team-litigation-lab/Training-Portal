@@ -256,6 +256,17 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
         return { numId: g('numId'), ilvl: g('ilvl'), line: sp ? sp.getAttribute('w:line') : null, left: ind ? ind.getAttribute('w:left') : null };
     }, { xml, needle });
     const settle = () => page.waitForFunction(() => document.querySelector('section.docx > article[contenteditable="true"]'), null, { timeout: 20000 });
+    // a redraw that fails leaves the letter exactly as it was, and it can still be typed in
+    const failed = await page.evaluate(async () => {
+        const before = LSHDrafting.xml(), real = docx.renderAsync; let once = true;
+        docx.renderAsync = function () { if (once) { once = false; return Promise.reject(new Error('test')); } return real.apply(this, arguments); };
+        document.querySelector('[data-find]').value = 'Please be advised'; document.querySelector('[data-cmd="findNext"]').click();
+        document.querySelector('[data-cmd="list:bullet"]').click();
+        for (let i = 0; i < 80 && !/wasn’t made/.test(document.querySelector('[data-say]').textContent); i++) await new Promise(r => setTimeout(r, 100));
+        docx.renderAsync = real;
+        return { same: LSHDrafting.xml() === before, editable: document.querySelector('section.docx > article').contentEditable, said: document.querySelector('[data-say]').textContent };
+    });
+    check('a paragraph command that can\'t be drawn changes nothing, says so, and the letter stays editable', failed.same && failed.editable === 'true' && /wasn’t made/.test(failed.said), JSON.stringify(failed));
     await find('Please be advised');
     await page.click('[data-cmd="list:bullet"]'); await settle();
     let x = await page.evaluate(() => LSHDrafting.xml()), n = await numId(x, 'Please be advised');
