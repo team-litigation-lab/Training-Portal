@@ -91,11 +91,12 @@ if (/drill=1/.test(kbDrill.at)) fail(`to=drill worked on the Knowledge Base: ${k
 const cmkb = await go(trainee, 'tool=kb&to=cmkb');
 if (!/\?ticket=[^#&]+#\/c\/case-management$/.test(cmkb.at)) fail(`the CM Training Knowledge Base link: ${cmkb.at}`);
 if (/case-management/.test((await go(trainee, 'tool=cms&to=cmkb')).at)) fail('to=cmkb worked on the CMS');
-// 4. the Portal links to it: the Training Directory and Master Control (the home page no longer lists the simulators).
-// The Simulators hub no longer carries a Ring Channel card: it duplicated the Directory's own banner, so the hub was
-// the redundant one. Dropping simulators.html from this list is the point of that change, not an oversight — the two
-// places a trainee actually reaches it from are still checked.
-for (const f of ['programs.html', 'core.html']) if (!readFileSync(new URL('../../' + f, import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail(`${f} has no link to LSH Ring Channel`);
+// 4. the Portal links to it: the Training Directory's banner, where a trainee reaches it. The admin
+// sidebar's link is gone on purpose — Ring Channel is the training phone's own trainer console, not a
+// screen for running a batch, and the sidebar was grouped by relevance. core.html leaving this list is
+// that change, not an oversight; the place a trainee actually reaches it from is still checked.
+for (const f of ['programs.html']) if (!readFileSync(new URL('../../' + f, import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail(`${f} has no link to LSH Ring Channel`);
+if (readFileSync(new URL('../../core.html', import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail('the admin sidebar links to Ring Channel again (it was taken out deliberately)');
 
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-console.log('LSH Ring Channel test passed (trainees and admins open it signed in, admins every program, the CMS and the Knowledge Base too; every blueprint reached from the Training Directory\'s 🧭 Blueprint menu; linked from the Directory and Master Control).');
+console.log('LSH Ring Channel test passed (trainees and admins open it signed in, admins every program, the CMS and the Knowledge Base too; every blueprint reached from the Training Directory\'s 🧭 Blueprint menu; linked from the Directory, and no longer from the admin sidebar).');
