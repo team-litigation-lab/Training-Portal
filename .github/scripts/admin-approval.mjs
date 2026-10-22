@@ -72,7 +72,8 @@ check(rowOf('pendingadmin').status === 'Pending', 'that registration is untouche
 r = await read(await status.onRequestPost({ request: req(master, { userId: idOf('pendingadmin'), newStatus: 'Approved' }), env }));
 check(r.status === 200 && r.body.success, `the Master Account approves an Admin / Trainer registration: ${r.status} ${r.body.error || ''}`);
 check(rowOf('pendingadmin').status === 'Approved', 'the admin account is Approved');
-check(/^B\d{6}$/.test(rowOf('pendingadmin').batch_id || ''), `and has a Batch ID: ${rowOf('pendingadmin').batch_id}`);
+// A Batch ID is a batch of trainees going through the course together; a trainer is in no batch.
+check(!rowOf('pendingadmin').batch_id, `and is given no Batch ID: ${rowOf('pendingadmin').batch_id}`);
 
 // A trainee's registration is unchanged: any trainer approves it.
 r = await read(await status.onRequestPost({ request: req(trainer, { userId: idOf('pendingtrainee'), newStatus: 'Approved' }), env }));

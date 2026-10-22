@@ -635,7 +635,7 @@ function renderUserRow(u) {
                     ${escapeHtml(u.fullName)}
                     <span style="font-weight:700;font-size:10px;color:${statusColor};border:1px solid ${statusColor};border-radius:4px;padding:1px 6px;margin-left:6px;">${escapeHtml(u.status)}</span>
                 </div>
-                <div style="font-size:11px;color:#64748b;margin-top:2px;">${escapeHtml(batchLabel(u.batchId))} &middot; ${escapeHtml(u.username)} &middot; ${escapeHtml(u.email || '')}</div>
+                <div style="font-size:11px;color:#64748b;margin-top:2px;">${batchLabel(u.batchId) ? escapeHtml(batchLabel(u.batchId)) + ' &middot; ' : ''}${escapeHtml(u.username)} &middot; ${escapeHtml(u.email || '')}</div>
             </div>
             <div style="display:flex;gap:8px;flex-shrink:0;">
                 ${canEditUser(u) ? `<button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="openEditUser(${u.id})">Edit</button>` : ''}
@@ -2973,7 +2973,8 @@ async function saveEditUser(id) {
 // The team is four trainers with their own sign-ins rather than one shared Master Account, and a
 // trainer onboarding a batch shouldn't have to walk each person through the registration page. What
 // this makes is a *pending* registration, exactly as signing up does: it appears below for an
-// administrator to approve, and the approval is what issues the Batch ID and turns the login on.
+// administrator to approve, and the approval is what turns the login on — issuing the Batch ID with
+// it for a trainee, while a trainer is in no batch and is given none.
 function openCreateUser() {
     const old = document.getElementById('create-user-overlay'); if (old) old.remove();
     const el = document.createElement('div');
