@@ -36,7 +36,7 @@ export const SSO_TOOLS = {
 export const ADMIN_TICKET_TOOLS = ['ringchannel', 'cms', 'kb'];
 const TICKET_TTL_MS = 5 * 60 * 1000;
 // Where inside a program or tool a link lands (?to=): a program's own Live Roleplay, the CMS Front Desk Drill, the CMS's
-// 💬 Client Messaging (to=messages, messagesQuery), Ring Channel's 💬 Automated Messaging (to=automessages,
+// Ring Channel's 💬 Client Messaging (to=messages, messagesQuery) and its 💬 Automated Messaging (to=automessages,
 // autoMessagesQuery: the texting simulator, where the firm's automation texts a client and the trainee answers), or the
 // Call Simulator (to=calls: every platform's Call Simulator opens on LSH Ring Channel's 🎧 Practice, on the line the link
 // names, callsQuery), or Ring Channel's 🎧 Practice (to=aicall: an AI caller rings the trainee) or console (to=console: a
@@ -46,7 +46,7 @@ const TICKET_TTL_MS = 5 * 60 * 1000;
 // 📚 Knowledge Base link).
 // blueprint: a program's (or a tool's) own Blueprint, the only way in: the No Blueprint rule keeps every Blueprint
 // button and link out of the programs and tools, and the Main Portal's 🧭 Blueprint menu links here instead.
-const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1', tool: 'cms' }, messages: { tool: 'cms' }, calls: { hash: '#/practice', tool: 'ringchannel' },
+const LANDINGS = { roleplay: { hash: '#/crisisroleplay' }, drill: { query: '&drill=1', tool: 'cms' }, messages: { tool: 'ringchannel' }, calls: { hash: '#/practice', tool: 'ringchannel' },
     aicall: { hash: '#/practice', tool: 'ringchannel' }, console: { hash: '#/console', tool: 'ringchannel' }, automessages: { tool: 'ringchannel' },
     cmkb: { hash: '#/c/case-management', tool: 'kb' }, blueprint: { hash: '#/blueprint', also: ['kb', 'cms', 'ringchannel'] } };
 function landing(to, isTool, params, tool) {
@@ -57,7 +57,7 @@ function landing(to, isTool, params, tool) {
     if (to === 'automessages') return { query: '&' + autoMessagesQuery(params), hash: '' };
     return { query: l.query || '', hash: l.hash || '' };
 }
-/* 💬 Client Messaging in the CMS (to=messages): its conversations on the Training Library files, by program. What a link
+/* 💬 Client Messaging on LSH Ring Channel (to=messages): its conversations on the Training Library files, by program. What a link
    may say: ?program= reception | intake | cm | md | pd | ea (the tab it opens on), ?thread= a conversation's id (it starts
    it), ?mode=graded (graded). Anything else is dropped. */
 const MESSAGE_PROGRAMS = ['reception', 'intake', 'cm', 'md', 'pd', 'ea'];
