@@ -55,7 +55,6 @@ const PAGES = [
     ['Calendaring Simulators', '/simulators/calsim.html'],
     ['Email Workspace', '/simulators/email.html'],
     ['Email Replies', '/simulators/email-replies.html'],
-    ['Docket System', '/simulators/docket.html'],
     ['Medical Records Requests', '/simulators/records.html'],
     ['Court E-Filing', '/simulators/efiling.html'],
     ['Simulators hub', '/simulators.html']

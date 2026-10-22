@@ -6,7 +6,7 @@ const EMAIL_PACKS = {
   "id": "cm",
   "program": "Case Management",
   "title": "John Doe v. Apex Delivery Services & Robert W. Smith — Monday inbox",
-  "role": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001, claim 2026-0214-AX) at LSH Law Group; the handling attorney is Dana Carter. You handle client, provider, lienholder and carrier correspondence. Legal advice, settlement authority and case valuation belong to the attorney. This is the same case file you work in the CMS, the Email Replies, Medical Records and Docket simulators.",
+  "role": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001, claim 2026-0214-AX) at LSH Law Group; the handling attorney is Dana Carter. You handle client, provider, lienholder and carrier correspondence. Legal advice, settlement authority and case valuation belong to the attorney. This is the same case file you work in the CMS and the Email Replies and Medical Records simulators.",
   "labels": [
    {
     "name": "Clients",

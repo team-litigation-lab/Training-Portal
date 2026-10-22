@@ -45,7 +45,7 @@ INSERT INTO submissions (trainee_username, trainee_name, activity_title, status,
  ('ben','Ben Cruz','Day 1 activity','Graded',75,datetime('now'));
 INSERT INTO simulator_results (username, full_name, simulator, scenario, score, summary, created_at) VALUES
  ('ana','Ana Reyes','Email Workspace','CM inbox',91,'ok',datetime('now')),
- (NULL,'ana reyes','Docket System','Harlow',70,'ok',datetime('now')),
+ (NULL,'ana reyes','Court E-Filing','Harlow',70,'ok',datetime('now')),
  ('ben','Ben Cruz','Email Workspace','CM inbox',64,'ok',datetime('now'));
 INSERT INTO calsim_records (username, track, scenario, score, updated_at) VALUES ('ana','cm','Litigation week',80,datetime('now'));
 INSERT INTO gcal_drafts VALUES ('ana','cm','{}',datetime('now'));

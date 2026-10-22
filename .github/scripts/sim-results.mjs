@@ -56,8 +56,8 @@ r = await post({ simulator: 'Medical Records Requests', score: 80, who: { progra
 if (!kv.has('cm:simresults:jamie-cruz--b100526')) fail('a CM result didn\'t reach the CM course');
 // no program (opened from the Portal itself), or an admin: the Portal only
 const before = kv.size;
-await post({ simulator: 'Docket System', score: 50, who: {} }, jamie);
-await post({ simulator: 'Docket System', score: 50, who: { program: 'FT' } }, await cookie('boss', 'Admin'));
+await post({ simulator: 'Court E-Filing', score: 50, who: {} }, jamie);
+await post({ simulator: 'Court E-Filing', score: 50, who: { program: 'FT' } }, await cookie('boss', 'Admin'));
 if (kv.size !== before) fail('a result with no course, or an admin\'s, was written to a course');
 
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }

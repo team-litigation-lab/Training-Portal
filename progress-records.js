@@ -362,7 +362,7 @@ function renderFeedbackList() {
 // unit the courses themselves score (dayProgress[<day>] in each course's KV,
 // which /api/program-progress returns as days[<n>] = {done, score, task}).
 // The columns past the modules are the scores that aren't day-shaped: the
-// simulators (Email, Calendaring, Docket, Records, E-Filing, graded calls, by
+// simulators (Email, Calendaring, Records, E-Filing, graded calls, by
 // /api/sim-results) and the portal's own graded activities (submissions).
 // Nothing here is a second source of truth — it is the same /api/program-progress
 // payload the Trainees tab reads, pivoted module by module.

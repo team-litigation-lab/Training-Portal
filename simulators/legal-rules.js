@@ -1,4 +1,4 @@
-/* LSH Training Portal — court deadline rules (shared by the Docket System and Medical Records Requests).
+/* LSH Training Portal — court deadline rules (used by Medical Records Requests).
    Dates are plain 'YYYY-MM-DD' strings, handled in UTC so time zones never shift a day.
 
    Two counting methods:

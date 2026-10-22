@@ -31,20 +31,9 @@ Trainees log in once, here, and open each training program from the Training Dir
 The portal only sends the fixed scenarios in `simulators/reply-packs/emails.json`. Sends are limited per connection (`SIM_RATE_LIMIT`) and per recipient address. Replies are matched to their practice email by a random token in the Reply-To address; only the first reply to each practice email is scored.
 
 
-## Legal-work simulators: Docket, Medical Records, Court E-Filing
+## Legal-work simulators: Medical Records, Court E-Filing
 
-Three simulators on the Simulators hub (`/simulators.html`) train the paperwork side of case management. All three run in the browser (progress is saved in that browser) and send scores to the trainer like the other simulators (`Sim.saveResult`). Each shows a reference number (`DKT-…`, `MRR-…`, `ECF-…` / `ENV-…`) that trainees log in the CM course's tool steps.
-
-**⚖️ Docket System** (`/simulators/docket.html`), built from the LSH docket registry prototype:
-- **Docketing Inbox**: notices of electronic filing, mail and emails for one case. For each item, the trainee decides whether it belongs on the court docket (discovery and internal emails don't), then calendars every deadline it triggers with a responsible person and reminders. **Check My Docketing** grades each item and shows the computation for anything wrong.
-  - *Harlow v. Tri-County Transit* (federal): answer due after service, opposition to a motion, a hearing, RFAs served by mail, an order counted from its entry date, and a scheduling order.
-  - *John Doe v. Apex* (CM course): SOL, the arbitration scheduling order, the amended complaint's service window, RFAs by mail and a motion to compel. These use the course's state method.
-- **Court Records**: a federal-style docket report per case (court, case number, judge, nature of suit, parties and counsel, numbered entries), with filters, search, CSV export, new cases and entries. It includes the five cases from the prototype.
-- **Firm Calendar**: every deadline, with Verified and Done checks and an `.ics` export.
-- **Deadline Calculator**: `simulators/legal-rules.js` (`LR.compute`), a rules library (answer 21 days, opposition 14, discovery 30, FRCP 4(m) 90, appeal 30, expert disclosures 90 days before trial, SOL 2 years, and more) with federal court holidays for 2026–2027.
-  - **Federal (FRCP 6):** roll a weekend or holiday forward, then add 3 days for mail service only.
-  - **State method (CM course):** add the service days first, then roll once.
-  - It unlocks for an assignment after the trainee checks it, so trainees count by hand first.
+Two simulators on the Simulators hub (`/simulators.html`) train the paperwork side of case management. Both run in the browser (progress is saved in that browser) and send scores to the trainer like the other simulators (`Sim.saveResult`). Each shows a reference number (`MRR-…`, `ECF-…` / `ENV-…`) that trainees log in the CM course's tool steps.
 
 **🗂 Medical Records Requests** (`/simulators/records.html`): collecting John Doe's records and bills for the demand. The collection opens on today's date, the attorney's date is 29 business days out from it, and the case file moves with the clock so the accident always sits about five months behind today (`?anchor=authored` pins it to the dates on the course's printed documents instead); **same-day receipt** (on by default) brings back what the providers and the client send the same day, so a whole collection can be worked through in one live session.
 - **Authorization:** the HIPAA authorization is unsigned and undated; review it against 45 CFR 164.508 and send it for e-signature.
@@ -300,7 +289,7 @@ About 98 requests a minute per signed-in tab became about 5. Pings are read from
 - **Smoke test in a browser:** opens every portal page and simulator at desktop and phone width (API calls answered with empty data). It fails on any page error or a page that scrolls sideways on a phone. New simulator pages go in `PAGES` in `.github/scripts/smoke.cjs`.
 
 **Uptime** (`.github/workflows/uptime.yml`) checks every 30 minutes (at :07 and :37):
-- the live portal, including its database (`/api/site-state`) and the Docket simulator;
+- the live portal, including its database (`/api/site-state`);
 - the CM, EA/PA, PD Claims and Medsum & Demand courses;
 - the CMS, including its database (`/api/state`).
 

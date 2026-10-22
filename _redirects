@@ -20,3 +20,8 @@
 
 # An old bookmark to the retired trainee sign-in page.
 /bridge.html /programs.html 302
+
+# The retired Docket System simulator (docketing is done in person).
+/simulators/docket.html /simulators.html 302
+/simulators/docket.js /simulators.html 302
+/simulators/docket-data.js /simulators.html 302
