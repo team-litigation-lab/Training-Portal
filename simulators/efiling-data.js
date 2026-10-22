@@ -1,5 +1,7 @@
 /* Court E-Filing — scenarios. Each has a filing folder (documents with properties the trainee
    inspects and fixes) and the answer the grader checks against (see efiling.js). */
+/* The global default upload limit. A state picked in the dropdown overrides it
+   (see filing-states.js); nothing here hard-codes a state's number any more. */
 const EF_LIMIT_MB = 35;
 const EF_ATTACH_TYPES = ['Exhibit', 'Proposed Order', 'Memorandum in Support', 'Affidavit / Declaration', 'Certificate of Service', 'Civil Cover Sheet', 'Summons', 'Other'];
 
@@ -13,6 +15,11 @@ const EF_SCENARIOS = [
                 { n: 4, text: 'MOTION to Dismiss for Failure to State a Claim by Tri-County Transit Authority.' }, { n: 5, text: 'NOTICE OF HEARING ON MOTION re [4] MOTION to Dismiss.' } ],
       events: ['Answer to Complaint', 'Amended Complaint', 'Motion to Dismiss', 'Memorandum in Support of Motion', 'Response in Opposition to Motion', 'Reply to Response to Motion', 'Notice of Appearance', 'Notice (Other)'],
       recipients: ['A. Rivera (rivera@lshpartner.training)', 'Morgan Lee (mlee@leehart.training)'],
+      summary: { caseType: 'Civil Rights/Personal Injury — 42 U.S.C. § 1983', status: 'Open — motion pending', amount: 'Over $75,000', grounds: 'Federal question',
+        lastUpdate: '04/17/2026 09:12 AM', filed: '01/22/2026', judge: 'Hon. P. Iyer', department: 'Courtroom 4B',
+        attorneys: [ { name: 'A. Rivera', firm: 'Legal Support Help — Litigation', addr: '1260 B Street, Suite 350, Hayward, CA 94541', phone: '(510) 397-2008', email: 'rivera@lshpartner.training', role: 'Attorney for Plaintiff' },
+                     { name: 'Morgan Lee', firm: 'Lee & Hart LLP', addr: '900 Transit Plaza, 12th Floor, Metro City', phone: '(415) 555-0144', email: 'mlee@leehart.training', role: 'Attorney for Defendant' } ],
+        complaint: { title: 'Complaint filed by Dana Harlow on 01/22/2026', rows: [['Case Type', 'Civil Rights/Personal Injury'], ['Amount in Controversy', 'Over $75,000'], ['Case Number', '2:26-cv-00318-PI'], ['Jurisdictional Grounds', 'Federal question — 28 U.S.C. § 1331']] } },
       folder: [
         { id: 'opp', name: 'Harlow_Opposition_to_MTD_FINAL.pdf', kind: 'pdf', what: 'Opposition to the Motion to Dismiss (final, approved)', pages: 18, sizeMB: 1.4, searchable: false, signed: false, cos: false, password: false, pii: [] },
         { id: 'exA', name: 'Exhibit_A_ER_Record.pdf', kind: 'pdf', what: 'Exhibit A: Metro General ER record (02/14/2026)', pages: 6, sizeMB: 2.1, searchable: true, signed: null, cos: null, password: false, pii: ['Full date of birth (03/22/1987)', 'Social Security number (412-55-8830)'] },
@@ -29,6 +36,11 @@ const EF_SCENARIOS = [
       codes: [ { code: 'Complaint (initial)', fee: 435 }, { code: 'Amended Complaint', fee: 0 }, { code: 'Answer', fee: 435 }, { code: 'Motion (general)', fee: 60 }, { code: 'Proof of Service', fee: 0 }, { code: 'Request for Dismissal', fee: 0 } ],
       serviceContacts: [ { id: 'dc', name: 'Defense counsel for Apex & Smith (Aggressive Casualty panel)', email: 'defense@acpanel.training', required: true }, { id: 'adj', name: 'Aggressive Casualty — claims adjuster', email: 'claims@aggcas.training', notParty: true } ],
       efspFee: 4.95,
+      summary: { caseType: 'Civil Unlimited — Motor Vehicle / Personal Injury', status: 'Open', amount: 'Over $35,000', grounds: 'Over $35,000',
+        lastUpdate: '06/09/2026 04:41 PM', filed: '03/14/2026', judge: 'Hon. L. Okafor', department: 'Department 12',
+        attorneys: [ { name: 'Tiega Varlack', firm: 'Varlack Legal Services', addr: '1260 B Street, Suite 350, Hayward, CA 94541', phone: '(510) 397-2008', email: 'tiega@varlacklegal.training', role: 'Attorney for Plaintiff' },
+                     { name: 'Dana Whitfield', firm: 'Aggressive Casualty defense panel', addr: '2 Harbor Center, Suite 900, Metro City', phone: '(510) 555-0182', email: 'defense@acpanel.training', role: 'Attorney for Defendants' } ],
+        complaint: { title: 'Amended Complaint (1st) filed by John Doe on 03/14/2026', rows: [['Case Type', 'Motor Vehicle / Personal Injury'], ['Amount in Controversy', 'Over $35,000'], ['Case Number', 'CV-2026-004417'], ['Jurisdictional Grounds Code', 'Over $35,000']] } },
       folder: [
         { id: 'fac', name: 'JD35_First_Amended_Complaint.pdf', kind: 'pdf', what: 'First Amended Complaint (operative, approved by the attorney)', pages: 14, sizeMB: 0.9, searchable: true, signed: true, cos: null, password: true, pii: [] },
         { id: 'orig', name: 'JD34_Original_Complaint.pdf', kind: 'pdf', what: 'Original Complaint (superseded)', pages: 11, sizeMB: 0.7, searchable: true, signed: true, cos: null, password: false, pii: [], superseded: true },
@@ -41,6 +53,10 @@ const EF_SCENARIOS = [
       plaintiff: 'Maria Santos', defendant: 'Brightway Grocers, Inc.',
       caseTypes: [ { code: 'Auto (22)', kind: 'pi' }, { code: 'Premises liability — Other PI/PD/WD (23)', kind: 'premises' }, { code: 'Medical malpractice (45)', kind: 'medmal' }, { code: 'Breach of contract/warranty (06)', kind: 'contract' } ],
       fees: { unlimited: 435, limited: 225 },
+      summary: { caseType: 'Not yet assigned — new case', status: 'Not filed', amount: 'Over $180,000', grounds: 'Over $35,000',
+        lastUpdate: '—', filed: '—', judge: 'Assigned on filing', department: 'Assigned on filing',
+        attorneys: [ { name: 'Tiega Varlack', firm: 'Varlack Legal Services', addr: '1260 B Street, Suite 350, Hayward, CA 94541', phone: '(510) 397-2008', email: 'tiega@varlacklegal.training', role: 'Attorney for Plaintiff' } ],
+        complaint: { title: 'Complaint for Damages — premises liability (not yet filed)', rows: [['Case Type', 'Premises liability — Other PI/PD/WD'], ['Amount in Controversy', 'Over $180,000'], ['Case Number', 'Assigned when the clerk accepts the filing'], ['Jurisdictional Grounds Code', 'Over $35,000']] } },
       folder: [
         { id: 'cmp', name: 'Santos_v_Brightway_Complaint.pdf', kind: 'pdf', what: 'Complaint for Damages (premises liability), approved', pages: 9, sizeMB: 0.6, searchable: true, signed: true, cos: null, password: false, pii: [] },
         { id: 'ccs', name: 'Civil_Case_Cover_Sheet_CM-010.pdf', kind: 'pdf', what: 'Civil Case Cover Sheet (completed)', pages: 2, sizeMB: 0.2, searchable: true, signed: true, cos: null, password: false, pii: [] },

@@ -58,6 +58,7 @@ const PAGES = [
     ['Docket System', '/simulators/docket.html'],
     ['Medical Records Requests', '/simulators/records.html'],
     ['Court E-Filing', '/simulators/efiling.html'],
+    ['Appellate E-Filing', '/simulators/appellate.html'],
     ['Simulators hub', '/simulators.html']
 ];
 (async () => {

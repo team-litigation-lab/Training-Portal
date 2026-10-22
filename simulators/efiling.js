@@ -18,9 +18,13 @@ const STEPS = {
 };
 const PAY = ['Firm operating account — Visa ••4421', 'Client trust (IOLTA) account', 'My personal card'];
 
-let S = (() => { try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.f) return s; } catch (e) {} return { sc: null, f: {} }; })();
+let S = (() => { try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.f) return Object.assign({ view: 'home', st: FilingStates.current() }, s); } catch (e) {} return { sc: null, f: {}, view: 'home', st: FilingStates.current() }; })();
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const sc = () => EF_SCENARIOS.find(x => x.id === S.sc);
+// The state's rules behind this filing: upload limit, fees, provider, redaction rule. A
+// federal filing is the same in every state, so the state only moves the state-court numbers.
+const P = () => FilingStates.get(S.st);
+const limitMB = () => (sc() && sc().system === 'federal') ? EF_LIMIT_MB : P().limitMB;
 function F() {
     const s = sc(); if (!s) return null;
     if (!S.f[s.id]) S.f[s.id] = { step: 0, folder: clone(s.folder), a: { filers: [], attachments: [], contacts: [] }, submitted: null, inspect: null, msg: '' };
@@ -33,12 +37,12 @@ const norm = (x) => String(x || '').toLowerCase().replace(/\s+/g, '');
 function render() {
     document.getElementById('topbar').innerHTML = Sim.topbar('efiling');
     const app = document.getElementById('app');
-    if (!sc()) { app.innerHTML = picker(); Sim.label('Court E-Filing'); return; }
+    if (!sc()) { app.innerHTML = workspace(); Sim.label('Court E-Filing'); return; }
     const s = sc(), f = F(), steps = STEPS[s.system];
     Sim.label('Court E-Filing · ' + s.short);
     app.innerHTML = `
-    <div class="sim-card ef-top"><div><div class="mr-k">${s.system === 'federal' ? 'Electronic Case Filing (federal style)' : 'E-filing service provider (state court)'}</div><b>${E(s.court)}</b><div class="sim-muted ef-small">${E(s.when)}</div></div>
-        <div class="dk-row"><button class="sim-btn ghost" onclick="EF.back()">← All Scenarios</button><button class="sim-btn ghost" onclick="EF.restart()">↺ Start Over</button></div></div>
+    <div class="sim-card ef-top"><div><div class="mr-k">${s.system === 'federal' ? 'Electronic Case Filing (federal style)' : E(P().provider)}</div><b>${E(s.system === 'federal' ? s.court : P().trialCourt === FS_GLOBAL.trialCourt ? s.court : P().trialCourt + ' (Training)')}</b><div class="sim-muted ef-small">${E(s.when)}</div></div>
+        <div class="dk-row">${s.system === 'federal' ? '' : FilingStates.picker('EF.state')}<button class="sim-btn ghost" onclick="EF.back()">← Workspace</button><button class="sim-btn ghost" onclick="EF.restart()">↺ Start Over</button></div></div>
     <div class="sim-card ef-brief"><b>Your assignment:</b> ${E(s.brief)}</div>
     ${f.submitted ? receipt(s, f) : `<div class="ef-shell">
         <aside class="sim-card ef-folder"><h4>📂 Filing Folder</h4><p class="sim-muted ef-small">Inspect each file before you upload it.</p>
@@ -47,6 +51,73 @@ function render() {
         <section class="sim-card ef-wiz"><ol class="ef-steps">${steps.map(([k, l], i) => `<li class="${i === f.step ? 'on' : i < f.step ? 'done' : ''}"><button onclick="EF.go(${i})" ${i > f.step ? 'disabled' : ''}>${i + 1}. ${E(l)}</button></li>`).join('')}</ol>
             ${f.msg ? `<div class="sim-error ef-msg">${E(f.msg)}</div>` : ''}
             <div id="ef-step">${step(s, f, steps[f.step][0])}</div></section></div>`}`;
+}
+/* ---------- the provider's workspace ----------
+   An e-filing service provider doesn't open on a wizard: it opens on a dashboard with the
+   firm's cases down the side, and you get to a filing through a case summary or through
+   filing status. This is that shell, drawn the way the provider the firm actually uses draws
+   it, so a trainee recognizes the real screen when they sit down at it. */
+function workspace() {
+    const p = P(), v = S.view || 'home';
+    const rail = (id, label) => `<button class="${v === id ? 'on' : ''}" onclick="EF.view('${id}')">${label}</button>`;
+    return `<div class="gf-shell">
+        <aside class="sim-card gf-rail">
+            <nav>${rail('home', '⌂ Dashboard')}
+                <button onclick="EF.pick('state-new')">🏛 Initiate a New Case</button>
+                ${rail('cases', '📂 File on Existing Case')}
+                ${rail('status', '↻ Filing Status')}</nav>
+            <h5>Recent Cases</h5>
+            ${EF_SCENARIOS.map(x => `<button class="gf-case" onclick="EF.view('case:${x.id}')" title="${E(x.caption || x.title)}">${E(x.caseNumber ? x.caseNumber + ': ' + x.caption : 'New case — ' + x.plaintiff)}</button>`).join('')}
+        </aside>
+        <section>${v.startsWith('case:') ? caseSummary(EF_SCENARIOS.find(x => x.id === v.slice(5)), p)
+            : v === 'status' ? filingStatus(p)
+            : v === 'cases' ? `<div class="sim-card"><div class="gf-bar"><h2>File on Existing Case</h2>${FilingStates.picker('EF.state')}</div>
+                <p class="sim-muted ef-small">Open the case you are filing in, check the summary the court has, then file on it.</p></div>${picker()}`
+            : dashboard(p)}</section></div>`;
+}
+function dashboard(p) {
+    return `<div class="sim-card"><div class="gf-bar"><h2>Dashboard</h2>${FilingStates.picker('EF.state')}</div>
+        <p class="sim-muted ef-small">Filing as <b>Legal Support Help — Litigation</b> through ${E(p.provider)}. State rules in force: ${E(FilingStates.blurb(p))}. Federal filings go through the court's own system and don't change with the state.</p></div>
+        ${filingStatus(p, 4)}
+        <div class="sim-card"><h3 style="margin:0 0 4px">Start a filing</h3><p class="sim-muted ef-small">Three filings the firm sends out every week.</p></div>
+        ${picker()}`;
+}
+function caseSummary(x, p) {
+    if (!x) return dashboard(p);
+    const sum = x.summary || {}, f = S.f[x.id];
+    const court = x.system === 'federal' ? x.court : (p.trialCourt === FS_GLOBAL.trialCourt ? x.court : p.trialCourt + ' (Training)');
+    const kv = (k, v) => `<div><span class="k">${E(k)}</span><b>${E(v == null || v === '' ? '—' : String(v))}</b></div>`;
+    return `<div class="sim-card">
+        <div class="gf-bar"><h2>Case Summary</h2><div class="gf-acts">
+            <button onclick="EF.pick('${x.id}')">📄 File on Case</button><button onclick="EF.view('status')">📁 View Filings</button>
+            <button onclick="EF.view('home')">⌂ Dashboard</button>${x.system === 'federal' ? '' : FilingStates.picker('EF.state')}</div></div>
+        <div class="gf-caption"><div>${E(x.caseNumber ? x.caseNumber + ': ' + x.caption : 'New case — ' + x.plaintiff + ' v. ' + x.defendant)}</div><span>Last Update: ${E(sum.lastUpdate || '—')}</span></div>
+        <div class="gf-sec"><h4>Case Information</h4><div class="gf-grid">
+            ${kv('Case Number', x.caseNumber || 'Assigned on filing')}${kv('Court Location', court)}${kv('Case Name/Title', x.caption || (x.plaintiff + ' v. ' + x.defendant))}
+            ${kv('Case Type', sum.caseType)}${kv('Status', sum.status)}${kv('Filed', sum.filed)}
+            ${kv('Jurisdictional Grounds Code', sum.grounds)}${kv('Amount in Controversy', sum.amount)}${kv('Judicial Officer', sum.judge)}${kv('Department', sum.department)}</div></div>
+        <div class="gf-sec"><h4>Attorney Information</h4><div class="gf-grid">
+            ${(sum.attorneys || []).map(at => `<div><span class="k">${E(at.role)}</span><b>${E(at.name)}</b><div class="sim-muted">${E(at.firm)}<br>${E(at.addr)}<br>${E(at.phone)}<br>${E(at.email)}</div></div>`).join('') || '<div class="sim-muted">No attorneys of record.</div>'}</div></div>
+        <div class="gf-sec"><h4>Complaint Information${sum.complaint ? ' — ' + E(sum.complaint.title) : ''}</h4><div class="gf-grid">
+            ${((sum.complaint || {}).rows || []).map(r => kv(r[0], r[1])).join('')}</div></div>
+        <div class="gf-sec"><h4>Party Information</h4><div class="gf-grid">
+            ${(x.parties || [{ name: x.plaintiff, role: 'Plaintiff' }, { name: x.defendant, role: 'Defendant' }]).map(pt => kv(pt.role, pt.name)).join('')}</div></div>
+        ${f && f.submitted ? `<p class="ef-small">Your last envelope on this case: <b class="mono">${E(f.submitted.envelope)}</b> — ${f.submitted.reviewed ? (f.submitted.grade.reject.length ? 'Rejected' : 'Accepted') : 'Pending clerk review'}.</p>` : ''}
+    </div>`;
+}
+/* The filing status list the provider shows: every envelope this trainee has sent, newest first. */
+function filingStatus(p, limit) {
+    const rows = EF_SCENARIOS.map(x => ({ x, f: S.f[x.id] })).filter(r => r.f && r.f.submitted)
+        .map(r => { const sub = r.f.submitted, st = !sub.reviewed ? ['pending', 'Pending'] : sub.grade.reject.length ? ['rejected', 'Rejected'] : ['accepted', 'Accepted'];
+            return { id: sub.envelope, st, stamp: sub.stamp, caseNo: r.x.caseNumber || sub.newCase || 'New case', env: r.x.system === 'federal' ? 'N/A' : sub.envelope,
+                lead: (r.f.folder.find(d => d.id === r.f.a.lead) || {}).name || '—', extra: r.f.a.attachments.length, scId: r.x.id }; }).reverse();
+    const shown = limit ? rows.slice(0, limit) : rows;
+    return `<div class="sim-card"><div class="gf-bar"><h2>Filing Status</h2>${limit && rows.length > limit ? `<div class="gf-acts"><button onclick="EF.view('status')">See all ${rows.length} →</button></div>` : ''}</div>
+        ${shown.length ? `<table class="gf-status"><thead><tr><th>Filing ID</th><th>Status</th><th>Last Changed</th><th>Case</th><th>Envelope</th><th>Lead Document</th></tr></thead><tbody>
+        ${shown.map(r => `<tr><td class="mono">${E(r.id)}</td><td><span class="gf-st ${r.st[0]}">${r.st[1]}</span></td><td>${E(r.stamp)}</td>
+            <td><button class="gf-acts" style="border:0;background:none;font:inherit;color:var(--navy);cursor:pointer" onclick="EF.view('case:${r.scId}')">${E(r.caseNo)}</button></td>
+            <td class="mono">${E(r.env)}</td><td>${E(r.lead)}${r.extra ? ` <span class="sim-muted">(+ ${r.extra} more)</span>` : ''}</td></tr>`).join('')}
+        </tbody></table>` : '<p class="sim-muted ef-small">Nothing filed yet. Every envelope you submit shows up here with what the clerk did with it.</p>'}</div>`;
 }
 function picker() {
     return `<div class="ef-pick">${EF_SCENARIOS.map(s => { const f = S.f[s.id], r = f && f.submitted && f.submitted.grade; return `<div class="sim-card ef-sc" onclick="EF.pick('${s.id}')">
@@ -58,7 +129,7 @@ function inspector(d) {
     const row = (k, v, bad) => `<tr><th>${k}</th><td class="${bad ? 'bad' : ''}">${v}</td></tr>`;
     return `<div class="ef-insp"><b>${E(d.name)}</b><table>
         ${row('Format', d.kind === 'pdf' ? 'PDF' : 'Word document (.docx)', d.kind !== 'pdf')}
-        ${row('Pages / size', `${d.pages} pages · ${d.sizeMB} MB`, d.sizeMB > EF_LIMIT_MB)}
+        ${row('Pages / size', `${d.pages} pages · ${d.sizeMB} MB`, d.sizeMB > limitMB())}
         ${row('Text-searchable', d.searchable ? 'Yes' : 'No (scanned image)', !d.searchable)}
         ${d.signed !== null ? row('Signature block', d.signed ? '/s/ signature present' : 'No signature', !d.signed) : ''}
         ${d.cos !== null ? row('Certificate of service', d.cos ? 'Included' : 'Not included', !d.cos) : ''}
@@ -70,10 +141,11 @@ function inspector(d) {
         ${d.signed === false && d.kind === 'pdf' ? `<button onclick="EF.fix('${d.id}','sign')">Add /s/ signature</button>` : ''}
         ${d.cos === false && d.kind === 'pdf' ? `<button onclick="EF.fix('${d.id}','cos')">Add certificate of service</button>` : ''}
         ${d.pii.length ? `<button onclick="EF.fix('${d.id}','redact')">Redact identifiers</button>` : ''}
-        ${d.sizeMB > EF_LIMIT_MB ? `<button onclick="EF.fix('${d.id}','split')">Split file</button>` : ''}
+        ${d.sizeMB > limitMB() ? `<button onclick="EF.fix('${d.id}','split')">Split file</button>` : ''}
         ${d.password ? `<button onclick="EF.fix('${d.id}','unlock')">Remove password</button>` : ''}
-    </div><p class="sim-muted ef-small">Upload limit: ${EF_LIMIT_MB} MB per file, PDF only, no password protection.</p></div>`;
+    </div><p class="sim-muted ef-small">Upload limit: ${limitMB()} MB per file, PDF only, no password protection.</p></div>`;
 }
+const thr = () => '$' + P().firstPaper.threshold.toLocaleString();
 const opt = (v, cur, label) => `<option value="${E(v)}" ${String(cur) === String(v) ? 'selected' : ''}>${E(label || v)}</option>`;
 const next = (label) => `<div class="lx-acts"><button class="sim-btn primary" onclick="EF.next()">${label || 'Next →'}</button></div>`;
 function step(s, f, k) {
@@ -99,13 +171,13 @@ function step(s, f, k) {
         <label class="ef-opt"><input type="radio" name="ft" value="existing" ${a.filingType === 'existing' ? 'checked' : ''} onchange="EF.set('filingType','existing')"> A subsequent filing into an existing case</label>
         <label class="ef-opt"><input type="radio" name="ft" value="new" ${a.filingType === 'new' ? 'checked' : ''} onchange="EF.set('filingType','new')"> An initial filing that opens a new case</label>${next()}`;
     case 'code': return `<h3>Filing Code</h3><p class="sim-muted ef-small">The filing code sets the document type and the court fee.</p>
-        ${s.codes.map(c => `<label class="ef-opt"><input type="radio" name="code" value="${E(c.code)}" ${a.code === c.code ? 'checked' : ''} onchange="EF.set('code',this.value)"> ${E(c.code)} <span class="sim-muted">· court fee ${money(c.fee)}</span></label>`).join('')}${next()}`;
+        ${s.codes.map(c => `<label class="ef-opt"><input type="radio" name="code" value="${E(c.code)}" ${a.code === c.code ? 'checked' : ''} onchange="EF.set('code',this.value)"> ${E(c.code)} <span class="sim-muted">· court fee ${money(c.fee ? P().firstPaper.unlimited : 0)}</span></label>`).join('')}${next()}`;
     case 'party': return `<h3>Filing Party</h3>${s.parties.map(p => `<label class="ef-opt"><input type="radio" name="party" value="${p.id}" ${a.party === p.id ? 'checked' : ''} onchange="EF.set('party','${p.id}')"> ${E(p.name)} (${E(p.role)})</label>`).join('')}${next()}`;
     case 'casetype': return `<h3>Case Category and Type</h3>
         <label class="ef-lbl">Case type<select onchange="EF.set('caseType',this.value)"><option value="">Choose…</option>${s.caseTypes.map(c => opt(c.code, a.caseType)).join('')}</select></label>
         <p class="ef-small"><b>Jurisdiction</b> (by amount demanded)</p>
-        <label class="ef-opt"><input type="radio" name="jur" value="limited" ${a.jur === 'limited' ? 'checked' : ''} onchange="EF.set('jur','limited')"> Limited civil: $35,000 or less (fee ${money(s.fees.limited)})</label>
-        <label class="ef-opt"><input type="radio" name="jur" value="unlimited" ${a.jur === 'unlimited' ? 'checked' : ''} onchange="EF.set('jur','unlimited')"> Unlimited civil: over $35,000 (fee ${money(s.fees.unlimited)})</label>${next()}`;
+        <label class="ef-opt"><input type="radio" name="jur" value="limited" ${a.jur === 'limited' ? 'checked' : ''} onchange="EF.set('jur','limited')"> Limited civil: ${thr()} or less (fee ${money(P().firstPaper.limited)})</label>
+        <label class="ef-opt"><input type="radio" name="jur" value="unlimited" ${a.jur === 'unlimited' ? 'checked' : ''} onchange="EF.set('jur','unlimited')"> Unlimited civil: over ${thr()} (fee ${money(P().firstPaper.unlimited)})</label>${next()}`;
     case 'parties': return `<h3>Parties</h3><div class="lx-grid">
         <label class="ef-lbl">Plaintiff name<input value="${E(a.pName || '')}" oninput="EF.set('pName',this.value,true)"></label>
         <label class="ef-lbl">Plaintiff is<select onchange="EF.set('pType',this.value)"><option value="">Choose…</option>${opt('individual', a.pType, 'An individual')}${opt('business', a.pType, 'A business / organization')}</select></label>
@@ -137,8 +209,11 @@ function serviceStep(s, f) {
         ${s.serviceContacts.map(c => `<label class="ef-opt"><input type="checkbox" ${a.contacts.includes(c.id) ? 'checked' : ''} onchange="EF.toggle('contacts','${c.id}',this.checked)"> ${E(c.name)} <span class="sim-muted">&lt;${E(c.email)}&gt;</span></label>`).join('')}${next()}`;
 }
 function fee(s, f) {
-    if (s.system === 'state') { const c = s.codes.find(x => x.code === f.a.code); return { court: c ? c.fee : 0, efsp: s.efspFee }; }
-    if (s.system === 'state-new') return { court: f.a.jur === 'limited' ? s.fees.limited : f.a.jur === 'unlimited' ? s.fees.unlimited : 0, efsp: 4.95 };
+    const p = P();
+    // A filing code's fee is the first-paper fee in the state you file in; the amended
+    // complaint and the other no-fee codes stay free wherever you are.
+    if (s.system === 'state') { const c = s.codes.find(x => x.code === f.a.code); return { court: c ? (c.fee ? p.firstPaper.unlimited : 0) : 0, efsp: p.efspFee }; }
+    if (s.system === 'state-new') return { court: f.a.jur === 'limited' ? p.firstPaper.limited : f.a.jur === 'unlimited' ? p.firstPaper.unlimited : 0, efsp: p.efspFee };
     return { court: 0, efsp: 0 };
 }
 function feesStep(s, f) {
@@ -185,7 +260,7 @@ function grade(s, f) {
         add('Brief is signed (/s/)', a.lead === 'opp' && lead.signed, 5, 'Every filing needs the attorney\'s signature (/s/ name) under FRCP 11.');
         add('Certificate of service included', a.lead === 'opp' && lead.cos, 5, 'Add the certificate of service (FRCP 5(d)(1)(B)).');
         const exA = att('exA'); add('Exhibit A attached and redacted', exA && doc(exA.doc).redacted, 15, exA ? 'Exhibit A was filed with a full date of birth and SSN. Redact to the birth year and last four digits (FRCP 5.2(a)) before filing.' : 'Exhibit A (the ER record) is missing.', exA ? 3 : 0);
-        add('Exhibit B split under the size limit and fully attached', !!att('exB_1') && !!att('exB_2'), 5, 'Exhibit B is 48 MB: split it into parts under 35 MB and attach every part.');
+        add('Exhibit B split under the size limit and fully attached', !!att('exB_1') && !!att('exB_2'), 5, `Exhibit B is 48 MB: split it into parts under ${limitMB()} MB and attach every part.`);
         const po = att('po'); add('Proposed order attached as a Proposed Order', po && po.type === 'Proposed Order', 5, po ? `The proposed order was typed "${po.type}".` : 'The proposed order is missing.');
         const exTypes = a.attachments.filter(x => /^ex/.test(x.doc)); add('Exhibits typed as Exhibit', exTypes.length && exTypes.every(x => x.type === 'Exhibit'), 5, 'Type each exhibit as "Exhibit" so the docket lists it correctly.');
         add('Every attachment has a description', a.attachments.length && a.attachments.every(x => (x.desc || '').trim().length >= 3), 5, 'Describe each attachment (e.g. "Exhibit A — ER record, redacted") so the docket is readable.');
@@ -205,15 +280,15 @@ function grade(s, f) {
     } else {
         add('Filing type: initial filing (new case)', a.filingType === 'new', 5, 'This opens a new case.');
         add('Case type: premises liability', (a.caseType || '').startsWith('Premises'), 10, 'A slip and fall in a store is premises liability (23).');
-        add('Jurisdiction: unlimited civil', a.jur === 'unlimited', 10, 'The demand is over $180,000, so the case is unlimited civil (over $35,000).');
-        if (a.jur === 'limited') reject.push('Wrong jurisdiction: the amount demanded exceeds the $35,000 limited-civil limit, and the fee paid is for a limited case.');
+        add('Jurisdiction: unlimited civil', a.jur === 'unlimited', 10, `The demand is over $180,000, so the case is unlimited civil in ${P().name} (over ${thr()}).`);
+        if (a.jur === 'limited') reject.push(`Wrong jurisdiction: the amount demanded exceeds the ${thr()} limited-civil limit, and the fee paid is for a limited case.`);
         add('Parties entered correctly', norm(a.pName) === norm(s.plaintiff) && a.pType === 'individual' && norm(a.dName) === norm(s.defendant) && a.dType === 'business', 10, `Plaintiff: ${s.plaintiff} (individual). Defendant: ${s.defendant} (business).`);
         add('Lead document: the complaint', a.lead === 'cmp', 10, 'The complaint is the lead document of a new case.');
         const ccs = att('ccs'); add('Civil Case Cover Sheet attached', ccs && ccs.type === 'Civil Cover Sheet', 15, 'The Civil Case Cover Sheet must be filed with the first paper.', ccs ? 8 : 0);
         if (!ccs) reject.push('Missing Civil Case Cover Sheet: it is required with the first paper in a civil case.');
         const sum = att('sum'); add('Summons attached for issuance', sum && sum.type === 'Summons', 10, 'Include the summons so the clerk can issue it for service.', sum ? 5 : 0);
         add('No private intake notes filed', !bad.length, 15, `You filed ${bad.map(d => d.name).join(', ')}: private client information and work product. Never file it.`);
-        add('Correct first-paper fee', a.jur === 'unlimited', 5, 'Unlimited civil first-paper fee: $435.');
+        add('Correct first-paper fee', a.jur === 'unlimited', 5, `Unlimited civil first-paper fee in ${P().name}: ${money(P().firstPaper.unlimited)}.`);
         add('Paid from the firm operating account', a.pay === PAY[0], 5, 'Court costs are advanced from the firm\'s operating account.');
         add('Service: personal service after the summons issues', a.svc === 'personal', 5, 'The defendant hasn\'t appeared and has no e-service contact. Serve the issued summons and complaint personally.');
     }
@@ -252,6 +327,15 @@ ${s.recipients.join('\n')}</pre>`;
 window.EF = {
     pick(id) { S.sc = id; F(); save(); render(); },
     back() { S.sc = null; save(); render(); },
+    view(v) { S.view = v; S.sc = null; save(); render(); },
+    state(code) {
+        // The state sets the fees, the upload limit and the provider a filing is graded
+        // against, so a filing already under way starts again rather than being graded
+        // half under one state's rules and half under another's.
+        const f = S.sc && S.f[S.sc];
+        if (f && !f.submitted && (f.step > 0 || f.a.lead) && !confirm('Switching states restarts this filing under that state\'s rules. Continue?')) { render(); return; }
+        S.st = code; FilingStates.set(code); if (f && !f.submitted) delete S.f[S.sc]; save(); render();
+    },
     restart() { if (!confirm('Start this filing over?')) return; delete S.f[S.sc]; save(); render(); },
     go(i) { const f = F(); f.step = i; f.msg = ''; save(); render(); },
     set(k, v, quiet) { const f = F(); f.a[k] = v; save(); if (!quiet) render(); else if (k === 'modifier') { const el = document.querySelector('.ef-dtext'); if (el) el.textContent = docketText(sc(), f); } },
@@ -282,7 +366,7 @@ window.EF = {
     upload(role, id) {
         const f = F(), d = doc(id); f.msg = '';
         if (d && d.kind !== 'pdf') { f.msg = `${d.name}: only PDF files can be uploaded.`; }
-        else if (d && d.sizeMB > EF_LIMIT_MB) { f.msg = `${d.name} is ${d.sizeMB} MB, over the ${EF_LIMIT_MB} MB limit per file.`; }
+        else if (d && d.sizeMB > limitMB()) { f.msg = `${d.name} is ${d.sizeMB} MB, over the ${limitMB()} MB limit per file.`; }
         else if (d && d.password) { f.msg = `${d.name} is password-protected and can't be processed. Remove the password first.`; }
         else f.a.lead = id;
         save(); render();
@@ -291,7 +375,7 @@ window.EF = {
         const f = F(), id = document.getElementById('ef-addatt').value; if (!id) return;
         const d = doc(id); f.msg = '';
         if (d.kind !== 'pdf') f.msg = `${d.name}: only PDF files can be uploaded.`;
-        else if (d.sizeMB > EF_LIMIT_MB) f.msg = `${d.name} is ${d.sizeMB} MB, over the ${EF_LIMIT_MB} MB limit per file. Split it first.`;
+        else if (d.sizeMB > limitMB()) f.msg = `${d.name} is ${d.sizeMB} MB, over the ${limitMB()} MB limit per file. Split it first.`;
         else if (d.password) f.msg = `${d.name} is password-protected. Remove the password first.`;
         else f.a.attachments.push({ doc: id, type: 'Exhibit', desc: '' });
         save(); render();

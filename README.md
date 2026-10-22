@@ -59,7 +59,16 @@ Three simulators on the Simulators hub (`/simulators.html`) train the paperwork 
 - **State, e-filing-provider style:** existing or new case → filing code or case type and jurisdiction → parties → lead document and attachments → service contacts → fees and payment account → envelope → clerk accepts or rejects.
 - **Filing folder:** the trainee inspects each file and fixes it (OCR, /s/ signature, certificate of service, FRCP 5.2 redaction, splitting a file over 35 MB, removing a password). The system blocks non-PDF, oversized and password-protected uploads.
 - **Traps:** a privileged memo, the attorney-only case summary, a superseded complaint and private intake notes must never be filed.
-- **Scenarios:** the Harlow opposition (federal), John Doe's First Amended Complaint (state), and opening Santos v. Brightway Grocers (civil cover sheet, summons, $435 unlimited-civil fee, personal service). Data: `simulators/efiling-data.js`.
+- **Scenarios:** the Harlow opposition (federal), John Doe's First Amended Complaint (state), and opening Santos v. Brightway Grocers (civil cover sheet, summons, unlimited-civil first-paper fee, personal service). Data: `simulators/efiling-data.js`.
+- **The provider's workspace:** the page opens the way an e-filing service provider does — a dashboard, the firm's cases down the side, a Case Summary for each one (case information, attorney information, complaint information, parties) and a Filing Status list of every envelope sent, with what the clerk did with it.
+- **State rules:** a dropdown picks the state you file in, and the provider, the first-paper fees, the limited/unlimited threshold and the upload limit follow it. Federal filings don't change with the state. Profiles: `simulators/filing-states.js`.
+
+**⚖️ Appellate E-Filing** (`/simulators/appellate.html`):
+- **Notice of appeal (trial court):** count the deadline before anything else — the state's days from the notice of entry, a date that cannot be extended — then file in the trial court case, appeal from the judgment rather than the order behind it, designate the record, pay the appellate fee and serve counsel.
+- **Opening brief (reviewing court):** filed under the appeal's own number, inside the state's word limit, behind the state's cover color, with the certificate of word count, the certificate of interested entities, and excerpts of record that are split under the upload limit and OCR'd.
+- **Emergency stay:** notice to opposing counsel before filing and a declaration that says so, the password off the petition, the order under challenge attached and searchable, a proposed order to sign, and the client's bank statements redacted.
+- **Traps:** work product, a record the trial court sealed, a draft in Word, the claims adjuster served as if they were counsel, and an oversized brief sent up for the clerk to excuse.
+- **State rules:** the same dropdown as Court E-Filing. Switching states restarts the filing in progress, because the deadline, fee, word limit and cover color it is graded against all change. Data: `simulators/appellate-data.js`.
 
 ## 🤝 Got a referral?
 
