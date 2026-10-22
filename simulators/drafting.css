@@ -67,3 +67,94 @@ textarea.dr-f { display: block; width: 100%; min-height: 72px; resize: vertical;
 /* docx-preview gives every paragraph "background-color: inherit" (the page's white), which paints
    over the line above where Word's highlight runs into it. Only real paragraph shading keeps a colour. */
 .dr-paper.dr-docx p[style*="background-color: inherit"] { background-color: transparent !important; }
+
+/* ---------- ✍ the Word-style editor (drafting-editor.js) ----------
+   Word's own chrome, so the trainee practises where they will work: the blue title bar with the file
+   name, the ribbon tabs (File · Home · Insert · Review · View), the Home groups, the grey canvas with
+   the page on it, and the status bar with pages, words and zoom. */
+.wd { border: 1px solid #c8c6c4; border-radius: 10px; overflow: hidden; background: #f3f2f1; min-width: 0;
+    font-family: 'Segoe UI', 'IBM Plex Sans', system-ui, sans-serif; color: #201f1e; }
+.wd-title { background: #185abd; color: #fff; display: flex; align-items: center; gap: 10px; padding: 7px 12px; font-size: 12.5px; min-width: 0; }
+.wd-title .wd-logo { width: 20px; height: 20px; border-radius: 3px; background: #fff; color: #185abd; font-weight: 900;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 13px; flex: none; }
+.wd-title .wd-fname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.wd-title [data-state] { opacity: .8; white-space: nowrap; margin-left: auto; }
+.wd-ribbon { position: relative; background: #f3f2f1; border-bottom: 1px solid #e1dfdd; }
+.wd-tabs { display: flex; gap: 2px; padding: 0 6px; background: #f3f2f1; overflow-x: auto; }
+.wd-t { border: 0; background: transparent; font: inherit; font-size: 12.5px; padding: 8px 12px 6px; cursor: pointer; color: #201f1e;
+    border-bottom: 3px solid transparent; white-space: nowrap; }
+.wd-t.on { border-bottom-color: #185abd; color: #185abd; font-weight: 600; }
+.wd-t.wd-file { background: #185abd; color: #fff; border-radius: 4px 4px 0 0; margin: 4px 4px 0 0; padding-top: 4px; }
+.wd-rib { display: flex; gap: 0; padding: 6px 6px 2px; background: #fff; border-top: 1px solid #e1dfdd; overflow-x: auto; min-height: 76px; }
+.wd-rib[hidden] { display: none; }
+.wd-g { display: flex; flex-direction: column; justify-content: space-between; padding: 0 9px; border-right: 1px solid #e1dfdd; flex: none; }
+.wd-g:last-child { border-right: 0; }
+.wd-gb { display: flex; flex-direction: column; gap: 3px; justify-content: center; flex: 1; }
+.wd-gb > .wd-b { align-self: flex-start; }
+.wd-gn { font-size: 10.5px; color: #605e5c; text-align: center; padding: 3px 0 1px; }
+.wd-row { display: flex; align-items: center; gap: 2px; }
+.wd-b { border: 1px solid transparent; background: transparent; border-radius: 3px; min-width: 26px; height: 26px; padding: 0 5px;
+    font: inherit; font-size: 13px; color: #201f1e; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.wd-b:hover { background: #edebe9; }
+.wd-b.on { background: #c7e0f4; border-color: #9fc3e6; }
+.wd-b.wd-wide { padding: 0 10px; font-weight: 600; }
+.wd-split { display: inline-flex; }
+.wd-split .wd-b:last-child { min-width: 14px; padding: 0 2px; font-size: 9px; }
+.wd-sel { height: 26px; border: 1px solid #c8c6c4; border-radius: 2px; background: #fff; font: inherit; font-size: 12.5px; }
+.wd-font { width: 140px; } .wd-size { width: 56px; }
+.wd-in { height: 24px; width: 140px; border: 1px solid #c8c6c4; border-radius: 2px; padding: 0 6px; font: inherit; font-size: 12px; }
+.wd-hl { border-bottom: 4px solid #ffff00; line-height: 1; padding: 0 1px; font-style: italic; }
+.wd-fc { border-bottom: 4px solid #c00000; line-height: 1; font-weight: 700; padding: 0 2px; }
+.wd-clear { position: relative; font-weight: 700; }
+.wd-clear::after { content: ''; position: absolute; right: -6px; bottom: 0; width: 7px; height: 5px; background: #e3008c; border-radius: 1px; transform: rotate(-35deg); }
+.wd-al { display: inline-block; width: 15px; height: 12px;
+    background: linear-gradient(#323130, #323130) 0 0 / 100% 2px no-repeat, linear-gradient(#323130, #323130) 0 5px / 60% 2px no-repeat,
+                linear-gradient(#323130, #323130) 0 10px / 100% 2px no-repeat; }
+.wd-al.c { background-position: 0 0, 50% 5px, 0 10px; } .wd-al.r { background-position: 0 0, 100% 5px, 0 10px; }
+.wd-al.j { background-size: 100% 2px, 100% 2px, 100% 2px; }
+.wd-syms { display: grid; grid-template-columns: repeat(10, 26px); gap: 1px; }
+.wd-count { font-size: 12px; line-height: 1.5; padding: 0 6px; }
+.wd-z { font-size: 12px; min-width: 40px; text-align: center; }
+.wd-pop, .wd-menu { position: absolute; z-index: 30; background: #fff; border: 1px solid #c8c6c4; border-radius: 4px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .18); padding: 8px; }
+.wd-pop[hidden], .wd-menu[hidden] { display: none; }
+.wd-sw { display: grid; grid-template-columns: repeat(5, 22px); gap: 4px; }
+.wd-sw button { width: 22px; height: 22px; border: 1px solid #c8c6c4; border-radius: 2px; cursor: pointer; padding: 0; }
+.wd-none { margin-top: 8px; width: 100%; border: 1px solid #c8c6c4; background: #fff; border-radius: 3px; padding: 5px; font: inherit; font-size: 12px; cursor: pointer; }
+.wd-menu { left: 6px; top: 34px; display: flex; flex-direction: column; min-width: 260px; padding: 6px; background: #185abd; }
+.wd-menu button { border: 0; background: transparent; color: #fff; text-align: left; padding: 9px 12px; font: inherit; font-size: 13px; border-radius: 3px; cursor: pointer;
+    display: flex; justify-content: space-between; gap: 12px; }
+.wd-menu button:hover { background: rgba(255, 255, 255, .15); }
+.wd-menu kbd { opacity: .7; font-family: inherit; font-size: 11px; }
+.wd-canvas { background: #e6e6e6; max-height: 78vh; overflow: auto; }
+.wd-canvas .dr-paper { border: 0; border-radius: 0; box-shadow: none; }
+.wd-canvas .dr-paper.dr-docx .docx-wrapper { background: #e6e6e6; border-radius: 0; }
+.wd-doc.wd-wide { overflow-x: auto; }
+.wd-status { display: flex; align-items: center; gap: 14px; background: #f3f2f1; border-top: 1px solid #e1dfdd; padding: 4px 12px; font-size: 11.5px; color: #3b3a39; flex-wrap: wrap; }
+.wd-status [data-say] { color: #185abd; font-weight: 600; }
+.wd-status .wd-zs { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }
+.wd-status .wd-zs button { border: 0; background: transparent; cursor: pointer; font-size: 14px; padding: 0 4px; }
+.wd.wd-off .wd-ribbon, .wd.wd-off .wd-status .wd-zs { display: none; }
+
+/* the letter in edit mode: a text cursor, Word's selection colour, nothing the browser adds */
+/* the portal's own contenteditable look (padding, border, background, full width) would move the text off
+   Word's layout: the page is the page, exactly as drawn */
+.wd-doc section.docx > article[contenteditable="true"], .wd-doc section.docx > article[contenteditable="true"]:focus {
+    outline: none; cursor: text; caret-color: #000; background: transparent; border: 0; border-radius: 0; padding: 0;
+    min-height: 0; width: auto; box-shadow: none; }
+.wd-doc section.docx > article ::selection { background: #b4d7ff; }
+.wd-doc .dr-chk { cursor: pointer; font-family: 'MS Gothic', 'Segoe UI Symbol', sans-serif; user-select: none; }
+.wd-doc .dr-chk:hover { background: #dbe8ff; }
+/* ¶ Show/Hide: paragraph marks, tab arrows and shaded spaces, as Word shows formatting marks */
+.wd-doc.dr-marks section.docx > article p::after { content: '¶'; color: #5b7db1; font-family: Arial, sans-serif; font-weight: 400; font-style: normal; text-decoration: none; }
+.wd-doc.dr-marks .docx-tab-stop { position: relative; }
+.wd-doc.dr-marks .docx-tab-stop::before { content: '→'; position: absolute; left: 1px; top: 0; color: #5b7db1; font: 400 11px Arial, sans-serif; }
+::highlight(dr-space) { background-color: rgba(91, 125, 177, .28); }
+
+/* Check my letter */
+.dr-checks { list-style: none; margin: 6px 0 0; padding: 0; }
+.dr-checks li { display: grid; grid-template-columns: 18px 1fr; gap: 6px; padding: 6px 0; border-top: 1px solid #f1f5f9; }
+.dr-checks li:first-child { border-top: 0; }
+.dr-checks .ok { color: #15803d; font-weight: 800; } .dr-checks .no { color: #b91c1c; font-weight: 800; }
+.dr-checks small { display: block; color: #64748b; overflow-wrap: anywhere; }
+.dr-score { font-size: 22px; font-weight: 900; color: var(--navy, #0f2148); }

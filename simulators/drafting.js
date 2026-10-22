@@ -5,15 +5,19 @@
    way they already do for Email, Docket and Records), so the templates and the
    wording only ever live in one place — simulators/drafting/templates/.
 
-   The page draws the letter block by block from drafting-data.js, which is
-   generated from those .docx files: the firm's fixed wording is text, and the runs
-   the firm highlighted in yellow are the fields. The download is not a re-typeset
-   copy — drafting-docx.js writes the answers back into the original Word file, so
-   the letterhead, logo, fonts and spacing are the firm's own and the document can
-   be uploaded to SA as it is.
+   The letter opens in a Word-style editor (drafting-editor.js): the firm's own .docx,
+   drawn as Word lays it out, with all of it editable — the skill being trained is
+   editing a real letter and the attention to detail it takes (nothing left highlighted,
+   no sample details, one sending method, no double spaces, the template's fonts).
+   The download is not a re-typeset copy — drafting-docx.js writes what is on screen
+   back into the original Word file, run by run, so the letterhead, logo, fonts and
+   spacing are the firm's own and the document can be uploaded to SA as it is.
+   While the .docx loads (or if it can't be drawn) the page shows a sketch of the
+   letter from drafting-data.js, with the highlighted runs as blanks to fill.
 
-   Drafts are the trainee's own and stay in their browser (LSH_DRAFTING_V1); a
-   finished letter is reported to their trainer through Sim.saveResult like every
+   Drafts are the trainee's own and stay in their browser (LSH_DRAFTING_DOCS_V1: each
+   edited letter's document.xml, deflated; LSH_DRAFTING_V1: the case, provider, the
+   sketch's blanks and the HIPAA's answers); a finished letter is reported to their trainer through Sim.saveResult like every
    other simulator, so it counts in the Portal's per-module scores.
    ============================================================ */
 (function () {
@@ -117,13 +121,14 @@ function paperHtml(t) {
     }).join('');
 }
 
-/* ---------- the letter exactly as Word lays it out ----------
-   The blocks above are a quick sketch of the letter. Once the page has the template, it draws the
-   firm's own .docx instead (docx-preview): letterhead, logo, fonts, tabs, spacing and footer as in
-   Word. drafting-docx.js swaps each field's text for a marker first, and the marker is replaced
-   here by the same blank the sketch had, inside the run that carries the firm's formatting. */
+/* ---------- the letter in the Word-style editor ----------
+   The blocks above are a quick sketch of the letter, shown while the firm's .docx loads (and kept, with
+   its blanks, if the Word view can't be drawn). Once the template is here the letter opens in the editor
+   (drafting-editor.js): the firm's own file, letterhead and all, with the WHOLE letter editable as in Word.
+   What the trainee does is kept as the letter's word/document.xml — the same XML the download is made
+   of — so the letter they come back to, the letter they download and the letter on screen are one. */
 const docxCache = {};
-let drawing = 0;
+let drawing = 0, ED = null;
 async function templateBytes(t) {
     const src = srcOf(t);
     if (!docxCache[src]) {
@@ -135,121 +140,148 @@ async function templateBytes(t) {
     }
     return (await docxCache[src]).slice(0);
 }
-async function drawDocx(t) {
-    const host = document.getElementById('dr-paper');
-    if (!host || !window.docx || !window.docx.renderAsync || !window.LSHDraftingDocx || !LSHDraftingDocx.mark) return;
+// The trainee's edited letters, deflated (a letter's XML is ~60 KB; deflated, a tenth of that).
+const DOCS = 'LSH_DRAFTING_DOCS_V1';
+function docsAll() { try { return JSON.parse(localStorage.getItem(DOCS) || '{}'); } catch (e) { return {}; } }
+async function loadDoc(tid) {
+    const mine = docsAll()[slot()] || {}, d = mine[tid];
+    if (!d || !d.z) return null;
+    try { return await (await JSZip.loadAsync(d.z, { base64: true })).file('d').async('string'); } catch (e) { return null; }
+}
+async function saveDoc(tid, xml) {
+    const z = new JSZip(); z.file('d', xml);
+    const b64 = await z.generateAsync({ type: 'base64', compression: 'DEFLATE' });
+    const all = docsAll(), mine = all[slot()] = all[slot()] || {};
+    mine[tid] = { z: b64, at: new Date().toISOString() };
+    localStorage.setItem(DOCS, JSON.stringify(all));
+}
+function dropDoc(tid) {
+    try { const all = docsAll(); if (all[slot()]) { delete all[slot()][tid]; localStorage.setItem(DOCS, JSON.stringify(all)); } } catch (e) { /* nothing kept */ }
+}
+const LETTER = {};                 // per letter: { paras, highlighted, checks } as last saved — for the name and the checks
+async function openEditor(t) {
+    const host = document.getElementById('dr-paper'), shell = document.getElementById('dr-wd');
+    if (!host || !window.docx || !window.docx.renderAsync || !window.LSHDraftingEditor || !window.JSZip) { if (shell) shell.classList.add('wd-off'); return; }
     const mine = ++drawing;
+    ED = null;
     try {
-        const marked = await LSHDraftingDocx.mark(await templateBytes(t));
+        const bytes = await templateBytes(t), tplXml = await LSHDraftingDocx.documentXml(bytes);
+        let base = await loadDoc(t.id);
+        // A letter begun with the earlier fill-in-the-blanks page carries on from what was typed there.
+        if (!base && doneCount(t)) base = LSHDraftingDocx.fillXml(tplXml, answersFor(t)).xml;
         if (mine !== drawing || !document.body.contains(host)) return;
-        // Rendered in place but hidden, under the sketch: docx-preview measures its tab stops on the
-        // live page a moment after it renders, so the letter has to be laid out (blanks and all) by then.
-        host.querySelectorAll('.dr-docx-stage').forEach(n => n.remove());
-        const box = document.createElement('div');
-        box.className = 'dr-docx-stage';
-        box.style.cssText = 'position:absolute;left:0;top:0;width:100%;visibility:hidden;pointer-events:none;';
-        host.style.position = 'relative';
-        host.appendChild(box);
-        await window.docx.renderAsync(marked, box, box, {
-            className: 'docx', inWrapper: true, ignoreWidth: false, ignoreHeight: false, breakPages: true,
-            renderHeaders: true, renderFooters: true, renderFootnotes: true, experimental: true, useBase64URL: true
+        const ed = await LSHDraftingEditor.open({
+            host, ribbon: document.getElementById('dr-ribbon'), status: document.getElementById('dr-status'), title: shell.querySelector('.wd-title'),
+            baseXml: base || tplXml, bytes,
+            onChange: () => persist(t, ed),
+            onAction: (a) => API.action(a)
         });
-        if (mine !== drawing) { box.remove(); return; }                   // the trainee moved on to another letter
-        const runs = {};
-        fieldsOf(t).forEach(r => { runs[r.f] = r; });
-        const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT), hits = [];
-        while (walker.nextNode()) if (LSHDraftingDocx.MARK_RE.test(walker.currentNode.nodeValue)) hits.push(walker.currentNode);
-        hits.forEach(node => {
-            const m = node.nodeValue.match(LSHDraftingDocx.MARK_RE), r = runs[m[1]];
-            const after = node.splitText(node.nodeValue.indexOf(m[0]));
-            after.nodeValue = after.nodeValue.slice(m[0].length);
-            const el = r ? docxField(t, r) : document.createTextNode('');
-            node.parentNode.insertBefore(el, after);
-            // The run is highlighted in Word; the blank carries its own colour (yellow open, blue filled).
-            if (node.parentNode.style) node.parentNode.style.backgroundColor = 'transparent';
-        });
-        [].slice.call(host.childNodes).forEach(n => { if (n !== box) host.removeChild(n); });
-        host.classList.add('dr-docx');
-        box.style.cssText = '';
-        // The letterhead, office footer and signature float over the page in Word; draw them too.
-        if (window.LSHDraftingLetterhead) {
-            try { await LSHDraftingLetterhead.draw(marked, box); }
-            catch (e) { if (window.console) console.warn('Drafting: the letterhead could not be drawn —', e && e.message); }
-        }
-        fitDocx();
+        if (mine !== drawing) return;
+        ED = Object.assign(ed, { tid: t.id, tplXml, bytes });
+        if (!LETTER[t.id]) LETTER[t.id] = LSHDraftingDocx.auditXml(base || tplXml);
+        LETTER[t.id].start = LETTER[t.id].start || LSHDraftingDocx.auditXml(tplXml).highlighted.length;
+        progress(t);
     } catch (e) {
-        // Keep the sketch: it has the same blanks, so the trainee can still draft and download.
-        if (window.console) console.warn('Drafting: drawing the Word letter failed —', e && e.message);
+        // Keep the sketch: it has the blanks, so the trainee can still draft and download.
+        if (shell) shell.classList.add('wd-off');
+        if (window.console) console.warn('Drafting: the Word editor could not open —', e && e.message);
     }
 }
-// A blank inside the Word layout is the firm's highlighted text itself, typed over the way it is in
-// Word: it starts as the placeholder (yellow) and counts as filled once it says something else. It is
-// as wide as what is in it, so tabs and wrapping stay the file's. A tab inside it (the MedLOR's "Re:"
-// lines are one highlighted run, tabs and all) is a real tab stop, and Tab types one there.
-const TAB_HTML = '<span class="docx-tab-stop dr-wtab" contenteditable="false">\t</span>';
-const escTxt = (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const fieldHtml = (v) => String(v).split('\t').map(escTxt).join(TAB_HTML);
-const fieldText = (el) => el.innerText.replace(/ /g, ' ').replace(/\n$/, '');
-function docxField(t, r) {
-    const el = document.createElement('span');
-    if (r.k === 'date') {
-        el.className = 'dr-auto';
-        el.title = 'The date the letter is drafted — filled in for you, as a template editor does';
-        el.textContent = today();
-        return el;
+async function persist(t, ed) {
+    if (!ED || ED !== ed || ED.tid !== t.id) return;
+    try {
+        const xml = ed.xml();
+        LETTER[t.id] = Object.assign(LETTER[t.id] || {}, LSHDraftingDocx.auditXml(xml));
+        await saveDoc(t.id, xml);
+        S.savedAt = new Date().toISOString();
+        ed.saved();
+    } catch (e) {
+        ed.unsaved(/quota/i.test(e && e.name + e.message) ? 'Not saved — this browser is out of room' : 'Not saved');
+        if (window.console) console.warn('Drafting: saving the letter failed —', e && e.message);
     }
-    const v = String(answer(t.id, r.f)), tabs = r.ph.indexOf('\t') >= 0;
-    el.className = 'dr-f dr-ce' + (v.trim() ? ' filled' : '') + (r.k === 'long' ? ' long' : '');
-    el.dataset.f = r.f;
-    el.title = r.k === 'manual'
-        ? 'The firm highlighted this line, but it is not a placeholder: type how the letter actually goes out.'
-        : 'The firm highlighted this — type over it, or press Enter to keep it as it is.' + (tabs ? ' Tab puts in a tab, as in Word.' : '');
-    el.setAttribute('role', 'textbox');
-    el.setAttribute('aria-label', r.ph.replace(/\t/g, ' '));
-    el.contentEditable = 'true';
-    el.spellcheck = false;
-    el.innerHTML = fieldHtml(v.trim() ? v : r.ph);
-    el.addEventListener('focus', () => {
-        // An untouched placeholder is selected whole, so typing replaces it — unless it carries labels and tabs.
-        if (el.classList.contains('filled') || tabs) return;
-        const range = document.createRange(); range.selectNodeContents(el);
-        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
-    });
-    el.addEventListener('input', () => {
-        const val = fieldText(el);
-        API.set(r.f, val === r.ph ? '' : val);
-        if (window.LSHDraftingLetterhead) LSHDraftingLetterhead.retab();   // a longer answer moves the tabs after it
-    });
-    el.addEventListener('blur', () => { if (!fieldText(el).trim()) el.innerHTML = fieldHtml(r.ph); });
-    el.addEventListener('keydown', (e) => {
-        // Enter keeps what is there (a line that is already right is "filled" as it stands, its highlight removed).
-        if (e.key === 'Enter' && r.k !== 'long') { e.preventDefault(); API.set(r.f, fieldText(el)); el.blur(); return; }
-        if (e.key === 'Tab' && tabs && !e.shiftKey) { e.preventDefault(); insertHtml(TAB_HTML); }
-    });
-    el.addEventListener('paste', (e) => {                                // text only, never the clipboard's formatting
-        e.preventDefault();
-        const txt = (e.clipboardData || window.clipboardData).getData('text');
-        insertHtml(fieldHtml(r.k === 'long' ? txt : txt.replace(/\s*\n\s*/g, ' ')));
-    });
-    return el;
+    progress(t);
 }
-function insertHtml(html) {
-    document.execCommand('insertHTML', false, html);
-    const el = document.activeElement;
-    if (el) el.dispatchEvent(new Event('input', { bubbles: true }));
+// "This letter": the highlighted pieces the firm left for the trainee, and how many are still there.
+function progress(t) {
+    const L = LETTER[t.id]; if (!L || !ED) return;
+    const left = L.highlighted.length, start = Math.max(L.start || 0, left);
+    const bar = document.querySelector('.dr-prog i'), lbl = document.querySelector('.dr-saved');
+    if (bar) bar.style.width = (start ? Math.round((start - left) / start * 100) : 100) + '%';
+    if (lbl) lbl.textContent = (left ? `${left} highlighted piece${left === 1 ? '' : 's'} still in the letter` : 'No highlighted text left')
+        + (S.savedAt ? ` · saved ${new Date(S.savedAt).toLocaleTimeString()}` : '');
+    document.querySelectorAll('.dr-name, .wd-fname').forEach(nm => {
+        nm.textContent = fileName(t) + (/\.pdf$/.test(nm.textContent) ? '.pdf' : '.docx');
+    });
 }
-// A letter is 8.5 in wide; on a narrow screen it is shrunk to the column rather than scrolled sideways.
-function fitDocx() {
-    const host = document.getElementById('dr-paper'), wrap = host && host.querySelector('.docx-wrapper');
-    if (!wrap) return;
-    wrap.style.zoom = '';
-    // The page is centred, so it spills out on both sides: measure the page itself, not the wrapper.
-    const pad = parseFloat(getComputedStyle(wrap).paddingLeft) + parseFloat(getComputedStyle(wrap).paddingRight);
-    const need = Math.max.apply(null, [].map.call(wrap.querySelectorAll(':scope > section.docx'), x => x.offsetWidth).concat([0])) + pad;
-    const have = host.clientWidth;
-    if (need > have && have > 0) wrap.style.zoom = String(have / need);
+
+/* ---------- Check my letter: what a trainer looks for, before it goes ----------
+   Attention to detail is the skill: nothing highlighted, no template instructions or sample details
+   left, today's date, one sending method, no double spaces, the template's own fonts and sizes, and
+   (for the LORs) every detail of the case notes in the letter. */
+const norm = (v) => String(v || '').toLowerCase().replace(/[\s.,;:]+/g, '').replace(/[‘’]/g, "'");
+const profiles = {};
+async function profileOf(t) {
+    const src = srcOf(t);
+    if (!profiles[src]) profiles[src] = (async () => {
+        const zip = await JSZip.loadAsync(await templateBytes(t)), fonts = new Set(), sizes = new Set();
+        for (const part of ['word/document.xml', 'word/styles.xml', 'word/theme/theme1.xml']) {
+            const f = zip.file(part); if (!f) continue;
+            const x = await f.async('string');
+            x.replace(/w:(?:ascii|hAnsi)="([^"]+)"/g, (m, v) => fonts.add(v.toLowerCase()));
+            x.replace(/<a:latin typeface="([^"]+)"/g, (m, v) => { if (v) fonts.add(v.toLowerCase()); });
+            x.replace(/<w:sz w:val="(\d+)"/g, (m, v) => sizes.add(+v / 2));
+        }
+        if (!sizes.size) sizes.add(10);
+        return { fonts, sizes };
+    })();
+    return profiles[src];
 }
-window.addEventListener('resize', fitDocx);
+async function runChecks(t) {
+    const xml = ED && ED.tid === t.id ? ED.xml() : null;
+    if (!xml) return null;
+    const a = LSHDraftingDocx.auditXml(xml), text = a.paras.join('\n'), out = [];
+    const add = (ok, label, detail, weight) => out.push({ ok: ok === true, part: typeof ok === 'number' ? ok : (ok ? 1 : 0), label, detail: detail || '', weight: weight || 1 });
+    const clip = (xs) => xs.slice(0, 4).map(x => '“' + String(x).trim().slice(0, 60) + '”').join(', ') + (xs.length > 4 ? ` and ${xs.length - 4} more` : '');
+    add(!a.highlighted.length, 'No highlighted text left', a.highlighted.length ? 'Still highlighted: ' + clip(a.highlighted) + '. Select it and choose Text Highlight Color › No Color.' : '', 2);
+    const notes = (text.match(/\[[^\]\n]*\]|PLS UPDATE[^\n]*|\(Use this address[^)]*\)/gi) || []);
+    add(!notes.length, 'No template instructions or [brackets] left', notes.length ? 'Remove: ' + clip(notes) : '', 2);
+    add(text.indexOf(today()) >= 0, `The letter is dated today (${today()})`, text.indexOf(today()) >= 0 ? '' : 'Type the date the letter goes out, the firm\'s way: Month D, YYYY.');
+    const dbl = a.paras.filter(p => /\S {2,}\S/.test(p));
+    add(!dbl.length, 'No double spaces between words', dbl.length ? 'In: ' + clip(dbl.map(p => p.match(/.{0,25}\S {2,}\S.{0,15}/)[0])) + '. ¶ Show/Hide shades every space.' : '');
+    const prof = await profileOf(t), used = ED.fonts(), odd = Object.keys(used).map(k => used[k])
+        .filter(u => !prof.fonts.has(u.font.toLowerCase()) || !prof.sizes.has(u.pt));
+    add(!odd.length, 'Fonts and sizes match the template', odd.length ? odd.map(u => `${u.font} ${u.pt} pt (${u.chars} characters, e.g. “${u.sample.slice(0, 30)}”)`).join('; ') : '');
+    if (t.dir === 'templates') {
+        const via = a.paras.find(p => /SENT VIA/i.test(p)) || '';
+        add(!(/FACSIMILE/i.test(via) && /E-?MAIL/i.test(via)), 'One sending method on the “SENT VIA” line', via && /FACSIMILE/i.test(via) && /E-?MAIL/i.test(via) ? 'Keep only the method you are using.' : '');
+        add(!/\bF\/E\b/.test(text), '“F/E” replaced with the actual fax or e-mail', /\bF\/E\b/.test(text) ? 'F/E means Fax or E-mail: put the number or address you are sending to.' : '');
+        const c = CASES[S.caseNo] || {}, side = (t.id === 'lor3p' ? c.p3 : c.p1) || {}, flat = norm(text), miss = [];
+        let want = 0;
+        Object.keys(side).forEach(k => {
+            const v = /Adjuster Name and Address/i.test(k) ? String(side[k]).split(',')[0] : side[k];
+            if (!String(v || '').trim()) return;
+            want++;
+            if (flat.indexOf(norm(v)) < 0) miss.push(`${k}: ${v}`);
+        });
+        if (want) add(miss.length ? (want - miss.length) / want : true, `Case details match the case notes (${want - miss.length} of ${want})`,
+            miss.length ? 'Not found in the letter: ' + miss.join(' · ') : '', 3);
+        const values = Object.keys(side).map(k => norm(side[k]));
+        const left = fieldsOf(t).filter(r => r.k === 'field' && String(r.ph).trim().length >= 6 && !/^(Attn|F\/E)/i.test(r.ph.trim()))
+            .map(r => r.ph.trim()).filter((ph, i, xs) => xs.indexOf(ph) === i && values.every(v => v.indexOf(norm(ph)) < 0) && text.indexOf(ph) >= 0);
+        add(!left.length, 'No sample details from the template left', left.length ? 'Still the template\'s: ' + clip(left) : '', 2);
+    }
+    if (isMedlor(t)) {
+        const ticked = /☒|☑/.test(text) || a.checks.some(Boolean);
+        add(ticked, 'A box ticked for what you are requesting', ticked ? '' : 'Tick bills, records or both: double-click a ☐, or Insert › Symbol ☒.');
+    }
+    const total = out.reduce((s, c) => s + c.weight, 0), got = out.reduce((s, c) => s + c.weight * c.part, 0);
+    return { checks: out, score: total ? Math.round(got / total * 100) : 0, text: a.paras };
+}
+function checksHtml(res) {
+    if (!res) return '<p style="margin:0;color:#64748b;">The check runs on the letter in the Word view.</p>';
+    return `<div class="dr-score">${res.score}%</div>
+        <ul class="dr-checks">${res.checks.map(c => `<li><span class="${c.ok ? 'ok' : 'no'}">${c.ok ? '✓' : '✗'}</span><div>${esc(c.label)}${c.detail ? `<small>${esc(c.detail)}</small>` : ''}</div></li>`).join('')}</ul>`;
+}
 
 /* ---------- picking a provider and which of their two letters ---------- */
 function providerBar() {
@@ -305,6 +337,11 @@ function carrierOf(t) {
 }
 // The client, read off the letter itself ("Our Client: John Test Doe"), as the trainee has it now.
 function clientOf(t) {
+    const edited = LETTER[t.id] && LETTER[t.id].paras;              // the Word view's letter, as last saved
+    if (edited) for (const line of edited) {
+        const m = line.match(/Our Client:\s*([^\t\n]+)/);
+        if (m && m[1].trim()) return m[1].trim();
+    }
     for (const b of t.blocks) {
         if (b.t !== 'p') continue;
         const line = b.runs.map(r => r.f ? (r.k === 'date' ? '' : (String(answer(t.id, r.f)).trim() ? answer(t.id, r.f) : r.ph)) : r.x).join('');
@@ -418,6 +455,7 @@ function guideHtml(t) {
 
 function render() {
     const t = tpl(), done = doneCount(t), total = theirFields(t).length;
+    ED = null;
     app().innerHTML = `
         <div class="dr-bar">
             ${TEMPLATES.map(x => `<button class="dr-tab ${x.id === S.tab ? 'on' : ''}" onclick="LSHDrafting.tab('${esc(x.id)}')">${esc(x.title)}</button>`).join('')}
@@ -425,7 +463,15 @@ function render() {
         </div>
         ${S.tab === 'prov' ? providerBar() : ''}
         <div class="dr-grid">
-            <div class="dr-paper" id="dr-paper">${paperHtml(t)}</div>
+            <div class="wd" id="dr-wd">
+                <div class="wd-title"><span class="wd-logo" aria-hidden="true">W</span><span class="wd-fname">${esc(fileName(t))}.docx</span><span data-state>Opening…</span></div>
+                <div class="wd-ribbon" id="dr-ribbon"></div>
+                <div class="wd-canvas"><div class="dr-paper" id="dr-paper">${paperHtml(t)}</div></div>
+                <div class="wd-status" id="dr-status">
+                    <span data-pages></span><span data-words></span><span>English (United States)</span><span data-say></span>
+                    <span class="wd-zs"><button type="button" onclick="LSHDrafting.zoom(-0.1)" aria-label="Zoom out">−</button><span data-zoom>100%</span><button type="button" onclick="LSHDrafting.zoom(0.1)" aria-label="Zoom in">+</button></span>
+                </div>
+            </div>
             <div class="dr-side">
                 <div class="dr-note">
                     <h3>This letter</h3>
@@ -433,26 +479,33 @@ function render() {
                     <div class="dr-saved">${done} of ${total} blanks filled${S.savedAt ? ` · saved ${new Date(S.savedAt).toLocaleTimeString()}` : ''}</div>
                     <div class="dr-actions" style="margin-top:12px;">
                         <button class="sim-btn orange" onclick="LSHDrafting.download()">⬇ Download the Word letter</button>
+                        <button class="sim-btn ghost" onclick="LSHDrafting.check()">✔ Check my letter</button>
                         <button class="sim-btn ghost" onclick="LSHDrafting.submit()">✓ Send it to my trainer</button>
                         <a class="sim-btn ghost" href="${srcOf(t)}" download>⬇ The blank template</a>
                     </div>
                     <p style="margin:12px 0 4px;color:#64748b;">Saved as</p>
                     <div class="dr-name">${esc(fileName(t))}.docx</div>
                 </div>
+                <div class="dr-note" id="dr-check" hidden><h3>Check my letter</h3><div data-body></div></div>
                 ${packetHtml(t)}
                 ${caseHtml()}
                 ${guideHtml(t)}
                 <div class="dr-note">
                     <h3>How this works</h3>
-                    <p style="margin:0 0 7px;">The wording is the firm's and can't be changed. Only what the firm highlighted in yellow is yours — click it and type over it, as you would in Word; if a line is already right, click it and press Enter to keep it. It turns blue once it's done.</p>
-                    <p style="margin:0 0 7px;">The date writes itself — it is the day you draft the letter.</p>
-                    <p style="margin:0;">Your download is this very Word file with your answers written in, so the logo and the format are the firm's own. Upload that file to SA.</p>
+                    <p style="margin:0 0 7px;">This is the firm's own Word file, and all of it is yours to edit, as it will be in Word at the firm: click anywhere in the letter and type. The ribbon has Word's Home tab — font, size, <b>B</b> <i>I</i> <u>U</u>, the highlighter (<b>No Color</b> takes a highlight off), font colour, alignment — plus Find &amp; Replace, Insert › Symbol and Date, and ¶ Show/Hide to see every space, tab and paragraph mark. Ctrl+Z undoes.</p>
+                    <p style="margin:0 0 7px;">What the firm highlighted in yellow is what you have to change. When you're done, nothing in the letter should be highlighted — taking the highlight off is part of the job, just as in Word.</p>
+                    <p style="margin:0;">Your download is exactly what you see: the firm's file with your edits written into it, letterhead, logo, fonts and spacing as they are. Your letter is kept in this browser as you work.</p>
                 </div>
             </div>
         </div>`;
-    drawDocx(t);
+    openEditor(t);
 }
 
+function showChecks(res) {
+    const box = document.getElementById('dr-check'); if (!box) return;
+    box.hidden = false;
+    box.querySelector('[data-body]').innerHTML = checksHtml(res);
+}
 const API = {
     tab(id) { S.tab = id; render(); window.scrollTo(0, 0); },
     pickCase(i) { S.caseNo = Number(i) || 0; save(); render(); },
@@ -463,21 +516,45 @@ const API = {
         save(); render(); window.scrollTo(0, 0);
     },
     pickKind(k) { S.kind = k; save(); render(); window.scrollTo(0, 0); },
+    // The sketch's blanks (only while the Word view is loading, or if it can't be drawn).
     set(f, v) {
         S.answers[key(tpl().id, f)] = v;           // filed under the letter's own id (a provider's carries the provider)
         save();
-        // Repaint only the counter: redrawing the paper would take the cursor out of the field.
         const t = tpl(), done = doneCount(t), total = theirFields(t).length;
         const bar = document.querySelector('.dr-prog i'), lbl = document.querySelector('.dr-saved');
         if (bar) bar.style.width = (total ? Math.round(done / total * 100) : 0) + '%';
         if (lbl) lbl.textContent = `${done} of ${total} blanks filled · saved ${new Date(S.savedAt).toLocaleTimeString()}`;
         const el = document.querySelector(`[data-f="${f}"]`);
         if (el) el.classList.toggle('filled', !!String(v).trim());
-        document.querySelectorAll('.dr-name').forEach(nm => {           // the carrier / the client's initials are in the file name
+        document.querySelectorAll('.dr-name, .wd-fname').forEach(nm => {           // the carrier / the client's initials are in the file name
             nm.textContent = fileName(t) + (/\.pdf$/.test(nm.textContent) ? '.pdf' : '.docx');
         });
     },
     setHipaa(id, v) { S.answers[hipaaKey(tpl(), id)] = v; save(); },
+    zoom(dz) { if (ED) ED.cmd.zoom(dz); },
+    xml() { return ED && ED.tid === tpl().id ? ED.xml() : null; },     // the letter as it would download (tests)
+    // The editor's File menu and Review tab.
+    action(a) {
+        if (a === 'download') return API.download();
+        if (a === 'check') return API.check();
+        if (a === 'save') { const t = tpl(); if (ED) persist(t, ED); return; }
+        if (a === 'template') { const l = document.createElement('a'); l.href = srcOf(tpl()); l.download = ''; document.body.appendChild(l); l.click(); l.remove(); return; }
+        if (a === 'reset') {
+            const t = tpl();
+            if (!confirm('Start this letter over from the firm\'s template? Everything you changed in it is lost.')) return;
+            dropDoc(t.id);
+            Object.keys(S.answers).forEach(k => { if (k.indexOf(t.id + ':') === 0 && k.indexOf(':hipaa:') < 0) delete S.answers[k]; });
+            delete LETTER[t.id];
+            save(); render();
+        }
+    },
+    async check() {
+        const t = tpl(), res = await runChecks(t);
+        showChecks(res);
+        const box = document.getElementById('dr-check');
+        if (box) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return res;
+    },
     async packet() {
         const t = tpl(), input = document.getElementById('dr-medpdf'), file = input && input.files && input.files[0];
         if (!file) { alert('Choose your MedLOR saved as PDF first (open the Word letter in Word, then File › Save As › PDF).'); return; }
@@ -497,40 +574,67 @@ const API = {
             alert('The packet could not be built: ' + (/encrypt|parse|header/i.test(e.message) ? 'that file does not read as a PDF.' : e.message));
         }
     },
+    // The letter as a .docx: in the Word view, exactly what is on screen; from the sketch, its blanks.
+    async build() {
+        const t = tpl();
+        if (ED && ED.tid === t.id) {
+            const xml = ED.xml(), a = LSHDraftingDocx.auditXml(xml);
+            persist(t, ED);
+            return { blob: await LSHDraftingDocx.pack(ED.bytes, xml), highlighted: a.highlighted.length, editor: true };
+        }
+        const out = await LSHDraftingDocx.fill(await templateBytes(t), answersFor(t));
+        return Object.assign(out, { editor: false });
+    },
     async download() {
         const t = tpl();
         try {
-            const res = await fetch(srcOf(t), { credentials: 'include' });
-            if (!res.ok) throw new Error('The template could not be loaded (' + res.status + ').');
-            const out = await LSHDraftingDocx.fill(await res.arrayBuffer(), answersFor(t));
+            const out = await API.build();
             const a = document.createElement('a');
             a.href = URL.createObjectURL(out.blob);
             a.download = fileName(t) + '.docx';
             document.body.appendChild(a); a.click(); a.remove();
             setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-            // A blank left blank is still highlighted in the file, so say so rather than letting it go out quietly.
-            alert(out.missing.length
-                ? `Downloaded. ${out.filled} of ${out.total} blanks are filled — the ${out.missing.length} still empty stay highlighted in yellow in the letter.`
-                : `Downloaded. All ${out.total} blanks are filled.`);
+            // Highlighted text still in it goes out highlighted, so say so rather than letting it go quietly.
+            if (out.editor) {
+                if (ED) ED.unsaved(out.highlighted ? `Downloaded — ${out.highlighted} highlighted piece${out.highlighted === 1 ? '' : 's'} still in it` : 'Downloaded');
+            } else {
+                alert(out.missing.length
+                    ? `Downloaded. ${out.filled} of ${out.total} blanks are filled — the ${out.missing.length} still empty stay highlighted in yellow in the letter.`
+                    : `Downloaded. All ${out.total} blanks are filled.`);
+            }
         } catch (e) {
             alert('The letter could not be built: ' + e.message);
         }
     },
-    submit() {
-        const t = tpl(), done = doneCount(t), total = theirFields(t).length;
-        if (!total) return;
-        if (done < total && !confirm(`${total - done} blank${total - done === 1 ? '' : 's'} still empty. Send it to your trainer anyway?`)) return;
-        // A MedLOR is graded with its HIPAA: the letter's blanks, and the HIPAA's three done the firm's way.
+    async submit() {
+        const t = tpl();
+        // A MedLOR is graded with its HIPAA: the letter, and the HIPAA's three done the firm's way.
         const hip = isMedlor(t) ? HIPAA_FIELDS.map(f => ({ field: f.label, answer: hipaaVal(t, f.id), correct: f.ok(hipaaVal(t, f.id)) })) : null;
         const hipOk = hip ? hip.filter(h => h.correct).length : 0;
-        const letterPct = total ? done / total * 100 : 0;
+        const res = ED && ED.tid === t.id ? await runChecks(t) : null;
+        let letterPct, summary, details;
+        if (res) {
+            showChecks(res);
+            const failed = res.checks.filter(c => !c.ok);
+            if (failed.length && !confirm(`Check my letter found ${failed.length} thing${failed.length === 1 ? '' : 's'} to fix (${res.score}%). Send it to your trainer anyway?`)) return;
+            letterPct = res.score;
+            summary = `Check my letter ${res.score}% · ${res.checks.length - failed.length} of ${res.checks.length} checks passed`;
+            details = { checks: res.checks.map(c => ({ check: c.label, ok: c.ok, detail: c.detail })), letter: res.text.join('\n').slice(0, 20000) };
+        } else {
+            const done = doneCount(t), total = theirFields(t).length;
+            if (!total) return;
+            if (done < total && !confirm(`${total - done} blank${total - done === 1 ? '' : 's'} still empty. Send it to your trainer anyway?`)) return;
+            letterPct = done / total * 100;
+            summary = `${done} of ${total} blanks filled`;
+            details = { answers: answersFor(t) };
+        }
         Sim.saveResult({
             simulator: S.tab === 'prov' ? 'Drafting — Medical Provider' : 'Drafting — LOR',
             scenario: S.tab === 'prov' ? `${t.title} · ${t.provider}` : t.title + (CASES.length ? ` · Case ${S.caseNo + 1}` : ''),
             score: Math.round(hip ? (letterPct * 0.7 + hipOk / hip.length * 30) : letterPct),
-            summary: `${done} of ${total} blanks filled` + (hip ? ` · HIPAA ${hipOk} of ${hip.length} right` + (S.answers[t.id + ':packet'] ? ' · packet built' : ' · packet not built') : ''),
-            details: { template: t.id, caseNo: S.tab === 'prov' ? null : S.caseNo + 1, provider: S.tab === 'prov' ? t.provider : null, answers: answersFor(t),
-                hipaa: hip, packetBuiltAt: hip ? (S.answers[t.id + ':packet'] || null) : null, fileName: fileName(t) + (hip ? '.pdf' : '.docx') }
+            summary: summary + (hip ? ` · HIPAA ${hipOk} of ${hip.length} right` + (S.answers[t.id + ':packet'] ? ' · packet built' : ' · packet not built') : ''),
+            details: Object.assign({ template: t.id, caseNo: S.tab === 'prov' ? null : S.caseNo + 1, provider: S.tab === 'prov' ? t.provider : null,
+                hipaa: hip, packetBuiltAt: hip ? (S.answers[t.id + ':packet'] || null) : null, fileName: fileName(t) + (hip ? '.pdf' : '.docx') }, details)
         });
         alert('Sent to your trainer. Download the Word letter too if you need to upload it to SA.');
     }

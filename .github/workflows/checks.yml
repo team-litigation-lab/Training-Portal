@@ -128,6 +128,10 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/drafting-docs.cjs
+      - name: Drafting in a Word-style editor (the whole letter editable with Word's ribbon; the download is exactly what is on screen, every other part of the firm's .docx byte-identical; kept in the browser; Check my letter)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/drafting-editor.cjs
       - name: Medical Records Requests clock (every date tracks the system date; same-day receipt works a whole collection in one sitting without changing a rule or a score)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
