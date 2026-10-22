@@ -105,9 +105,19 @@ To change the content, edit `SLIDES` in `blueprint.html` — each slide is the e
 
 ### 🔑 Admin accounts and Master Control
 
-One sign-in opens everything: a trainer registers on the Portal as **Admin / Trainer**, an administrator approves the account, and they sign in at **Admin Login** with their own username and password. That session opens the Training Directory, every program's admin, the Simulators, the Knowledge Base, the Ring Channel, Trainee Monitoring, Attendance, Referrals and **Master Control** (users, registrations, program access, logs, Broadcast & Ping) — no second password anywhere.
+One sign-in opens everything: a trainer registers on the Portal as **Admin / Trainer**, the **Master Account** approves it (only it can — `update-status.js`), and they sign in at **Admin Login** with their own username and password. **A trainer is given no Batch ID**: a batch is a group of trainees going through the course together, so approving a trainer leaves it empty and a Batch ID cannot be set on one afterwards either (`update-user.js`). Approving a *trainee* still issues theirs, dated from their start of training. That session opens the Training Directory, every program's admin, the Simulators, the Knowledge Base, the Ring Channel, Trainee Monitoring, Attendance, Referrals and **Master Control** (users, registrations, program access, logs, Broadcast & Ping) — no second password anywhere.
 
 The one exception is the **site-wide Lock**, which belongs to the master account, `LSHADMIN123`, whose password is the `MASTER_ADMIN_PASSWORD` secret in Cloudflare (it has no row in the users table). Only a session belonging to it may LOCK, and UNLOCK takes that password since a lock leaves nobody with a valid session. A site with no `MASTER_ADMIN_PASSWORD` says so (`503 MASTER_NOT_SET`) at the Admin Login instead of "incorrect password". `.github/scripts/master-control.mjs` checks this in CI.
+
+### 🗑 Revoking an account takes their record with it
+
+**Master Control → Users & Revoke Access → Revoke** is permanent and leaves nothing of that person's work on the platform: their account, submitted activities and grades, simulator results, calendaring work and evaluations, program access, presence, and the course's own progress and trainer feedback (the `COURSE_KV` keys for their trainee record). **Scores go too** — a batch average after a revocation is the average of the people still in the batch, not of a ghost.
+
+**The backup comes first, and the deleting second.** Everything is collected while it is all still there (`functions/_purge.js`), filed as a `.json` and a readable `.csv` into *their batch's folder* on the Shared Drive — the same `LSH Training Archives / <program> / Batch <id>` tree the batch archive uses (`saveUserRecordsToDrive` in `functions/_drive.js`) — and only then deleted. If the Drive secrets are not set (see **Saving archived batches to Google Drive**), the Function refuses to delete anything on the first call and hands the whole record back instead; the admin's browser downloads it, and the second call does the deleting. Either way nothing is removed until a copy exists somewhere.
+
+Two things deliberately stay, because they are not the person's work: the **activity log** (the audit trail of who revoked whom, and when) and the **username tombstone** in `deleted_users`, which is what stops a retired username or email being taken again.
+
+`.github/scripts/revoke-purge.mjs` checks all of this in CI, including that the rest of the batch is untouched.
 
 ### 🧭 The admin bar
 

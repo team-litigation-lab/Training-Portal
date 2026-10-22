@@ -11,6 +11,16 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="/theme.css">
+<style>
+    /* Check & Release Grades: the toolbar over the submissions table. */
+    .grades-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 0 14px; }
+    .grades-toolbar button { padding: 7px 14px; border-radius: 8px; font-size: 11.5px; font-weight: 800; cursor: pointer; border: none; }
+    .grades-toolbar .grades-danger { color: #b91c1c; border: 1px solid #fecaca; background: #fff; }
+    .grades-toolbar .grades-danger:hover:not([disabled]) { background: #fef2f2; border-color: #b91c1c; }
+    .grades-toolbar .grades-danger[disabled] { opacity: .45; cursor: not-allowed; }
+    .grades-hint { font-size: 11.5px; color: #475569; }
+    .grades-hint.ready { color: #166534; font-weight: 700; }
+</style>
 </head>
 <body>
 <script>
@@ -102,30 +112,28 @@
                 </div>
             </div>
             <div class="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-2" id="admin-nav">
-                <div class="admin-nav-group">Training</div>
-                <button onclick="switchView('admin-landing')" class="side-nav-btn active view-nav-btn" id="nav-admin-landing"><span>🏠</span> Batch Statistics</button>
+                <div class="admin-nav-group">Grading &amp; Progress</div>
+                <button onclick="switchView('admin-grades')" class="side-nav-btn active view-nav-btn" id="nav-admin-grades"><span>📊</span> Check &amp; Release Grades</button>
+                <a class="side-nav-btn" href="/progress.html" style="text-decoration:none"><span>📈</span> Progress &amp; Feedback</a>
+                <a class="side-nav-btn" href="/attendance.html" style="text-decoration:none"><span>🕘</span> Attendance</a>
+                <div class="admin-nav-group">Training Content</div>
                 <button onclick="switchView('admin-activities')" class="side-nav-btn view-nav-btn" id="nav-admin-activities"><span>📋</span> Lesson Decks &amp; Activities</button>
                 <button onclick="switchView('admin-lectures')" class="side-nav-btn view-nav-btn" id="nav-admin-lectures"><span>🎬</span> Manage Lectures</button>
-                <button onclick="switchView('admin-grades')" class="side-nav-btn view-nav-btn" id="nav-admin-grades"><span>📊</span> Check &amp; Release Grades</button>
+                <a class="side-nav-btn" href="/programs.html" style="text-decoration:none"><span>🎓</span> Training Directory</a>
                 <div class="admin-nav-group">People &amp; Access</div>
                 <button onclick="mcGo('registrations')" class="side-nav-btn mc-nav-btn" data-mc="registrations"><span>📝</span> Registrations <span id="reg-pending-badge-side" class="admin-nav-badge"></span></button>
                 <button onclick="mcGo('users')" class="side-nav-btn mc-nav-btn" data-mc="users"><span>👥</span> Users &amp; Revoke Access</button>
                 <button onclick="mcGo('program-access')" class="side-nav-btn mc-nav-btn" data-mc="program-access"><span>🔑</span> Program Access</button>
-                <button onclick="mcGo('access')" class="side-nav-btn mc-nav-btn" data-mc="access"><span>🔒</span> Site Lock</button>
                 <div class="admin-nav-group">Monitoring</div>
                 <button onclick="mcGo('overview')" class="side-nav-btn mc-nav-btn" data-mc="overview"><span>🧭</span> Overview</button>
                 <button onclick="mcGo('monitoring')" class="side-nav-btn mc-nav-btn" data-mc="monitoring"><span>🟢</span> Who&rsquo;s Online</button>
                 <button onclick="mcGo('activity-logs')" class="side-nav-btn mc-nav-btn" data-mc="activity-logs"><span>🗂</span> Activity Logs</button>
                 <button onclick="mcGo('announce')" class="side-nav-btn mc-nav-btn" data-mc="announce"><span>📢</span> Broadcast &amp; Ping</button>
-                <div class="admin-nav-group">Reports &amp; Tools</div>
-                <a class="side-nav-btn" href="/progress.html" style="text-decoration:none"><span>📊</span> Progress &amp; Feedback</a>
-                <a class="side-nav-btn" href="/attendance.html" style="text-decoration:none"><span>🕘</span> Attendance</a>
-                <a class="side-nav-btn" href="/api/launch?tool=kb" style="text-decoration:none"><span>📚</span> Knowledge Base</a>
-                <a class="side-nav-btn" href="/api/launch?tool=ringchannel" target="_blank" rel="noopener" style="text-decoration:none" title="LSH Ring Channel: the trainer console for live mock calls (trainer passphrase)"><span>☎</span> Ring Channel</a>
-                <a class="side-nav-btn" href="/referrals.html" style="text-decoration:none"><span>🤝</span> Referrals</a>
-                <a class="side-nav-btn" href="/api/admin-password-check" style="text-decoration:none"><span>🔑</span> Admin Password Check</a>
                 <a class="side-nav-btn" href="/api/ai-usage" style="text-decoration:none"><span>🤖</span> AI Usage</a>
-                <a class="side-nav-btn" href="/programs.html" style="text-decoration:none"><span>🎓</span> Training Directory</a>
+                <div class="admin-nav-group">System</div>
+                <button onclick="mcGo('access')" class="side-nav-btn mc-nav-btn" data-mc="access"><span>🔒</span> Site Lock</button>
+                <a class="side-nav-btn" href="/api/admin-password-check" style="text-decoration:none"><span>🔐</span> Admin Password Check</a>
+                <a class="side-nav-btn" href="/referrals.html" style="text-decoration:none"><span>🤝</span> Referrals</a>
             </div>
             <div id="session-footer-admin" style="margin:16px;"></div>
         </aside>
@@ -254,85 +262,6 @@
                     </div>
                 </div>
 
-                <!-- 5. ADMIN LANDING PAGE -->
-                <div id="view-admin-landing" class="portal-view-section hidden">
-                    <div class="dash-hero mb-6">
-                        <svg class="dash-hero-rings" viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="130" cy="130" r="120" stroke="#f97316" stroke-width="1.5"/>
-                            <circle cx="130" cy="130" r="95" stroke="#c06128" stroke-width="1.5"/>
-                            <circle cx="130" cy="130" r="70" stroke="#864e39" stroke-width="1.5"/>
-                            <circle cx="130" cy="130" r="45" stroke="#4c3c4a" stroke-width="1.5"/>
-                        </svg>
-                        <div class="dash-hero-copy">
-                            <div class="eyebrow">Master Control</div>
-                            <h2>Here's how every batch is doing.</h2>
-                            <p>Track completion, grading, and standings across all trainees — live, from one screen.</p>
-                        </div>
-                        <div class="dash-hero-stats">
-                            <div class="dash-hero-stat"><div class="num" id="admin-landing-active-trainees-hero">—</div><div class="lbl">Active</div></div>
-                            <div class="dash-hero-stat"><div class="num" id="admin-landing-pending-grades-hero">—</div><div class="lbl">Pending</div></div>
-                        </div>
-                    </div>
-
-                    <div class="stat-cards-row mb-6">
-                        <div class="stat-card-v2">
-                            <div class="stat-icon-badge navy">🧑‍🎓</div>
-                            <div><div class="val" id="admin-landing-active-trainees">—</div><div class="lbl">Active Trainees</div></div>
-                        </div>
-                        <div class="stat-card-v2">
-                            <div class="stat-icon-badge orange">📥</div>
-                            <div><div class="val" id="admin-landing-total-submissions">—</div><div class="lbl">Total Submissions</div></div>
-                        </div>
-                        <div class="stat-card-v2">
-                            <div class="stat-icon-badge green">📈</div>
-                            <div><div class="val" id="admin-landing-avg-score">—</div><div class="lbl">Avg Batch Score</div></div>
-                        </div>
-                        <div class="stat-card-v2">
-                            <div class="stat-icon-badge red">⏳</div>
-                            <div><div class="val" id="admin-landing-pending-grades">—</div><div class="lbl">Pending Grades</div></div>
-                        </div>
-                    </div>
-
-                    <div class="dash-card mb-6">
-                        <div class="dash-card-head"><h3>Trainee Progress Tracker</h3></div>
-                        <table class="treat-table w-full">
-                            <thead>
-                                <tr>
-                                    <th>Trainee Name</th>
-                                    <th>Batch ID</th>
-                                    <th>Completion Rate</th>
-                                    <th>Pending Checks</th>
-                                    <th>Overall Grade</th>
-                                </tr>
-                            </thead>
-                            <tbody id="admin-progress-tracker-body">
-                                <tr><td colspan="5" class="text-xs text-slate-700 p-4">Loading trainee progress...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="dash-card">
-                        <div class="dash-card-head">
-                            <h3>Live Leaderboard — All Trainees</h3>
-                            <span class="dash-live-pill"><span class="dot"></span>Live<span id="admin-leaderboard-updated" class="text-slate-700 font-normal normal-case" style="margin-left:4px;"></span></span>
-                        </div>
-                        <table class="treat-table w-full">
-                            <thead>
-                                <tr>
-                                    <th width="60">Rank</th>
-                                    <th>Trainee Name</th>
-                                    <th>Batch ID</th>
-                                    <th>Activities Completed</th>
-                                    <th>Current Rating</th>
-                                </tr>
-                            </thead>
-                            <tbody id="admin-leaderboard-body">
-                                <tr><td colspan="5" class="text-xs text-slate-700 p-4">Loading leaderboard...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
                 <!-- 6. ADMIN LESSON DECKS & ACTIVITIES -->
                 <div id="view-admin-activities" class="portal-view-section hidden">
                     <div class="flex justify-between items-center mb-6">
@@ -377,13 +306,79 @@
                     <div id="admin-lectures-list" class="space-y-3"></div>
                 </div>
 
-                <!-- 8. ADMIN GRADES & SUBMISSIONS -->
+                <!-- 5. ADMIN GRADING — batch statistics, trainee progress, submissions and standings on one screen -->
                 <div id="view-admin-grades" class="portal-view-section hidden">
-                    <div class="pdf-card border-l-4 border-navy">
-                        <div class="section-head">Submitted Activities &amp; Grading</div>
+
+                    <div class="dash-hero mb-6">
+                        <svg class="dash-hero-rings" viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="130" cy="130" r="120" stroke="#f97316" stroke-width="1.5"/>
+                            <circle cx="130" cy="130" r="95" stroke="#c06128" stroke-width="1.5"/>
+                            <circle cx="130" cy="130" r="70" stroke="#864e39" stroke-width="1.5"/>
+                            <circle cx="130" cy="130" r="45" stroke="#4c3c4a" stroke-width="1.5"/>
+                        </svg>
+                        <div class="dash-hero-copy">
+                            <div class="eyebrow">Master Control</div>
+                            <h2>Check &amp; release grades.</h2>
+                            <p>Every batch's numbers, each trainee's progress, every submitted activity and the standings — checked, graded and released from this one screen.</p>
+                        </div>
+                        <div class="dash-hero-stats">
+                            <div class="dash-hero-stat"><div class="num" id="admin-landing-active-trainees-hero">—</div><div class="lbl">Active</div></div>
+                            <div class="dash-hero-stat"><div class="num" id="admin-landing-pending-grades-hero">—</div><div class="lbl">Pending</div></div>
+                        </div>
+                    </div>
+
+                    <div class="stat-cards-row mb-6">
+                        <div class="stat-card-v2">
+                            <div class="stat-icon-badge navy">🧑‍🎓</div>
+                            <div><div class="val" id="admin-landing-active-trainees">—</div><div class="lbl">Active Trainees</div></div>
+                        </div>
+                        <div class="stat-card-v2">
+                            <div class="stat-icon-badge orange">📥</div>
+                            <div><div class="val" id="admin-landing-total-submissions">—</div><div class="lbl">Total Submissions</div></div>
+                        </div>
+                        <div class="stat-card-v2">
+                            <div class="stat-icon-badge green">📈</div>
+                            <div><div class="val" id="admin-landing-avg-score">—</div><div class="lbl">Avg Batch Score</div></div>
+                        </div>
+                        <div class="stat-card-v2">
+                            <div class="stat-icon-badge red">⏳</div>
+                            <div><div class="val" id="admin-landing-pending-grades">—</div><div class="lbl">Pending Grades</div></div>
+                        </div>
+                    </div>
+
+                    <div class="dash-card mb-6">
+                        <div class="dash-card-head"><h3>Trainee Progress Tracker</h3></div>
                         <table class="treat-table w-full">
                             <thead>
                                 <tr>
+                                    <th>Trainee Name</th>
+                                    <th>Batch ID</th>
+                                    <th>Completion Rate</th>
+                                    <th>Pending Checks</th>
+                                    <th>Overall Grade</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-progress-tracker-body">
+                                <tr><td colspan="5" class="text-xs text-slate-700 p-4">Loading trainee progress...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pdf-card border-l-4 border-navy mb-6">
+                        <div class="section-head">Submitted Activities &amp; Grading</div>
+                        <!-- Download before delete: the CSV is what outlives the rows, so the delete
+                             buttons stay disabled until this screen's grades have been downloaded in
+                             this session (app.js, __gradesExported). -->
+                        <div class="grades-toolbar">
+                            <button class="btn-primary" onclick="exportGradesCsv()">&#11015; Download grades &amp; progress (CSV)</button>
+                            <button class="grades-danger" id="grades-del-selected" onclick="deleteSubmissions('selected')" disabled>&#128465; Delete selected</button>
+                            <button class="grades-danger" id="grades-del-all" onclick="deleteSubmissions('all')" disabled>&#128465; Delete all shown</button>
+                            <span class="grades-hint" id="grades-del-hint">Download the CSV first — deleting is permanent, and the file is the only copy left.</span>
+                        </div>
+                        <table class="treat-table w-full">
+                            <thead>
+                                <tr>
+                                    <th style="width:34px;"><input type="checkbox" id="grades-check-all" onclick="toggleAllSubmissions(this.checked)" aria-label="Select every submission"></th>
                                     <th>Trainee Name</th>
                                     <th>Activity Title</th>
                                     <th>Date Submitted</th>
@@ -393,6 +388,27 @@
                                 </tr>
                             </thead>
                             <tbody id="admin-submissions-body">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="dash-card">
+                        <div class="dash-card-head">
+                            <h3>Live Leaderboard — All Trainees</h3>
+                            <span class="dash-live-pill"><span class="dot"></span>Live<span id="admin-leaderboard-updated" class="text-slate-700 font-normal normal-case" style="margin-left:4px;"></span></span>
+                        </div>
+                        <table class="treat-table w-full">
+                            <thead>
+                                <tr>
+                                    <th width="60">Rank</th>
+                                    <th>Trainee Name</th>
+                                    <th>Batch ID</th>
+                                    <th>Activities Completed</th>
+                                    <th>Current Rating</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-leaderboard-body">
+                                <tr><td colspan="5" class="text-xs text-slate-700 p-4">Loading leaderboard...</td></tr>
                             </tbody>
                         </table>
                     </div>

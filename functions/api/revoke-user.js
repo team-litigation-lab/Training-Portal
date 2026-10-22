@@ -1,4 +1,6 @@
 import { json, requireSession, tombstoneUser, logActivity, isMaster, MASTER_USERNAME } from '../_utils.js';
+import { driveConfigured, saveUserRecordsToDrive } from '../_drive.js';
+import { collectUserRecords, purgeUserRecords, fullName } from '../_purge.js';
 
 // Permanent, irreversible account revocation: tombstones the row (so the
 // username/email is recognized as previously-deleted — see
@@ -6,6 +8,19 @@ import { json, requireSession, tombstoneUser, logActivity, isMaster, MASTER_USER
 // is deliberately its own endpoint, separate from update-status.js —
 // Approve/Reject are reversible outcomes on a still-pending row, while
 // revocation is a one-way action on an existing account.
+//
+// Revoking takes everything with it. Their whole record — account, submitted
+// activities and their grades, simulator results, calendaring work and evaluations,
+// and the course's own progress and trainer feedback — is collected first, filed to
+// their batch's folder on the Shared Drive, and only then deleted. Scores are not
+// kept: a batch average after a revocation is the average of the people still in it.
+//
+// Nothing is deleted until the backup is safe. With Google Drive configured the
+// Function files it itself; without it, the first call answers { needsBackup: true }
+// with the whole record, the admin's browser downloads it, and the second call
+// (backupSaved: true) does the deleting. The activity log and the username
+// tombstone stay: the audit trail of the revocation, and what stops the username
+// being used again, are not the person's work.
 //
 // Permission rules:
 //   - The Master Account can never be revoked, by anyone.
@@ -20,7 +35,7 @@ export async function onRequestPost({ request, env }) {
 
     let body;
     try { body = await request.json(); } catch (e) { return json({ success: false, error: 'Invalid request body.' }, 400); }
-    const { userId } = body;
+    const { userId, backupSaved } = body;
     if (!userId) return json({ success: false, error: 'User ID is required.' }, 400);
 
     const user = await db.prepare(`SELECT * FROM users WHERE id = ?`).bind(userId).first();
@@ -36,12 +51,33 @@ export async function onRequestPost({ request, env }) {
         return json({ success: false, error: 'You cannot revoke your own account.' }, 403);
     }
 
+    // 1. Everything of theirs, read while it is all still there.
+    const records = await collectUserRecords(env, user);
+    const name = fullName(user);
+    const onePrograms = [...new Set((records.course || []).map(c => c.label))];
+
+    // 2. The backup, before a single row goes.
+    let backup = null;
+    if (driveConfigured(env)) {
+        try {
+            backup = await saveUserRecordsToDrive(env, {
+                programLabel: onePrograms.length === 1 ? onePrograms[0] : null,
+                batch: user.batch_id, name, username: user.username, records, revokedBy: session.username
+            });
+        } catch (e) {
+            return json({ success: false, error: `Their records could not be filed to the Drive, so nothing was deleted: ${e.message}` }, 502);
+        }
+    } else if (!backupSaved) {
+        // No Drive set up: the admin's browser keeps the copy, and asks again.
+        return json({ success: true, needsBackup: true, name, username: user.username, batch: user.batch_id || null, records });
+    }
+
+    // 3. Now it goes.
     await tombstoneUser(db, user, session.username);
     await db.prepare(`DELETE FROM users WHERE id = ?`).bind(userId).run();
-    // Leave nothing behind that still looks like a live account: the presence row and the program access (their submissions and results stay as records).
-    try { await db.prepare(`DELETE FROM heartbeats WHERE username = ?`).bind(user.username).run(); } catch (e) { /* none */ }
-    try { if (env.TRAINING_DB) await env.TRAINING_DB.prepare(`DELETE FROM trainee_topic_access WHERE trainee_username = ?`).bind(user.username).run(); } catch (e) { /* none */ }
-    await logActivity(db, session.username, session.batchId, 'revoke-user', { userId, username: user.username });
+    const gone = await purgeUserRecords(env, user, records);
+    await logActivity(db, session.username, session.batchId, 'revoke-user',
+        { userId, username: user.username, backup: backup || 'downloaded by the admin', removed: gone, courseIncomplete: records.courseIncomplete });
 
-    return json({ success: true });
+    return json({ success: true, backup, removed: gone, courseIncomplete: records.courseIncomplete });
 }

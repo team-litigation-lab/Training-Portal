@@ -38,6 +38,8 @@ jobs:
         run: node --no-warnings .github/scripts/master-control.mjs
       - name: Admin registrations (a trainer sets an admin account up; only the master account approves it)
         run: node --no-warnings .github/scripts/admin-approval.mjs
+      - name: Revoking an account files their records to their batch folder first, then leaves nothing of their work
+        run: node --no-warnings .github/scripts/revoke-purge.mjs
       - name: Simulator SSO (a simulator framed beside a lesson keeps its session; another site cannot spend it)
         run: node --no-warnings .github/scripts/sso-frame.mjs
       - name: Calendaring Simulators' saved work (trainee saves, admin-only feedback)

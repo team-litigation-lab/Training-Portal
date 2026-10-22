@@ -12,7 +12,8 @@ const { batchLabel, batchCohort } = new Function(`${grab('batchLabel')}\n${grab(
 
 const issued = { '2026-10-05': 'B100526', '2026-09-30 08:15:00': 'B093026', '2027-01-02': 'B010227' };
 for (const [d, want] of Object.entries(issued)) { const got = await nextBatchId(null, 'Trainee', d); if (got !== want) fail(`a Batch ID for ${d} is ${got} (expected ${want}: B + MMDDYY)`); }
-if (!/^B\d{6}$/.test(await nextBatchId(null, 'Admin'))) fail(`an Admin's Batch ID has a trainee number or isn't B + six digits: ${await nextBatchId(null, 'Admin')}`);
+// A trainer is in no batch: update-status.js gives an approved Admin / Trainer no Batch ID at all
+// (admin-approval.mjs checks that end to end), so nextBatchId is only ever asked for a trainee's.
 
 const shown = { 'B30092026-LSHTRAINEE-004': 'B300926', 'B05022026-LSHADMIN-001': 'B050226', 'b30092026-lshtrainee-012': 'B300926', 'B30092026': 'B300926',
     'B300926-LSHTRAINEE-004': 'B300926', 'B100526': 'B100526', 'UNASSIGNED': 'UNASSIGNED', '': '', 'MASTER-ADMIN': 'MASTER-ADMIN' };

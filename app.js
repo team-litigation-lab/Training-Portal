@@ -36,9 +36,9 @@ function clearSession() {
 
 // 1. NAVIGATION & ROLE VIEW SWITCHING
 const VIEW_LABELS = {
-    'trainee-landing': 'Dashboard', 'admin-landing': 'Dashboard',
+    'trainee-landing': 'Dashboard',
     'trainee-activities': 'Activities & Practice', 'admin-activities': 'Manage Activities',
-    'trainee-grades': 'Grades & Submissions', 'admin-grades': 'Review Submissions',
+    'trainee-grades': 'Grades & Submissions', 'admin-grades': 'Check & Release Grades',
     'trainee-lectures': 'Recorded Lectures', 'admin-lectures': 'Manage Lectures'
 };
 let __currentViewLabel = null;
@@ -69,7 +69,7 @@ function switchView(viewId) {
         if (viewId === 'admin-activities' || viewId === 'trainee-activities') {
             loadActivitiesData();
         }
-        if ((viewId === 'trainee-landing' || viewId === 'admin-landing') && Date.now() - __liveDataAt > 5000) {   // (not again if the live polling just did)
+        if ((viewId === 'trainee-landing' || viewId === 'admin-grades') && Date.now() - __liveDataAt > 5000) {   // (not again if the live polling just did)
             __liveDataAt = Date.now();   // the live polling's next refresh is a minute from now
             loadProgressData();
             loadLeaderboardData();
@@ -144,7 +144,10 @@ function applySessionUI() {
             <div class="session-user-tag text-center text-xs text-slate-400 mb-2 font-mono">Signed in as: <b class="text-white">${session.fullName || session.username}</b></div>
             <button class="w-full border border-red-800 text-red-400 py-2 rounded text-xs font-bold uppercase" onclick="logoutSession()">Log Out</button>
         `;
-        if (typeof switchView === 'function' && document.getElementById('view-admin-landing')) switchView('admin-landing');
+        // Check & Release Grades is the admin's first screen: Batch Statistics was merged into it,
+        // so the batch numbers, the Trainee Progress Tracker, the submissions and the standings are
+        // all on the one screen now.
+        if (typeof switchView === 'function' && document.getElementById('view-admin-grades')) switchView('admin-grades');
     } else {
         if (traineeSidebar) traineeSidebar.classList.remove('hidden');
         if (adminSidebar) adminSidebar.classList.add('hidden');
@@ -632,7 +635,7 @@ function renderUserRow(u) {
                     ${escapeHtml(u.fullName)}
                     <span style="font-weight:700;font-size:10px;color:${statusColor};border:1px solid ${statusColor};border-radius:4px;padding:1px 6px;margin-left:6px;">${escapeHtml(u.status)}</span>
                 </div>
-                <div style="font-size:11px;color:#64748b;margin-top:2px;">${escapeHtml(batchLabel(u.batchId))} &middot; ${escapeHtml(u.username)} &middot; ${escapeHtml(u.email || '')}</div>
+                <div style="font-size:11px;color:#64748b;margin-top:2px;">${batchLabel(u.batchId) ? escapeHtml(batchLabel(u.batchId)) + ' &middot; ' : ''}${escapeHtml(u.username)} &middot; ${escapeHtml(u.email || '')}</div>
             </div>
             <div style="display:flex;gap:8px;flex-shrink:0;">
                 ${canEditUser(u) ? `<button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="openEditUser(${u.id})">Edit</button>` : ''}
@@ -705,15 +708,50 @@ async function reactivateUser(id) {
     }
 }
 
+// Revoking takes their whole record with it: submitted activities and grades,
+// simulator results, calendaring work and evaluations, and the course's own
+// progress and trainer feedback. The backup comes first and the deleting second —
+// with Google Drive configured the Function files it in the person's batch folder
+// itself; without it, it hands the record back here, this downloads it, and only
+// then does the second call do the deleting. Scores are not kept behind.
 async function revokeUser(id, name) {
-    if (!confirm(`Permanently revoke ${name}'s account? This cannot be undone \u2014 they will need to submit a brand-new registration.`)) return;
+    if (!confirm(`Permanently revoke ${name}'s account?\n\nEverything of theirs goes with it \u2014 grades, submitted activities, simulator results and course progress \u2014 after a copy is filed to their batch's folder. This cannot be undone.`)) return;
     try {
-        await postJson('/api/revoke-user', { userId: id });
-        showToast('Account permanently revoked.', 'success');
+        const first = await postJson('/api/revoke-user', { userId: id });
+        if (first.needsBackup) {
+            // No Drive configured: this browser is where the only copy comes from,
+            // so it is saved before the account is touched.
+            const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ').replace(':', '');
+            const file = `${String(first.name || name).replace(/[\\/:*?"<>|]/g, '')} — records ${stamp}.json`;
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(first.records, null, 1)], { type: 'application/json' }));
+            a.download = file;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+            if (!confirm(`Their records were downloaded as "${file}".\n\nKeep that file in ${first.batch ? 'Batch ' + first.batch + "'s" : 'their batch'} folder \u2014 it is the only copy once this goes ahead.\n\nDelete everything now?`)) {
+                showToast('Nothing was deleted.', 'error');
+                return;
+            }
+            const done = await postJson('/api/revoke-user', { userId: id, backupSaved: true });
+            showToast(revokeSummary(done), 'success');
+        } else {
+            showToast(revokeSummary(first), 'success');
+        }
         loadUsersData();
     } catch (e) {
         showToast(e.message, 'error');
     }
+}
+// What actually went, so an admin sees it rather than being told "done".
+function revokeSummary(r) {
+    const g = r.removed || {};
+    const n = ['submissions', 'simulatorResults', 'simulatorResultsByName', 'calsim', 'gcalDrafts', 'gcalReviews']
+        .reduce((a, k) => a + (typeof g[k] === 'number' ? g[k] : 0), 0);
+    const left = (r.courseIncomplete || []).length
+        ? ` Course records in ${r.courseIncomplete.join(', ')} were not all read, so check them.`
+        : '';
+    return `Account revoked. ${n} record${n === 1 ? '' : 's'} and ${g.courseKeys || 0} course entr${(g.courseKeys || 0) === 1 ? 'y' : 'ies'} removed.`
+        + (r.backup ? ' Their file is in the batch folder.' : '') + left;
 }
 
 // 4. MODALS (ACTIVITIES, LECTURES, SUBMISSIONS)
@@ -2669,7 +2707,8 @@ async function loadAdminSubmissions() {
         __submissionsCache = data.submissions;
 
         if (!__submissionsCache.length) {
-            body.innerHTML = `<tr><td colspan="6" class="text-xs text-slate-400 p-4">No submissions yet.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="7" class="text-xs text-slate-400 p-4">No submissions yet.</td></tr>`;
+            refreshGradeTools();
             return;
         }
 
@@ -2681,6 +2720,7 @@ async function loadAdminSubmissions() {
             const autoNote = (s.auto_score !== null && s.auto_score !== undefined) ? ` &middot; auto ${s.auto_score}pt` : '';
             return `
                 <tr>
+                    <td><input type="checkbox" class="grade-pick" value="${s.id}" onclick="refreshGradeTools()" aria-label="Select this submission"></td>
                     <td class="font-bold">${escapeHtml(s.trainee_name)}</td>
                     <td>${escapeHtml(s.activity_title)}</td>
                     <td>${formatDate(s.submitted_at)}</td>
@@ -2690,9 +2730,77 @@ async function loadAdminSubmissions() {
                 </tr>
             `;
         }).join('');
+        refreshGradeTools();
     } catch (e) {
-        body.innerHTML = `<tr><td colspan="6" class="text-xs text-red-500 p-4">Failed to load: ${escapeHtml(e.message)}</td></tr>`;
+        body.innerHTML = `<tr><td colspan="7" class="text-xs text-red-500 p-4">Failed to load: ${escapeHtml(e.message)}</td></tr>`;
     }
+}
+
+// ===== Check & Release Grades: download, then delete =====
+// Deleting a submission removes the trainee's progress for that activity as well
+// as its grade (/api/progress counts the same rows), so it is gated on the CSV:
+// the delete buttons stay disabled until this screen's grades have been
+// downloaded in this session, and the download carries the Trainee Progress
+// Tracker alongside the submissions so the file is the whole record, not half of it.
+let __gradesExported = false;
+const csvCell = (v) => { const t = String(v == null ? '' : v); return `"${(/^[=+\-@\t\r]/.test(t) ? `'${t}` : t).replace(/"/g, '""')}"`; };
+function pickedSubmissionIds() {
+    return [].slice.call(document.querySelectorAll('.grade-pick:checked')).map(el => Number(el.value)).filter(Number.isFinite);
+}
+function toggleAllSubmissions(on) {
+    document.querySelectorAll('.grade-pick').forEach(el => { el.checked = !!on; });
+    refreshGradeTools();
+}
+function refreshGradeTools() {
+    const picked = pickedSubmissionIds().length, shown = (__submissionsCache || []).length;
+    const sel = document.getElementById('grades-del-selected'), all = document.getElementById('grades-del-all');
+    const hint = document.getElementById('grades-del-hint'), checkAll = document.getElementById('grades-check-all');
+    if (checkAll) checkAll.checked = shown > 0 && picked === shown;
+    if (sel) { sel.disabled = !__gradesExported || !picked; sel.textContent = picked ? `🗑 Delete selected (${picked})` : '🗑 Delete selected'; }
+    if (all) all.disabled = !__gradesExported || !shown;
+    if (hint) {
+        hint.className = 'grades-hint' + (__gradesExported ? ' ready' : '');
+        hint.textContent = !shown ? 'Nothing to download or delete yet.'
+            : __gradesExported ? 'Downloaded — the CSV is your copy. Deleting is permanent and cannot be undone.'
+            : 'Download the CSV first — deleting is permanent, and the file is the only copy left.';
+    }
+}
+function exportGradesCsv() {
+    const subs = __submissionsCache || [];
+    if (!subs.length) { showToast('There is nothing to download yet.', 'error'); return; }
+    const lines = [['Record', 'Trainee', 'Username / Batch', 'Activity', 'Submitted', 'Answers', 'Auto score', 'Status', 'Score %', 'Feedback', 'Graded at'].map(csvCell).join(',')];
+    subs.forEach(s => lines.push(['Submission', s.trainee_name, s.trainee_username, s.activity_title, s.submitted_at,
+        Array.isArray(s.answers) ? s.answers.length : 0, s.auto_score == null ? '' : s.auto_score,
+        s.status, s.score == null ? '' : s.score, s.feedback || '', s.graded_at || ''].map(csvCell).join(',')));
+    // The Trainee Progress Tracker on this same screen, so the file keeps the
+    // completion picture the deleted rows were feeding.
+    document.querySelectorAll('#admin-progress-tracker-body tr').forEach(tr => {
+        const c = [].slice.call(tr.children).map(td => td.textContent.trim());
+        if (c.length === 5) lines.push(['Progress', c[0], c[1], '', '', '', '', 'Completion ' + c[2], c[4].replace('%', ''), 'Pending checks ' + c[3], ''].map(csvCell).join(','));
+    });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+    a.download = `grades-and-progress-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    __gradesExported = true;
+    refreshGradeTools();
+    showToast('Downloaded. The delete buttons are open now.', 'success');
+}
+async function deleteSubmissions(which) {
+    if (!__gradesExported) { showToast('Download the CSV first.', 'error'); return; }
+    const ids = which === 'all' ? (__submissionsCache || []).map(s => s.id) : pickedSubmissionIds();
+    if (!ids.length) { showToast('Nothing selected.', 'error'); return; }
+    const what = `${ids.length} submission${ids.length === 1 ? '' : 's'}`;
+    if (!confirm(`Permanently delete ${what}, with their grades and the progress they count towards?\n\nThis cannot be undone. Your CSV download is the only remaining copy.`)) return;
+    if (prompt(`Type DELETE to confirm removing ${what}.`) !== 'DELETE') { showToast('Deletion cancelled.', 'error'); return; }
+    try {
+        await postJson('/api/submissions', { action: 'DELETE_SUBMISSIONS', submissionIds: ids });
+        showToast(`Deleted ${what}.`, 'success');
+        __gradesExported = false;
+        loadAdminSubmissions();
+        loadProgressData();
+    } catch (e) { showToast(e.message, 'error'); }
 }
 
 // 5. CLOCK & NOTIFICATIONS
@@ -2865,7 +2973,8 @@ async function saveEditUser(id) {
 // The team is four trainers with their own sign-ins rather than one shared Master Account, and a
 // trainer onboarding a batch shouldn't have to walk each person through the registration page. What
 // this makes is a *pending* registration, exactly as signing up does: it appears below for an
-// administrator to approve, and the approval is what issues the Batch ID and turns the login on.
+// administrator to approve, and the approval is what turns the login on — issuing the Batch ID with
+// it for a trainee, while a trainer is in no batch and is given none.
 function openCreateUser() {
     const old = document.getElementById('create-user-overlay'); if (old) old.remove();
     const el = document.createElement('div');

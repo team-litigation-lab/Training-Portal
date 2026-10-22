@@ -25,7 +25,13 @@ export async function onRequestPost({ request, env }) {
     if (user.user_type === 'Admin' && !isMaster(session)) return json({ success: false, error: 'Only the Master Account can edit an Admin.' }, 403);
 
     const set = {}; const changed = [];
-    if (body.batchId !== undefined) {
+    // A Batch ID belongs to a batch of trainees going through the course together; a
+    // trainer is in no batch and is given none when their account is approved
+    // (update-status.js), so there is none to set here either.
+    if (body.batchId !== undefined && user.user_type === 'Admin' && String(body.batchId).trim()) {
+        return json({ success: false, error: 'A trainer has no Batch ID: a batch is a group of trainees going through the course together.' }, 400);
+    }
+    if (body.batchId !== undefined && user.user_type !== 'Admin') {
         // A Batch ID set here is B + the date the batch started, as MMDDYY (B100926 for 9 October 2026) —
         // the same rule the programs read it by. What's typed is saved in that one form.
         const b = canonicalBatch(body.batchId);

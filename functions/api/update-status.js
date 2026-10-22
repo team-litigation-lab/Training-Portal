@@ -27,10 +27,12 @@ export async function onRequestPost({ request, env }) {
     if (user.user_type === 'Admin' && !isMaster(session)) {
         return json({ success: false, error: 'Only the Master Account can approve or reject an Admin / Trainer registration.' }, 403);
     }
+    // A Batch ID is a batch of trainees going through the course together, which is
+    // what it is for: attendance, progress, the batch's archive. A trainer belongs to
+    // no batch and is given none — approving an Admin / Trainer leaves it empty.
     let batchId = user.batch_id;
-    if (newStatus === 'Approved' && !batchId) {
-        const referenceDate = user.user_type === 'Admin' ? user.created_at : user.training_start_date;
-        batchId = await nextBatchId(db, user.user_type, referenceDate);
+    if (newStatus === 'Approved' && !batchId && user.user_type !== 'Admin') {
+        batchId = await nextBatchId(db, user.user_type, user.training_start_date);
     }
     await db.prepare(
         `UPDATE users SET status = ?, batch_id = ? WHERE id = ?`
