@@ -56,12 +56,12 @@ const cmsCalls = await go('/api/launch?tool=cms&to=calls&track=reception', train
 if (/track=|#\/practice/.test(cmsCalls.at)) fail(`to=calls worked on the CMS: ${cmsCalls.at}`);
 const drill = await go('/api/launch?tool=cms&to=drill', trainee);
 if (!/&drill=1$/.test(drill.at)) fail(`to=drill no longer opens the CMS drill: ${drill.at}`);
-// 3. to=messages opens the CMS's 💬 Client Messaging: only its program, a conversation's id and graded go along, and only to the CMS
-const msgs = await go('/api/launch?tool=cms&to=messages&program=MD&thread=md_demand&mode=graded&line=<x>', trainee);
-if (!/^https:\/\/lshcasemanagementtraining-trainingcrm\.pages\.dev\/\?ticket=[^#&]+&messages=1&program=md&thread=md_demand&mode=graded$/.test(msgs.at)) fail(`to=messages: ${msgs.at}`);
+// 3. to=messages opens Ring Channel's 💬 Client Messaging: only its program, a conversation's id and graded go along, and only to Ring Channel
+const msgs = await go('/api/launch?tool=ringchannel&to=messages&program=MD&thread=md_demand&mode=graded&line=<x>', trainee);
+if (!/^https:\/\/lshringchannel\.legalsupporthelp\.workers\.dev\/\?ticket=[^#&]+&messages=1&program=md&thread=md_demand&mode=graded$/.test(msgs.at)) fail(`to=messages: ${msgs.at}`);
 if (messagesQuery(new URLSearchParams('program=nope&thread=../../x&mode=practice')) !== 'messages=1') fail('a link\'s unknown values went along to Client Messaging');
-const rcMsgs = await go('/api/launch?tool=ringchannel&to=messages', trainee);
-if (/messages=1/.test(rcMsgs.at)) fail(`to=messages worked on Ring Channel: ${rcMsgs.at}`);
+const cmsMsgs = await go('/api/launch?tool=cms&to=messages', trainee);
+if (/messages=1/.test(cmsMsgs.at)) fail(`to=messages worked on the CMS: ${cmsMsgs.at}`);
 
 /* 4. to=automessages opens 💬 Automated Messaging on LSH Ring Channel: the texting simulator, where the
    firm's automation texts a client and the trainee answers. Only a thread of its own, its program and
