@@ -12,7 +12,7 @@
 .dr-paper { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 18px 40px -28px rgba(15, 33, 72, .5);
     padding: 54px 60px; font-family: 'Times New Roman', Times, serif; font-size: 15px; line-height: 1.55; color: #111; }
 @media (max-width: 620px) { .dr-paper { padding: 26px 20px; } }
-.dr-paper p { margin: 0 0 11px; }
+.dr-paper:not(.dr-docx) p { margin: 0 0 11px; }   /* the sketch's paragraphs; the Word view keeps Word's own spacing */
 /* A letter is laid out for paper; on a phone the long lines, the wide table and an
    input sized to its placeholder would all push the page sideways. Nothing is allowed
    to be wider than the paper. */
@@ -51,7 +51,6 @@ textarea.dr-f { display: block; width: 100%; min-height: 72px; resize: vertical;
    The sketch's paper styles are switched off so they don't reach into the firm's paragraphs. */
 .dr-paper.dr-docx { padding: 0; background: transparent; border: none; box-shadow: none; border-radius: 10px;
     font-family: initial; font-size: initial; line-height: normal; color: #000; overflow: hidden; overflow-wrap: normal; }
-.dr-paper.dr-docx p { margin: 0; }
 .dr-paper.dr-docx .docx-wrapper { background: #e2e8f0; padding: 18px; border-radius: 10px; }
 .dr-paper.dr-docx .docx-wrapper > section.docx { box-shadow: 0 18px 40px -28px rgba(15, 33, 72, .5); margin-bottom: 18px; }
 .dr-paper.dr-docx .docx-wrapper > section.docx:last-child { margin-bottom: 0; }
@@ -158,3 +157,23 @@ textarea.dr-f { display: block; width: 100%; min-height: 72px; resize: vertical;
 .dr-checks .ok { color: #15803d; font-weight: 800; } .dr-checks .no { color: #b91c1c; font-weight: 800; }
 .dr-checks small { display: block; color: #64748b; overflow-wrap: anywhere; }
 .dr-score { font-size: 22px; font-weight: 900; color: var(--navy, #0f2148); }
+
+/* Clipboard, lists and spacing on the ribbon; Paste Options; the gap between pages */
+.wd-col { display: flex; flex-direction: column; gap: 2px; }
+.wd-b.wd-tall { flex-direction: column; height: 52px; padding: 2px 8px; font-size: 12px; line-height: 1.1; }
+.wd-big { font-size: 20px; display: block; }
+.wd-split .wd-b.wd-tall + .wd-b { height: 52px; }
+.wd-ls { font-size: 12px; letter-spacing: -1px; white-space: nowrap; }
+.wd-pop.wd-list { display: flex; flex-direction: column; min-width: 220px; padding: 4px; }
+.wd-pop.wd-list[hidden] { display: none; }
+.wd-pop.wd-list button { border: 0; background: transparent; text-align: left; padding: 7px 10px; font: inherit; font-size: 12.5px; cursor: pointer; border-radius: 3px; }
+.wd-pop.wd-list button:hover { background: #edebe9; }
+.wd-pop.wd-list hr { border: 0; border-top: 1px solid #e1dfdd; margin: 4px 0; width: 100%; }
+.wd-paste { position: fixed; z-index: 60; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; max-width: calc(100vw - 16px);
+    background: #fff; border: 1px solid #c8c6c4; border-radius: 4px; box-shadow: 0 4px 14px rgba(0, 0, 0, .18); padding: 4px 6px;
+    font: 12px 'Segoe UI', system-ui, sans-serif; color: #201f1e; }
+.wd-paste button { border: 1px solid transparent; background: transparent; border-radius: 3px; padding: 3px 7px; font: inherit; cursor: pointer; }
+.wd-paste button:hover { background: #edebe9; }
+.wd-paste button.on { background: #c7e0f4; border-color: #9fc3e6; }
+.wd-doc .dr-pgband { position: absolute; left: -40px; right: -40px; background: #e6e6e6; z-index: 6; pointer-events: none; }
+.wd-doc .dr-pgsp { pointer-events: none; user-select: none; }

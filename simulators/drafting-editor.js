@@ -1,10 +1,11 @@
 /* ============================================================
    ✍ Drafting (shared) — the letter in a Word-style editor
    The trainee edits the firm's letter the way they will in Word at the firm: the whole letter is
-   theirs to change (not only the highlighted blanks), with Word's Home ribbon — font, size, bold,
-   italic, underline, strikethrough, font colour, the highlighter (No Color included), alignment,
-   clear formatting — Find & Replace, Insert › Symbol / Date, ¶ Show/Hide, zoom, a word count and
-   Word's own keys (Ctrl+B/I/U, Ctrl+Z/Y, Ctrl+S, Tab, Shift+Enter).
+   theirs to change (not only the highlighted blanks), with Word's Home ribbon — Paste with Word's
+   Paste Options, font, size, bold, italic, underline, strikethrough, font colour, the highlighter
+   (No Color included), bullets, numbering, indents, line and paragraph spacing, alignment, clear
+   formatting — Find & Replace, Insert › Symbol / Date, ¶ Show/Hide, zoom, a word count, Word's
+   own keys (Ctrl+B/I/U, Ctrl+Z/Y, Ctrl+S, Tab, Shift+Enter), and Word's pages.
 
    The page is drawn from the .docx itself (docx-preview + drafting-letterhead.js), and what the
    trainee does on it goes back into that same .docx: every piece of text on screen knows the
@@ -79,14 +80,25 @@ function open(opts) {
     const E = { host: opts.host, baseXml: opts.baseXml, bytes: opts.bytes, runFmt0: {}, pFmt0: {}, zoom: 1, fit: 1,
         undo: [], redo: [], lastSnap: 0, lastKind: '', marks: false, timer: null };
     const host = E.host;
-    const arts = () => [].slice.call(host.querySelectorAll('section.docx > article'));
+    const arts = () => [].slice.call(host.querySelectorAll('section.docx > article')).filter(a => !a.closest('.dr-stage'));
     const paras = () => arts().reduce((a, art) => a.concat([].slice.call(art.querySelectorAll('p'))), []);
 
     /* ---------- drawing the letter ---------- */
-    async function draw() {
+    // One drawing at a time: a second waits for the first (two at once would each clear the other's page away).
+    let drawing = Promise.resolve();
+    function draw() {
+        const run = drawing.then(drawNow, drawNow);
+        drawing = run.catch(() => {});
+        return run;
+    }
+    async function drawNow() {
+        // while the letter is drawn again it can't be typed in: what was typed would be drawn over
+        arts().forEach(a => { a.contentEditable = 'false'; });
+        E.runFmt0 = {}; E.pFmt0 = {};
         const marked = D().markEditXml(E.baseXml);
         const zip = await D().pack(E.bytes, marked, 'arraybuffer');
         const stage = document.createElement('div');
+        stage.className = 'dr-stage';
         stage.style.cssText = 'position:absolute;left:0;top:0;width:100%;visibility:hidden;pointer-events:none;';
         host.style.position = 'relative';
         host.appendChild(stage);
@@ -96,9 +108,11 @@ function open(opts) {
         });
         [].slice.call(host.childNodes).forEach(n => { if (n !== stage) host.removeChild(n); });
         stage.style.cssText = '';
+        stage.classList.remove('dr-stage');
         host.classList.add('dr-docx', 'wd-doc');
         resolveMarkers(stage);
         markFormatting();
+        wordLines(stage);
         if (window.LSHDraftingLetterhead) {
             try { await LSHDraftingLetterhead.draw(zip, stage); }
             catch (e) { if (window.console) console.warn('Drafting: the letterhead could not be drawn —', e && e.message); }
@@ -115,6 +129,17 @@ function open(opts) {
         });
         host.querySelectorAll('section.docx').forEach(s => { s.style.overflow = 'visible'; });
         fit();
+        paginate();
+    }
+    // A paragraph command changes the paragraph's Word properties (a list, an indent, spacing): the letter is written
+    // back to XML with the change, and drawn again from it, so the page shows exactly what Word will.
+    async function rebase(x, sel) {
+        const canvas = host.closest('.wd-canvas'), top = canvas ? canvas.scrollTop : 0, y = window.scrollY;
+        E.baseXml = x;
+        await draw();
+        if (canvas) canvas.scrollTop = top;
+        window.scrollTo(window.scrollX, y);
+        if (sel) { const a = arts()[0]; if (a) a.focus({ preventScroll: true }); setSel(sel.s, sel.e); }
     }
     // The bookmarks markEditXml put in: which paragraph, which run, which check box.
     function resolveMarkers(root) {
@@ -153,6 +178,34 @@ function open(opts) {
             if (sz) p.style.fontSize = (+sz / 2) + 'pt';
         });
     }
+    /* Word's line spacing. "Single" (and 1.5, double…: w:spacing lineRule="auto") is a multiple of the FONT's own line
+       height — about 1.15 × the size for Arial or Times New Roman — but docx-preview draws it as a multiple of the font
+       size, so every line was short and a page held more than Word's. The browser's "normal" line height is the font's
+       own (the same metrics Word uses), so each paragraph gets multiple × that. Exact spacing (lineRule="exact", drawn
+       with a min-height) is left as it is. */
+    const NORMAL = {};
+    function normalOf(font) {
+        if (NORMAL[font] == null) {
+            const s = document.createElement('span');
+            s.style.cssText = `position:absolute;visibility:hidden;font-family:'${font}';font-size:100px;line-height:normal;white-space:nowrap;`;
+            s.textContent = 'Hxg';
+            document.body.appendChild(s);
+            NORMAL[font] = s.getBoundingClientRect().height / 100 || 1.15;
+            s.remove();
+        }
+        return NORMAL[font];
+    }
+    function wordLines(root) {
+        root.querySelectorAll('section.docx > article p').forEach(p => {
+            const cs = getComputedStyle(p);
+            if (cs.lineHeight === 'normal') return;
+            const L = parseFloat(cs.lineHeight), F = parseFloat(cs.fontSize);
+            if (!L || !F || /pt$/.test(p.style.lineHeight) || (parseFloat(cs.minHeight) && Math.abs(parseFloat(cs.minHeight) - L) < 0.5)) return;
+            const run = p.querySelector('[data-r]') || p;
+            const font = (getComputedStyle(run).fontFamily.split(',')[0] || '').replace(/["']/g, '').trim();
+            p.style.lineHeight = ((L / F) * normalOf(font)).toFixed(3);
+        });
+    }
     // How each run and each paragraph looked when drawn: an edit is whatever differs from this.
     function record() {
         host.querySelectorAll('[data-r]').forEach(s => { E.runFmt0[s.dataset.r] = fmtOf(s); });
@@ -163,7 +216,8 @@ function open(opts) {
     }
 
     /* ---------- the screen, back into the .docx ---------- */
-    function edit() {
+    // cmd: { targets: Set of <p>, ppr } — a paragraph command for those paragraphs (see drafting-docx.js paragraphProps).
+    function edit(cmd) {
         const out = { paras: [], checks: {} };
         unzoomed(() => {
             let prev = null;
@@ -187,7 +241,7 @@ function open(opts) {
                             if (c.classList.contains('docx-tab-stop')) return push('\t', c, true);
                             if (c.classList.contains('dr-chk')) { out.checks[c.dataset.chk] = c.dataset.on === '1'; return; }
                             if (c.tagName === 'BR') return push('\n', c.parentElement === p ? p : c.parentElement);
-                            if (/^(IMG|SVG|svg)$/.test(c.tagName) || c.classList.contains('dr-lh') || c.contentEditable === 'false') return;
+                            if (/^(IMG|SVG|svg)$/.test(c.tagName) || c.classList.contains('dr-lh') || c.classList.contains('dr-pgsp') || c.contentEditable === 'false') return;
                             walk(c);
                         });
                     }(p));
@@ -202,6 +256,8 @@ function open(opts) {
                     const a = ALIGN[getComputedStyle(p).textAlign] || 'left';
                     const cont = p.dataset.cont === '1' && n === 0 && prev && prev.p === pi;
                     const pe = { p: pi, cont: !!cont, align: a !== (p.dataset.a0 || 'left') ? a : null, segs };
+                    if (cmd && cmd.targets && cmd.targets.has(p)) pe.ppr = cmd.ppr;
+                    else if (p.dataset.pl) pe.ppr = { list: p.dataset.pl };       // pasted as a list item
                     out.paras.push(pe);
                     prev = pe;
                 });
@@ -263,13 +319,16 @@ function open(opts) {
     function snap(kind) {
         const now = Date.now();
         if (kind === 'typing' && E.lastKind === 'typing' && now - E.lastSnap < 1200) { E.lastSnap = now; return; }
-        E.undo.push({ nodes: copy(), sel: selOffsets() });
+        E.undo.push({ base: E.baseXml, nodes: copy(), sel: selOffsets() });
         if (E.undo.length > 150) E.undo.shift();
         E.redo = []; E.lastSnap = now; E.lastKind = kind;
     }
-    function restore(from, to) {
+    // A copy made before a paragraph command belongs to the letter as it was drawn then: that is drawn again first.
+    async function restore(from, to) {
+        await drawing;
         const s = from.pop(); if (!s) return;
-        to.push({ nodes: copy(), sel: selOffsets() });
+        to.push({ base: E.baseXml, nodes: copy(), sel: selOffsets() });
+        if (s.base !== E.baseXml) { E.baseXml = s.base; await draw(); }
         arts().forEach((a, i) => { if (s.nodes[i]) a.replaceChildren(...[].map.call(s.nodes[i], n => n.cloneNode(true))); });
         if (s.sel) setSel(s.sel.s, s.sel.e);
         E.lastKind = '';
@@ -334,6 +393,21 @@ function open(opts) {
             apply(top, before[i], before);
         });
     }
+    function selectedParas() {
+        const sel = window.getSelection(); if (!sel.rangeCount) return [];
+        const r = sel.getRangeAt(0);
+        if (!arts().some(a => a.contains(r.startContainer))) return [];
+        return paras().filter(p => r.intersectsNode(p));
+    }
+    async function paraCmd(ppr) {
+        await drawing;
+        const ps = selectedParas(); if (!ps.length) return;
+        const sel = selOffsets();
+        snap('para');
+        await rebase(D().applyEditsXml(E.baseXml, edit({ targets: new Set(ps), ppr })), sel);
+        E.lastKind = '';
+        changed(); state();
+    }
     const deco = (top, f, u, s) => { top.style.textDecorationLine = [u ? 'underline' : '', s ? 'line-through' : ''].join(' ').trim() || 'none'; };
     const CMD = {
         bold() { format((top, f, all) => { top.style.fontWeight = all.every(x => x.b) ? '400' : '700'; }, { props: ['fontWeight'] }); },
@@ -371,19 +445,28 @@ function open(opts) {
             document.execCommand('insertText', false, txt);
             changed();
         },
-        tab() {
+        tab(quiet) {
             const sel = window.getSelection(); if (!sel.rangeCount || !selOffsets()) return;
-            snap('insert');
+            if (!quiet) snap('insert');
             const r = sel.getRangeAt(0); r.deleteContents();
             const t = TAB(); r.insertNode(t);
             const after = document.createTextNode('\u200b');                // somewhere for the cursor to go
             t.parentNode.insertBefore(after, t.nextSibling);
             const c = document.createRange(); c.setStart(after, 1); c.collapse(true);
             sel.removeAllRanges(); sel.addRange(c);
-            changed();
+            if (!quiet) changed();
         },
         date() {
             CMD.insertText(new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }));
+        },
+        list(kind) { paraCmd({ list: kind, toggle: true }); },
+        indent(d) { paraCmd({ indent: d }); },
+        line(v) { paraCmd({ line: v }); },
+        // Word's "Add Space Before Paragraph" / "Remove Space After Paragraph": which one depends on what is there now
+        space(side) {
+            const ps = selectedParas(); if (!ps.length) return;
+            const now = parseFloat(getComputedStyle(ps[0])[side === 'before' ? 'marginTop' : 'marginBottom']) || 0;
+            paraCmd(side === 'before' ? { before: now > 0.5 ? 0 : 240 } : { after: now > 0.5 ? 0 : 240 });
         },
         undo() { restore(E.undo, E.redo); },
         redo() { restore(E.redo, E.undo); },
@@ -427,6 +510,7 @@ function open(opts) {
     /* ---------- typing, the Word way ---------- */
     function changed() {
         if (window.LSHDraftingLetterhead) LSHDraftingLetterhead.retab();
+        clearTimeout(E.pg); E.pg = setTimeout(paginate, 380);
         clearTimeout(E.timer);
         E.timer = setTimeout(() => { if (opts.onChange) opts.onChange(); stats(); if (E.marks) spaces(); }, 700);
         mark('Saving…');
@@ -443,29 +527,192 @@ function open(opts) {
     host.addEventListener('keydown', (e) => {
         if (!e.target.closest || !e.target.closest('article')) return;
         const k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
+        if (E.chip && !/^(Control|Meta|Shift|Alt)$/.test(e.key)) hideChip();
+        if (mod && k === 'v') { E.plainNext = e.shiftKey; return; }
         if (mod && !e.altKey) {
             const map = { b: 'bold', i: 'italic', u: 'underline', z: e.shiftKey ? 'redo' : 'undo', y: 'redo', f: 'find', h: 'find' };
             if (map[k]) { e.preventDefault(); CMD[map[k]](); return; }
             if (k === 's') { e.preventDefault(); if (opts.onAction) opts.onAction('save'); return; }
             if (k === 'e' || k === 'l' || k === 'r' || k === 'j') { e.preventDefault(); CMD.align({ e: 'center', l: 'left', r: 'right', j: 'both' }[k]); return; }
         }
-        if (e.key === 'Tab' && !mod) { e.preventDefault(); if (!e.shiftKey) CMD.tab(); return; }
+        if (e.key === 'Tab' && !mod) {
+            e.preventDefault();
+            const ps = selectedParas(), sel = window.getSelection();
+            const item = ps.length === 1 && /-num-/.test(ps[0].className) && atStartOf(ps[0], sel);
+            if (item || (ps.length > 1)) { CMD.indent(e.shiftKey ? -1 : 1); return; }   // a list level, or several paragraphs
+            if (!e.shiftKey) CMD.tab();
+            return;
+        }
         if (/^(Arrow|Home|End|Page)/.test(e.key)) E.lastKind = '';         // moving the cursor ends an undo step, as in Word
     });
     host.addEventListener('mousedown', () => { E.lastKind = ''; });
-    // Pasted text comes in as text: another document's formatting would not be the firm's.
+    function atStartOf(p, sel) {
+        if (!sel.rangeCount || !sel.isCollapsed) return false;
+        const r = document.createRange(); r.selectNodeContents(p); r.setEnd(sel.anchorNode, sel.anchorOffset);
+        return !r.toString().replace(/\u200b/g, '').length;
+    }
+    /* ---------- Paste, with Word's Paste Options ----------
+       Ctrl+V keeps the source formatting, as Word does by default; the Paste Options button that shows up after a paste
+       (and Home › Paste ▾) switches it to Merge Formatting (the letter's formatting, with the source's bold, italic and
+       underline) or Keep Text Only. Ctrl+Shift+V pastes text only. A pasted list comes in as a Word list. What was pasted
+       is then the letter's like anything typed: a font the template doesn't use is what Check my letter will find. */
+    const PASTE_MODES = { keep: 'Keep Source Formatting', merge: 'Merge Formatting', text: 'Keep Text Only' };
+    const BLOCK = /^(P|DIV|LI|H[1-6]|TR|BLOCKQUOTE|PRE|DT|DD|CAPTION)$/;
+    function clipStyle(el, st) {
+        const o = Object.assign({}, st), t = el.tagName, css = el.style, raw = el.getAttribute('style') || '';
+        if (/^(B|STRONG)$/.test(t)) o.b = true;
+        if (/^(I|EM)$/.test(t)) o.i = true;
+        if (t === 'U' || t === 'INS') o.u = true;
+        if (/^(S|STRIKE|DEL)$/.test(t)) o.s = true;
+        if (t === 'FONT') { if (el.getAttribute('face')) o.font = el.getAttribute('face').split(',')[0].replace(/["']/g, '').trim(); if (el.getAttribute('color')) o.color = el.getAttribute('color'); }
+        if (css) {
+            if (css.fontWeight) o.b = css.fontWeight === 'bold' || css.fontWeight === 'bolder' || parseInt(css.fontWeight, 10) >= 600;
+            if (css.fontStyle) o.i = /italic|oblique/.test(css.fontStyle);
+            const d = css.textDecorationLine || css.textDecoration || '';
+            if (d) { o.u = /underline/.test(d); o.s = /line-through/.test(d); }
+            if (css.color && css.color !== 'inherit') o.color = css.color;
+            const bg = css.backgroundColor || '';
+            if (bg && !/transparent|inherit|initial/.test(bg)) o.bg = bg;
+            const hl = raw.match(/mso-highlight:\s*([a-z]+)/i); if (hl) o.bg = hl[1];
+            if (css.fontFamily && css.fontFamily !== 'inherit') o.font = css.fontFamily.split(',')[0].replace(/["']/g, '').trim();
+            const fs = css.fontSize.match(/^([\d.]+)(pt|px)$/);
+            if (fs) o.pt = fs[2] === 'pt' ? +fs[1] : Math.round(+fs[1] * 0.75 * 2) / 2;
+        }
+        return o;
+    }
+    // The clipboard as lines (paragraphs) of runs: { list, runs: [{ text, st }] }.
+    function readClip(html, text) {
+        const lines = [];
+        if (html) {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            let cur = null;
+            const line = (list) => { cur = { list: list || null, runs: [], marker: '' }; lines.push(cur); };
+            const add = (txt, st) => { if (!cur) line(); cur.runs.push({ text: txt, st }); };
+            (function walk(node, st) {
+                [].forEach.call(node.childNodes, c => {
+                    if (c.nodeType === 3) { const v = c.nodeValue.replace(/[ \t\r\n]+/g, ' '); if (v) add(v, st); return; }
+                    if (c.nodeType !== 1 || /^(STYLE|SCRIPT|HEAD|META|TITLE|LINK|XML|TEMPLATE)$/.test(c.tagName)) return;
+                    const raw = c.getAttribute('style') || '';
+                    if (/mso-list:\s*Ignore/i.test(raw)) { if (cur) cur.marker += c.textContent; return; }   // Word's own bullet or number, as text
+                    if (c.tagName === 'BR') { add('\n', st); return; }
+                    const st2 = clipStyle(c, st);
+                    if (BLOCK.test(c.tagName)) {
+                        const list = c.tagName === 'LI' ? (c.parentElement && c.parentElement.tagName === 'OL' ? 'number' : 'bullet') : /mso-list:/i.test(raw) ? 'auto' : null;
+                        line(list); walk(c, st2); cur = null;
+                        return;
+                    }
+                    walk(c, st2);
+                    if (/^(TD|TH)$/.test(c.tagName) && c.nextElementSibling) add('\t', st);
+                });
+            }(doc.body, {}));
+        } else {
+            String(text || '').replace(/\r\n?/g, '\n').split('\n').forEach(l => lines.push({ list: null, runs: l ? [{ text: l, st: {} }] : [] }));
+        }
+        lines.forEach(l => {
+            if (l.list === 'auto') l.list = /^\s*([0-9]+|[a-z]|[ivxlc]+)[.)]/i.test(l.marker) ? 'number' : 'bullet';
+            if (html) {                                       // HTML spacing: no space at the start or end of a paragraph
+                if (l.runs.length) { l.runs[0].text = l.runs[0].text.replace(/^ +/, ''); const z = l.runs[l.runs.length - 1]; z.text = z.text.replace(/ +$/, ''); }
+                l.runs = l.runs.filter(r => r.text);
+                if (l.runs.every(r => !r.text.replace(/[\s ]/g, ''))) l.runs = [];
+            }
+        });
+        while (lines.length && !lines[0].runs.length) lines.shift();
+        while (lines.length > 1 && !lines[lines.length - 1].runs.length) lines.pop();
+        return lines;
+    }
+    function caretP() {
+        const sel = window.getSelection(); if (!sel.rangeCount) return null;
+        const n = sel.anchorNode, el = n && (n.nodeType === 1 ? n : n.parentElement);
+        return el ? el.closest('p') : null;
+    }
+    function putText(txt, st, mode) {
+        if (mode === 'text' || !st || !Object.keys(st).length) { document.execCommand('insertText', false, txt); return; }
+        const sel = window.getSelection(); if (!sel.rangeCount) return;
+        const span = document.createElement('span');
+        if (st.b != null) span.style.fontWeight = st.b ? '700' : '400';
+        if (st.i != null) span.style.fontStyle = st.i ? 'italic' : 'normal';
+        if (st.u != null || st.s != null) span.style.textDecorationLine = [st.u ? 'underline' : '', st.s ? 'line-through' : ''].join(' ').trim() || 'none';
+        if (mode === 'keep') {
+            if (st.color) span.style.color = st.color;
+            if (st.bg) span.style.backgroundColor = st.bg;
+            if (st.font) span.style.fontFamily = `'${st.font}'`;
+            if (st.pt) span.style.fontSize = st.pt + 'pt';
+        }
+        span.textContent = txt;
+        const r = sel.getRangeAt(0); r.deleteContents(); r.insertNode(span);
+        const c = document.createRange(); c.setStartAfter(span); c.collapse(true);
+        sel.removeAllRanges(); sel.addRange(c);
+    }
+    async function pasteClip(clip, mode) {
+        const sel = window.getSelection(); if (!sel.rangeCount || !selOffsets()) return;
+        snap('paste');
+        E.lastPaste = { clip, at: E.undo.length, mode };
+        if (!sel.isCollapsed) document.execCommand('delete');
+        let lists = 0;
+        clip.forEach((l, i) => {
+            if (i) document.execCommand('insertParagraph');
+            l.runs.forEach(run => run.text.split('\n').forEach((part, j) => {
+                if (j) document.execCommand('insertLineBreak');
+                part.split('\t').forEach((seg, k) => { if (k) CMD.tab(true); if (seg) putText(seg, run.st, mode); });
+            }));
+            const p = caretP();
+            if (p) { if (l.list && mode !== 'text') { p.dataset.pl = l.list; lists++; } else delete p.dataset.pl; }
+        });
+        // a pasted list is a Word list: drawn again from the XML, like the Bullets and Numbering buttons
+        if (lists) { const at = selOffsets(); await rebase(D().applyEditsXml(E.baseXml, edit()), at); }
+        E.lastKind = '';
+        changed();
+        pasteChip();
+    }
+    async function repaste(mode) {
+        const lp = E.lastPaste; if (!lp || E.undo.length !== lp.at) return;
+        await restore(E.undo, E.redo);
+        E.redo = [];
+        await pasteClip(lp.clip, mode);
+    }
+    // Word's Paste Options button, beside what was pasted.
+    function pasteChip() {
+        hideChip();
+        const sel = window.getSelection(); if (!sel.rangeCount) return;
+        let r = sel.getRangeAt(0).getBoundingClientRect();
+        if (!r.height) { const p = caretP(); if (p) r = p.getBoundingClientRect(); }
+        const chip = document.createElement('div');
+        chip.className = 'wd-paste'; chip.setAttribute('role', 'group'); chip.setAttribute('aria-label', 'Paste Options');
+        chip.innerHTML = `<span class="wd-paste-t">📋 Paste Options:</span>` + Object.keys(PASTE_MODES).map(m =>
+            `<button type="button" data-paste="${m}" class="${E.lastPaste && E.lastPaste.mode === m ? 'on' : ''}" title="${PASTE_MODES[m]}">${PASTE_MODES[m]}</button>`).join('');
+        chip.style.left = Math.max(8, Math.min(innerWidth - 470, r.left)) + 'px';
+        chip.style.top = Math.min(innerHeight - 40, r.bottom + 6) + 'px';
+        chip.addEventListener('mousedown', (e) => e.preventDefault());
+        chip.addEventListener('click', (e) => { const b = e.target.closest('[data-paste]'); if (b) repaste(b.dataset.paste); });
+        document.body.appendChild(chip);
+        E.chip = chip;
+    }
+    function hideChip() { if (E.chip) { E.chip.remove(); E.chip = null; } }
     host.addEventListener('paste', (e) => {
         if (!e.target.closest || !e.target.closest('article')) return;
         e.preventDefault();
-        const txt = ((e.clipboardData || window.clipboardData).getData('text') || '').replace(/\r\n?/g, '\n');
-        snap('paste');
-        txt.split('\n').forEach((line, i) => {
-            if (i) document.execCommand('insertParagraph');
-            line.split('\t').forEach((part, j) => { if (j) CMD.tab(); if (part) document.execCommand('insertText', false, part); });
-        });
-        changed();
+        const cd = e.clipboardData || window.clipboardData;
+        const mode = E.plainNext ? 'text' : (E.pasteMode || 'keep');
+        E.plainNext = false;
+        pasteClip(readClip(mode === 'text' ? '' : cd.getData('text/html'), cd.getData('text/plain') || cd.getData('text')), mode);
     });
+    // Home › Paste ▾, from the clipboard (the browser may ask first)
+    async function pasteFromRibbon(mode) {
+        try {
+            let html = '', text = '';
+            if (navigator.clipboard && navigator.clipboard.read) {
+                for (const item of await navigator.clipboard.read()) {
+                    if (item.types.indexOf('text/html') >= 0) html = await (await item.getType('text/html')).text();
+                    if (item.types.indexOf('text/plain') >= 0) text = await (await item.getType('text/plain')).text();
+                }
+            } else text = await navigator.clipboard.readText();
+            arts()[0].focus({ preventScroll: true });
+            if (E.ribbonSel) setSel(E.ribbonSel.s, E.ribbonSel.e);
+            await pasteClip(readClip(mode === 'text' ? '' : html, text), mode);
+        } catch (err) { say('This browser won’t let the page read the clipboard: press Ctrl+V (Ctrl+Shift+V for text only).'); }
+    }
     host.addEventListener('drop', (e) => { e.preventDefault(); });
+    document.addEventListener('mousedown', (e) => { if (E.chip && !E.chip.contains(e.target)) hideChip(); });
     // A check box in the letter ticks the way it does in Word (a legacy form check box, or ☐ / ☒ typed in).
     host.addEventListener('click', (e) => {
         const c = e.target.closest && e.target.closest('.dr-chk');
@@ -485,7 +732,7 @@ function open(opts) {
             }
         }
     });
-    document.addEventListener('selectionchange', () => { clearTimeout(E.st); E.st = setTimeout(state, 60); });
+    document.addEventListener('selectionchange', () => { clearTimeout(E.st); E.st = setTimeout(() => { state(); stats(); }, 60); });
 
     /* ---------- the ribbon ---------- */
     let tab = 'home';
@@ -504,6 +751,8 @@ function open(opts) {
             <button type="button" data-act="reset">↺ Start over from the firm's template</button>
         </div>
         <div class="wd-rib" data-pane="home" ${tab === 'home' ? '' : 'hidden'}>
+            ${group('Clipboard', `<div class="wd-row"><span class="wd-split">${btn('paste', '<span class="wd-big">📋</span>Paste', 'Paste (Ctrl+V) — Keep Source Formatting', 'class="wd-b wd-tall"')}${btn('menu-paste', '▾', 'Paste Options', 'data-open="paste"')}</span>
+                <div class="wd-col">${btn('cut', '✂ Cut', 'Cut (Ctrl+X)')}${btn('copy', '⧉ Copy', 'Copy (Ctrl+C)')}</div></div>`)}
             ${group('Undo', btn('undo', '↶', 'Undo (Ctrl+Z)') + btn('redo', '↷', 'Redo (Ctrl+Y)'))}
             ${group('Font', `<div class="wd-row">
                     <select class="wd-sel wd-font" data-font title="Font" aria-label="Font">${FONTS.map(f => `<option style="font-family:'${f}'">${f}</option>`).join('')}</select>
@@ -515,6 +764,9 @@ function open(opts) {
                     <span class="wd-split">${btn('color-last', '<span class="wd-fc">A</span>', 'Font Color')}${btn('menu-fc', '▾', 'Font colours', 'data-open="fc"')}</span>
                 </div>`)}
             ${group('Paragraph', `<div class="wd-row">
+                    ${btn('list:bullet', '<span class="wd-ls">•≡</span>', 'Bullets')}${btn('list:number', '<span class="wd-ls">1≡</span>', 'Numbering')}${btn('indent:-1', '<span class="wd-ls">⇤≡</span>', 'Decrease Indent')}${btn('indent:1', '<span class="wd-ls">⇥≡</span>', 'Increase Indent')}
+                    <span class="wd-split">${btn('menu-ls', '<span class="wd-ls">↕≡</span> ▾', 'Line and Paragraph Spacing', 'data-open="ls"')}</span>
+                </div><div class="wd-row">
                     ${btn('align:left', '<span class="wd-al l"></span>', 'Align Left (Ctrl+L)')}${btn('align:center', '<span class="wd-al c"></span>', 'Center (Ctrl+E)')}${btn('align:right', '<span class="wd-al r"></span>', 'Align Right (Ctrl+R)')}${btn('align:both', '<span class="wd-al j"></span>', 'Justify (Ctrl+J)')}
                 </div><div class="wd-row">${btn('marks', '¶', 'Show/Hide ¶ — formatting marks')}${btn('tab', '⇥', 'Insert a tab (Tab)')}</div>`)}
             ${group('Editing', `<div class="wd-row"><input class="wd-in" data-find placeholder="Find" aria-label="Find">${btn('findNext', '↓', 'Find Next')}</div>
@@ -534,6 +786,10 @@ function open(opts) {
         </div>
         <div class="wd-pop" data-pop="hl" hidden><div class="wd-sw">${HL.map(h => `<button type="button" data-cmd="highlight:${h}" title="${h}" style="background:#${D().HIGHLIGHTS[h]}"></button>`).join('')}</div>
             <button type="button" class="wd-none" data-cmd="highlight:none">No Color</button></div>
+        <div class="wd-pop wd-list" data-pop="paste" hidden>${Object.keys(PASTE_MODES).map(m => `<button type="button" data-cmd="paste:${m}">${PASTE_MODES[m]}</button>`).join('')}
+            <hr>${Object.keys(PASTE_MODES).map(m => `<button type="button" data-cmd="pastemode:${m}" data-pm="${m}">${m === 'keep' ? '✓ ' : ''}Ctrl+V: ${PASTE_MODES[m]}</button>`).join('')}</div>
+        <div class="wd-pop wd-list" data-pop="ls" hidden>${[['240', '1.0'], ['276', '1.15'], ['360', '1.5'], ['480', '2.0'], ['600', '2.5'], ['720', '3.0']].map(([v, l]) => `<button type="button" data-cmd="line:${v}">${l}</button>`).join('')}
+            <hr><button type="button" data-cmd="space:before">Add or Remove Space Before Paragraph</button><button type="button" data-cmd="space:after">Add or Remove Space After Paragraph</button></div>
         <div class="wd-pop" data-pop="fc" hidden><div class="wd-sw">${COLORS.map(c => `<button type="button" data-cmd="color:${c}" title="#${c}" style="background:#${c}"></button>`).join('')}</div></div>`;
     }
     let lastHl = 'yellow', lastFc = 'C00000';
@@ -549,7 +805,7 @@ function open(opts) {
         R.innerHTML = ribbonHtml();
         R.querySelector('.wd-hl').style.borderBottomColor = '#' + D().HIGHLIGHTS[lastHl];
         // Keep the letter's selection when the ribbon is clicked, as Word does.
-        R.addEventListener('mousedown', (e) => { if (e.target.closest('button') && !e.target.closest('input, select')) e.preventDefault(); });
+        R.addEventListener('mousedown', (e) => { E.ribbonSel = selOffsets() || E.ribbonSel; if (e.target.closest('button') && !e.target.closest('input, select')) e.preventDefault(); });
         R.addEventListener('click', (e) => {
             const b = e.target.closest('button'); if (!b) return;
             if (b.dataset.tab) {
@@ -567,6 +823,18 @@ function open(opts) {
             if (name === 'highlight') { if (arg !== 'none') { lastHl = arg; R.querySelector('.wd-hl').style.borderBottomColor = '#' + D().HIGHLIGHTS[arg]; } return CMD.highlight(arg); }
             if (name === 'color') { lastFc = arg; R.querySelector('.wd-fc').style.borderBottomColor = '#' + arg; return CMD.color(arg); }
             if (name === 'align') return CMD.align(arg);
+            if (name === 'list') return CMD.list(arg);
+            if (name === 'indent') return CMD.indent(+arg);
+            if (name === 'line') return CMD.line(+arg);
+            if (name === 'space') return CMD.space(arg);
+            if (name === 'paste') return pasteFromRibbon(arg || E.pasteMode || 'keep');
+            if (name === 'pastemode') {                                   // Word's "Set Default Paste"
+                E.pasteMode = arg;
+                R.querySelectorAll('[data-pm]').forEach(x => { x.textContent = (x.dataset.pm === arg ? '✓ ' : '') + 'Ctrl+V: ' + PASTE_MODES[x.dataset.pm]; });
+                say('Ctrl+V now pastes: ' + PASTE_MODES[arg] + '.');
+                return;
+            }
+            if (name === 'cut' || name === 'copy') { if (!document.execCommand(name)) say(`Press Ctrl+${name === 'cut' ? 'X' : 'C'}.`); return; }
             if (name === 'sym') return CMD.insertText(arg);
             if (name === 'zoom') return CMD.zoom(parseFloat(arg));
             if (name === 'spell') { arts().forEach(a => { a.spellcheck = !a.spellcheck; }); b.classList.toggle('on'); return; }
@@ -602,19 +870,165 @@ function open(opts) {
         }
     }
 
+    /* ---------- pages, as Word lays them out ----------
+       docx-preview draws a Word section as one sheet that grows with the text. Word fills a page to its bottom margin
+       and goes on on the next, with the letterhead and the office footer on every page (these letters use one header
+       and footer for all pages). So the sheet is cut into pages of the file's own size: a paragraph that doesn't fit
+       goes on with its next line on the next page (never leaving one line behind or carrying one line over: Word's
+       widow/orphan control), a table or a short paragraph moves over whole, and the header layer is repeated per page.
+       The breaks are spacers the page draws (no text, not part of the letter): they're redone after every change. */
+    const GAP = 18;
+    function paginate() {
+        const keep = arts().some(a => a.contains(document.activeElement) || a === document.activeElement) ? selOffsets() : null;
+        let pages = 0;
+        unzoomed(() => {
+            host.querySelectorAll('.dr-pgsp, .dr-pgband, .dr-lh-copy').forEach(n => n.remove());
+            host.querySelectorAll('section.docx').forEach(sec => {
+                const art = sec.querySelector(':scope > article'); if (!art) return;
+                if (!sec.dataset.h) sec.dataset.h = String(parseFloat(getComputedStyle(sec).minHeight) || sec.offsetHeight);   // the page's height, in px
+                const H = +sec.dataset.h;
+                sec.style.minHeight = H + 'px';
+                const cs = getComputedStyle(sec), pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0;
+                const y0 = () => sec.getBoundingClientRect().top;
+                const pageTop = (k) => k * (H + GAP) + pt, limit = (k) => k * (H + GAP) + H - pb;
+                const room = H - pt - pb;
+                let k = 0;
+                [].slice.call(art.children).forEach(block => {
+                    if (block.classList.contains('dr-pgsp')) return;
+                    for (let guard = 0; guard < 60; guard++) {
+                        const b = block.getBoundingClientRect(), top = b.top - y0(), bottom = b.bottom - y0();
+                        if (bottom - top < 0.5 || bottom <= limit(k) + 0.5) break;
+                        if (top >= limit(k) - 0.5) {                                      // starts below this page's text
+                            if (top >= pageTop(k + 1) - 0.5) { k++; continue; }
+                            k++; spacerBefore(block, pageTop(k), y0); continue;
+                        }
+                        if (block.tagName === 'P' && splitLines(block, k, pageTop, limit, y0)) { k++; continue; }
+                        if (bottom - top <= room + 0.5 && top > pageTop(k) + 0.5) { k++; spacerBefore(block, pageTop(k), y0); continue; }
+                        while (bottom > limit(k) + 0.5) k++;                              // taller than a page: it runs on
+                        break;
+                    }
+                });
+                const N = k + 1;
+                pages += N;
+                sec.style.minHeight = (N * H + (N - 1) * GAP) + 'px';
+                const lh = sec.querySelector(':scope > .dr-lh');
+                if (lh) { lh.style.inset = ''; lh.style.left = '0'; lh.style.right = '0'; lh.style.top = '0'; lh.style.height = H + 'px'; }
+                for (let i = 1; i < N; i++) {
+                    const band = document.createElement('div');
+                    band.className = 'dr-pgband'; band.setAttribute('aria-hidden', 'true');
+                    band.style.top = (i * (H + GAP) - GAP) + 'px'; band.style.height = GAP + 'px';
+                    sec.appendChild(band);
+                    if (lh) {
+                        const c = lh.cloneNode(true);
+                        c.classList.add('dr-lh-copy');
+                        c.style.top = (i * (H + GAP)) + 'px';
+                        sec.insertBefore(c, lh.nextSibling);
+                    }
+                }
+            });
+        });
+        E.pages = pages;
+        if (keep) setSel(keep.s, keep.e);
+        stats();
+    }
+    function spacer(h, inline) {
+        const sp = document.createElement(inline ? 'span' : 'div');
+        sp.className = 'dr-pgsp'; sp.contentEditable = 'false'; sp.setAttribute('aria-hidden', 'true');
+        // inside a paragraph, a full-width inline block: the line before it wraps as any line does (still justified)
+        if (inline) { sp.style.display = 'inline-block'; sp.style.width = '100%'; sp.style.verticalAlign = 'top'; }
+        else sp.style.display = 'block';
+        sp.style.height = Math.max(0, h) + 'px';
+        return sp;
+    }
+    // Moves `block` down so its top is at `target` (measured again once: margins stop collapsing round a spacer).
+    function spacerBefore(block, target, y0) {
+        const was = block.getBoundingClientRect().top - y0();
+        const sp = spacer(target - was);
+        block.parentNode.insertBefore(sp, block);
+        const now = block.getBoundingClientRect().top - y0();
+        sp.style.height = Math.max(0, parseFloat(sp.style.height) - (now - target)) + 'px';
+    }
+    // The lines of a paragraph, from its text (a line is the text boxes that overlap in height).
+    function lineBoxes(p, y0) {
+        const rects = [];
+        const w = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+        while (w.nextNode()) {
+            const t = w.currentNode;
+            if (!t.nodeValue || t.parentElement.closest('.dr-pgsp')) continue;
+            const r = document.createRange(); r.selectNodeContents(t);
+            [].forEach.call(r.getClientRects(), b => { if (b.height > 0.5) rects.push({ top: b.top - y0, bottom: b.bottom - y0 }); });
+        }
+        rects.sort((a, b) => a.top - b.top);
+        const lines = [];
+        rects.forEach(b => {
+            const l = lines[lines.length - 1];
+            if (l && b.top < l.bottom - 2) { l.top = Math.min(l.top, b.top); l.bottom = Math.max(l.bottom, b.bottom); }
+            else lines.push({ top: b.top, bottom: b.bottom });
+        });
+        return lines;
+    }
+    function splitLines(p, k, pageTop, limit, y0) {
+        const lines = lineBoxes(p, y0()).filter(l => l.top >= pageTop(k) - 1);
+        let i = lines.findIndex(l => l.bottom > limit(k) + 0.5);
+        if (i < 0) return false;
+        if (lines.length - i < 2) i = lines.length - 2;                     // never one line alone on the next page
+        if (i < 2) return false;                                            // nor one line alone at the foot of this one
+        const line = lines[i], at = firstCharAt(p, line.top - 1, y0());
+        if (!at) return false;
+        const node = at.i ? at.t.splitText(at.i) : at.t;
+        const sp = spacer(pageTop(k + 1) - line.top, true);
+        node.parentNode.insertBefore(sp, node);
+        const r = document.createRange(); r.selectNodeContents(node);
+        const got = r.getClientRects()[0];
+        if (got) sp.style.height = Math.max(0, parseFloat(sp.style.height) - ((got.top - y0()) - pageTop(k + 1))) + 'px';
+        return true;
+    }
+    function firstCharAt(p, top, y0) {
+        const w = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+        while (w.nextNode()) {
+            const t = w.currentNode, v = t.nodeValue;
+            if (!v || t.parentElement.closest('.dr-pgsp, .docx-tab-stop, .dr-chk')) continue;
+            const whole = document.createRange(); whole.selectNodeContents(t);
+            const rs = whole.getClientRects(); if (!rs.length || rs[rs.length - 1].bottom - y0 <= top) continue;
+            for (let i = 0; i < v.length; i++) {
+                const r = document.createRange(); r.setStart(t, i); r.setEnd(t, i + 1);
+                const b = r.getBoundingClientRect();
+                if (b.height > 0.5 && b.top - y0 >= top) return { t, i };
+            }
+        }
+        return null;
+    }
+
     /* ---------- the status bar: pages, words, zoom ---------- */
     function stats() {
         const words = (arts().map(a => a.innerText).join(' ').match(/[A-Za-z0-9][\w’'.,/-]*/g) || []).length;
-        const pages = host.querySelectorAll('section.docx').length;
+        const pages = E.pages || host.querySelectorAll('section.docx').length;
         const S = opts.status;
         if (S) {
             const p = S.querySelector('[data-pages]'), w = S.querySelector('[data-words]');
-            if (p) p.textContent = `Page ${pages === 1 ? '1 of 1' : '1–' + pages + ' of ' + pages}`;
+            if (p) p.textContent = `Page ${pageNow()} of ${pages}`;
             if (w) w.textContent = `${words.toLocaleString()} words`;
         }
         const c = opts.ribbon && opts.ribbon.querySelector('[data-count]');
         if (c) c.innerHTML = `<b>${pages}</b> page${pages === 1 ? '' : 's'}<br><b>${words}</b> words`;
         return { pages, words };
+    }
+    // The page the cursor is on, counted the way the status bar in Word counts it.
+    function pageNow() {
+        const sel = window.getSelection();
+        if (!sel.rangeCount || !arts().some(a => a.contains(sel.anchorNode))) return 1;
+        let rect = sel.getRangeAt(0).getBoundingClientRect();
+        if (!rect.height) { const el = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement; rect = el.getBoundingClientRect(); }
+        let n = 0;
+        for (const sec of host.querySelectorAll('section.docx')) {
+            const r = sec.getBoundingClientRect(), z = r.height / (sec.offsetHeight || r.height) || 1, H = (+sec.dataset.h || sec.offsetHeight) * z;
+            const count = Math.max(1, Math.round((r.height + GAP * z) / (H + GAP * z)));
+            if (rect.top < r.bottom || sec === host.querySelector('section.docx:last-of-type')) {
+                return n + Math.min(count, Math.max(1, Math.floor((rect.top - r.top) / (H + GAP * z)) + 1));
+            }
+            n += count;
+        }
+        return 1;
     }
     function fit() {
         const wrap = host.querySelector('.docx-wrapper'); if (!wrap) return;

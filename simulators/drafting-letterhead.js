@@ -356,6 +356,8 @@ function retab() {
 // Body text never runs under the office footer: where the letter is longer on screen than on paper
 // (the browser's fonts are not quite Word's), the page grows instead.
 function clearFooters(host) {
+    // On a page cut into Word's pages (the editor's), the body ends at the bottom margin as in Word: nothing to push.
+    if (host.closest && host.closest('.wd-doc')) return;
     host.querySelectorAll('section.docx').forEach(sec => {
         const art = sec.querySelector(':scope > article'), lh = sec.querySelector(':scope > .dr-lh');
         if (!art || !lh) return;

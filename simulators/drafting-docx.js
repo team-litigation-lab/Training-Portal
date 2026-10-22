@@ -362,9 +362,10 @@
         (edit.paras || []).forEach(pe => {
             const last = logical[logical.length - 1];
             if (pe.cont && last && last.p === pe.p) last.segs = last.segs.concat(pe.segs || []);
-            else logical.push({ p: pe.p, align: pe.align, segs: (pe.segs || []).slice() });
+            else logical.push({ p: pe.p, align: pe.align, ppr: pe.ppr || null, segs: (pe.segs || []).slice() });
         });
         let prevP = null;
+        const pprs = [];
         logical.forEach(L => {
             let X;
             if (L.p != null && m.ps[L.p] && !seen.has(L.p)) { X = m.ps[L.p]; seen.add(L.p); }
@@ -382,6 +383,7 @@
             }
             writeParagraph(doc, X, L, m, used);
             if (L.align) setProp(doc, propsOf(doc, X, 'pPr'), PPR_ORDER, 'jc', { val: L.align });
+            if (L.ppr) pprs.push({ X, ppr: L.ppr });
             prevP = X;
         });
         // A paragraph that is gone from the screen is gone from the file — unless it closes a Word
@@ -393,6 +395,8 @@
             if (keep) m.pRuns[i].forEach(j => { if (!used.has(j)) stripText(m.runs[j]); });
             else parent.removeChild(p);
         });
+        paragraphProps(doc, pprs);
+        renumber(doc, m.body);
         const marks = edit.checks || {};
         m.checks.forEach((cb, k) => {
             if (!(k in marks)) return;
@@ -406,6 +410,74 @@
         Object.keys(starts).forEach(id => { if (!ends[id]) starts[id].parentNode.removeChild(starts[id]); });
         Object.keys(ends).forEach(id => { if (!starts[id]) ends[id].parentNode.removeChild(ends[id]); });
         return new XMLSerializer().serializeToString(doc);
+    }
+    /* ---------- the paragraph commands: bullets, numbering, indents, line and paragraph spacing ----------
+       ppr: { list: 'bullet' | 'number' | 'none', toggle, indent: +1 | -1, line: 240 | 276 | 360 …, before, after (twips) }
+       Written into the paragraph's own pPr, the way Word does it: a list is w:numPr pointing at the editor's own list
+       definitions (BULLET_ID, and NUMBER_FROM upwards, one per numbered list, which pack() adds to numbering.xml), an indent
+       is w:ind (in a list, the list level), spacing is w:spacing. */
+    const BULLET_ID = 9001, NUMBER_ABS = 9002, NUMBER_FROM = 9100;
+    const attrW = (el, a) => el ? (el.getAttributeNS(W, a) || el.getAttribute('w:' + a) || '') : '';
+    const numIdOf = (p) => { const pPr = first(p, 'pPr'), np = pPr && first(pPr, 'numPr'), id = np && first(np, 'numId'); return id ? Number(attrW(id, 'val')) : null; };
+    const ourNumber = (id) => id >= NUMBER_FROM && id < NUMBER_FROM + 5000;
+    function setNumPr(doc, X, numId, ilvl) {
+        const pPr = propsOf(doc, X, 'pPr');
+        setProp(doc, pPr, PPR_ORDER, 'numPr', null);
+        if (numId == null) return;
+        setProp(doc, pPr, PPR_ORDER, 'numPr', {});
+        const np = first(pPr, 'numPr'), l = doc.createElementNS(W, 'w:ilvl'), n = doc.createElementNS(W, 'w:numId');
+        l.setAttributeNS(W, 'w:val', String(ilvl || 0)); n.setAttributeNS(W, 'w:val', String(numId));
+        np.appendChild(l); np.appendChild(n);
+    }
+    function levelOf(X) { const pPr = first(X, 'pPr'), np = pPr && first(pPr, 'numPr'), l = np && first(np, 'ilvl'); return l ? Number(attrW(l, 'val')) || 0 : 0; }
+    function paragraphProps(doc, items) {
+        if (!items.length) return;
+        // A list button on paragraphs that are all in that kind of list already takes them out of it, as Word's does.
+        const kinds = {};
+        items.forEach(({ ppr }) => { if (ppr.list && ppr.toggle) kinds[ppr.list] = true; });
+        const allIn = {};
+        Object.keys(kinds).forEach(k => {
+            allIn[k] = items.filter(i => i.ppr.list === k).every(({ X }) => k === 'bullet' ? numIdOf(X) === BULLET_ID : ourNumber(numIdOf(X)));
+        });
+        items.forEach(({ X, ppr }) => {
+            if (ppr.list) {
+                const off = ppr.list === 'none' || (ppr.toggle && allIn[ppr.list]);
+                if (off) {
+                    const pPr = first(X, 'pPr');
+                    if (pPr) setProp(doc, pPr, PPR_ORDER, 'numPr', null);
+                } else setNumPr(doc, X, ppr.list === 'bullet' ? BULLET_ID : NUMBER_FROM, numIdOf(X) != null ? levelOf(X) : 0);
+            }
+            if (ppr.indent) {
+                if (numIdOf(X) != null) setNumPr(doc, X, numIdOf(X), Math.max(0, Math.min(8, levelOf(X) + ppr.indent)));
+                else {
+                    const pPr = propsOf(doc, X, 'pPr'), ind = first(pPr, 'ind');
+                    const side = ind && attrW(ind, 'start') && !attrW(ind, 'left') ? 'start' : 'left';
+                    const now = Number(attrW(ind, side)) || 0, next = Math.max(0, (Math.floor(now / 720) + (ppr.indent > 0 ? 1 : (now % 720 ? 0 : -1))) * 720);
+                    if (ind) ind.setAttributeNS(W, 'w:' + side, String(next));
+                    else setProp(doc, pPr, PPR_ORDER, 'ind', { left: String(next) });
+                }
+            }
+            if (ppr.line != null || ppr.before != null || ppr.after != null) {
+                const pPr = propsOf(doc, X, 'pPr');
+                let sp = first(pPr, 'spacing');
+                if (!sp) { setProp(doc, pPr, PPR_ORDER, 'spacing', {}); sp = first(pPr, 'spacing'); }
+                if (ppr.line != null) { sp.setAttributeNS(W, 'w:line', String(ppr.line)); sp.setAttributeNS(W, 'w:lineRule', 'auto'); }
+                if (ppr.before != null) { sp.setAttributeNS(W, 'w:before', String(ppr.before)); sp.removeAttributeNS(W, 'beforeAutospacing'); sp.removeAttribute('w:beforeAutospacing'); }
+                if (ppr.after != null) { sp.setAttributeNS(W, 'w:after', String(ppr.after)); sp.removeAttributeNS(W, 'afterAutospacing'); sp.removeAttribute('w:afterAutospacing'); }
+            }
+        });
+    }
+    // Each numbered list counts from 1: consecutive numbered paragraphs share a list, anything between starts the next one.
+    function renumber(doc, body) {
+        const ps = [].filter.call(body.getElementsByTagNameNS(W, 'p'), p => !within(p, ['txbxContent', 'Fallback'], body));
+        let next = NUMBER_FROM, prev = false;
+        ps.forEach(p => {
+            const id = numIdOf(p);
+            if (!ourNumber(id)) { prev = false; return; }
+            if (!prev) next++;
+            setNumPr(doc, p, next - 1, levelOf(p));
+            prev = true;
+        });
     }
     function writeParagraph(doc, X, L, m, used) {
         const groups = [];
@@ -458,9 +530,57 @@
         return entry.async('string');
     }
     // The firm's .docx with only word/document.xml swapped: as a download (blob) or to draw (arraybuffer).
+    // The editor's own list definitions, added to the file only when the letter uses them (an untouched letter's
+    // numbering.xml, relationships and content types stay the firm's, byte for byte).
+    const NUM_NS = 'xmlns:w="' + W + '"';
+    function lvls(fmt) {
+        const bullets = [['•', 'Arial'], ['o', 'Courier New'], ['▪', 'Arial']], kinds = ['decimal', 'lowerLetter', 'lowerRoman'];
+        let out = '';
+        for (let i = 0; i < 9; i++) {
+            const b = bullets[i % 3], text = fmt === 'bullet' ? b[0] : '%' + (i + 1) + '.';
+            out += `<w:lvl w:ilvl="${i}"><w:start w:val="1"/><w:numFmt w:val="${fmt === 'bullet' ? 'bullet' : kinds[i % 3]}"/><w:lvlText w:val="${text}"/><w:lvlJc w:val="left"/>`
+                + `<w:pPr><w:ind w:left="${720 * (i + 1)}" w:hanging="360"/></w:pPr>`
+                + (fmt === 'bullet' ? `<w:rPr><w:rFonts w:ascii="${b[1]}" w:hAnsi="${b[1]}" w:hint="default"/></w:rPr>` : '') + '</w:lvl>';
+        }
+        return out;
+    }
+    async function ensureNumbering(zip, xml) {
+        const ids = new Set();
+        xml.replace(/<w:numId w:val="(\d+)"\/>/g, (x, v) => { const n = Number(v); if (n === BULLET_ID || ourNumber(n)) ids.add(n); });
+        if (!ids.size) return;
+        let numbering = zip.file('word/numbering.xml') ? await zip.file('word/numbering.xml').async('string') : '';
+        if (!numbering) {
+            numbering = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering ${NUM_NS}></w:numbering>`;
+            const ctPath = '[Content_Types].xml', ct = await zip.file(ctPath).async('string');
+            if (ct.indexOf('/word/numbering.xml') < 0) zip.file(ctPath, ct.replace('</Types>', '<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>'));
+            const relPath = 'word/_rels/document.xml.rels', rels = await zip.file(relPath).async('string');
+            if (!/relationships\/numbering"/.test(rels)) zip.file(relPath, rels.replace('</Relationships>', '<Relationship Id="rIdLshNumbering" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/></Relationships>'));
+        }
+        const doc = parseXml(numbering), root = doc.documentElement;
+        const frag = (x) => parseXml(`<w:x ${NUM_NS}>${x}</w:x>`).documentElement;
+        const abs = [].filter.call(root.childNodes, n => n.localName === 'abstractNum').map(n => Number(attrW(n, 'abstractNumId')));
+        const firstNum = [].find.call(root.childNodes, n => n.localName === 'num' || n.localName === 'numIdMacAtCleanup');
+        const addAbs = (id, fmt) => {
+            if (abs.indexOf(id) >= 0) return;
+            const a = frag(`<w:abstractNum w:abstractNumId="${id}"><w:multiLevelType w:val="hybridMultilevel"/>${lvls(fmt)}</w:abstractNum>`).firstChild;
+            root.insertBefore(doc.importNode(a, true), firstNum || null);             // every abstractNum comes before every num
+        };
+        if (ids.has(BULLET_ID)) addAbs(BULLET_ID, 'bullet');
+        if ([...ids].some(ourNumber)) addAbs(NUMBER_ABS, 'number');
+        const have = new Set([].filter.call(root.childNodes, n => n.localName === 'num').map(n => Number(attrW(n, 'numId'))));
+        const tail = [].find.call(root.childNodes, n => n.localName === 'numIdMacAtCleanup') || null;
+        [...ids].sort((a, b) => a - b).forEach(id => {
+            if (have.has(id)) return;
+            const n = frag(id === BULLET_ID ? `<w:num w:numId="${id}"><w:abstractNumId w:val="${BULLET_ID}"/></w:num>`
+                : `<w:num w:numId="${id}"><w:abstractNumId w:val="${NUMBER_ABS}"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride></w:num>`).firstChild;
+            root.insertBefore(doc.importNode(n, true), tail);
+        });
+        zip.file('word/numbering.xml', new XMLSerializer().serializeToString(doc));
+    }
     async function pack(data, xml, kind) {
         const zip = await JSZip.loadAsync(data);
         zip.file('word/document.xml', xml);
+        await ensureNumbering(zip, xml);
         return zip.generateAsync({
             type: kind || (typeof Blob === 'undefined' ? 'nodebuffer' : 'blob'),
             mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

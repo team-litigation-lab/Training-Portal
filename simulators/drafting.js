@@ -48,11 +48,79 @@ function load() {
 }
 function save() {
     S.savedAt = new Date().toISOString();
+    const mine = { answers: S.answers, caseNo: S.caseNo, prov: S.prov, kind: S.kind, savedAt: S.savedAt };
     try {
         const all = JSON.parse(localStorage.getItem(KEY) || '{}');
-        all[slot()] = { answers: S.answers, caseNo: S.caseNo, prov: S.prov, kind: S.kind, savedAt: S.savedAt };
+        all[slot()] = mine;
         localStorage.setItem(KEY, JSON.stringify(all));
     } catch (e) { /* private window: the draft lives for this visit only */ }
+    cloudQueue('_state', JSON.stringify(mine));
+}
+
+/* ---------- 💾 saved to the trainee's Portal account too (/api/drafting-drafts) ----------
+   Every letter is kept in this browser at once and sent to the trainee's account 2.5 s after the last change (and when the
+   page closes), with the page's own choices (case, provider, the HIPAA's answers) as '_state'. Opening a letter takes the
+   newer of the two copies, so a letter follows the trainee to any browser or computer they sign in on. A copy saved from
+   another tab or device after this one was opened is never overwritten (409 DRAFT_NEWER). Signed out, it stays in the browser. */
+const CLOUD_API = '/api/drafting-drafts';
+const CLOUD = { base: {}, pending: {}, timers: {}, busy: {}, off: false };
+const cloudOn = () => { const s = Sim.session(); return !!(s && s.username) && !CLOUD.off; };
+async function cloudGet(letter) {
+    if (!cloudOn()) return null;
+    try {
+        const res = await Sim.fetchRetry(CLOUD_API + '?letter=' + encodeURIComponent(letter), { credentials: 'include', cache: 'no-store' });
+        if (res.status === 401) { CLOUD.off = true; return null; }
+        const d = await res.json().catch(() => null);
+        if (!d || !d.success) return null;
+        CLOUD.base[letter] = d.updatedAt || null;
+        return d.data ? JSON.parse(d.data) : null;
+    } catch (e) { return null; }
+}
+function cloudQueue(letter, data) {
+    if (!cloudOn()) return;
+    CLOUD.pending[letter] = data;
+    clearTimeout(CLOUD.timers[letter]);
+    CLOUD.timers[letter] = setTimeout(() => cloudSend(letter), 2500);
+}
+async function cloudSend(letter, keep) {
+    clearTimeout(CLOUD.timers[letter]);
+    const data = CLOUD.pending[letter];
+    if (data == null || !cloudOn()) return;
+    if (CLOUD.busy[letter]) { CLOUD.timers[letter] = setTimeout(() => cloudSend(letter), 800); return; }
+    CLOUD.busy[letter] = true;
+    delete CLOUD.pending[letter];
+    let msg = null;
+    try {
+        const res = await Sim.fetchRetry(CLOUD_API, { method: 'POST', credentials: 'include', keepalive: !!keep, headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'draft', letter, data, base: CLOUD.base[letter] || null }) });
+        const d = await res.json().catch(() => ({}));
+        if (res.status === 401) { CLOUD.off = true; msg = 'Saved to this browser — sign in to save it to your account'; }
+        else if (res.status === 409 && d.code === 'DRAFT_NEWER') msg = 'A newer copy is on your account (another tab or device): open this letter again to get it';
+        else if (res.ok && d.success) { CLOUD.base[letter] = d.updatedAt; msg = 'Saved to your account'; }
+        else { CLOUD.pending[letter] = CLOUD.pending[letter] || data; msg = 'Saved to this browser — not to your account yet'; }
+    } catch (e) { CLOUD.pending[letter] = CLOUD.pending[letter] || data; msg = 'Saved to this browser — not to your account yet (offline?)'; }
+    CLOUD.busy[letter] = false;
+    if (ED && ED.tid === letter && msg) ED.unsaved(msg);
+}
+async function cloudDelete(letter) {
+    delete CLOUD.pending[letter]; clearTimeout(CLOUD.timers[letter]);
+    if (!cloudOn()) return;
+    try { await Sim.fetchRetry(CLOUD_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', letter }) }); } catch (e) { /* kept */ }
+    delete CLOUD.base[letter];
+}
+window.addEventListener('pagehide', () => { Object.keys(CLOUD.pending).forEach(l => cloudSend(l, true)); });
+// The page's choices from the account, when they are newer than this browser's.
+async function cloudState() {
+    const c = await cloudGet('_state');
+    if (c && c.savedAt && (!S.savedAt || c.savedAt > S.savedAt)) {
+        S.answers = c.answers || {}; S.caseNo = c.caseNo || 0; S.savedAt = c.savedAt;
+        if (c.prov != null) S.prov = c.prov;
+        if (c.kind) S.kind = c.kind;
+        try { const all = JSON.parse(localStorage.getItem(KEY) || '{}'); all[slot()] = c; localStorage.setItem(KEY, JSON.stringify(all)); } catch (e) { /* none */ }
+        return true;
+    }
+    if (S.savedAt && (!c || !c.savedAt || S.savedAt > c.savedAt)) cloudQueue('_state', JSON.stringify({ answers: S.answers, caseNo: S.caseNo, prov: S.prov, kind: S.kind, savedAt: S.savedAt }));
+    return false;
 }
 
 /* ---------- the letter ---------- */
@@ -143,17 +211,28 @@ async function templateBytes(t) {
 // The trainee's edited letters, deflated (a letter's XML is ~60 KB; deflated, a tenth of that).
 const DOCS = 'LSH_DRAFTING_DOCS_V1';
 function docsAll() { try { return JSON.parse(localStorage.getItem(DOCS) || '{}'); } catch (e) { return {}; } }
+const inflate = async (d) => { try { return await (await JSZip.loadAsync(d.z, { base64: true })).file('d').async('string'); } catch (e) { return null; } };
+function keepLocal(tid, d) {
+    const all = docsAll(), mine = all[slot()] = all[slot()] || {};
+    mine[tid] = d;
+    localStorage.setItem(DOCS, JSON.stringify(all));
+}
+// The letter as last left: this browser's copy or the account's, whichever is newer (the other is brought up to date).
 async function loadDoc(tid) {
-    const mine = docsAll()[slot()] || {}, d = mine[tid];
-    if (!d || !d.z) return null;
-    try { return await (await JSZip.loadAsync(d.z, { base64: true })).file('d').async('string'); } catch (e) { return null; }
+    const local = (docsAll()[slot()] || {})[tid] || null;
+    const cloud = await cloudGet(tid);
+    let pick = local && local.z ? local : null;
+    if (cloud && cloud.z && (!pick || String(cloud.at || '') > String(pick.at || ''))) {
+        pick = cloud;
+        try { keepLocal(tid, cloud); } catch (e) { /* this browser is full: the account has it */ }
+    } else if (pick && cloudOn() && (!cloud || String(pick.at || '') > String(cloud.at || ''))) cloudQueue(tid, JSON.stringify(pick));
+    return pick ? inflate(pick) : null;
 }
 async function saveDoc(tid, xml) {
     const z = new JSZip(); z.file('d', xml);
-    const b64 = await z.generateAsync({ type: 'base64', compression: 'DEFLATE' });
-    const all = docsAll(), mine = all[slot()] = all[slot()] || {};
-    mine[tid] = { z: b64, at: new Date().toISOString() };
-    localStorage.setItem(DOCS, JSON.stringify(all));
+    const d = { z: await z.generateAsync({ type: 'base64', compression: 'DEFLATE' }), at: new Date().toISOString() };
+    cloudQueue(tid, JSON.stringify(d));
+    keepLocal(tid, d);
 }
 function dropDoc(tid) {
     try { const all = docsAll(); if (all[slot()]) { delete all[slot()][tid]; localStorage.setItem(DOCS, JSON.stringify(all)); } } catch (e) { /* nothing kept */ }
@@ -194,7 +273,7 @@ async function persist(t, ed) {
         LETTER[t.id] = Object.assign(LETTER[t.id] || {}, LSHDraftingDocx.auditXml(xml));
         await saveDoc(t.id, xml);
         S.savedAt = new Date().toISOString();
-        ed.saved();
+        ed.unsaved(cloudOn() ? 'Saved to this browser · saving to your account…' : 'Saved to this browser');
     } catch (e) {
         ed.unsaved(/quota/i.test(e && e.name + e.message) ? 'Not saved — this browser is out of room' : 'Not saved');
         if (window.console) console.warn('Drafting: saving the letter failed —', e && e.message);
@@ -492,9 +571,9 @@ function render() {
                 ${guideHtml(t)}
                 <div class="dr-note">
                     <h3>How this works</h3>
-                    <p style="margin:0 0 7px;">This is the firm's own Word file, and all of it is yours to edit, as it will be in Word at the firm: click anywhere in the letter and type. The ribbon has Word's Home tab — font, size, <b>B</b> <i>I</i> <u>U</u>, the highlighter (<b>No Color</b> takes a highlight off), font colour, alignment — plus Find &amp; Replace, Insert › Symbol and Date, and ¶ Show/Hide to see every space, tab and paragraph mark. Ctrl+Z undoes.</p>
+                    <p style="margin:0 0 7px;">This is the firm's own Word file, and all of it is yours to edit, as it will be in Word at the firm: click anywhere in the letter and type. The ribbon has Word's Home tab — Paste (with Word's Paste Options: Keep Source Formatting, Merge Formatting, Keep Text Only), font, size, <b>B</b> <i>I</i> <u>U</u>, the highlighter (<b>No Color</b> takes a highlight off), font colour, bullets, numbering, indents, line and paragraph spacing, alignment — plus Find &amp; Replace, Insert › Symbol and Date, and ¶ Show/Hide to see every space, tab and paragraph mark. Ctrl+Z undoes. The pages break where Word breaks them.</p>
                     <p style="margin:0 0 7px;">What the firm highlighted in yellow is what you have to change. When you're done, nothing in the letter should be highlighted — taking the highlight off is part of the job, just as in Word.</p>
-                    <p style="margin:0;">Your download is exactly what you see: the firm's file with your edits written into it, letterhead, logo, fonts and spacing as they are. Your letter is kept in this browser as you work.</p>
+                    <p style="margin:0;">Your download is exactly what you see: the firm's file with your edits written into it, letterhead, logo, fonts and spacing as they are. Your letter is saved as you work, to your Portal account (and this browser), so it opens where you left it on any computer you sign in on.</p>
                 </div>
             </div>
         </div>`;
@@ -542,7 +621,7 @@ const API = {
         if (a === 'reset') {
             const t = tpl();
             if (!confirm('Start this letter over from the firm\'s template? Everything you changed in it is lost.')) return;
-            dropDoc(t.id);
+            dropDoc(t.id); cloudDelete(t.id);
             Object.keys(S.answers).forEach(k => { if (k.indexOf(t.id + ':') === 0 && k.indexOf(':hipaa:') < 0) delete S.answers[k]; });
             delete LETTER[t.id];
             save(); render();
@@ -655,6 +734,9 @@ function fromLink() {
         S.kind = kind;
     }
 }
-Sim.restore().then(() => { load(); fromLink(); render(); document.getElementById('topbar').innerHTML = Sim.topbar('drafting'); });
+Sim.restore().then(async () => {
+    load(); await cloudState(); fromLink(); render();
+    document.getElementById('topbar').innerHTML = Sim.topbar('drafting');
+});
 load(); fromLink(); render();
 }());

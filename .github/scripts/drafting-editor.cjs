@@ -18,9 +18,32 @@ const ROOT = process.cwd();
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png',
     '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.pdf': 'application/pdf' };
 
+// The trainee is signed in, and their account keeps their letters the way functions/api/drafting-drafts.js does
+// (a copy older than the one saved is refused: 409 DRAFT_NEWER).
+const ANN = { username: 'ann', userType: 'Trainee', fullName: 'Ann Lee', batchId: 'B1' };
+let ACCOUNT = {};
 const server = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
-    if (u.pathname.startsWith('/api/')) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"success":false,"error":"offline test"}'); }
+    const send = (o, st) => { res.writeHead(st || 200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
+    if (u.pathname === '/__reset') { ACCOUNT = {}; return send({ ok: true }); }
+    if (u.pathname === '/api/me') return send({ success: true, user: ANN });
+    if (u.pathname === '/api/heartbeat') return send({ success: true });
+    if (u.pathname === '/api/drafting-drafts') {
+        if (req.method === 'GET') {
+            const l = u.searchParams.get('letter'), r = ACCOUNT[l];
+            return send({ success: true, letter: l, data: r ? r.data : null, updatedAt: r ? r.updatedAt : null });
+        }
+        let body = ''; req.on('data', c => { body += c; });
+        return req.on('end', () => {
+            const b = JSON.parse(body || '{}'), cur = ACCOUNT[b.letter];
+            if (b.action === 'delete') { delete ACCOUNT[b.letter]; return send({ success: true }); }
+            if (cur && b.base && cur.updatedAt > b.base) return send({ success: false, code: 'DRAFT_NEWER', updatedAt: cur.updatedAt }, 409);
+            const at = new Date(Date.now() + Object.keys(ACCOUNT).length).toISOString();
+            ACCOUNT[b.letter] = { data: b.data, updatedAt: at };
+            return send({ success: true, updatedAt: at });
+        });
+    }
+    if (u.pathname.startsWith('/api/')) return send({ success: false, error: 'offline test' });
     let f = path.join(ROOT, decodeURIComponent(u.pathname)); if (f.endsWith('/')) f += 'index.html';
     if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end('not found'); }
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream' }); res.end(fs.readFileSync(f));
@@ -178,15 +201,27 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await page.keyboard.press('Control+z');
     check('Ctrl+Z undoes typing', (await page.evaluate(() => LSHDrafting.xml())) === before, 'the letter differs after undo');
 
-    // 6. kept in the browser, and it comes back the same
+    // 6. kept in the browser and on the trainee's account, and it comes back the same
     await page.keyboard.press('Control+s');
-    await page.waitForFunction(() => /Saved to this browser/.test(document.querySelector('.wd-title [data-state]').textContent), null, { timeout: 10000 });
+    await page.waitForFunction(() => /Saved to your account/.test(document.querySelector('.wd-title [data-state]').textContent), null, { timeout: 15000 });
     const saved = await page.evaluate(() => LSHDrafting.xml());
+    check('saved to the trainee\'s account', !!ACCOUNT.lor1p && /"z":/.test(ACCOUNT.lor1p.data), Object.keys(ACCOUNT).join(','));
     await page.reload({ waitUntil: 'load' });
     await ready();
     const again = await page.evaluate(() => LSHDrafting.xml());
     check('the letter comes back from the browser as it was left', again === saved, 'reloaded letter differs');
     check('and on screen too', /Claims Unit/.test(await page.textContent('section.docx > article')), 'Claims Unit not on screen');
+    // another browser (nothing in its storage), the same trainee: the letter is there
+    const other = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+    if (LIBS) await other.route(/cdn(js)?\.(cloudflare|jsdelivr)\.(com|net)\/.*\.js$/, (route) => {
+        const name = route.request().url().split('/').pop(), f = LOCAL[name] && path.join(LIBS, 'node_modules', LOCAL[name]);
+        return f && fs.existsSync(f) ? route.fulfill({ body: fs.readFileSync(f), contentType: 'text/javascript' }) : route.continue();
+    });
+    const o = await other.newPage();
+    await o.goto(base + '/simulators/drafting.html?tab=lor1p', { waitUntil: 'load' });
+    await o.waitForFunction(() => window.LSHDrafting && LSHDrafting.xml() && /Claims Unit/.test(LSHDrafting.xml()), null, { timeout: 30000 }).catch(() => {});
+    check('another browser opens the letter from the account, exactly as left', (await o.evaluate(() => LSHDrafting.xml())) === saved, 'the other browser has a different letter');
+    await other.close();
 
     // 7. Check my letter: what is still wrong
     const res = await page.evaluate(() => LSHDrafting.check());
@@ -210,7 +245,86 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
         check('ticking one ticks it in the file (w:checked)', /<w:checked\/>/.test(x), 'no w:checked');
     }
 
-    // 9. every letter the firm sent, opened and left alone, downloads as the firm's document.xml
+    // 9. Word's paragraph commands: bullets, numbering, indents, line spacing — in the file, and drawn from it
+    await page.goto(base + '/simulators/drafting.html?tab=lor1p', { waitUntil: 'load' });
+    await ready();
+    const numId = (xml, needle) => page.evaluate(({ xml, needle }) => {
+        const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main', doc = new DOMParser().parseFromString(xml, 'application/xml');
+        const p = [].find.call(doc.getElementsByTagNameNS(W, 'p'), p => [].map.call(p.getElementsByTagNameNS(W, 't'), t => t.textContent).join('').indexOf(needle) >= 0);
+        const g = (n) => { const e = p && p.getElementsByTagNameNS(W, n)[0]; return e ? e.getAttribute('w:val') : null; };
+        const sp = p && p.getElementsByTagNameNS(W, 'spacing')[0], ind = p && p.getElementsByTagNameNS(W, 'ind')[0];
+        return { numId: g('numId'), ilvl: g('ilvl'), line: sp ? sp.getAttribute('w:line') : null, left: ind ? ind.getAttribute('w:left') : null };
+    }, { xml, needle });
+    const settle = () => page.waitForFunction(() => document.querySelector('section.docx > article[contenteditable="true"]'), null, { timeout: 20000 });
+    await find('Please be advised');
+    await page.click('[data-cmd="list:bullet"]'); await settle();
+    let x = await page.evaluate(() => LSHDrafting.xml()), n = await numId(x, 'Please be advised');
+    check('Bullets: the paragraph is a Word bullet list item', n.numId === '9001' && n.ilvl === '0', JSON.stringify(n));
+    check('and it is drawn as one', await page.evaluate(() => [...document.querySelectorAll('section.docx article p')].some(p => /-num-9001-0/.test(p.className) && /Please be advised/.test(p.textContent))), 'no bullet on screen');
+    await page.click('[data-cmd="indent:1"]'); await settle();
+    n = await numId(await page.evaluate(() => LSHDrafting.xml()), 'Please be advised');
+    check('Increase Indent on a list item: one level down', n.ilvl === '1', JSON.stringify(n));
+    await page.click('[data-cmd="undo"]'); await settle();
+    n = await numId(await page.evaluate(() => LSHDrafting.xml()), 'Please be advised');
+    check('Ctrl+Z undoes a paragraph command too', n.ilvl === '0', JSON.stringify(n));
+    await page.click('[data-cmd="list:bullet"]'); await settle();
+    n = await numId(await page.evaluate(() => LSHDrafting.xml()), 'Please be advised');
+    check('Bullets again takes it out of the list', n.numId == null, JSON.stringify(n));
+    await find('To Whom It May Concern');
+    await page.click('[data-cmd="list:number"]'); await settle();
+    n = await numId(await page.evaluate(() => LSHDrafting.xml()), 'To Whom It May Concern');
+    check('Numbering: a numbered list of its own', n.numId === '9100', JSON.stringify(n));
+    await page.click('[data-cmd="list:number"]'); await settle();
+    await page.click('[data-cmd="indent:1"]'); await settle();
+    n = await numId(await page.evaluate(() => LSHDrafting.xml()), 'To Whom It May Concern');
+    check('Increase Indent on a paragraph: half an inch (w:ind 720)', n.left === '720', JSON.stringify(n));
+    await page.click('[data-open="ls"]'); await page.click('[data-cmd="line:480"]'); await settle();
+    n = await numId(await page.evaluate(() => LSHDrafting.xml()), 'To Whom It May Concern');
+    check('Line spacing 2.0 (w:spacing line 480, auto)', n.line === '480', JSON.stringify(n));
+    await find('Please be advised');
+    await page.click('[data-cmd="list:number"]'); await settle();
+    const num = await page.evaluate(async () => { const b = await LSHDrafting.build(), z = await JSZip.loadAsync(await b.blob.arrayBuffer());
+        return { numbering: await z.file('word/numbering.xml').async('string'), doc: await z.file('word/document.xml').async('string') }; });
+    check('the download carries the list definitions Word needs', /w:abstractNumId="9002"/.test(num.numbering) && /<w:num w:numId="9100"/.test(num.numbering) && /w:numId w:val="9100"/.test(num.doc), 'no list definitions');
+
+    // 10. Paste: Keep Source Formatting by default, Paste Options to change it, a pasted list a Word list
+    await find('Very truly yours'); await page.keyboard.press('ArrowLeft');
+    await page.evaluate(() => {
+        const dt = new DataTransfer();
+        dt.setData('text/html', '<p style="font-family:Calibri;font-size:14pt"><b>Pasted bold</b> and <span style="color:#ff0000">red</span></p><ul><li>One pasted item</li></ul>');
+        dt.setData('text/plain', 'Pasted bold and red\nOne pasted item');
+        document.querySelector('section.docx > article').dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+    });
+    await page.waitForSelector('.wd-paste', { timeout: 15000 }); await settle();
+    x = await page.evaluate(() => LSHDrafting.xml());
+    let pb = await para(x, 'Pasted bold');
+    const bold = pb && pb.runs.find(r => r.text === 'Pasted bold'), red = pb && pb.runs.find(r => r.text === 'red');
+    check('Keep Source Formatting: the source\'s font, size and bold', bold && bold.props.indexOf('rFonts=Calibri') >= 0 && bold.props.indexOf('sz=28') >= 0 && bold.props.indexOf('b') >= 0, JSON.stringify(bold));
+    check('and its colour', red && red.props.indexOf('color=FF0000') >= 0, JSON.stringify(red));
+    check('a pasted list item is a Word list item', (await numId(x, 'One pasted item')).numId === '9001', JSON.stringify(await numId(x, 'One pasted item')));
+    await page.click('.wd-paste [data-paste="text"]'); await settle();
+    x = await page.evaluate(() => LSHDrafting.xml());
+    pb = await para(x, 'Pasted bold');
+    const plain = pb && pb.runs.find(r => /Pasted bold/.test(r.text));
+    check('Paste Options › Keep Text Only: the letter\'s own formatting', plain && plain.props.indexOf('rFonts=Calibri') < 0 && plain.props.indexOf('b') < 0, JSON.stringify(plain));
+    check('and no list', (await numId(x, 'One pasted item')).numId == null, JSON.stringify(await numId(x, 'One pasted item')));
+
+    // 11. pages, as Word lays them out: the letterhead on each, the text going on on the next page
+    await page.goto(base + '/simulators/drafting.html?tab=lor3p', { waitUntil: 'load' });
+    await ready();
+    await page.waitForFunction(() => /of 3$/.test(document.querySelector('[data-pages]').textContent), null, { timeout: 10000 }).catch(() => {});
+    check('the 3P letter is three pages, as Word has it', /of 3$/.test(await page.textContent('[data-pages]')), await page.textContent('[data-pages]'));
+    const lh = await page.evaluate(() => ({ copies: document.querySelectorAll('.dr-lh-copy').length, gaps: document.querySelectorAll('.dr-pgband').length }));
+    check('each page has the letterhead and footer, with the gap between pages', lh.copies >= 1 && lh.gaps >= 1, JSON.stringify(lh));
+    await find('Please note that our preferred method');
+    await page.keyboard.press('Home');
+    for (let i = 0; i < 16; i++) await page.keyboard.type('A sentence added so the letter runs on further and the pages move with it. ');
+    await page.waitForFunction(() => /of 4$/.test(document.querySelector('[data-pages]').textContent), null, { timeout: 10000 }).catch(() => {});
+    check('more text: the page breaks move, and a page is added', /of 4$/.test(await page.textContent('[data-pages]')), await page.textContent('[data-pages]'));
+    check('the page breaks are the page\'s, not the letter\'s', !/dr-pgsp|A sentence added so the letter runs on further and the pages move with it\. {2}/.test(await page.evaluate(() => LSHDrafting.xml())), 'spacer in the XML');
+    await page.evaluate(() => fetch('/__reset'));
+
+    // 12. every letter the firm sent, opened and left alone, downloads as the firm's document.xml
     const sweep = await page.evaluate(async () => {
         const wait = async () => { for (let i = 0; i < 200; i++) { await new Promise(r => setTimeout(r, 100));
             const st = document.querySelector('.wd-title [data-state]'); if (st && /Saved/.test(st.textContent) && LSHDrafting.xml()) return true; } return false; };
@@ -233,7 +347,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     });
     check(`every letter untouched downloads as the firm's (${sweep.n} opened)`, !sweep.bad.length && sweep.n > 40, sweep.bad.join(' | '));
 
-    // 10. at phone width nothing pushes the page sideways
+    // 13. at phone width nothing pushes the page sideways
     const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
     if (LIBS) await phone.route(/cdn(js)?\.(cloudflare|jsdelivr)\.(com|net)\/.*\.js$/, (route) => {
         const name = route.request().url().split('/').pop(), f = LOCAL[name] && path.join(LIBS, 'node_modules', LOCAL[name]);
