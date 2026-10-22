@@ -117,6 +117,139 @@ function paperHtml(t) {
     }).join('');
 }
 
+/* ---------- the letter exactly as Word lays it out ----------
+   The blocks above are a quick sketch of the letter. Once the page has the template, it draws the
+   firm's own .docx instead (docx-preview): letterhead, logo, fonts, tabs, spacing and footer as in
+   Word. drafting-docx.js swaps each field's text for a marker first, and the marker is replaced
+   here by the same blank the sketch had, inside the run that carries the firm's formatting. */
+const docxCache = {};
+let drawing = 0;
+async function templateBytes(t) {
+    const src = srcOf(t);
+    if (!docxCache[src]) {
+        docxCache[src] = fetch(src, { credentials: 'include' }).then(res => {
+            if (!res.ok) throw new Error('The template could not be loaded (' + res.status + ').');
+            return res.arrayBuffer();
+        });
+        docxCache[src].catch(() => { delete docxCache[src]; });
+    }
+    return (await docxCache[src]).slice(0);
+}
+async function drawDocx(t) {
+    const host = document.getElementById('dr-paper');
+    if (!host || !window.docx || !window.docx.renderAsync || !window.LSHDraftingDocx || !LSHDraftingDocx.mark) return;
+    const mine = ++drawing;
+    try {
+        const marked = await LSHDraftingDocx.mark(await templateBytes(t));
+        if (mine !== drawing || !document.body.contains(host)) return;
+        // Rendered in place but hidden, under the sketch: docx-preview measures its tab stops on the
+        // live page a moment after it renders, so the letter has to be laid out (blanks and all) by then.
+        host.querySelectorAll('.dr-docx-stage').forEach(n => n.remove());
+        const box = document.createElement('div');
+        box.className = 'dr-docx-stage';
+        box.style.cssText = 'position:absolute;left:0;top:0;width:100%;visibility:hidden;pointer-events:none;';
+        host.style.position = 'relative';
+        host.appendChild(box);
+        await window.docx.renderAsync(marked, box, box, {
+            className: 'docx', inWrapper: true, ignoreWidth: false, ignoreHeight: false, breakPages: true,
+            renderHeaders: true, renderFooters: true, renderFootnotes: true, experimental: true, useBase64URL: true
+        });
+        if (mine !== drawing) { box.remove(); return; }                   // the trainee moved on to another letter
+        const runs = {};
+        fieldsOf(t).forEach(r => { runs[r.f] = r; });
+        const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT), hits = [];
+        while (walker.nextNode()) if (LSHDraftingDocx.MARK_RE.test(walker.currentNode.nodeValue)) hits.push(walker.currentNode);
+        hits.forEach(node => {
+            const m = node.nodeValue.match(LSHDraftingDocx.MARK_RE), r = runs[m[1]];
+            const after = node.splitText(node.nodeValue.indexOf(m[0]));
+            after.nodeValue = after.nodeValue.slice(m[0].length);
+            const el = r ? docxField(t, r) : document.createTextNode('');
+            node.parentNode.insertBefore(el, after);
+            // The run is highlighted in Word; the blank carries its own colour (yellow open, blue filled).
+            if (node.parentNode.style) node.parentNode.style.backgroundColor = 'transparent';
+        });
+        [].slice.call(host.childNodes).forEach(n => { if (n !== box) host.removeChild(n); });
+        host.classList.add('dr-docx');
+        box.style.cssText = '';
+        // The letterhead, office footer and signature float over the page in Word; draw them too.
+        if (window.LSHDraftingLetterhead) {
+            try { await LSHDraftingLetterhead.draw(marked, box); }
+            catch (e) { if (window.console) console.warn('Drafting: the letterhead could not be drawn —', e && e.message); }
+        }
+        fitDocx();
+    } catch (e) {
+        // Keep the sketch: it has the same blanks, so the trainee can still draft and download.
+        if (window.console) console.warn('Drafting: drawing the Word letter failed —', e && e.message);
+    }
+}
+// A blank inside the Word layout is the firm's highlighted text itself, typed over the way it is in
+// Word: it starts as the placeholder (yellow) and counts as filled once it says something else. It is
+// as wide as what is in it, so tabs and wrapping stay the file's. A tab inside it (the MedLOR's "Re:"
+// lines are one highlighted run, tabs and all) is a real tab stop, and Tab types one there.
+const TAB_HTML = '<span class="docx-tab-stop dr-wtab" contenteditable="false">\t</span>';
+const escTxt = (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const fieldHtml = (v) => String(v).split('\t').map(escTxt).join(TAB_HTML);
+const fieldText = (el) => el.innerText.replace(/ /g, ' ').replace(/\n$/, '');
+function docxField(t, r) {
+    const el = document.createElement('span');
+    if (r.k === 'date') {
+        el.className = 'dr-auto';
+        el.title = 'The date the letter is drafted — filled in for you, as a template editor does';
+        el.textContent = today();
+        return el;
+    }
+    const v = String(answer(t.id, r.f)), tabs = r.ph.indexOf('\t') >= 0;
+    el.className = 'dr-f dr-ce' + (v.trim() ? ' filled' : '') + (r.k === 'long' ? ' long' : '');
+    el.dataset.f = r.f;
+    el.title = r.k === 'manual'
+        ? 'The firm highlighted this line, but it is not a placeholder: type how the letter actually goes out.'
+        : 'The firm highlighted this — type over it.' + (tabs ? ' Tab puts in a tab, as in Word.' : '');
+    el.setAttribute('role', 'textbox');
+    el.setAttribute('aria-label', r.ph.replace(/\t/g, ' '));
+    el.contentEditable = 'true';
+    el.spellcheck = false;
+    el.innerHTML = fieldHtml(v.trim() ? v : r.ph);
+    el.addEventListener('focus', () => {
+        // An untouched placeholder is selected whole, so typing replaces it — unless it carries labels and tabs.
+        if (el.classList.contains('filled') || tabs) return;
+        const range = document.createRange(); range.selectNodeContents(el);
+        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    });
+    el.addEventListener('input', () => {
+        const val = fieldText(el);
+        API.set(r.f, val === r.ph ? '' : val);
+        if (window.LSHDraftingLetterhead) LSHDraftingLetterhead.retab();   // a longer answer moves the tabs after it
+    });
+    el.addEventListener('blur', () => { if (!fieldText(el).trim()) el.innerHTML = fieldHtml(r.ph); });
+    el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && r.k !== 'long') { e.preventDefault(); el.blur(); return; }
+        if (e.key === 'Tab' && tabs && !e.shiftKey) { e.preventDefault(); insertHtml(TAB_HTML); }
+    });
+    el.addEventListener('paste', (e) => {                                // text only, never the clipboard's formatting
+        e.preventDefault();
+        const txt = (e.clipboardData || window.clipboardData).getData('text');
+        insertHtml(fieldHtml(r.k === 'long' ? txt : txt.replace(/\s*\n\s*/g, ' ')));
+    });
+    return el;
+}
+function insertHtml(html) {
+    document.execCommand('insertHTML', false, html);
+    const el = document.activeElement;
+    if (el) el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+// A letter is 8.5 in wide; on a narrow screen it is shrunk to the column rather than scrolled sideways.
+function fitDocx() {
+    const host = document.getElementById('dr-paper'), wrap = host && host.querySelector('.docx-wrapper');
+    if (!wrap) return;
+    wrap.style.zoom = '';
+    // The page is centred, so it spills out on both sides: measure the page itself, not the wrapper.
+    const pad = parseFloat(getComputedStyle(wrap).paddingLeft) + parseFloat(getComputedStyle(wrap).paddingRight);
+    const need = Math.max.apply(null, [].map.call(wrap.querySelectorAll(':scope > section.docx'), x => x.offsetWidth).concat([0])) + pad;
+    const have = host.clientWidth;
+    if (need > have && have > 0) wrap.style.zoom = String(have / need);
+}
+window.addEventListener('resize', fitDocx);
+
 /* ---------- picking a provider and which of their two letters ---------- */
 function providerBar() {
     const p = provider(); if (!p) return '';
@@ -153,9 +286,19 @@ function caseHtml() {
 }
 
 /* ---------- the file name the trainers ask for ---------- */
+// The carrier goes in the name, as the trainers' own files have it ("INS – Allstate Insurance - LOR …"):
+// the company the trainee put in the letter, else the one in the case notes.
+function carrierOf(t) {
+    if (t.id !== 'lor1p' && t.id !== 'lor3p') return '';
+    const typed = String(answer(t.id, 'f3')).trim().replace(/[\[\]]/g, '').replace(/\.$/, '');
+    if (typed) return typed;
+    const c = CASES[S.caseNo] || {};
+    return (t.id === 'lor1p' ? (c.p1 || {})['Insurance Company Name'] : (c.p3 || {})['Defendant Insurance Company Name']) || '';
+}
 function fileName(t) {
-    const d = new Date(), pad = (n) => String(n).padStart(2, '0');
+    const d = new Date(), pad = (n) => String(n).padStart(2, '0'), carrier = carrierOf(t);
     return t.naming
+        .replace(/[13]P Insurance Provider/, (m) => carrier || m)
         .replace('mm.dd.yyyy', `${pad(d.getMonth() + 1)}.${pad(d.getDate())}.${d.getFullYear()}`)
         .replace("(VA's name)", `(${Sim.who().name || 'VA'})`)
         .replace(/[\\/:*?"<>|]/g, '');
@@ -187,12 +330,13 @@ function render() {
                 ${caseHtml()}
                 <div class="dr-note">
                     <h3>How this works</h3>
-                    <p style="margin:0 0 7px;">The wording is the firm's and can't be changed. Only what the firm highlighted in yellow is yours to fill.</p>
+                    <p style="margin:0 0 7px;">The wording is the firm's and can't be changed. Only what the firm highlighted in yellow is yours — click it and type over it, as you would in Word. It turns blue once it's yours.</p>
                     <p style="margin:0 0 7px;">The date writes itself — it is the day you draft the letter.</p>
                     <p style="margin:0;">Your download is this very Word file with your answers written in, so the logo and the format are the firm's own. Upload that file to SA.</p>
                 </div>
             </div>
         </div>`;
+    drawDocx(t);
 }
 
 const API = {
@@ -206,7 +350,7 @@ const API = {
     },
     pickKind(k) { S.kind = k; save(); render(); window.scrollTo(0, 0); },
     set(f, v) {
-        S.answers[key(S.tab, f)] = v;
+        S.answers[key(tpl().id, f)] = v;           // filed under the letter's own id (a provider's carries the provider)
         save();
         // Repaint only the counter: redrawing the paper would take the cursor out of the field.
         const t = tpl(), done = doneCount(t), total = theirFields(t).length;
@@ -215,6 +359,8 @@ const API = {
         if (lbl) lbl.textContent = `${done} of ${total} blanks filled · saved ${new Date(S.savedAt).toLocaleTimeString()}`;
         const el = document.querySelector(`[data-f="${f}"]`);
         if (el) el.classList.toggle('filled', !!String(v).trim());
+        const nm = document.querySelector('.dr-name');                   // the carrier's name is in the file name
+        if (nm) nm.textContent = fileName(t) + '.docx';
     },
     async download() {
         const t = tpl();

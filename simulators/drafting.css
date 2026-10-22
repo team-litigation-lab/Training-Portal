@@ -46,3 +46,24 @@ textarea.dr-f { display: block; width: 100%; min-height: 72px; resize: vertical;
 .dr-saved { font-size: 11.5px; color: #64748b; }
 .dr-name { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #0f2148; background: #f1f5f9;
     border-radius: 6px; padding: 7px 9px; word-break: break-word; }
+
+/* The letter drawn from the firm's own .docx (docx-preview): Word's layout, not the sketch's.
+   The sketch's paper styles are switched off so they don't reach into the firm's paragraphs. */
+.dr-paper.dr-docx { padding: 0; background: transparent; border: none; box-shadow: none; border-radius: 10px;
+    font-family: initial; font-size: initial; line-height: normal; color: #000; overflow: hidden; overflow-wrap: normal; }
+.dr-paper.dr-docx p { margin: 0; }
+.dr-paper.dr-docx .docx-wrapper { background: #e2e8f0; padding: 18px; border-radius: 10px; }
+.dr-paper.dr-docx .docx-wrapper > section.docx { box-shadow: 0 18px 40px -28px rgba(15, 33, 72, .5); margin-bottom: 18px; }
+.dr-paper.dr-docx .docx-wrapper > section.docx:last-child { margin-bottom: 0; }
+/* A blank in the Word layout: the firm's highlighted text, typed over in place (the portal's own
+   contenteditable look — padding, border, full width — is switched off so the line stays Word's). */
+.dr-paper.dr-docx .dr-ce { display: inline; width: auto; min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 0;
+    white-space: pre-wrap; font-weight: inherit; color: inherit; cursor: text; outline: none; box-shadow: none;
+    background: #ffff00; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.dr-paper.dr-docx .dr-ce.filled { background: #dbe8ff; box-shadow: inset 0 -1px 0 #6f97d9; }
+.dr-paper.dr-docx .dr-ce:focus { background: #fff6a8; box-shadow: 0 0 0 2px #e0a800; border: 0; }
+/* a tab inside a blank: retab() gives it its width */
+.dr-paper.dr-docx .dr-wtab { white-space: pre; background: inherit; }
+/* docx-preview gives every paragraph "background-color: inherit" (the page's white), which paints
+   over the line above where Word's highlight runs into it. Only real paragraph shading keeps a colour. */
+.dr-paper.dr-docx p[style*="background-color: inherit"] { background-color: transparent !important; }
