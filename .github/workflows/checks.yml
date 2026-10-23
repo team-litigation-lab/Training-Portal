@@ -48,7 +48,7 @@ jobs:
         run: node --no-warnings .github/scripts/gcal-reviews.mjs
       - name: Drafting letters saved to the trainee's account (saved and back, an older copy never over a newer one, only their own, Start over)
         run: node --no-warnings .github/scripts/drafting-drafts.mjs
-      - name: Drafting originals each have their PDF for Edit in Nitro Pro (make-drafting-pdfs.cjs)
+      - name: Drafting originals each have their PDF for Edit in PDF (make-drafting-pdfs.cjs)
         run: node .github/scripts/make-drafting-pdfs.cjs --check
       - name: Google Calendar weekly schedule (Standard Training as it was; the Case Management and EA / PA clones apart; Admin only; unknown tracks refused)
         run: node --no-warnings .github/scripts/gcal-schedule.mjs
@@ -132,10 +132,10 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/drafting-docs.cjs
-      - name: Drafting in a Word-style editor (the whole letter editable with Word's ribbon; bullets, numbering, indents and spacing; Word's paste options; Word's pages; the download is exactly what is on screen; saved to the account; Check my letter)
+      - name: Drafting tool (the firm's original read-only; Edit in Word and Edit in PDF hand over the files for any word processor or PDF editor; the uploaded Word file or PDF checked, kept on the account and scored to progress; the MedLOR's signed HIPAA drawn under it; every letter opens)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
-        run: node .github/scripts/drafting-editor.cjs
+        run: node .github/scripts/drafting-tool.cjs
       - name: Demand Packets & Binders (many PDFs per section, the cover letter, index, PIP log, page and Bates numbers, bookmarks and tab sheets in one PDF; the .zip and .csv; Check my packet; kept after a reload)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules

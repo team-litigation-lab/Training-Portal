@@ -520,7 +520,11 @@
         m.runs.forEach(r => {
             const rPr = first(r, 'rPr'), h = rPr && first(rPr, 'highlight');
             const v = h && (h.getAttributeNS(W, 'val') || h.getAttribute('w:val'));
-            if (v && v !== 'none' && runText(r).trim()) highlighted.push(runText(r));
+            // LibreOffice and Google Docs save a highlight as the run's shading: a coloured fill is a highlight too
+            // (the firm's own templates shade runs only 'auto' or white).
+            const shd = rPr && first(rPr, 'shd'), fill = shd && (shd.getAttributeNS(W, 'fill') || shd.getAttribute('w:fill') || '');
+            const shaded = !!fill && !/^(auto|ffffff)$/i.test(fill);
+            if (((v && v !== 'none') || shaded) && runText(r).trim()) highlighted.push(runText(r));
         });
         return { paras, highlighted, checks: m.checks.map(isChecked) };
     }

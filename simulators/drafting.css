@@ -134,6 +134,17 @@ textarea.dr-f { display: block; width: 100%; min-height: 72px; resize: vertical;
 .wd-status .wd-zs { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }
 .wd-status .wd-zs button { border: 0; background: transparent; cursor: pointer; font-size: 14px; padding: 0 4px; }
 .wd.wd-off .wd-ribbon, .wd.wd-off .wd-status .wd-zs { display: none; }
+/* Edit it on your computer: the two ways, the one the trainee chose first. */
+.dr-way { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin: 0 0 10px; }
+.dr-way.on { border-color: #f97316; background: #fff7ed; }
+.dr-way ol { font-size: 13px; }
+/* A MedLOR's HIPAA, under the letter: the firm's PDF as an original, read-only. */
+.dr-main { min-width: 0; display: grid; gap: 18px; }
+.wd-pdf .wd-title { background: #b30b00; }
+.wd-pdf .wd-title .wd-logo { width: auto; padding: 0 4px; color: #b30b00; font-size: 10px; }
+.wd-pdfframe { display: block; width: 100%; height: 78vh; border: 0; background: #e6e6e6; }
+.dr-pdfpages { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px; }
+.dr-pdfpages canvas { display: block; max-width: 100%; height: auto; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
 
 /* the letter in edit mode: a text cursor, Word's selection colour, nothing the browser adds */
 /* the portal's own contenteditable look (padding, border, background, full width) would move the text off
