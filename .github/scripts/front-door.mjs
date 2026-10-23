@@ -87,15 +87,22 @@ check(r.status === 302 && r.loc === '/simulators/gcal.html?track=standard' && /l
 const sess = await u.verifySessionToken(decodeURIComponent((r.cookie.match(/lsh_session=([^;]+)/) || [])[1] || ''), env.SESSION_SECRET);
 check(sess && sess.username === 'ann' && sess.userType === 'Trainee', 'the session is the trainee\'s own account');
 r = await withTicket(await ticketFor({ first: 'Ann', last: 'Lee', b: 'B1', exp: soon() }, 'wrong-secret'));
-check(r.status === 302 && r.loc === '/trainee-login.html', 'a ticket with the wrong signature gets the sign-in page');
+check(r.status === 302 && /^\/trainee-login\.html\?next=/.test(r.loc), 'a ticket with the wrong signature gets the sign-in page');
 r = await withTicket(await ticketFor({ first: 'Ann', last: 'Lee', b: 'B1', exp: Date.now() - 1000 }));
-check(r.loc === '/trainee-login.html', 'an expired ticket gets the sign-in page');
+check(/^\/trainee-login\.html\?next=/.test(r.loc), 'an expired ticket gets the sign-in page');
 r = await withTicket(await ticketFor({ first: 'Gil', last: 'Out', b: 'B1', exp: soon() }));
-check(r.loc === '/trainee-login.html', 'a revoked trainee\'s ticket gets the sign-in page');
+check(/^\/trainee-login\.html\?next=/.test(r.loc), 'a revoked trainee\'s ticket gets the sign-in page');
 r = await withTicket(await ticketFor({ r: 'a', exp: soon() }));
-check(r.loc === '/trainee-login.html', 'an administrator\'s ticket never signs anyone in');
+check(/^\/trainee-login\.html\?next=/.test(r.loc), 'an administrator\'s ticket never signs anyone in');
 r = await withTicket(await ticketFor({ first: 'Ann', last: 'Lee', b: 'B1', exp: soon() }), boss);
 check(!/lsh_session=/.test(r.cookie), 'a signed-in admin keeps their own session');
+// the sign-in brings a trainee back to the simulator they were sent from, never to the Training Directory
+r = await hit('/simulators/email.html', '', '?program=CM&inbox=1');
+check(r.status === 302 && r.loc === '/trainee-login.html?next=' + encodeURIComponent('/simulators/email.html?program=CM&inbox=1'), 'a signed-out simulator visit goes to the sign-in with the page to return to');
+r = await hit('/trainee-login.html', ann, '?next=' + encodeURIComponent('/simulators/email.html?program=CM'));
+check(r.status === 302 && r.loc === '/simulators/email.html?program=CM', 'a signed-in trainee on the sign-in page goes back to that page');
+r = await hit('/trainee-login.html', ann, '?next=' + encodeURIComponent('//evil.example/x'));
+check(r.status === 302 && r.loc === '/programs.html', 'a next address on another site is ignored (the Training Directory instead)');
 
 // /api/me
 const getMe = async (cookie) => { const res = await me.onRequestGet({ request: new Request('https://p/api/me', { headers: cookie ? { cookie } : {} }), env }); return { status: res.status, body: await res.json() }; };

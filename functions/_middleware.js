@@ -43,7 +43,10 @@ export async function onRequest(context) {
             // A trainee who wants to sign in as an admin must see the admin sign-in, so only an admin is sent on from it.
             const person = await signedInPerson(request, env);
             const adminDoor = /^\/admin-login(\.html)?\/?$/i.test(path);
-            if (person && (!adminDoor || person.userType === 'Admin')) return new Response(null, { status: 302, headers: { Location: '/programs.html', 'Cache-Control': 'no-store' } });
+            // back to the page that sent them here (a simulator a course opened), else the Training Directory
+            const nxt = new URL(request.url).searchParams.get('next') || '';
+            const to = /^\/(?!\/)[^\\]*$/.test(nxt) ? nxt : '/programs.html';
+            if (person && (!adminDoor || person.userType === 'Admin')) return new Response(null, { status: 302, headers: { Location: to, 'Cache-Control': 'no-store' } });
         } catch (e) { /* any trouble: show the page as usual */ }
     }
     if (request.method === 'GET' && MEMBER_PAGES.some((re) => re.test(path))) {
@@ -89,5 +92,6 @@ export async function onRequest(context) {
         out.headers.set('X-Robots-Tag', 'noindex');
         return out;
     }
-    return new Response(null, { status: 302, headers: { Location: '/trainee-login.html', 'Cache-Control': 'no-store' } });
+    // the sign-in brings them back to this simulator, not to the Training Directory
+    return new Response(null, { status: 302, headers: { Location: '/trainee-login.html?next=' + encodeURIComponent(url.pathname + url.search), 'Cache-Control': 'no-store' } });
 }
