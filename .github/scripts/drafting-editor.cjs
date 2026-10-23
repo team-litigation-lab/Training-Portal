@@ -31,6 +31,7 @@ const server = http.createServer((req, res) => {
     if (u.pathname === '/api/drafting-drafts') {
         if (req.method === 'GET') {
             const l = u.searchParams.get('letter'), r = ACCOUNT[l];
+            if (l == null) return send({ success: true, letters: Object.keys(ACCOUNT).map(k => ({ letter: k, updatedAt: ACCOUNT[k].updatedAt })) });
             return send({ success: true, letter: l, data: r ? r.data : null, updatedAt: r ? r.updatedAt : null });
         }
         let body = ''; req.on('data', c => { body += c; });
@@ -110,8 +111,48 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
         return page.evaluate(() => window.getSelection().toString());
     };
 
-    // 1. the letter opens in the editor, Word's chrome around it
+    // 0. the page opens on the firm's original, read-only, with Edit in Word · Edit in Nitro Pro · Download Doc
     await page.goto(base + '/simulators/drafting.html?tab=lor1p', { waitUntil: 'load' });
+    await page.waitForSelector('section.docx > article', { timeout: 30000 });
+    await page.waitForFunction(() => /Original/.test((document.querySelector('.wd-title [data-state]') || {}).textContent || ''), null, { timeout: 15000 });
+    check('the original opens read-only', await page.$$eval('section.docx > article', as => as.length > 0 && as.every(a => a.contentEditable !== 'true')), 'an editable article');
+    check('Edit in Word · Edit in Nitro Pro · Download Doc', (await page.$$eval('.dr-docacts .sim-btn', bs => bs.map(b => b.textContent.trim()).join(' | '))) === '✎ Edit in Word | ✎ Edit in Nitro Pro | ⬇ Download Doc',
+        await page.$$eval('.dr-docacts .sim-btn', bs => bs.map(b => b.textContent.trim()).join(' | ')));
+    const pdfHref = await page.$eval('.dr-docacts a[href$=".pdf"]', a => a.getAttribute('href'));
+    check('Edit in Nitro Pro hands over its PDF', fs.existsSync(path.join(ROOT, decodeURIComponent(pdfHref))) && /\.pdf$/.test(await page.$eval('[data-nitro]', a => a.getAttribute('download'))), pdfHref);
+    check('Download Doc is the original .docx', (await page.$eval('.dr-docacts a[href$=".docx"]', a => a.getAttribute('href'))) === '/simulators/drafting/templates/1P_LOR.docx', 'another file');
+    // the PDF edited in Nitro Pro, saved back to the platform, and downloaded from it again
+    const nitroPdf = fs.readFileSync(path.join(ROOT, decodeURIComponent(pdfHref)));
+    await page.setInputFiles('#dr-nitro input[type=file]', { name: 'edited.pdf', mimeType: 'application/pdf', buffer: nitroPdf });
+    await page.waitForFunction(() => /saved to the platform/.test((document.querySelector('#dr-nitro [data-pdf]') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    const keptPdf = ACCOUNT['lor1p:pdf'] && JSON.parse(ACCOUNT['lor1p:pdf'].data);
+    check('Save my edited PDF puts it on the account', !!keptPdf && Buffer.from(keptPdf.b64, 'base64').equals(nitroPdf), 'not saved as sent');
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#dr-nitro button:has-text("Download my saved PDF")')]);
+    check('and it downloads from the platform as it was saved', fs.readFileSync(await dl.path()).equals(nitroPdf), fs.readFileSync(await dl.path()).length + ' bytes, not ' + nitroPdf.length);
+    await page.setInputFiles('#dr-nitro input[type=file]', { name: 'notes.pdf', mimeType: 'application/pdf', buffer: Buffer.from('not a pdf') });
+    check('a file that is not a PDF is refused', Buffer.from(JSON.parse(ACCOUNT['lor1p:pdf'].data).b64, 'base64').equals(nitroPdf), 'overwritten');
+    await page.click('.dr-docacts button:has-text("Edit in Word")');
+    await page.waitForSelector('section.docx > article[contenteditable="true"]', { timeout: 30000 }).catch(async e => {
+        console.log(errors, await page.evaluate(() => [document.querySelector('.dr-docname') && document.querySelector('.dr-docname').textContent, (document.querySelector('.wd-title') || {}).textContent]));
+        throw e;
+    });
+    check('Edit in Word opens the editor', !!(await page.$('.wd-tabs')), 'no ribbon');
+    await page.waitForFunction(() => /Saved/.test((document.querySelector('.wd-title [data-state]') || {}).textContent || ''), null, { timeout: 15000 });
+    check('Edit in Word: Save to the platform · Download as PDF · Download Doc',
+        (await page.$$eval('.dr-docacts .sim-btn', bs => bs.map(b => b.textContent.trim()).join(' | '))) === '← The original | 💾 Save to the platform | ⬇ Download as PDF | ⬇ Download Doc', 'other buttons');
+    // Download as PDF prints Word's pages, edge to edge, with nothing else of the page
+    await page.waitForFunction(() => !!LSHDrafting.xml(), null, { timeout: 15000 });   // the editor is the page's (not only drawn)
+    await page.evaluate(() => { window.print = () => { window.__printed = document.title; }; });
+    await page.click('.dr-docacts button:has-text("Download as PDF")');
+    const printed = await page.evaluate(() => window.__printed);
+    const pdfOut = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+    const pdfPages = (pdfOut.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
+    check('Download as PDF: the letter\'s two pages, named the firm\'s way', pdfPages === 2 && /^INS – 1P .* - LOR \d\d\.\d\d\.\d{4} \(Ann\)$/.test(printed || ''), `${pdfPages} pages, "${printed}"`);
+    await page.waitForFunction(() => !document.getElementById('dr-print'), null, { timeout: 5000 }).catch(() => {});
+    check('the print copy is gone after printing', !(await page.$('#dr-print')), 'still there');
+
+    // 1. the letter opens in the editor, Word's chrome around it
+    await page.goto(base + '/simulators/drafting.html?tab=lor1p&mode=word', { waitUntil: 'load' });
     await page.evaluate(() => { localStorage.clear(); });
     await page.reload({ waitUntil: 'load' });
     await ready();
@@ -218,7 +259,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
         return f && fs.existsSync(f) ? route.fulfill({ body: fs.readFileSync(f), contentType: 'text/javascript' }) : route.continue();
     });
     const o = await other.newPage();
-    await o.goto(base + '/simulators/drafting.html?tab=lor1p', { waitUntil: 'load' });
+    await o.goto(base + '/simulators/drafting.html?tab=lor1p&mode=word', { waitUntil: 'load' });
     await o.waitForFunction(() => window.LSHDrafting && LSHDrafting.xml() && /Claims Unit/.test(LSHDrafting.xml()), null, { timeout: 30000 }).catch(() => {});
     check('another browser opens the letter from the account, exactly as left', (await o.evaluate(() => LSHDrafting.xml())) === saved, 'the other browser has a different letter');
     await other.close();
@@ -233,7 +274,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
 
     // 8. a legacy Word check box ticks, and the file has it ticked
     // (Akers Chiropractic's Lien BV asks "Is treatment complete?" with Word form check boxes)
-    await page.goto(base + '/simulators/drafting.html?tab=prov&kind=lienbv', { waitUntil: 'load' });
+    await page.goto(base + '/simulators/drafting.html?tab=prov&kind=lienbv&mode=word', { waitUntil: 'load' });
     await ready();
     await page.selectOption('select[aria-label="Medical provider"]', { label: 'Akers Chiropractic' });
     await ready();
@@ -246,7 +287,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     }
 
     // 9. Word's paragraph commands: bullets, numbering, indents, line spacing — in the file, and drawn from it
-    await page.goto(base + '/simulators/drafting.html?tab=lor1p', { waitUntil: 'load' });
+    await page.goto(base + '/simulators/drafting.html?tab=lor1p&mode=word', { waitUntil: 'load' });
     await ready();
     const numId = (xml, needle) => page.evaluate(({ xml, needle }) => {
         const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main', doc = new DOMParser().parseFromString(xml, 'application/xml');
@@ -321,12 +362,21 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     check('and no list', (await numId(x, 'One pasted item')).numId == null, JSON.stringify(await numId(x, 'One pasted item')));
 
     // 11. pages, as Word lays them out: the letterhead on each, the text going on on the next page
-    await page.goto(base + '/simulators/drafting.html?tab=lor3p', { waitUntil: 'load' });
+    await page.goto(base + '/simulators/drafting.html?tab=lor3p&mode=word', { waitUntil: 'load' });
     await ready();
     await page.waitForFunction(() => /of 3$/.test(document.querySelector('[data-pages]').textContent), null, { timeout: 10000 }).catch(() => {});
     check('the 3P letter is three pages, as Word has it', /of 3$/.test(await page.textContent('[data-pages]')), await page.textContent('[data-pages]'));
     const lh = await page.evaluate(() => ({ copies: document.querySelectorAll('.dr-lh-copy').length, gaps: document.querySelectorAll('.dr-pgband').length }));
     check('each page has the letterhead and footer, with the gap between pages', lh.copies >= 1 && lh.gaps >= 1, JSON.stringify(lh));
+    // a MedLOR whose file sets no font size at all is in Word's 10 pt, and two pages as in Word (at the page's 15px it ran to four)
+    await page.goto(base + '/simulators/drafting.html?tab=prov&kind=medlor&mode=word', { waitUntil: 'load' });
+    await ready();
+    await page.evaluate(() => { const s = document.querySelector('.dr-bar select'); const o = [].find.call(s.options, x => /Bone & Joint/.test(x.textContent)); LSHDrafting.pickProvider(o.value); });
+    await ready();
+    await page.waitForFunction(() => /of 2$/.test(document.querySelector('[data-pages]').textContent), null, { timeout: 10000 }).catch(() => {});
+    check('a MedLOR with no font size in its file: two pages, as Word has it', /of 2$/.test(await page.textContent('[data-pages]')), await page.textContent('[data-pages]'));
+    await page.goto(base + '/simulators/drafting.html?tab=lor3p&mode=word', { waitUntil: 'load' });
+    await ready();
     await find('Please note that our preferred method');
     await page.keyboard.press('Home');
     for (let i = 0; i < 16; i++) await page.keyboard.type('A sentence added so the letter runs on further and the pages move with it. ');
@@ -364,7 +414,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
         const name = route.request().url().split('/').pop(), f = LOCAL[name] && path.join(LIBS, 'node_modules', LOCAL[name]);
         return f && fs.existsSync(f) ? route.fulfill({ body: fs.readFileSync(f), contentType: 'text/javascript' }) : route.continue();
     });
-    await phone.goto(base + '/simulators/drafting.html?tab=lor1p', { waitUntil: 'load' });
+    await phone.goto(base + '/simulators/drafting.html?tab=lor1p&mode=word', { waitUntil: 'load' });
     await phone.waitForSelector('section.docx > article[contenteditable="true"]', { timeout: 30000 });
     const sw = await phone.evaluate(() => document.scrollingElement.scrollWidth);
     check('phone width: no sideways scroll', sw <= 391, String(sw));

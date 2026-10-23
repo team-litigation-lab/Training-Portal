@@ -177,3 +177,30 @@ textarea.dr-f { display: block; width: 100%; min-height: 72px; resize: vertical;
 .wd-paste button.on { background: #c7e0f4; border-color: #9fc3e6; }
 .wd-doc .dr-pgband { position: absolute; left: -40px; right: -40px; background: #e6e6e6; z-index: 6; pointer-events: none; }
 .wd-doc .dr-pgsp { pointer-events: none; user-select: none; }
+
+/* The document's own bar: the original, and the three ways to work it (Edit in Word · Edit PDF · Download Doc). */
+.dr-docbar { display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; flex-wrap: wrap;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; }
+.dr-docname { font-weight: 800; color: var(--navy, #0f2148); font-size: 14px; min-width: 0; overflow-wrap: anywhere; }
+.dr-docacts { display: flex; gap: 8px; flex-wrap: wrap; }
+.dr-docacts .sim-btn { text-decoration: none; display: inline-flex; align-items: center; }
+.wd.wd-view .wd-canvas { cursor: default; }
+@media (max-width: 600px) { .dr-docacts, .dr-docacts .sim-btn { width: 100%; justify-content: center; } }
+
+/* ⬇ Download as PDF: only the letter's pages print (drafting.js pdf() puts a copy in #dr-print), edge to edge on Letter paper. */
+@media print {
+    @page { size: letter; margin: 0; }
+    body.dr-printing { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+    body.dr-printing > *:not(#dr-print) { display: none !important; }
+    #dr-print { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #dr-print .dr-paper { padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: #fff !important; }
+    #dr-print .docx-wrapper { padding: 0 !important; background: #fff !important; display: block !important; zoom: 1 !important; }
+    #dr-print section.docx { margin: 0 !important; box-shadow: none !important; }
+    #dr-print .dr-pgband { display: none !important; }
+}
+#dr-print { display: none; }
+@media print { #dr-print { display: block; } }
+
+/* Word's own default size (10 pt) for a run whose file gives no size anywhere; drafting-editor.js sets the file's own
+   default (docDefaults) on the wrapper when it has one. Never the page's 15px: the MedLORs ran to a third or fourth page. */
+.dr-paper .docx-wrapper { font-size: 10pt; }

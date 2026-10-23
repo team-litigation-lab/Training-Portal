@@ -13,12 +13,14 @@
    back run by run (applyEditsXml). Formatting is read off the screen as it is displayed, so what
    the trainee sees is what the download has — nothing more is added, nothing of the firm's is lost.
 
-     LSHDraftingEditor.open({ host, ribbon, status, baseXml, bytes, onChange, onAction })
+     LSHDraftingEditor.open({ host, ribbon, status, baseXml, bytes, onChange, onAction, readOnly })
        host      the element the letter is drawn in
        baseXml   the letter's word/document.xml (the firm's, or the trainee's saved draft)
        bytes     the firm's .docx (ArrayBuffer): its letterhead, styles, fonts and media
        onChange  called (debounced) after every edit
        onAction  File menu / Review actions: 'download' | 'save' | 'reset' | 'template' | 'check'
+       readOnly  the letter drawn as Word has it, pages and letterhead, with nothing to type in (the original)
+       gap       px between pages (18 on screen; 0 to print the pages edge to edge as a PDF); editor.gap(g) changes it
      -> Promise<editor>   editor.xml() the letter as document.xml now · editor.stats() · editor.fonts()
    ============================================================ */
 (function () {
@@ -76,6 +78,20 @@ function diff(now, was) {
 }
 const ALIGN = { left: 'left', start: 'left', center: 'center', '-webkit-center': 'center', right: 'right', end: 'right', justify: 'both' };
 
+// A .docx's default font size in pt: w:docDefaults' w:sz (half-points), else Word's own 10 pt.
+const SIZES_OF = new WeakMap();
+async function defaultSize(bytes) {
+    if (SIZES_OF.has(bytes)) return SIZES_OF.get(bytes);
+    let pt = 10;
+    try {
+        const zip = await JSZip.loadAsync(bytes), f = zip.file('word/styles.xml');
+        const m = f && (await f.async('string')).match(/<w:docDefaults>[\s\S]*?<\/w:docDefaults>/);
+        const sz = m && m[0].match(/<w:sz w:val="(\d+)"/);
+        if (sz) pt = +sz[1] / 2;
+    } catch (e) { /* keep 10 pt */ }
+    SIZES_OF.set(bytes, pt);
+    return pt;
+}
 function open(opts) {
     const E = { host: opts.host, baseXml: opts.baseXml, bytes: opts.bytes, runFmt0: {}, pFmt0: {}, zoom: 1, fit: 1,
         undo: [], redo: [], lastSnap: 0, lastKind: '', marks: false, timer: null };
@@ -110,10 +126,14 @@ function open(opts) {
         } catch (e) {
             // the letter on screen stays as it was (and so does what the editor knows about it), and can be typed in again
             stage.remove();
-            arts().forEach(a => { a.contentEditable = 'true'; });
+            arts().forEach(a => { a.contentEditable = opts.readOnly ? 'false' : 'true'; });
             throw e;
         }
         E.runFmt0 = {}; E.pFmt0 = {};
+        // What the letter's text inherits when a run sets no size: the file's default (docDefaults), else Word's 10 pt.
+        // docx-preview puts the default on spans only, so an empty line would otherwise take the page's own size.
+        const dsz = await defaultSize(E.bytes);
+        stage.querySelectorAll('.docx-wrapper').forEach(w => { w.style.fontSize = dsz + 'pt'; });
         [].slice.call(host.childNodes).forEach(n => { if (n !== stage) host.removeChild(n); });
         stage.style.cssText = '';
         stage.classList.remove('dr-stage');
@@ -127,10 +147,9 @@ function open(opts) {
         }
         record();
         arts().forEach(art => {
-            art.contentEditable = 'true';
-            art.spellcheck = true;
-            art.setAttribute('role', 'textbox');
-            art.setAttribute('aria-multiline', 'true');
+            art.contentEditable = opts.readOnly ? 'false' : 'true';
+            art.spellcheck = !opts.readOnly;
+            if (!opts.readOnly) { art.setAttribute('role', 'textbox'); art.setAttribute('aria-multiline', 'true'); }
             art.setAttribute('aria-label', 'The letter');
             art.querySelectorAll('.docx-tab-stop').forEach(t => { t.contentEditable = 'false'; });
             art.querySelectorAll('img').forEach(i => { i.draggable = false; });
@@ -898,7 +917,7 @@ function open(opts) {
        goes on with its next line on the next page (never leaving one line behind or carrying one line over: Word's
        widow/orphan control), a table or a short paragraph moves over whole, and the header layer is repeated per page.
        The breaks are spacers the page draws (no text, not part of the letter): they're redone after every change. */
-    const GAP = 18;
+    let GAP = opts.gap != null ? opts.gap : 18;                            // between pages on screen (0 when printing a PDF)
     function paginate() {
         const keep = arts().some(a => a.contains(document.activeElement) || a === document.activeElement) ? selOffsets() : null;
         let pages = 0;
@@ -1097,6 +1116,8 @@ function open(opts) {
         mark('Saved');
         return {
             xml, edit, stats, fonts, fit, focus: () => { const a = arts()[0]; if (a) a.focus(); },
+            // the pages edge to edge, unzoomed (gap 0), to print as a PDF; gap(18) puts the screen back
+            gap: (g) => { GAP = g; const w = host.querySelector('.docx-wrapper'); if (g) fit(); else if (w) w.style.zoom = ''; paginate(); },
             saved: () => mark('Saved to this browser'),
             unsaved: (m) => mark(m || 'Not saved'),
             cmd: CMD
