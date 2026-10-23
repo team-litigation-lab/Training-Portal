@@ -5,20 +5,16 @@
    way they already do for Email, Docket and Records), so the templates and the
    wording only ever live in one place — simulators/drafting/templates/.
 
-   The letter opens in a Word-style editor (drafting-editor.js): the firm's own .docx,
-   drawn as Word lays it out, with all of it editable — the skill being trained is
-   editing a real letter and the attention to detail it takes (nothing left highlighted,
-   no sample details, one sending method, no double spaces, the template's fonts).
-   The download is not a re-typeset copy — drafting-docx.js writes what is on screen
-   back into the original Word file, run by run, so the letterhead, logo, fonts and
-   spacing are the firm's own and the document can be uploaded to SA as it is.
-   While the .docx loads (or if it can't be drawn) the page shows a sketch of the
-   letter from drafting-data.js, with the highlighted runs as blanks to fill.
-
-   Drafts are the trainee's own and stay in their browser (LSH_DRAFTING_DOCS_V1: each
-   edited letter's document.xml, deflated; LSH_DRAFTING_V1: the case, provider, the
-   sketch's blanks and the HIPAA's answers); a finished letter is reported to their trainer through Sim.saveResult like every
-   other simulator, so it counts in the Portal's per-module scores.
+   Each letter opens as the firm's original (read-only, drawn as Word lays it out by drafting-editor.js), and the
+   trainee edits it on their own computer, in whatever they have: ✎ Edit in Word (the .docx, for Word or any word
+   processor) or ✎ Edit in PDF (the same letter as a PDF, for any PDF editor). What they save is uploaded back here,
+   checked for the attention to detail it takes (nothing left highlighted, no sample details, one sending method, no
+   double spaces, the template's fonts) and scored to their progress in the Portal.
+   A MedLOR's original comes with the client's signed HIPAA under it, drawn from the firm's PDF (pdf.js).
+   What the trainee did is kept in their browser and on their account (LSH_DRAFTING_DOCS_V1: each uploaded Word
+   letter's document.xml, deflated; LSH_DRAFTING_V1: the case, provider and the HIPAA's answers; the uploaded files
+   themselves as '<letter>:docx' / '<letter>:pdf'); each upload's score goes through Sim.saveResult like every other
+   simulator, so it counts in the Portal's per-module scores.
    ============================================================ */
 (function () {
 'use strict';
@@ -31,8 +27,8 @@ const esc = (v) => Sim.esc(String(v == null ? '' : v));
 const app = () => document.getElementById('app');
 // tab: a letter template's id, or 'prov' for the medical providers' letters, which are a letter
 // per provider (their own address block is part of their own file) in two kinds.
-// mode: 'view' shows the firm's original document, with Edit in Word / Edit PDF / Download Doc; 'word' is the editor.
-const S = { tab: TEMPLATES[0].id, caseNo: 0, prov: 0, kind: 'medlor', answers: {}, savedAt: null, mode: 'view' };
+// edit: the way the trainee last chose to edit it on their computer ('word' or 'pdf'), to show those steps first.
+const S = { tab: TEMPLATES[0].id, caseNo: 0, prov: 0, kind: 'medlor', answers: {}, savedAt: null, edit: null };
 const LETTER_KIND = { medlor: 'Medical LOR + Unsworn Declaration', lienbv: 'Lien Balance Verification' };
 
 /* ---------- the trainee's own drafts, in their browser ---------- */
@@ -101,13 +97,7 @@ async function cloudSend(letter, keep) {
         else { CLOUD.pending[letter] = CLOUD.pending[letter] || data; msg = 'Saved to this browser — not to your account yet'; }
     } catch (e) { CLOUD.pending[letter] = CLOUD.pending[letter] || data; msg = 'Saved to this browser — not to your account yet (offline?)'; }
     CLOUD.busy[letter] = false;
-    if (ED && ED.tid === letter && msg) ED.unsaved(msg);
-}
-async function cloudDelete(letter) {
-    delete CLOUD.pending[letter]; clearTimeout(CLOUD.timers[letter]);
-    if (!cloudOn()) return;
-    try { await Sim.fetchRetry(CLOUD_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', letter }) }); } catch (e) { /* kept */ }
-    delete CLOUD.base[letter];
+    if (msg) { const st = document.querySelector('#dr-edit [data-sync]'); if (st && letter !== '_state') st.textContent = msg; }
 }
 window.addEventListener('pagehide', () => { Object.keys(CLOUD.pending).forEach(l => cloudSend(l, true)); });
 // The page's choices from the account, when they are newer than this browser's.
@@ -154,15 +144,6 @@ function fieldsOf(t) {
     t.blocks.forEach(b => { if (b.t === 'p') b.runs.forEach(r => { if (r.f) out.push(r); }); });
     return out;
 }
-// What goes into the .docx: every field's answer, with the date filled in for them.
-function answersFor(t) {
-    const out = {};
-    fieldsOf(t).forEach(r => {
-        const v = r.k === 'date' ? today() : answer(t.id, r.f);
-        if (String(v).trim()) out[r.f] = v;
-    });
-    return out;
-}
 // Fields the trainee is responsible for (the date writes itself).
 const theirFields = (t) => fieldsOf(t).filter(r => r.k !== 'date');
 const doneCount = (t) => theirFields(t).filter(r => String(answer(t.id, r.f)).trim()).length;
@@ -193,14 +174,17 @@ function paperHtml(t) {
     }).join('');
 }
 
-/* ---------- the letter in the Word-style editor ----------
-   The blocks above are a quick sketch of the letter, shown while the firm's .docx loads (and kept, with
-   its blanks, if the Word view can't be drawn). Once the template is here the letter opens in the editor
-   (drafting-editor.js): the firm's own file, letterhead and all, with the WHOLE letter editable as in Word.
-   What the trainee does is kept as the letter's word/document.xml — the same XML the download is made
-   of — so the letter they come back to, the letter they download and the letter on screen are one. */
+/* ---------- the letter, edited on the trainee's own computer ----------
+   The page shows the firm's original (read-only, drawn as Word lays it out). The trainee edits it on their PC, in
+   whatever they have: ✎ Edit in Word hands them the .docx for Microsoft Word or any word processor (LibreOffice
+   Writer, WPS Office, Google Docs), ✎ Edit in PDF hands them the PDF for any PDF editor (Adobe Acrobat, Nitro,
+   Foxit, PDF-XChange, LibreOffice Draw). They upload what they saved, and it is graded on upload — the same checks
+   whichever way it was edited — and the score goes to their progress in the Portal (Sim.saveResult).
+   A Word upload is read for its word/document.xml (kept on their account like a draft, so the file name and the
+   letter's checks follow them); the file itself, and an uploaded PDF, are kept on their account for their trainer
+   as '<letter>:docx' / '<letter>:pdf'. */
 const docxCache = {};
-let drawing = 0, ED = null;
+let drawing = 0;
 async function templateBytes(t) {
     const src = srcOf(t);
     if (!docxCache[src]) {
@@ -212,7 +196,7 @@ async function templateBytes(t) {
     }
     return (await docxCache[src]).slice(0);
 }
-// The trainee's edited letters, deflated (a letter's XML is ~60 KB; deflated, a tenth of that).
+// The letter's text as last uploaded from Word, deflated (a letter's XML is ~60 KB; deflated, a tenth of that).
 const DOCS = 'LSH_DRAFTING_DOCS_V1';
 function docsAll() { try { return JSON.parse(localStorage.getItem(DOCS) || '{}'); } catch (e) { return {}; } }
 const inflate = async (d) => { try { return await (await JSZip.loadAsync(d.z, { base64: true })).file('d').async('string'); } catch (e) { return null; } };
@@ -221,7 +205,7 @@ function keepLocal(tid, d) {
     mine[tid] = d;
     localStorage.setItem(DOCS, JSON.stringify(all));
 }
-// The letter as last left: this browser's copy or the account's, whichever is newer (the other is brought up to date).
+// The letter as last uploaded: this browser's copy or the account's, whichever is newer.
 async function loadDoc(tid) {
     const local = (docsAll()[slot()] || {})[tid] || null;
     const cloud = await cloudGet(tid);
@@ -229,25 +213,21 @@ async function loadDoc(tid) {
     if (cloud && cloud.z && (!pick || String(cloud.at || '') > String(pick.at || ''))) {
         pick = cloud;
         try { keepLocal(tid, cloud); } catch (e) { /* this browser is full: the account has it */ }
-    } else if (pick && cloudOn() && (!cloud || String(pick.at || '') > String(cloud.at || ''))) cloudQueue(tid, JSON.stringify(pick));
+    }
     return pick ? inflate(pick) : null;
 }
 async function saveDoc(tid, xml) {
     const z = new JSZip(); z.file('d', xml);
     const d = { z: await z.generateAsync({ type: 'base64', compression: 'DEFLATE' }), at: new Date().toISOString() };
     cloudQueue(tid, JSON.stringify(d));
-    keepLocal(tid, d);
+    try { keepLocal(tid, d); } catch (e) { /* this browser is full: the account has it */ }
 }
-function dropDoc(tid) {
-    try { const all = docsAll(); if (all[slot()]) { delete all[slot()][tid]; localStorage.setItem(DOCS, JSON.stringify(all)); } } catch (e) { /* nothing kept */ }
-}
-const LETTER = {};                 // per letter: { paras, highlighted, checks } as last saved — for the name and the checks
+const LETTER = {};                 // per letter: { paras, highlighted, checks } as last uploaded — for the file name
 // The original: the firm's file as Word lays it out, letterhead and pages, with nothing to type in.
 async function openViewer(t) {
     const host = document.getElementById('dr-paper'), shell = document.getElementById('dr-wd');
     if (!host || !window.docx || !window.docx.renderAsync || !window.LSHDraftingEditor || !window.JSZip) { if (shell) shell.classList.add('wd-off'); return; }
     const mine = ++drawing;
-    ED = null;
     try {
         const bytes = await templateBytes(t), tplXml = await LSHDraftingDocx.documentXml(bytes);
         if (mine !== drawing || !document.body.contains(host)) return;
@@ -259,59 +239,53 @@ async function openViewer(t) {
         if (window.console) console.warn('Drafting: the original could not be drawn —', e && e.message);
     }
 }
-async function openEditor(t) {
-    const host = document.getElementById('dr-paper'), shell = document.getElementById('dr-wd');
-    if (!host || !window.docx || !window.docx.renderAsync || !window.LSHDraftingEditor || !window.JSZip) { if (shell) shell.classList.add('wd-off'); return; }
-    const mine = ++drawing;
-    ED = null;
-    try {
-        const bytes = await templateBytes(t), tplXml = await LSHDraftingDocx.documentXml(bytes);
-        let base = await loadDoc(t.id);
-        // A letter begun with the earlier fill-in-the-blanks page carries on from what was typed there.
-        if (!base && doneCount(t)) base = LSHDraftingDocx.fillXml(tplXml, answersFor(t)).xml;
-        if (mine !== drawing || !document.body.contains(host)) return;
-        const ed = await LSHDraftingEditor.open({
-            host, ribbon: document.getElementById('dr-ribbon'), status: document.getElementById('dr-status'), title: shell.querySelector('.wd-title'),
-            baseXml: base || tplXml, bytes,
-            onChange: () => persist(t, ed),
-            onAction: (a) => API.action(a)
-        });
-        if (mine !== drawing) return;
-        ED = Object.assign(ed, { tid: t.id, tplXml, bytes });
-        if (!LETTER[t.id]) LETTER[t.id] = LSHDraftingDocx.auditXml(base || tplXml);
-        LETTER[t.id].start = LETTER[t.id].start || LSHDraftingDocx.auditXml(tplXml).highlighted.length;
-        progress(t);
-    } catch (e) {
-        // Keep the sketch: it has the blanks, so the trainee can still draft and download.
-        if (shell) shell.classList.add('wd-off');
-        if (window.console) console.warn('Drafting: the Word editor could not open —', e && e.message);
-    }
+// The letter last uploaded from Word, so its file name carries the client as the trainee wrote it.
+async function restoreLetter(t) {
+    if (LETTER[t.id]) return;
+    const xml = await loadDoc(t.id);
+    if (!xml || LETTER[t.id] || tpl().id !== t.id) return;
+    LETTER[t.id] = LSHDraftingDocx.auditXml(xml);
+    document.querySelectorAll('.dr-name').forEach(nm => { nm.textContent = fileName(t) + (/\.pdf$/.test(nm.textContent) ? '.pdf' : '.docx'); });
 }
-async function persist(t, ed) {
-    if (!ED || ED !== ed || ED.tid !== t.id) return;
-    try {
-        const xml = ed.xml();
-        LETTER[t.id] = Object.assign(LETTER[t.id] || {}, LSHDraftingDocx.auditXml(xml));
-        await saveDoc(t.id, xml);
-        S.savedAt = new Date().toISOString();
-        ed.unsaved(cloudOn() ? 'Saved to this browser · saving to your account…' : 'Saved to this browser');
-    } catch (e) {
-        ed.unsaved(/quota/i.test(e && e.name + e.message) ? 'Not saved — this browser is out of room' : 'Not saved');
-        if (window.console) console.warn('Drafting: saving the letter failed —', e && e.message);
-    }
-    progress(t);
-}
-// "This letter": the highlighted pieces the firm left for the trainee, and how many are still there.
-function progress(t) {
-    const L = LETTER[t.id]; if (!L || !ED) return;
-    const left = L.highlighted.length, start = Math.max(L.start || 0, left);
-    const bar = document.querySelector('.dr-prog i'), lbl = document.querySelector('.dr-saved');
-    if (bar) bar.style.width = (start ? Math.round((start - left) / start * 100) : 100) + '%';
-    if (lbl) lbl.textContent = (left ? `${left} highlighted piece${left === 1 ? '' : 's'} still in the letter` : 'No highlighted text left')
-        + (S.savedAt ? ` · saved ${new Date(S.savedAt).toLocaleTimeString()}` : '');
-    document.querySelectorAll('.dr-name, .wd-fname').forEach(nm => {
-        nm.textContent = fileName(t) + (/\.pdf$/.test(nm.textContent) ? '.pdf' : '.docx');
+// Fonts and sizes a Word upload sets on its runs, by how many characters use them (what the run inherits is the template's own).
+function fontsOfXml(xml) {
+    const doc = new DOMParser().parseFromString(xml, 'application/xml'), out = {};
+    const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main', kid = (n, name) => n && [].find.call(n.childNodes, c => c.localName === name);
+    [].forEach.call(doc.getElementsByTagNameNS(W, 'r'), r => {
+        const text = [].map.call(r.getElementsByTagNameNS(W, 't'), x => x.textContent).join(''), v = text.replace(/\s/g, '');
+        if (!v) return;
+        const rPr = kid(r, 'rPr'), f = kid(rPr, 'rFonts'), z = kid(rPr, 'sz');
+        const font = f && f.getAttributeNS(W, 'ascii'), pt = z ? Number(z.getAttributeNS(W, 'val')) / 2 : null;
+        if (!font && !pt) return;
+        const k = (font || '') + ' ' + (pt || '');
+        out[k] = out[k] || { font: font || null, pt, chars: 0, sample: '' };
+        out[k].chars += v.length;
+        if (out[k].sample.length < 40) out[k].sample += (out[k].sample ? ' … ' : '') + text.trim().slice(0, 30);
     });
+    return out;
+}
+// A PDF upload, read back with pdf.js: its text (with what a Fill & Sign tool typed on top), the yellow left on it, and its ticks.
+async function readPdf(bytes) {
+    const lib = await pdfjs(), doc = await lib.getDocument({ data: bytes }).promise, lines = [];
+    let yellow = 0;
+    for (let n = 1; n <= doc.numPages; n++) {
+        const pg = await doc.getPage(n), tc = await pg.getTextContent();
+        let line = '';
+        tc.items.forEach(i => { line += i.str; if (i.hasEOL) { lines.push(line); line = ''; } });
+        if (line) lines.push(line);
+        (await pg.getAnnotations()).forEach(a => {
+            if (a.subtype === 'Highlight') yellow++;
+            const typed = a.contentsObj && a.contentsObj.str || a.textContent && [].concat(a.textContent).join(' ') || a.fieldValue;
+            if (typed && typeof typed === 'string' && a.subtype !== 'Highlight') lines.push(typed);
+        });
+        const ops = await pg.getOperatorList();
+        ops.fnArray.forEach((fn, i) => {
+            if (fn !== lib.OPS.setFillRGBColor) return;
+            const c = ops.argsArray[i], hex = typeof c[0] === 'string' ? c[0].toLowerCase() : null;
+            if (hex === '#ffff00' || (!hex && c[0] === 255 && c[1] === 255 && c[2] === 0)) yellow++;
+        });
+    }
+    return { paras: lines.map(l => l.replace(/\s+$/, '')), yellow, pages: doc.numPages };
 }
 
 /* ---------- Check my letter: what a trainer looks for, before it goes ----------
@@ -336,21 +310,25 @@ async function profileOf(t) {
     })();
     return profiles[src];
 }
-async function runChecks(t) {
-    const xml = ED && ED.tid === t.id ? ED.xml() : null;
-    if (!xml) return null;
-    const a = LSHDraftingDocx.auditXml(xml), text = a.paras.join('\n'), out = [];
+// a: the letter as uploaded — { from: 'word' | 'pdf', paras, highlighted (Word: the runs still highlighted), yellow (PDF: how
+// much yellow is left on its pages), checks (Word's tick boxes), fonts (Word: the fonts and sizes its runs set) }.
+async function runChecks(t, a) {
+    if (!a) return null;
+    const text = a.paras.join('\n'), out = [];
     const add = (ok, label, detail, weight) => out.push({ ok: ok === true, part: typeof ok === 'number' ? ok : (ok ? 1 : 0), label, detail: detail || '', weight: weight || 1 });
     const clip = (xs) => xs.slice(0, 4).map(x => '“' + String(x).trim().slice(0, 60) + '”').join(', ') + (xs.length > 4 ? ` and ${xs.length - 4} more` : '');
-    add(!a.highlighted.length, 'No highlighted text left', a.highlighted.length ? 'Still highlighted: ' + clip(a.highlighted) + '. Select it and choose Text Highlight Color › No Color.' : '', 2);
+    if (a.from === 'pdf') add(!a.yellow, 'No highlighted text left', a.yellow ? 'There is still yellow highlighting on the PDF. Take the highlight off every piece you changed (or the template\'s highlight is still under it).' : '', 2);
+    else add(!a.highlighted.length, 'No highlighted text left', a.highlighted.length ? 'Still highlighted: ' + clip(a.highlighted) + '. Select it and choose Text Highlight Color › No Color.' : '', 2);
     const notes = (text.match(/\[[^\]\n]*\]|PLS UPDATE[^\n]*|\(Use this address[^)]*\)/gi) || []);
     add(!notes.length, 'No template instructions or [brackets] left', notes.length ? 'Remove: ' + clip(notes) : '', 2);
     add(text.indexOf(today()) >= 0, `The letter is dated today (${today()})`, text.indexOf(today()) >= 0 ? '' : 'Type the date the letter goes out, the firm\'s way: Month D, YYYY.');
     const dbl = a.paras.filter(p => /\S {2,}\S/.test(p));
     add(!dbl.length, 'No double spaces between words', dbl.length ? 'In: ' + clip(dbl.map(p => p.match(/.{0,25}\S {2,}\S.{0,15}/)[0])) + '. ¶ Show/Hide shades every space.' : '');
-    const prof = await profileOf(t), used = ED.fonts(), odd = Object.keys(used).map(k => used[k])
-        .filter(u => !prof.fonts.has(u.font.toLowerCase()) || !prof.sizes.has(u.pt));
-    add(!odd.length, 'Fonts and sizes match the template', odd.length ? odd.map(u => `${u.font} ${u.pt} pt (${u.chars} characters, e.g. “${u.sample.slice(0, 30)}”)`).join('; ') : '');
+    if (a.fonts) {          // a PDF doesn't say which font a line was typed in reliably, so this is checked on Word uploads only
+        const prof = await profileOf(t), used = a.fonts, odd = Object.keys(used).map(k => used[k])
+            .filter(u => (u.font && !prof.fonts.has(u.font.toLowerCase())) || (u.pt && !prof.sizes.has(u.pt)));
+        add(!odd.length, 'Fonts and sizes match the template', odd.length ? odd.map(u => `${u.font || 'the template font'} ${u.pt ? u.pt + ' pt' : ''} (${u.chars} characters, e.g. “${u.sample.slice(0, 30)}”)`).join('; ') : '');
+    }
     if (t.dir === 'templates') {
         const via = a.paras.find(p => /SENT VIA/i.test(p)) || '';
         add(!(/FACSIMILE/i.test(via) && /E-?MAIL/i.test(via)), 'One sending method on the “SENT VIA” line', via && /FACSIMILE/i.test(via) && /E-?MAIL/i.test(via) ? 'Keep only the method you are using.' : '');
@@ -371,14 +349,14 @@ async function runChecks(t) {
         add(!left.length, 'No sample details from the template left', left.length ? 'Still the template\'s: ' + clip(left) : '', 2);
     }
     if (isMedlor(t)) {
-        const ticked = /☒|☑/.test(text) || a.checks.some(Boolean);
+        const ticked = /☒|☑|✓|✔|\bX\b(?= ?(Medical|Itemized|Bills|Records))/.test(text) || (a.checks || []).some(Boolean);
         add(ticked, 'A box ticked for what you are requesting', ticked ? '' : 'Tick bills, records or both: double-click a ☐, or Insert › Symbol ☒.');
     }
     const total = out.reduce((s, c) => s + c.weight, 0), got = out.reduce((s, c) => s + c.weight * c.part, 0);
     return { checks: out, score: total ? Math.round(got / total * 100) : 0, text: a.paras };
 }
 function checksHtml(res) {
-    if (!res) return '<p style="margin:0;color:#64748b;">The check runs on the letter in the Word view.</p>';
+    if (!res) return '<p style="margin:0;color:#64748b;">Upload your edited letter to have it checked.</p>';
     return `<div class="dr-score">${res.score}%</div>
         <ul class="dr-checks">${res.checks.map(c => `<li><span class="${c.ok ? 'ok' : 'no'}">${c.ok ? '✓' : '✗'}</span><div>${esc(c.label)}${c.detail ? `<small>${esc(c.detail)}</small>` : ''}</div></li>`).join('')}</ul>`;
 }
@@ -437,7 +415,7 @@ function carrierOf(t) {
 }
 // The client, read off the letter itself ("Our Client: John Test Doe"), as the trainee has it now.
 function clientOf(t) {
-    const edited = LETTER[t.id] && LETTER[t.id].paras;              // the Word view's letter, as last saved
+    const edited = LETTER[t.id] && LETTER[t.id].paras;              // the letter as last uploaded from Word
     if (edited) for (const line of edited) {
         const m = line.match(/Our Client:\s*([^\t\n]+)/);
         if (m && m[1].trim()) return m[1].trim();
@@ -509,13 +487,62 @@ function packetHtml(t) {
     </div>
     <div class="dr-note">
         <h3>Step 3 · One PDF, ready to send</h3>
-        <p style="margin:0 0 8px;">Download the Word letter, open it in Word and save it as PDF (File › Save As › PDF). Choose that PDF here: the page puts the HIPAA in front of it, as the firm sends it.</p>
+        <p style="margin:0 0 8px;">Save your finished MedLOR as a PDF (in Word or any word processor: File › Save As › PDF; or the PDF you edited). Choose that PDF here: the page puts the HIPAA in front of it, as the firm sends it.</p>
         <input type="file" id="dr-medpdf" accept="application/pdf,.pdf" style="width:100%;font-size:12px;margin-bottom:8px;">
         <button class="sim-btn orange" style="width:100%;" onclick="LSHDrafting.packet()">⬇ Build the packet (PDF)</button>
         <p style="margin:10px 0 4px;color:#64748b;">Saved as</p>
         <div class="dr-name">${esc(fileName(t))}.pdf</div>
         ${admin ? `<p style="margin:12px 0 0;"><b>For trainers:</b> <a href="${MODEL_SRC}" download>the firm's finished packet</a> (model answer — trainees can't open it).</p>` : ''}
     </div>`;
+}
+// The HIPAA as an original too, under a MedLOR's letter: the firm's own PDF, read-only, as Intake has it.
+// Its pages are drawn on the page (pdf.js, loaded only for a MedLOR), as the letter's are, rather than left to
+// the browser's own PDF viewer, which some browsers don't have; if they can't be drawn, the browser's viewer is the fallback.
+const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+let pdfjsLoad = null;
+function pdfjs() {
+    if (!pdfjsLoad) pdfjsLoad = new Promise((ok, no) => {
+        if (window.pdfjsLib) return ok(window.pdfjsLib);
+        const s = document.createElement('script');
+        s.src = PDFJS + 'pdf.min.js';
+        s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js'; ok(window.pdfjsLib); };
+        s.onerror = () => { pdfjsLoad = null; no(new Error('pdf.js could not be loaded')); };
+        document.head.appendChild(s);
+    });
+    return pdfjsLoad;
+}
+function hipaaViewHtml(t) {
+    if (!isMedlor(t)) return '';
+    return `<div class="wd wd-view wd-pdf" id="dr-hipaa">
+        <div class="wd-title"><span class="wd-logo" aria-hidden="true">PDF</span><span class="wd-fname">INTAKE - HIPAA 2.0 (John Test Doe).pdf</span><span data-state>The client's signed HIPAA · Opening…</span></div>
+        <div class="wd-canvas"><div class="dr-pdfpages" data-pages-host></div></div>
+        <div class="wd-status"><span data-pages></span><a href="${HIPAA_SRC}" download="INTAKE - HIPAA 2.0 (John Test Doe).pdf" style="margin-left:auto;color:#185abd;font-weight:600;">⬇ Download the HIPAA</a></div>
+    </div>`;
+}
+async function openHipaa() {
+    const box = document.getElementById('dr-hipaa'); if (!box) return;
+    const host = box.querySelector('[data-pages-host]'), st = box.querySelector('[data-state]');
+    try {
+        const lib = await pdfjs();
+        const doc = await lib.getDocument({ url: HIPAA_SRC, withCredentials: true }).promise;
+        const width = Math.max(320, host.clientWidth - 48), dpr = window.devicePixelRatio || 1;
+        for (let n = 1; n <= doc.numPages; n++) {
+            const pg = await doc.getPage(n), base = pg.getViewport({ scale: 1 }), vp = pg.getViewport({ scale: width / base.width * dpr });
+            const c = document.createElement('canvas');
+            c.width = vp.width; c.height = vp.height; c.style.width = width + 'px';
+            c.setAttribute('aria-label', `The client's signed HIPAA, page ${n} of ${doc.numPages}`);
+            await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+            if (!document.body.contains(host)) return;
+            host.appendChild(c);
+        }
+        box.querySelector('.wd-status [data-pages]').textContent = doc.numPages + ' page' + (doc.numPages === 1 ? '' : 's');
+        st.textContent = 'The client\'s signed HIPAA · Original · read-only';
+    } catch (e) {
+        if (!document.body.contains(host)) return;
+        host.innerHTML = `<iframe class="wd-pdfframe" src="${HIPAA_SRC}#view=FitH" title="The client's signed HIPAA"></iframe>`;
+        st.textContent = 'The client\'s signed HIPAA · Original';
+        if (window.console) console.warn('Drafting: the HIPAA could not be drawn —', e && e.message);
+    }
 }
 async function buildPacket(t, medBytes) {
     const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
@@ -561,44 +588,62 @@ function tabsHtml() {
         </div>
         ${S.tab === 'prov' ? providerBar() : ''}`;
 }
-// The ways to work the original: in Word (the editor here, saved to the platform, downloaded as a PDF), in Nitro Pro
-// (the PDF handed to Nitro, and the trainee's edited PDF saved back to the platform), or the Word file itself.
+// The ways to work the original, on the trainee's own computer: ✎ Edit in Word (the .docx, for any word processor)
+// and ✎ Edit in PDF (the same letter as a PDF, from simulators/drafting/pdf/, for any PDF editor). Either way, what
+// they save is uploaded back here and graded.
 function docBarHtml(t) {
     return `<div class="dr-docbar">
         <span class="dr-docname" title="${esc(origName(t))}">📄 ${esc(t.provider ? t.provider + ' — ' : '')}${esc(t.title)}</span>
         <span class="dr-docacts">
-            <button class="sim-btn orange" onclick="LSHDrafting.edit('word')">✎ Edit in Word</button>
-            <a class="sim-btn ghost" href="${pdfOf(t)}" download="${esc(fileName(t))}.pdf" data-nitro>✎ Edit in Nitro Pro</a>
-            <a class="sim-btn ghost" href="${srcOf(t)}" download="${esc(origName(t))}">⬇ Download Doc</a>
+            <a class="sim-btn orange" href="${srcOf(t)}" download="${esc(fileName(t))}.docx" data-word onclick="LSHDrafting.editing('word')">✎ Edit in Word</a>
+            <a class="sim-btn orange" href="${pdfOf(t)}" download="${esc(fileName(t))}.pdf" data-pdfedit onclick="LSHDrafting.editing('pdf')">✎ Edit in PDF</a>
         </span>
     </div>`;
 }
-// Nitro Pro: the trainee's edited PDF, saved back to the platform (their account) as '<letter>:pdf'.
+// The trainee's uploads, kept on their account for their trainer: '<letter>:docx' and '<letter>:pdf' (base64, 1.4 MB at most).
 const PDF_MAX = 1400000;
-const pdfKey = (t) => t.id + ':pdf';
-function nitroHtml(t) {
-    return `<div class="dr-note" id="dr-nitro">
-        <h3>Edited in Nitro Pro</h3>
-        <ol style="margin:0 0 10px;padding-left:18px;">
-            <li style="margin:0 0 5px;"><b>✎ Edit in Nitro Pro</b> hands this document to Nitro Pro as a PDF (if it doesn't open in Nitro by itself, open it from the browser's downloads; in Chrome or Edge, <i>Always open files of this type</i> makes it one click next time).</li>
-            <li style="margin:0 0 5px;">Make your changes in Nitro Pro and <b>Save</b>.</li>
-            <li style="margin:0;">Save it to the platform here, so your updated PDF is on your account for your trainer.</li>
-        </ol>
-        <label class="sim-btn orange" style="display:block;text-align:center;cursor:pointer;">⬆ Save my edited PDF to the platform
-            <input type="file" accept="application/pdf,.pdf" hidden onchange="LSHDrafting.savePdf(this)"></label>
-        <div data-pdf style="margin-top:10px;color:#64748b;">${cloudOn() ? 'Looking for a saved PDF…' : 'Sign in to save your PDF to the platform.'}</div>
-    </div>`;
+const fileKey = (t, kind) => t.id + ':' + kind;
+const MIME = { docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', pdf: 'application/pdf' };
+function editHtml(t) {
+    const step = (n, html) => `<li style="margin:0 0 6px;">${html}</li>`;
+    return `<div class="dr-note" id="dr-edit">
+        <h3>Edit it on your computer</h3>
+        <p style="margin:0 0 8px;">Use whichever program you have. What you upload is checked, and the score goes to your progress in the Portal.</p>
+        <div class="dr-way${S.edit === 'word' ? ' on' : ''}" data-way="word">
+            <b>✎ In Word, or any word processor</b>
+            <ol style="margin:6px 0 8px;padding-left:18px;">
+                ${step(1, '<b>✎ Edit in Word</b> downloads the letter as a Word file (.docx).')}
+                ${step(2, 'Open it from your downloads (or right-click › <b>Open with</b> to choose the program): <b>Microsoft Word</b> — or, without Word, <b>LibreOffice Writer</b> or <b>WPS Office</b> (both free), or <b>Google Docs</b> (upload it to Drive, open with Google Docs, then File › Download › Microsoft Word).')}
+                ${step(3, 'Make your changes and save it as a <b>Word document (.docx)</b>.')}
+            </ol>
+            <label class="sim-btn orange" style="display:block;text-align:center;cursor:pointer;">⬆ Upload my edited Word file
+                <input type="file" accept=".docx,${MIME.docx}" hidden onchange="LSHDrafting.upload(this, 'docx')"></label>
+        </div>
+        <div class="dr-way${S.edit === 'pdf' ? ' on' : ''}" data-way="pdf">
+            <b>✎ In any PDF editor</b>
+            <ol style="margin:6px 0 8px;padding-left:18px;">
+                ${step(1, '<b>✎ Edit in PDF</b> downloads the letter as a PDF.')}
+                ${step(2, 'Open it in the PDF editor on your computer (right-click › <b>Open with</b> to choose it): <b>Adobe Acrobat</b>, <b>Nitro Pro</b>, <b>Foxit PDF Editor</b>, <b>PDF-XChange Editor</b>, or <b>LibreOffice Draw</b> (free). Use its <b>Edit text</b> tool to change the letter itself; a fill-and-sign tool only types on top, and the highlighted text stays under it.')}
+                ${step(3, 'Make your changes and <b>Save</b> it as a PDF.')}
+            </ol>
+            <label class="sim-btn orange" style="display:block;text-align:center;cursor:pointer;">⬆ Upload my edited PDF
+                <input type="file" accept="application/pdf,.pdf" hidden onchange="LSHDrafting.upload(this, 'pdf')"></label>
+        </div>
+        <div data-saved style="margin-top:10px;color:#64748b;">${cloudOn() ? 'Looking for what you uploaded…' : 'Sign in to keep your uploads on the platform.'}</div>
+        <div data-sync style="color:#64748b;font-size:12px;"></div>
+    </div>
+    <div class="dr-note" id="dr-check" hidden><h3>Your letter, checked</h3><div data-body></div></div>`;
 }
-// The trainer's view (admins): every trainee's PDF saved back from Nitro Pro, newest first, each opening in the browser.
+// The trainer's view (admins): every trainee's uploaded Word file and PDF, newest first, each opening from the platform.
 function letterLabel(id) {
-    const tid = id.replace(/:pdf$/, ''), t = TEMPLATES.find(x => x.id === tid);
+    const tid = id.replace(/:(pdf|docx)$/, ''), t = TEMPLATES.find(x => x.id === tid);
     if (t) return t.title;
     const m = tid.match(/^prov:(.+):(\w+)$/), p = m && PROVIDERS.find(x => x.id === m[1]);
     return m ? (p ? p.name : m[1]) + ' — ' + (LETTER_KIND[m[2]] || m[2]) : tid;
 }
 function trainerHtml() {
     return Sim.isAdmin() ? `<details class="dr-note" id="dr-trainer" open style="margin-bottom:14px;">
-        <summary style="cursor:pointer;"><h3 style="display:inline;">Trainees' edited PDFs (trainer)</h3></summary>
+        <summary style="cursor:pointer;"><h3 style="display:inline;">Trainees' uploaded letters (trainer)</h3></summary>
         <div data-list style="margin-top:10px;color:#64748b;">Loading…</div></details>` : '';
 }
 async function showTrainer() {
@@ -610,27 +655,27 @@ async function showTrainer() {
         rows = d && d.success ? d.pdfs || [] : null;
     } catch (e) { /* offline */ }
     if (!document.body.contains(box)) return;
-    if (!rows) { box.textContent = 'The trainees\' PDFs could not be loaded.'; return; }
+    if (!rows) { box.textContent = 'The trainees\' uploads could not be loaded.'; return; }
     box.innerHTML = rows.length ? `<table style="width:100%;border-collapse:collapse;font-size:12.5px;">
         <tr style="text-align:left;"><th style="padding:4px;">Trainee</th><th style="padding:4px;">Document</th><th style="padding:4px;">Saved</th><th></th></tr>
         ${rows.map(r => `<tr style="border-top:1px solid #e2e8f0;"><td style="padding:4px;">${esc(r.name || r.username)}${r.batch ? `<div style="color:#64748b;font-size:11px;">${esc(r.batch)}</div>` : ''}</td><td style="padding:4px;">${esc(letterLabel(r.letter))}</td>
             <td style="padding:4px;">${esc(new Date(r.updatedAt).toLocaleString())}</td>
-            <td style="padding:4px;"><a href="${CLOUD_API}?raw=1&letter=${encodeURIComponent(r.letter)}&user=${encodeURIComponent(r.username)}" target="_blank" rel="noopener">Open PDF</a></td></tr>`).join('')}
-    </table>` : 'No trainee has saved an edited PDF yet.';
+            <td style="padding:4px;"><a href="${CLOUD_API}?raw=1&letter=${encodeURIComponent(r.letter)}&user=${encodeURIComponent(r.username)}" target="_blank" rel="noopener">${/:docx$/.test(r.letter) ? 'Word file' : 'Open PDF'}</a></td></tr>`).join('')}
+    </table>` : 'No trainee has uploaded a letter yet.';
 }
-async function showSavedPdf(t) {
-    const box = document.querySelector('#dr-nitro [data-pdf]'); if (!box || !cloudOn()) return;
-    let at = null;
+// What the trainee has uploaded for this letter, with a way to get it back.
+async function showSaved(t) {
+    const box = document.querySelector('#dr-edit [data-saved]'); if (!box || !cloudOn()) return;
+    const at = {};
     try {
         const res = await Sim.fetchRetry(CLOUD_API, { credentials: 'include', cache: 'no-store' });
         const d = await res.json().catch(() => null);
-        const row = d && d.success && (d.letters || []).find(x => x.letter === pdfKey(t));
-        at = row ? row.updatedAt : null;
+        ((d && d.success && d.letters) || []).forEach(x => { if (x.letter === fileKey(t, 'docx')) at.docx = x.updatedAt; if (x.letter === fileKey(t, 'pdf')) at.pdf = x.updatedAt; });
     } catch (e) { /* offline: say nothing is known */ }
     if (!document.body.contains(box) || tpl().id !== t.id) return;
-    box.innerHTML = at
-        ? `Your edited PDF is saved to the platform (${esc(new Date(at).toLocaleString())}).<br><button class="sim-btn ghost" style="margin-top:8px;width:100%;" onclick="LSHDrafting.savedPdf()">⬇ Download my saved PDF</button>`
-        : 'No edited PDF saved for this document yet.';
+    const row = (kind, label) => at[kind] ? `<div style="margin-top:6px;">Your ${label} is on the platform (${esc(new Date(at[kind]).toLocaleString())}).
+        <button class="sim-btn ghost" style="margin-top:6px;width:100%;" onclick="LSHDrafting.savedFile('${kind}')">⬇ Download my ${label}</button></div>` : '';
+    box.innerHTML = row('docx', 'Word file') + row('pdf', 'PDF') || 'Nothing uploaded for this letter yet.';
 }
 function renderView(t) {
     app().innerHTML = `
@@ -638,83 +683,37 @@ function renderView(t) {
         ${tabsHtml()}
         ${docBarHtml(t)}
         <div class="dr-grid">
+            <div class="dr-main">
             <div class="wd wd-view" id="dr-wd">
                 <div class="wd-title"><span class="wd-logo" aria-hidden="true">W</span><span class="wd-fname">${esc(origName(t))}</span><span data-state>Opening…</span></div>
                 <div class="wd-canvas"><div class="dr-paper" id="dr-paper">${paperHtml(t)}</div></div>
                 <div class="wd-status" id="dr-status"><span data-pages></span><span data-words></span><span>English (United States)</span><span data-say></span></div>
             </div>
+            ${hipaaViewHtml(t)}
+            </div>
             <div class="dr-side">
                 <div class="dr-note">
                     <h3>The original document</h3>
-                    <p style="margin:0 0 7px;">This is the firm's own file, exactly as it was sent. Choose how to work it:</p>
-                    <ul style="margin:0;padding-left:18px;">
-                        <li style="margin:0 0 5px;"><b>✎ Edit in Word</b> opens it in the Word editor here. Your changes are saved to the platform as you work; then <b>⬇ Download as PDF</b>.</li>
-                        <li style="margin:0 0 5px;"><b>✎ Edit in Nitro Pro</b> opens it as a PDF in Nitro Pro; save your edited PDF back to the platform below.</li>
-                        <li style="margin:0;"><b>⬇ Download Doc</b> saves the original Word file.</li>
-                    </ul>
+                    <p style="margin:0;">This is the firm's own file, exactly as it was sent. You edit it on your own computer: <b>✎ Edit in Word</b> for Word or any word processor, <b>✎ Edit in PDF</b> for any PDF editor. Then upload it here.</p>
+                    ${isMedlor(t) ? `<p style="margin:7px 0 0;">The client's signed HIPAA, as Intake has it, is under the letter: the MedLOR goes out with it in front, as one PDF.</p>` : ''}
+                    <p style="margin:10px 0 4px;color:#64748b;">Name your file</p>
+                    <div class="dr-name">${esc(fileName(t))}.docx</div>
                 </div>
-                ${nitroHtml(t)}
+                ${editHtml(t)}
+                ${packetHtml(t)}
                 ${caseHtml()}
                 ${guideHtml(t)}
             </div>
         </div>`;
     openViewer(t);
-    showSavedPdf(t);
+    openHipaa();
+    restoreLetter(t);
+    showSaved(t);
     showTrainer();
 }
 
 function render() {
-    const t = tpl(), done = doneCount(t), total = theirFields(t).length;
-    ED = null;
-    if (S.mode !== 'word') return renderView(t);
-    app().innerHTML = `
-        ${tabsHtml()}
-        <div class="dr-docbar">
-            <span class="dr-docname">✎ Editing in Word — ${esc(t.provider ? t.provider + ' — ' : '')}${esc(t.title)}</span>
-            <span class="dr-docacts">
-                <button class="sim-btn ghost" onclick="LSHDrafting.edit('view')">← The original</button>
-                <button class="sim-btn ghost" onclick="LSHDrafting.saveNow()">💾 Save to the platform</button>
-                <button class="sim-btn orange" onclick="LSHDrafting.pdf()">⬇ Download as PDF</button>
-                <button class="sim-btn ghost" onclick="LSHDrafting.download()">⬇ Download Doc</button>
-            </span>
-        </div>
-        <div class="dr-grid">
-            <div class="wd" id="dr-wd">
-                <div class="wd-title"><span class="wd-logo" aria-hidden="true">W</span><span class="wd-fname">${esc(fileName(t))}.docx</span><span data-state>Opening…</span></div>
-                <div class="wd-ribbon" id="dr-ribbon"></div>
-                <div class="wd-canvas"><div class="dr-paper" id="dr-paper">${paperHtml(t)}</div></div>
-                <div class="wd-status" id="dr-status">
-                    <span data-pages></span><span data-words></span><span>English (United States)</span><span data-say></span>
-                    <span class="wd-zs"><button type="button" onclick="LSHDrafting.zoom(-0.1)" aria-label="Zoom out">−</button><span data-zoom>100%</span><button type="button" onclick="LSHDrafting.zoom(0.1)" aria-label="Zoom in">+</button></span>
-                </div>
-            </div>
-            <div class="dr-side">
-                <div class="dr-note">
-                    <h3>This letter</h3>
-                    <div class="dr-prog"><i style="width:${total ? Math.round(done / total * 100) : 0}%"></i></div>
-                    <div class="dr-saved">${done} of ${total} blanks filled${S.savedAt ? ` · saved ${new Date(S.savedAt).toLocaleTimeString()}` : ''}</div>
-                    <div class="dr-actions" style="margin-top:12px;">
-                        <button class="sim-btn orange" onclick="LSHDrafting.download()">⬇ Download Doc</button>
-                        <button class="sim-btn ghost" onclick="LSHDrafting.check()">✔ Check my letter</button>
-                        <button class="sim-btn ghost" onclick="LSHDrafting.submit()">✓ Send it to my trainer</button>
-                        <a class="sim-btn ghost" href="${srcOf(t)}" download>⬇ The blank template</a>
-                    </div>
-                    <p style="margin:12px 0 4px;color:#64748b;">Saved as</p>
-                    <div class="dr-name">${esc(fileName(t))}.docx</div>
-                </div>
-                <div class="dr-note" id="dr-check" hidden><h3>Check my letter</h3><div data-body></div></div>
-                ${packetHtml(t)}
-                ${caseHtml()}
-                ${guideHtml(t)}
-                <div class="dr-note">
-                    <h3>How this works</h3>
-                    <p style="margin:0 0 7px;">This is the firm's own Word file, and all of it is yours to edit, as it will be in Word at the firm: click anywhere in the letter and type. The ribbon has Word's Home tab — Paste (with Word's Paste Options: Keep Source Formatting, Merge Formatting, Keep Text Only), font, size, <b>B</b> <i>I</i> <u>U</u>, the highlighter (<b>No Color</b> takes a highlight off), font colour, bullets, numbering, indents, line and paragraph spacing, alignment — plus Find &amp; Replace, Insert › Symbol and Date, and ¶ Show/Hide to see every space, tab and paragraph mark. Ctrl+Z undoes. The pages break where Word breaks them.</p>
-                    <p style="margin:0 0 7px;">What the firm highlighted in yellow is what you have to change. When you're done, nothing in the letter should be highlighted — taking the highlight off is part of the job, just as in Word.</p>
-                    <p style="margin:0;">Your download is exactly what you see: the firm's file with your edits written into it, letterhead, logo, fonts and spacing as they are. Your letter is saved as you work, to your Portal account (and this browser), so it opens where you left it on any computer you sign in on.</p>
-                </div>
-            </div>
-        </div>`;
-    openEditor(t);
+    return renderView(tpl());
 }
 
 function showChecks(res) {
@@ -722,77 +721,104 @@ function showChecks(res) {
     box.hidden = false;
     box.querySelector('[data-body]').innerHTML = checksHtml(res);
 }
+// The score a checked letter reports to the trainee's progress (Sim.saveResult). A MedLOR is graded with its HIPAA:
+// 70% the letter, 30% the HIPAA's three done the firm's way.
+async function record(t, res, from) {
+    const hip = isMedlor(t) ? HIPAA_FIELDS.map(f => ({ field: f.label, answer: hipaaVal(t, f.id), correct: f.ok(hipaaVal(t, f.id)) })) : null;
+    const hipOk = hip ? hip.filter(h => h.correct).length : 0;
+    const failed = res.checks.filter(c => !c.ok);
+    const r = {
+        simulator: S.tab === 'prov' ? 'Drafting — Medical Provider' : 'Drafting — LOR',
+        scenario: S.tab === 'prov' ? `${t.title} · ${t.provider}` : t.title + (CASES.length ? ` · Case ${S.caseNo + 1}` : ''),
+        score: Math.round(hip ? (res.score * 0.7 + hipOk / hip.length * 30) : res.score),
+        summary: `Edited in ${from === 'pdf' ? 'a PDF editor' : 'Word'} · ${res.score}% · ${res.checks.length - failed.length} of ${res.checks.length} checks passed`
+            + (hip ? ` · HIPAA ${hipOk} of ${hip.length} right` + (S.answers[t.id + ':packet'] ? ' · packet built' : ' · packet not built') : ''),
+        details: { template: t.id, editedIn: from, caseNo: S.tab === 'prov' ? null : S.caseNo + 1, provider: S.tab === 'prov' ? t.provider : null,
+            hipaa: hip, packetBuiltAt: hip ? (S.answers[t.id + ':packet'] || null) : null, fileName: fileName(t) + (hip ? '.pdf' : from === 'pdf' ? '.pdf' : '.docx'),
+            checks: res.checks.map(c => ({ check: c.label, ok: c.ok, detail: c.detail })), letter: res.text.join('\n').slice(0, 20000) }
+    };
+    await Sim.saveResult(r);
+    return r;
+}
+// An upload, kept on the trainee's account for their trainer (base64; refused over 1.4 MB, as the platform keeps it).
+async function keepFile(t, kind, file, bytes) {
+    if (!cloudOn()) return 'Not kept on the platform — sign in to keep it.';
+    if (bytes.length > PDF_MAX) return 'Checked, but too large to keep on the platform (1.4 MB at most)' + (kind === 'pdf' ? ': in your PDF editor, reduce the file size and upload it again.' : '.');
+    let b64 = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) b64 += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    try {
+        const res = await Sim.fetchRetry(CLOUD_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'draft', letter: fileKey(t, kind), data: JSON.stringify({ name: file.name, b64: btoa(b64), at: new Date().toISOString() }), base: null }) });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok || !d.success) return 'Not kept on the platform: ' + (d.error || 'it did not take it (' + res.status + ').');
+    } catch (e) { return 'Not kept on the platform — check your connection and upload it again.'; }
+    return '';
+}
 const API = {
     tab(id) { S.tab = id; render(); window.scrollTo(0, 0); },
-    edit(mode) { S.mode = mode === 'word' ? 'word' : 'view'; render(); window.scrollTo(0, 0); },
-    // 💾 Save to the platform now (it is also saved as the trainee works, 2.5 s after the last change).
-    async saveNow() {
-        const t = tpl();
-        if (!ED || ED.tid !== t.id) return;
-        await persist(t, ED);
-        if (!cloudOn()) { ED.unsaved('Saved to this browser — sign in to save it to the platform'); return; }
-        await cloudSend(t.id);
+    // ✎ Edit in Word / Edit in PDF: the link downloads the file; this puts that way's steps first.
+    editing(way) {
+        S.edit = way;
+        document.querySelectorAll('#dr-edit .dr-way').forEach(el => el.classList.toggle('on', el.getAttribute('data-way') === way));
+        const el = document.querySelector(`#dr-edit [data-way="${way}"]`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     },
-    // ⬇ Download as PDF: the letter as edited, Word's pages edge to edge, through the browser's Save as PDF.
-    async pdf() {
-        const t = tpl();
-        if (!ED || ED.tid !== t.id) { alert('The letter is still opening. Try again in a moment.'); return; }
-        persist(t, ED);
-        ED.gap(0);
-        const copy = document.getElementById('dr-paper').cloneNode(true);
-        ED.gap(18);
-        copy.removeAttribute('id');
-        copy.querySelectorAll('[contenteditable]').forEach(n => n.removeAttribute('contenteditable'));
-        copy.querySelectorAll('.docx-wrapper').forEach(w => { w.style.zoom = ''; });
-        // each section exactly its pages tall: anything past the last page's bottom would print a blank page
-        copy.querySelectorAll('section.docx').forEach(sec => { sec.style.height = Math.max(0, parseFloat(sec.style.minHeight) - 2) + 'px'; sec.style.overflow = 'hidden'; });
-        const box = document.createElement('div');
-        box.id = 'dr-print'; box.appendChild(copy);
-        document.body.appendChild(box); document.body.classList.add('dr-printing');
-        const was = document.title;
-        document.title = fileName(t);                       // the PDF's file name in the Save as PDF dialog
-        const done = () => { box.remove(); document.body.classList.remove('dr-printing'); document.title = was; window.removeEventListener('afterprint', done); };
-        window.addEventListener('afterprint', done);
-        window.print();
-        setTimeout(() => { if (document.body.contains(box) && !matchMedia('print').matches) done(); }, 1000);
-    },
-    // Nitro Pro: the trainee's edited PDF, saved to the platform.
-    async savePdf(input) {
+    // ⬆ The edited letter, back from the trainee's computer: checked, scored to their progress, and kept on their account.
+    async upload(input, kind) {
         const t = tpl(), file = input && input.files && input.files[0];
         if (input) input.value = '';
         if (!file) return;
-        const box = document.querySelector('#dr-nitro [data-pdf]');
-        const say = (m) => { if (box) box.textContent = m; };
-        if (!cloudOn()) { alert('Sign in to the Portal to save your PDF to the platform.'); return; }
+        const box = document.querySelector('#dr-edit [data-saved]');
+        const say = (m) => { if (box) box.innerHTML = m; };
         const bytes = new Uint8Array(await file.arrayBuffer());
-        if (String.fromCharCode.apply(null, bytes.slice(0, 5)) !== '%PDF-') { alert('That file is not a PDF. Save it from Nitro Pro as a PDF and choose it again.'); return; }
-        if (bytes.length > PDF_MAX) { alert('That PDF is too large to save (1.4 MB at most). In Nitro Pro, use File › Optimize PDF and try again.'); return; }
-        say('Saving your PDF to the platform…');
-        let b64 = '';
-        for (let i = 0; i < bytes.length; i += 0x8000) b64 += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-        b64 = btoa(b64);
+        let letter;
         try {
-            const res = await Sim.fetchRetry(CLOUD_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'draft', letter: pdfKey(t), data: JSON.stringify({ name: file.name, b64, at: new Date().toISOString() }), base: null }) });
-            const d = await res.json().catch(() => ({}));
-            if (!res.ok || !d.success) { say('Not saved: ' + (d.error || 'the platform did not take it (' + res.status + ').')); return; }
-        } catch (e) { say('Not saved — check your connection and try again.'); return; }
-        showSavedPdf(t);
+            if (kind === 'pdf') {
+                if (String.fromCharCode.apply(null, bytes.slice(0, 5)) !== '%PDF-') { alert('That file is not a PDF. Save it from your PDF editor as a PDF and choose it again.'); return; }
+                say('Reading your PDF…');
+                const p = await readPdf(bytes.slice(0));
+                letter = { from: 'pdf', paras: p.paras, yellow: p.yellow, highlighted: [], checks: [], fonts: null };
+            } else {
+                let xml = null;
+                try { xml = await LSHDraftingDocx.documentXml(bytes.slice(0)); } catch (e) { /* not a .docx */ }
+                if (!xml) { alert('That file is not a Word document (.docx). In your word processor, choose Save As › Word Document (.docx) and choose it again.'); return; }
+                say('Reading your Word file…');
+                const au = LSHDraftingDocx.auditXml(xml);
+                letter = Object.assign({ from: 'word', fonts: fontsOfXml(xml) }, au);
+                LETTER[t.id] = au;                      // the client as the trainee wrote it, for the file name
+                await saveDoc(t.id, xml);
+            }
+        } catch (e) {
+            say('');
+            alert('That file could not be read: ' + (e && e.message || e));
+            return;
+        }
+        if (!letter.paras.join('').trim()) { say(''); alert('No text could be read from that file. If it is a scanned or flattened PDF, edit the downloaded one and save it from your editor.'); return; }
+        const res = await runChecks(t, letter);
+        showChecks(res);
+        say('Checking done · keeping your file on the platform…');
+        const kept = await keepFile(t, kind, file, bytes);
+        await record(t, res, kind === 'pdf' ? 'pdf' : 'word');
+        document.querySelectorAll('.dr-name').forEach(nm => { nm.textContent = fileName(t) + (/\.pdf$/.test(nm.textContent) ? '.pdf' : '.docx'); });
+        if (kept) say(esc(kept)); else showSaved(t);
+        const c = document.getElementById('dr-check'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return res;
     },
-    async savedPdf() {
+    // ⬇ What the trainee uploaded, back from the platform.
+    async savedFile(kind) {
         const t = tpl();
         try {
-            const res = await Sim.fetchRetry(CLOUD_API + '?letter=' + encodeURIComponent(pdfKey(t)), { credentials: 'include', cache: 'no-store' });
+            const res = await Sim.fetchRetry(CLOUD_API + '?letter=' + encodeURIComponent(fileKey(t, kind)), { credentials: 'include', cache: 'no-store' });
             const d = await res.json().catch(() => null), p = d && d.success && d.data ? JSON.parse(d.data) : null;
-            if (!p || !p.b64) { alert('No saved PDF was found for this document.'); return; }
+            if (!p || !p.b64) { alert('Nothing uploaded was found for this document.'); return; }
             const bin = atob(p.b64), out = new Uint8Array(bin.length);
             for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
             const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([out], { type: 'application/pdf' }));
-            a.download = fileName(t) + '.pdf';
+            a.href = URL.createObjectURL(new Blob([out], { type: MIME[kind] }));
+            a.download = fileName(t) + '.' + kind;
             document.body.appendChild(a); a.click(); a.remove();
             setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-        } catch (e) { alert('The saved PDF could not be downloaded: ' + e.message); }
+        } catch (e) { alert('It could not be downloaded: ' + e.message); }
     },
     pickCase(i) { S.caseNo = Number(i) || 0; save(); render(); },
     pickProvider(i) {
@@ -802,7 +828,7 @@ const API = {
         save(); render(); window.scrollTo(0, 0);
     },
     pickKind(k) { S.kind = k; save(); render(); window.scrollTo(0, 0); },
-    // The sketch's blanks (only while the Word view is loading, or if it can't be drawn).
+    // The sketch's blanks (only while the original is loading, or if it can't be drawn).
     set(f, v) {
         S.answers[key(tpl().id, f)] = v;           // filed under the letter's own id (a provider's carries the provider)
         save();
@@ -817,33 +843,9 @@ const API = {
         });
     },
     setHipaa(id, v) { S.answers[hipaaKey(tpl(), id)] = v; save(); },
-    zoom(dz) { if (ED) ED.cmd.zoom(dz); },
-    xml() { return ED && ED.tid === tpl().id ? ED.xml() : null; },     // the letter as it would download (tests)
-    // The editor's File menu and Review tab.
-    action(a) {
-        if (a === 'download') return API.download();
-        if (a === 'check') return API.check();
-        if (a === 'save') { const t = tpl(); if (ED) persist(t, ED); return; }
-        if (a === 'template') { const l = document.createElement('a'); l.href = srcOf(tpl()); l.download = ''; document.body.appendChild(l); l.click(); l.remove(); return; }
-        if (a === 'reset') {
-            const t = tpl();
-            if (!confirm('Start this letter over from the firm\'s template? Everything you changed in it is lost.')) return;
-            dropDoc(t.id); cloudDelete(t.id);
-            Object.keys(S.answers).forEach(k => { if (k.indexOf(t.id + ':') === 0 && k.indexOf(':hipaa:') < 0) delete S.answers[k]; });
-            delete LETTER[t.id];
-            save(); render();
-        }
-    },
-    async check() {
-        const t = tpl(), res = await runChecks(t);
-        showChecks(res);
-        const box = document.getElementById('dr-check');
-        if (box) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        return res;
-    },
     async packet() {
         const t = tpl(), input = document.getElementById('dr-medpdf'), file = input && input.files && input.files[0];
-        if (!file) { alert('Choose your MedLOR saved as PDF first (open the Word letter in Word, then File › Save As › PDF).'); return; }
+        if (!file) { alert('Choose your MedLOR saved as PDF first (in your word processor, File › Save As › PDF; or the PDF you edited).'); return; }
         if (!window.PDFLib) { alert('The PDF tool could not be loaded. Check your connection and try again.'); return; }
         const open = HIPAA_FIELDS.filter(f => !hipaaVal(t, f.id).trim());
         if (open.length && !confirm(`The HIPAA still has ${open.length} blank${open.length === 1 ? '' : 's'} (${open.map(f => f.label).join(', ')}). Build the packet anyway?`)) return;
@@ -860,70 +862,6 @@ const API = {
             alert('The packet could not be built: ' + (/encrypt|parse|header/i.test(e.message) ? 'that file does not read as a PDF.' : e.message));
         }
     },
-    // The letter as a .docx: in the Word view, exactly what is on screen; from the sketch, its blanks.
-    async build() {
-        const t = tpl();
-        if (ED && ED.tid === t.id) {
-            const xml = ED.xml(), a = LSHDraftingDocx.auditXml(xml);
-            persist(t, ED);
-            return { blob: await LSHDraftingDocx.pack(ED.bytes, xml), highlighted: a.highlighted.length, editor: true };
-        }
-        const out = await LSHDraftingDocx.fill(await templateBytes(t), answersFor(t));
-        return Object.assign(out, { editor: false });
-    },
-    async download() {
-        const t = tpl();
-        try {
-            const out = await API.build();
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(out.blob);
-            a.download = fileName(t) + '.docx';
-            document.body.appendChild(a); a.click(); a.remove();
-            setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-            // Highlighted text still in it goes out highlighted, so say so rather than letting it go quietly.
-            if (out.editor) {
-                if (ED) ED.unsaved(out.highlighted ? `Downloaded — ${out.highlighted} highlighted piece${out.highlighted === 1 ? '' : 's'} still in it` : 'Downloaded');
-            } else {
-                alert(out.missing.length
-                    ? `Downloaded. ${out.filled} of ${out.total} blanks are filled — the ${out.missing.length} still empty stay highlighted in yellow in the letter.`
-                    : `Downloaded. All ${out.total} blanks are filled.`);
-            }
-        } catch (e) {
-            alert('The letter could not be built: ' + e.message);
-        }
-    },
-    async submit() {
-        const t = tpl();
-        // A MedLOR is graded with its HIPAA: the letter, and the HIPAA's three done the firm's way.
-        const hip = isMedlor(t) ? HIPAA_FIELDS.map(f => ({ field: f.label, answer: hipaaVal(t, f.id), correct: f.ok(hipaaVal(t, f.id)) })) : null;
-        const hipOk = hip ? hip.filter(h => h.correct).length : 0;
-        const res = ED && ED.tid === t.id ? await runChecks(t) : null;
-        let letterPct, summary, details;
-        if (res) {
-            showChecks(res);
-            const failed = res.checks.filter(c => !c.ok);
-            if (failed.length && !confirm(`Check my letter found ${failed.length} thing${failed.length === 1 ? '' : 's'} to fix (${res.score}%). Send it to your trainer anyway?`)) return;
-            letterPct = res.score;
-            summary = `Check my letter ${res.score}% · ${res.checks.length - failed.length} of ${res.checks.length} checks passed`;
-            details = { checks: res.checks.map(c => ({ check: c.label, ok: c.ok, detail: c.detail })), letter: res.text.join('\n').slice(0, 20000) };
-        } else {
-            const done = doneCount(t), total = theirFields(t).length;
-            if (!total) return;
-            if (done < total && !confirm(`${total - done} blank${total - done === 1 ? '' : 's'} still empty. Send it to your trainer anyway?`)) return;
-            letterPct = done / total * 100;
-            summary = `${done} of ${total} blanks filled`;
-            details = { answers: answersFor(t) };
-        }
-        Sim.saveResult({
-            simulator: S.tab === 'prov' ? 'Drafting — Medical Provider' : 'Drafting — LOR',
-            scenario: S.tab === 'prov' ? `${t.title} · ${t.provider}` : t.title + (CASES.length ? ` · Case ${S.caseNo + 1}` : ''),
-            score: Math.round(hip ? (letterPct * 0.7 + hipOk / hip.length * 30) : letterPct),
-            summary: summary + (hip ? ` · HIPAA ${hipOk} of ${hip.length} right` + (S.answers[t.id + ':packet'] ? ' · packet built' : ' · packet not built') : ''),
-            details: Object.assign({ template: t.id, caseNo: S.tab === 'prov' ? null : S.caseNo + 1, provider: S.tab === 'prov' ? t.provider : null,
-                hipaa: hip, packetBuiltAt: hip ? (S.answers[t.id + ':packet'] || null) : null, fileName: fileName(t) + (hip ? '.pdf' : '.docx') }, details)
-        });
-        alert('Sent to your trainer. Download the Word letter too if you need to upload it to SA.');
-    }
 };
 window.LSHDrafting = API;
 
@@ -933,7 +871,6 @@ Sim.label('Drafting');
 // (Standard Foundational Training's Provider Communication days open the MedLOR + HIPAA packet this way).
 function fromLink() {
     const q = new URLSearchParams(location.search), tab = q.get('tab'), kind = q.get('kind');
-    if (q.get('mode') === 'word') S.mode = 'word';
     if (tab === 'prov' && PROVIDERS.length) S.tab = 'prov';
     else if (tab && TEMPLATES.some(x => x.id === tab)) S.tab = tab;
     if (S.tab === 'prov' && kind && LETTER_KIND[kind]) {

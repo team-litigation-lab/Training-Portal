@@ -2,7 +2,7 @@
 // saves a letter and gets it back (in another browser: the same request); the list of their letters; an older copy never
 // overwrites a newer one (409 DRAFT_NEWER, nothing changed) while a copy made from the latest is saved; another trainee sees
 // none of it; an admin can open a trainee's letter, a trainee can't open anyone else's; Start over deletes it; bad letter ids
-// and oversized letters are refused.
+// and oversized letters are refused; an uploaded PDF or Word file is kept, opened as itself and listed for the trainer.
 // Run: node --no-warnings .github/scripts/drafting-drafts.mjs   (from the repository root)
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'fs';
@@ -70,6 +70,15 @@ __setSession(bo);
 r = await call('GET', null, '?pdfs=1'); ck(r.st === 200 && r.j.pdfs.length === 2 && r.j.pdfs.every(x => x.username === 'ann' && x.name === 'Ann Lee' && x.batch === 'B102226' && /:pdf$/.test(x.letter)), 'the trainer lists the trainees\' PDFs (and no letters), with their names and batch');
 res = await raw('?letter=lor1p:pdf&raw=1&user=ann'); ck(res.status === 200 && Buffer.from(await res.arrayBuffer()).toString() === '%PDF-1.7 test', 'and opens one');
 res = await raw('?letter=lor1p:pdf&raw=1&user=cy'); ck(res.status === 404, 'a PDF nobody saved: 404');
+// a letter edited in any word processor and uploaded as '<letter>:docx': kept like a PDF, downloaded as the Word file, listed for the trainer
+__setSession(ann);
+r = await call('POST', { action: 'draft', letter: 'lor1p:docx', data: JSON.stringify({ name: 'INS – 1P.docx', b64: Buffer.from('PK word').toString('base64'), at: '2' }) }); ck(r.st === 200, 'a trainee saves their edited Word file');
+r = await call('POST', { action: 'draft', letter: 'lor3p:docx', data: 'x'.repeat(1000000) }); ck(r.st === 200, 'a Word file may be bigger than a letter, as a PDF may');
+res = await raw('?letter=lor1p:docx&raw=1');
+ck(res.status === 200 && /wordprocessingml/.test(res.headers.get('Content-Type')) && Buffer.from(await res.arrayBuffer()).toString() === 'PK word'
+    && /^attachment; filename="INS _ 1P\.docx"$/.test(res.headers.get('Content-Disposition')), 'the saved Word file downloads as itself');
+__setSession(bo);
+r = await call('GET', null, '?pdfs=1'); ck(r.st === 200 && r.j.pdfs.length === 4 && r.j.pdfs.filter(x => /:docx$/.test(x.letter)).length === 2, 'the trainer lists the Word files with the PDFs');
 
 console.log(fails.length ? `\n${fails.length} failed` : '\nall passed');
 process.exit(fails.length ? 1 : 0);
