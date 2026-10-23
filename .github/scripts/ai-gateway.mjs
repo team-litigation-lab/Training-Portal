@@ -181,6 +181,27 @@ check(noSecret.status === 501, 'with no gateway secret set the gateway says so')
     check(gw.limits({ AI_REVIEW_RESERVE: '0.2' }).reviewReserve === 0.2 && gw.limits({}).reviewReserve === 0.1 && gw.limits({ AI_REVIEW_RESERVE: '0' }).reviewReserve === 0, 'AI_REVIEW_RESERVE sets the reserve (10% unless set)');
 }
 
+// fast (a live call's line): minimal thinking; anything else low; a model that refuses the setting isn't sent it again
+{
+    const realFetch = globalThis.fetch;
+    let sent = [], refuse = false;
+    globalThis.fetch = async (url, init) => {
+        const g = JSON.parse(init.body).generationConfig || {}, t = g.thinkingConfig ? g.thinkingConfig.thinkingLevel : null; sent.push(t);
+        if (refuse && t) return new Response(JSON.stringify({ error: { message: 'thinking_level is not supported' } }), { status: 400 });
+        return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'ok' }] } }] }), { status: 200 });
+    };
+    gw._resetKeys();
+    const kenv = { GEMINI_API_KEY: 'K1' };
+    await gw.generate(kenv, { system: 's', messages: [{ role: 'user', text: 'x' }], fast: true });
+    check(sent[0] === 'minimal', `a call's line asks for minimal thinking (${sent[0]})`);
+    sent = []; await gw.generate(kenv, { system: 's', messages: [{ role: 'user', text: 'x' }] });
+    check(sent[0] === 'low', `anything else keeps low thinking (${sent[0]})`);
+    sent = []; refuse = true;
+    for (let i = 0; i < 3; i++) await gw.generate(kenv, { system: 's', messages: [{ role: 'user', text: 'x' }], fast: true });
+    check(sent.filter(Boolean).length === 1, `a model that refused the thinking setting was sent it ${sent.filter(Boolean).length} times in 3 calls (once, then never)`);
+    globalThis.fetch = realFetch;
+}
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(failures.length ? `\n${failures.length} failed` : '\nall passed');
 process.exit(failures.length ? 1 : 0);

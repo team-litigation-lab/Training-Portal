@@ -149,7 +149,9 @@ async function viaRelay(env, { system, messages, json, maxTokens, signal }) {
 // One model call through the shared keys: → { ok, text, model, tokens, status, error }
 // `signal` (optional, an AbortSignal) is for a caller with a deadline, such as work that runs after the response is sent: when it
 // fires the relay and Gemini fetches stop and the answer is { ok: false, status: 504 } instead of walking on through the other keys and models.
-export async function generate(env, { system, messages, json, maxTokens, signal }) {
+// fast: a live call's next line (1–3 sentences): as little thinking as the model allows, so the caller answers in about a second
+const noThinking = new Set();   // models that refused a thinking setting: not sent to them again (no second request every turn)
+export async function generate(env, { system, messages, json, maxTokens, signal, fast }) {
     const chars = String(system || '').length + messages.reduce((a, m) => a + String(m.text || '').length, 0);
     const names = keyNames(env);
     const slow = () => ({ ok: false, status: 504, error: 'The AI took too long to answer.', tokens: 0 });
@@ -181,13 +183,13 @@ export async function generate(env, { system, messages, json, maxTokens, signal 
         for (const name of ring.filter(n => everyResting || !resting(n, model))) {
             if (signal && signal.aborted) return slow();
             const p = JSON.parse(JSON.stringify(payload));
-            p.generationConfig.thinkingConfig = { thinkingLevel: 'low' };
+            if (!noThinking.has(model)) p.generationConfig.thinkingConfig = { thinkingLevel: fast ? 'minimal' : 'low' };
             const send = (b) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
                 method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': String(env[name]).trim() }, body: JSON.stringify(b) });
             let res, data;
             try {
                 res = await send(p); data = await res.json().catch(() => ({}));
-                if (res.status === 400 && /thinking/i.test(errOf(data))) { delete p.generationConfig.thinkingConfig; res = await send(p); data = await res.json().catch(() => ({})); }
+                if (res.status === 400 && /thinking/i.test(errOf(data))) { noThinking.add(model); delete p.generationConfig.thinkingConfig; res = await send(p); data = await res.json().catch(() => ({})); }
             } catch (e) { if (signal && signal.aborted) return slow(); last = other = { status: 502, error: 'Gemini unreachable: ' + (e && e.message || e) }; continue; }   // next key
             if (res.ok) {
                 const cand = (data.candidates || [])[0] || {};
@@ -223,14 +225,14 @@ export async function generate(env, { system, messages, json, maxTokens, signal 
 }
 
 // The whole path for one request: budget → model → ledger. → { status, body }
-export async function runAi(db, env, { module, user, system, messages, json, maxTokens, signal }) {
+export async function runAi(db, env, { module, user, system, messages, json, maxTokens, signal, fast }) {
     module = normModule(module);
     const gate = await admit(db, env, { module, user, review: !!json });
     if (!gate.ok) {
         await record(db, { module, refused: true });
         return { status: 429, body: { success: false, error: gate.reason, scope: gate.scope } };
     }
-    const r = await generate(env, { system, messages, json, maxTokens, signal });
+    const r = await generate(env, { system, messages, json, maxTokens, signal, fast: !!fast && !json });
     await record(db, { module, tokens: r.tokens || 0, error: !r.ok });
     return r.ok ? { status: 200, body: { success: true, text: r.text, model: r.model, tokens: r.tokens, module } } : { status: r.status || 502, body: { success: false, error: r.error } };
 }

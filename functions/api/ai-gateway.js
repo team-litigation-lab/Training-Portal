@@ -5,7 +5,7 @@ import { runAi, runLiveToken, usageSummary, normModule } from '../_ai-gateway.js
 //
 //   POST /api/ai-gateway   header X-Gateway-Key: <AI_GATEWAY_SECRET>   (the same secret on every caller)
 //        { module: 'standard'|'cms'|'reception'|'intake'|'calendaring'|'ea-pa'|'pd'|'medsum', user, system,
-//          messages: [{ role: 'user'|'model', text }], json, maxTokens }
+//          messages: [{ role: 'user'|'model', text }], json, maxTokens, fast }   (fast: a live call's line, minimal thinking)
 //        → { success, text, model, tokens }  or  { success: false, error, scope } with 429 when a budget says wait
 //   POST /api/ai-gateway   { action: 'live-token', module, user, setup, model, maxMinutes }  → { success, token }   (a live voice call: counts as AI_LIVE_COST requests)
 //   GET  /api/ai-gateway   (a signed-in admin) today's usage: calls, tokens, errors and refusals per call flow, and the limits
@@ -35,6 +35,6 @@ export async function onRequestPost({ request, env }) {
     if (!messages.length) return json({ success: false, error: 'messages is required.' }, 400);
     const total = (body.system || '').length + messages.reduce((a, m) => a + String(m.text || '').length, 0);
     if (total > MAX_CHARS) return json({ success: false, error: 'Request is too long.' }, 413);
-    const r = await runAi(env.TRAINING_DB, env, { module: normModule(body.module), user: body.user, system: body.system, messages, json: !!body.json, maxTokens: body.maxTokens });
+    const r = await runAi(env.TRAINING_DB, env, { module: normModule(body.module), user: body.user, system: body.system, messages, json: !!body.json, maxTokens: body.maxTokens, fast: !!body.fast });
     return json(r.body, r.status);
 }
