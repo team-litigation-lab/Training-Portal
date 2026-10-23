@@ -186,3 +186,17 @@ textarea.dr-f { display: block; width: 100%; min-height: 72px; resize: vertical;
 .dr-docacts .sim-btn { text-decoration: none; display: inline-flex; align-items: center; }
 .wd.wd-view .wd-canvas { cursor: default; }
 @media (max-width: 600px) { .dr-docacts, .dr-docacts .sim-btn { width: 100%; justify-content: center; } }
+
+/* ⬇ Download as PDF: only the letter's pages print (drafting.js pdf() puts a copy in #dr-print), edge to edge on Letter paper. */
+@media print {
+    @page { size: letter; margin: 0; }
+    body.dr-printing { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+    body.dr-printing > *:not(#dr-print) { display: none !important; }
+    #dr-print { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #dr-print .dr-paper { padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: #fff !important; }
+    #dr-print .docx-wrapper { padding: 0 !important; background: #fff !important; display: block !important; zoom: 1 !important; }
+    #dr-print section.docx { margin: 0 !important; box-shadow: none !important; }
+    #dr-print .dr-pgband { display: none !important; }
+}
+#dr-print { display: none; }
+@media print { #dr-print { display: block; } }

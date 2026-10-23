@@ -31,6 +31,7 @@ const server = http.createServer((req, res) => {
     if (u.pathname === '/api/drafting-drafts') {
         if (req.method === 'GET') {
             const l = u.searchParams.get('letter'), r = ACCOUNT[l];
+            if (l == null) return send({ success: true, letters: Object.keys(ACCOUNT).map(k => ({ letter: k, updatedAt: ACCOUNT[k].updatedAt })) });
             return send({ success: true, letter: l, data: r ? r.data : null, updatedAt: r ? r.updatedAt : null });
         }
         let body = ''; req.on('data', c => { body += c; });
@@ -110,19 +111,44 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
         return page.evaluate(() => window.getSelection().toString());
     };
 
-    // 0. the page opens on the firm's original, read-only, with Edit in Word · Edit PDF · Download Doc
+    // 0. the page opens on the firm's original, read-only, with Edit in Word · Edit in Nitro Pro · Download Doc
     await page.goto(base + '/simulators/drafting.html?tab=lor1p', { waitUntil: 'load' });
     await page.waitForSelector('section.docx > article', { timeout: 30000 });
     await page.waitForFunction(() => /Original/.test((document.querySelector('.wd-title [data-state]') || {}).textContent || ''), null, { timeout: 15000 });
     check('the original opens read-only', await page.$$eval('section.docx > article', as => as.length > 0 && as.every(a => a.contentEditable !== 'true')), 'an editable article');
-    check('Edit in Word · Edit PDF · Download Doc', (await page.$$eval('.dr-docacts .sim-btn', bs => bs.map(b => b.textContent.trim()).join(' | '))) === '✎ Edit in Word | ✎ Edit PDF | ⬇ Download Doc',
+    check('Edit in Word · Edit in Nitro Pro · Download Doc', (await page.$$eval('.dr-docacts .sim-btn', bs => bs.map(b => b.textContent.trim()).join(' | '))) === '✎ Edit in Word | ✎ Edit in Nitro Pro | ⬇ Download Doc',
         await page.$$eval('.dr-docacts .sim-btn', bs => bs.map(b => b.textContent.trim()).join(' | ')));
     const pdfHref = await page.$eval('.dr-docacts a[href$=".pdf"]', a => a.getAttribute('href'));
-    check('Edit PDF has its PDF', fs.existsSync(path.join(ROOT, decodeURIComponent(pdfHref))), pdfHref);
-    check('Download Doc is the original .docx', (await page.$eval('.dr-docacts a[download]', a => a.getAttribute('href'))) === '/simulators/drafting/templates/1P_LOR.docx', 'another file');
-    await page.click('text=✎ Edit in Word');
-    await page.waitForSelector('section.docx > article[contenteditable="true"]', { timeout: 30000 });
+    check('Edit in Nitro Pro hands over its PDF', fs.existsSync(path.join(ROOT, decodeURIComponent(pdfHref))) && /\.pdf$/.test(await page.$eval('[data-nitro]', a => a.getAttribute('download'))), pdfHref);
+    check('Download Doc is the original .docx', (await page.$eval('.dr-docacts a[href$=".docx"]', a => a.getAttribute('href'))) === '/simulators/drafting/templates/1P_LOR.docx', 'another file');
+    // the PDF edited in Nitro Pro, saved back to the platform, and downloaded from it again
+    const nitroPdf = fs.readFileSync(path.join(ROOT, decodeURIComponent(pdfHref)));
+    await page.setInputFiles('#dr-nitro input[type=file]', { name: 'edited.pdf', mimeType: 'application/pdf', buffer: nitroPdf });
+    await page.waitForFunction(() => /saved to the platform/.test((document.querySelector('#dr-nitro [data-pdf]') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    const keptPdf = ACCOUNT['lor1p:pdf'] && JSON.parse(ACCOUNT['lor1p:pdf'].data);
+    check('Save my edited PDF puts it on the account', !!keptPdf && Buffer.from(keptPdf.b64, 'base64').equals(nitroPdf), 'not saved as sent');
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('text=⬇ Download my saved PDF')]);
+    check('and it downloads from the platform as it was saved', fs.readFileSync(await dl.path()).equals(nitroPdf), fs.readFileSync(await dl.path()).length + ' bytes, not ' + nitroPdf.length);
+    await page.setInputFiles('#dr-nitro input[type=file]', { name: 'notes.pdf', mimeType: 'application/pdf', buffer: Buffer.from('not a pdf') });
+    check('a file that is not a PDF is refused', Buffer.from(JSON.parse(ACCOUNT['lor1p:pdf'].data).b64, 'base64').equals(nitroPdf), 'overwritten');
+    await page.click('.dr-docacts button:has-text("Edit in Word")');
+    await page.waitForSelector('section.docx > article[contenteditable="true"]', { timeout: 30000 }).catch(async e => {
+        console.log(errors, await page.evaluate(() => [document.querySelector('.dr-docname') && document.querySelector('.dr-docname').textContent, (document.querySelector('.wd-title') || {}).textContent]));
+        throw e;
+    });
     check('Edit in Word opens the editor', !!(await page.$('.wd-tabs')), 'no ribbon');
+    await page.waitForFunction(() => /Saved/.test((document.querySelector('.wd-title [data-state]') || {}).textContent || ''), null, { timeout: 15000 });
+    check('Edit in Word: Save to the platform · Download as PDF · Download Doc',
+        (await page.$$eval('.dr-docacts .sim-btn', bs => bs.map(b => b.textContent.trim()).join(' | '))) === '← The original | 💾 Save to the platform | ⬇ Download as PDF | ⬇ Download Doc', 'other buttons');
+    // Download as PDF prints Word's pages, edge to edge, with nothing else of the page
+    await page.evaluate(() => { window.print = () => { window.__printed = document.title; }; });
+    await page.click('text=⬇ Download as PDF');
+    const printed = await page.evaluate(() => window.__printed);
+    const pdfOut = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+    const pdfPages = (pdfOut.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
+    check('Download as PDF: the letter\'s two pages, named the firm\'s way', pdfPages === 2 && /^INS – 1P .* - LOR \d\d\.\d\d\.\d{4} \(Ann\)$/.test(printed || ''), `${pdfPages} pages, "${printed}"`);
+    await page.waitForFunction(() => !document.getElementById('dr-print'), null, { timeout: 5000 }).catch(() => {});
+    check('the print copy is gone after printing', !(await page.$('#dr-print')), 'still there');
 
     // 1. the letter opens in the editor, Word's chrome around it
     await page.goto(base + '/simulators/drafting.html?tab=lor1p&mode=word', { waitUntil: 'load' });

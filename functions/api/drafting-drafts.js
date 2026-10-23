@@ -5,7 +5,8 @@ import { json, requireSession } from '../_utils.js';
 // One row per person and letter in TRAINING_DB (made on first use):
 //   drafting_drafts   username, letter, data, updated_at
 //     letter  the letter's id on the page ('lor1p', 'lor3p', 'prov:<provider>:medlor' …), or '_state' for the page's own
-//             choices (the case, the provider, the HIPAA's answers)
+//             choices (the case, the provider, the HIPAA's answers), or '<letter>:pdf' for the trainee's PDF of that letter,
+//             edited in Nitro Pro and saved back to the platform ({ name, b64, at })
 //     data    what the page sends, as it sends it: a letter is its word/document.xml, deflated and base64'd, with when the
 //             trainee last changed it ({ z, at }); stored and handed back as text, never read here
 //
@@ -16,6 +17,9 @@ import { json, requireSession } from '../_utils.js';
 //                                                saved (another tab or device) the answer is 409 DRAFT_NEWER and nothing changes
 //   POST { action:'delete', letter }             Start over: my saved copy of that letter is gone
 const MAX = 400000;                                  // a deflated letter is ~10 KB; the biggest template's XML is ~70 KB raw
+// '<letter>:pdf' is the trainee's own PDF of it, edited in Nitro Pro and saved back (base64): up to ~1.4 MB of PDF, inside D1's 2 MB value.
+const MAX_PDF = 1900000;
+const maxOf = (letter) => /:pdf$/.test(letter) ? MAX_PDF : MAX;
 const LETTER = /^[\w:.\-]{1,160}$/;
 const clean = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, '').trim().slice(0, n);
 const nowIso = () => new Date().toISOString();
@@ -59,7 +63,7 @@ export async function onRequestPost({ request, env }) {
     }
     if (b.action !== 'draft') return json({ success: false, error: 'Unknown action.' }, 400);
     const data = typeof b.data === 'string' ? b.data : '';
-    if (!data || data.length > MAX) return json({ success: false, error: data ? 'This letter is too large to save.' : 'Nothing to save.' }, 400);
+    if (!data || data.length > maxOf(letter)) return json({ success: false, error: data ? (/:pdf$/.test(letter) ? 'This PDF is too large to save (1.4 MB at most).' : 'This letter is too large to save.') : 'Nothing to save.' }, 400);
     const at = nowIso();
     // `base`: the copy this one was made from. A copy saved after it (another tab or device) is not overwritten by an older one.
     const t = typeof b.base === 'string' ? Date.parse(b.base) : NaN, base = Number.isFinite(t) ? new Date(t).toISOString() : null;

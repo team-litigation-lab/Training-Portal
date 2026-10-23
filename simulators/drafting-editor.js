@@ -20,7 +20,7 @@
        onChange  called (debounced) after every edit
        onAction  File menu / Review actions: 'download' | 'save' | 'reset' | 'template' | 'check'
        readOnly  the letter drawn as Word has it, pages and letterhead, with nothing to type in (the original)
-       gap       px between pages (18 on screen; 0 to print the pages edge to edge as a PDF)
+       gap       px between pages (18 on screen; 0 to print the pages edge to edge as a PDF); editor.gap(g) changes it
      -> Promise<editor>   editor.xml() the letter as document.xml now · editor.stats() · editor.fonts()
    ============================================================ */
 (function () {
@@ -899,7 +899,7 @@ function open(opts) {
        goes on with its next line on the next page (never leaving one line behind or carrying one line over: Word's
        widow/orphan control), a table or a short paragraph moves over whole, and the header layer is repeated per page.
        The breaks are spacers the page draws (no text, not part of the letter): they're redone after every change. */
-    const GAP = opts.gap != null ? opts.gap : 18;                          // between pages on screen (0 when printing a PDF)
+    let GAP = opts.gap != null ? opts.gap : 18;                            // between pages on screen (0 when printing a PDF)
     function paginate() {
         const keep = arts().some(a => a.contains(document.activeElement) || a === document.activeElement) ? selOffsets() : null;
         let pages = 0;
@@ -1098,6 +1098,8 @@ function open(opts) {
         mark('Saved');
         return {
             xml, edit, stats, fonts, fit, focus: () => { const a = arts()[0]; if (a) a.focus(); },
+            // the pages edge to edge, unzoomed (gap 0), to print as a PDF; gap(18) puts the screen back
+            gap: (g) => { GAP = g; const w = host.querySelector('.docx-wrapper'); if (g) fit(); else if (w) w.style.zoom = ''; paginate(); },
             saved: () => mark('Saved to this browser'),
             unsaved: (m) => mark(m || 'Not saved'),
             cmd: CMD

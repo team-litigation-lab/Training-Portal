@@ -1,4 +1,4 @@
-// Makes the PDF copy of every original Drafting document, for the page's ✎ Edit PDF button.
+// Makes the PDF copy of every original Drafting document, for the page's ✎ Edit in Nitro Pro button.
 //
 // Each .docx in simulators/drafting/templates/ and simulators/drafting/providers/ is drawn exactly as the
 // Drafting page draws the original (docx-preview + drafting-letterhead.js + the editor's Word pages, read-only)
@@ -22,7 +22,7 @@ if (process.argv.includes('--check')) {
     missing.forEach(d => console.error('No PDF for ' + d + ' (run node .github/scripts/make-drafting-pdfs.cjs)'));
     extra.forEach(f => console.error('A PDF with no document: ' + f));
     if (missing.length || extra.length) process.exit(1);
-    console.log(`Drafting PDFs: all ${docs.length} documents have their PDF for Edit PDF.`);
+    console.log(`Drafting PDFs: all ${docs.length} documents have their PDF for Edit in Nitro Pro.`);
     process.exit(0);
 }
 
