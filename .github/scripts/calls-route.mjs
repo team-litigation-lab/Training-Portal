@@ -38,7 +38,7 @@ for (const [link, want] of Object.entries(links)) {
 }
 // signed out: the sign-in page, not Ring Channel; an admin opens the same phone as a trainer (Ring Channel has no sign-in of its own)
 const out = await mw('/simulators/call.html?program=FT', null);
-if (out.status !== 302 || out.headers.get('Location') !== '/trainee-login.html') fail(`a signed-out visitor to the Call Simulator wasn't sent to sign in: ${out.status} ${out.headers.get('Location')}`);
+if (out.status !== 302 || !/^\/trainee-login\.html\?next=%2Fsimulators%2Fcall\.html/.test(out.headers.get('Location') || '')) fail(`a signed-out visitor to the Call Simulator wasn't sent to sign in: ${out.status} ${out.headers.get('Location')}`);
 const ad = await go('/api/launch?tool=ringchannel&to=calls&flow=reception', admin);
 if (!/^https:\/\/lshringchannel\.legalsupporthelp\.workers\.dev\/\?ticket=[^#&]+&track=reception#\/practice$/.test(ad.at)) fail(`an Admin's Call Simulator link: ${ad.at}`);
 // the other simulators are unchanged
