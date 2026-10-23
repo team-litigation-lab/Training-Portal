@@ -612,7 +612,7 @@ async function showTrainer() {
     if (!rows) { box.textContent = 'The trainees\' PDFs could not be loaded.'; return; }
     box.innerHTML = rows.length ? `<table style="width:100%;border-collapse:collapse;font-size:12.5px;">
         <tr style="text-align:left;"><th style="padding:4px;">Trainee</th><th style="padding:4px;">Document</th><th style="padding:4px;">Saved</th><th></th></tr>
-        ${rows.map(r => `<tr style="border-top:1px solid #e2e8f0;"><td style="padding:4px;">${esc(r.username)}</td><td style="padding:4px;">${esc(letterLabel(r.letter))}</td>
+        ${rows.map(r => `<tr style="border-top:1px solid #e2e8f0;"><td style="padding:4px;">${esc(r.name || r.username)}${r.batch ? `<div style="color:#64748b;font-size:11px;">${esc(r.batch)}</div>` : ''}</td><td style="padding:4px;">${esc(letterLabel(r.letter))}</td>
             <td style="padding:4px;">${esc(new Date(r.updatedAt).toLocaleString())}</td>
             <td style="padding:4px;"><a href="${CLOUD_API}?raw=1&letter=${encodeURIComponent(r.letter)}&user=${encodeURIComponent(r.username)}" target="_blank" rel="noopener">Open PDF</a></td></tr>`).join('')}
     </table>` : 'No trainee has saved an edited PDF yet.';

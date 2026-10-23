@@ -14,7 +14,7 @@ import { json, requireSession } from '../_utils.js';
 //   GET  /api/drafting-drafts?letter=<id>        one of mine: { data, updatedAt } (data null: nothing saved)
 //   GET  /api/drafting-drafts?letter=<id>&user=<username>   (admins) a trainee's, for looking at their work
 //   GET  /api/drafting-drafts?letter=<id>:pdf&raw=1 (&user=…)  a saved PDF itself (application/pdf), to open in the browser
-//   GET  /api/drafting-drafts?pdfs=1             (admins) every trainee's saved PDF: [{ username, letter, updatedAt }]
+//   GET  /api/drafting-drafts?pdfs=1             (admins) every trainee's saved PDF: [{ username, name, batch, letter, updatedAt }]
 //   POST { action:'draft', letter, data, base }  save mine; `base` is the updatedAt this copy was made from: if a newer one is
 //                                                saved (another tab or device) the answer is 409 DRAFT_NEWER and nothing changes
 //   POST { action:'delete', letter }             Start over: my saved copy of that letter is gone
@@ -42,7 +42,18 @@ export async function onRequestGet({ request, env }) {
     if (q.get('pdfs') != null) {
         if (s.userType !== 'Admin') return json({ success: false, error: 'Admin access required.' }, 403);
         const { results } = await db.prepare(`SELECT username, letter, updated_at FROM drafting_drafts WHERE letter LIKE '%:pdf' ORDER BY updated_at DESC LIMIT 500`).all();
-        return json({ success: true, pdfs: (results || []).map(r => ({ username: r.username, letter: r.letter, updatedAt: r.updated_at })) });
+        // the trainee's name and batch, from the accounts (env.DB users); the username alone if they can't be read
+        const who = {};
+        const names = [...new Set((results || []).map(r => r.username))];
+        try {
+            for (let i = 0; i < names.length && env.DB; i += 90) {
+                const part = names.slice(i, i + 90);
+                const { results: us } = await env.DB.prepare(`SELECT username, first_name, last_name, batch_id FROM users WHERE username IN (${part.map(() => '?').join(', ')})`).bind(...part).all();
+                (us || []).forEach(u => { who[u.username] = { name: [u.first_name, u.last_name].filter(Boolean).join(' '), batch: u.batch_id || '' }; });
+            }
+        } catch (e) { /* names are a convenience: the list still shows usernames */ }
+        return json({ success: true, pdfs: (results || []).map(r => ({ username: r.username, name: (who[r.username] || {}).name || '', batch: (who[r.username] || {}).batch || '',
+            letter: r.letter, updatedAt: r.updated_at })) });
     }
     if (q.get('letter') != null) {
         const letter = clean(q.get('letter'), 160);

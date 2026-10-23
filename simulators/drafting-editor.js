@@ -78,6 +78,20 @@ function diff(now, was) {
 }
 const ALIGN = { left: 'left', start: 'left', center: 'center', '-webkit-center': 'center', right: 'right', end: 'right', justify: 'both' };
 
+// A .docx's default font size in pt: w:docDefaults' w:sz (half-points), else Word's own 10 pt.
+const SIZES_OF = new WeakMap();
+async function defaultSize(bytes) {
+    if (SIZES_OF.has(bytes)) return SIZES_OF.get(bytes);
+    let pt = 10;
+    try {
+        const zip = await JSZip.loadAsync(bytes), f = zip.file('word/styles.xml');
+        const m = f && (await f.async('string')).match(/<w:docDefaults>[\s\S]*?<\/w:docDefaults>/);
+        const sz = m && m[0].match(/<w:sz w:val="(\d+)"/);
+        if (sz) pt = +sz[1] / 2;
+    } catch (e) { /* keep 10 pt */ }
+    SIZES_OF.set(bytes, pt);
+    return pt;
+}
 function open(opts) {
     const E = { host: opts.host, baseXml: opts.baseXml, bytes: opts.bytes, runFmt0: {}, pFmt0: {}, zoom: 1, fit: 1,
         undo: [], redo: [], lastSnap: 0, lastKind: '', marks: false, timer: null };
@@ -116,6 +130,10 @@ function open(opts) {
             throw e;
         }
         E.runFmt0 = {}; E.pFmt0 = {};
+        // What the letter's text inherits when a run sets no size: the file's default (docDefaults), else Word's 10 pt.
+        // docx-preview puts the default on spans only, so an empty line would otherwise take the page's own size.
+        const dsz = await defaultSize(E.bytes);
+        stage.querySelectorAll('.docx-wrapper').forEach(w => { w.style.fontSize = dsz + 'pt'; });
         [].slice.call(host.childNodes).forEach(n => { if (n !== stage) host.removeChild(n); });
         stage.style.cssText = '';
         stage.classList.remove('dr-stage');

@@ -16,7 +16,10 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'dd-')); fs.writeFileSync(path
 const m = await import(pathToFileURL(path.join(tmp, 'drafting-drafts.mjs')).href);
 const sql = new DatabaseSync(':memory:');
 const mk = (q) => { let a = []; const o = { bind: (...x) => { a = x; return o; }, run: async () => { const r = sql.prepare(q).run(...a); return { meta: { changes: r.changes } }; }, first: async () => sql.prepare(q).get(...a) || null, all: async () => ({ results: sql.prepare(q).all(...a) }) }; return o; };
-const env = { TRAINING_DB: { prepare: mk } };
+const accounts = new DatabaseSync(':memory:');
+accounts.exec(`CREATE TABLE users (username TEXT, first_name TEXT, last_name TEXT, batch_id TEXT); INSERT INTO users VALUES ('ann', 'Ann', 'Lee', 'B102226');`);
+const mkA = (q) => { let a = []; const o = { bind: (...x) => { a = x; return o; }, all: async () => ({ results: accounts.prepare(q).all(...a) }) }; return o; };
+const env = { TRAINING_DB: { prepare: mk }, DB: { prepare: mkA } };
 const call = async (meth, body, qs = '') => { const req = new Request('https://p/api/drafting-drafts' + qs, { method: meth, body: body ? JSON.stringify(body) : undefined });
     const r = await (meth === 'GET' ? m.onRequestGet : m.onRequestPost)({ request: req, env }); return { st: r.status, j: await r.json() }; };
 const fails = []; const ck = (o, t) => { console.log((o ? 'PASS ' : 'FAIL ') + t); if (!o) fails.push(t); };
@@ -64,7 +67,7 @@ ck(res.status === 200 && res.headers.get('Content-Type') === 'application/pdf' &
     && /^inline; filename="INS _ 1P\.pdf"$/.test(res.headers.get('Content-Disposition')), 'the saved PDF opens as itself, its name plain ASCII');
 r = await call('GET', null, '?pdfs=1'); ck(r.st === 403, 'a trainee can\'t list everyone\'s PDFs');
 __setSession(bo);
-r = await call('GET', null, '?pdfs=1'); ck(r.st === 200 && r.j.pdfs.length === 2 && r.j.pdfs.every(x => x.username === 'ann' && /:pdf$/.test(x.letter)), 'the trainer lists the trainees\' PDFs (and no letters)');
+r = await call('GET', null, '?pdfs=1'); ck(r.st === 200 && r.j.pdfs.length === 2 && r.j.pdfs.every(x => x.username === 'ann' && x.name === 'Ann Lee' && x.batch === 'B102226' && /:pdf$/.test(x.letter)), 'the trainer lists the trainees\' PDFs (and no letters), with their names and batch');
 res = await raw('?letter=lor1p:pdf&raw=1&user=ann'); ck(res.status === 200 && Buffer.from(await res.arrayBuffer()).toString() === '%PDF-1.7 test', 'and opens one');
 res = await raw('?letter=lor1p:pdf&raw=1&user=cy'); ck(res.status === 404, 'a PDF nobody saved: 404');
 

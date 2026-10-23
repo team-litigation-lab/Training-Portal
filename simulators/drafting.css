@@ -200,3 +200,7 @@ textarea.dr-f { display: block; width: 100%; min-height: 72px; resize: vertical;
 }
 #dr-print { display: none; }
 @media print { #dr-print { display: block; } }
+
+/* Word's own default size (10 pt) for a run whose file gives no size anywhere; drafting-editor.js sets the file's own
+   default (docDefaults) on the wrapper when it has one. Never the page's 15px: the MedLORs ran to a third or fourth page. */
+.dr-paper .docx-wrapper { font-size: 10pt; }

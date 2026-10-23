@@ -368,6 +368,15 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     check('the 3P letter is three pages, as Word has it', /of 3$/.test(await page.textContent('[data-pages]')), await page.textContent('[data-pages]'));
     const lh = await page.evaluate(() => ({ copies: document.querySelectorAll('.dr-lh-copy').length, gaps: document.querySelectorAll('.dr-pgband').length }));
     check('each page has the letterhead and footer, with the gap between pages', lh.copies >= 1 && lh.gaps >= 1, JSON.stringify(lh));
+    // a MedLOR whose file sets no font size at all is in Word's 10 pt, and two pages as in Word (at the page's 15px it ran to four)
+    await page.goto(base + '/simulators/drafting.html?tab=prov&kind=medlor&mode=word', { waitUntil: 'load' });
+    await ready();
+    await page.evaluate(() => { const s = document.querySelector('.dr-bar select'); const o = [].find.call(s.options, x => /Bone & Joint/.test(x.textContent)); LSHDrafting.pickProvider(o.value); });
+    await ready();
+    await page.waitForFunction(() => /of 2$/.test(document.querySelector('[data-pages]').textContent), null, { timeout: 10000 }).catch(() => {});
+    check('a MedLOR with no font size in its file: two pages, as Word has it', /of 2$/.test(await page.textContent('[data-pages]')), await page.textContent('[data-pages]'));
+    await page.goto(base + '/simulators/drafting.html?tab=lor3p&mode=word', { waitUntil: 'load' });
+    await ready();
     await find('Please note that our preferred method');
     await page.keyboard.press('Home');
     for (let i = 0; i < 16; i++) await page.keyboard.type('A sentence added so the letter runs on further and the pages move with it. ');
