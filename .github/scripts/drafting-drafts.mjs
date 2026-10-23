@@ -53,5 +53,20 @@ r = await call('POST', { action: 'delete', letter: 'lor1p' }); ck(r.st === 200, 
 r = await call('GET', null, '?letter=lor1p'); ck(r.j.data === null, 'and it is gone');
 r = await call('POST', { action: 'draft', letter: 'lor1p', data: letter('NEW', '9'), base: second }); ck(r.st === 200, 'after Start over, the next save starts it again');
 
+// a PDF edited in Nitro Pro, saved back as '<letter>:pdf': bigger than a letter, opened as the PDF itself, listed for the trainer
+const pdf = Buffer.from('%PDF-1.7 test').toString('base64');
+r = await call('POST', { action: 'draft', letter: 'lor1p:pdf', data: JSON.stringify({ name: 'INS – 1P.pdf', b64: pdf, at: '1' }) }); ck(r.st === 200, 'a trainee saves their edited PDF');
+r = await call('POST', { action: 'draft', letter: 'lor3p:pdf', data: 'x'.repeat(1000000) }); ck(r.st === 200, 'a PDF may be bigger than a letter');
+r = await call('POST', { action: 'draft', letter: 'lor3p:pdf', data: 'x'.repeat(1900001) }); ck(r.st === 400, 'but not over the limit');
+const raw = async (qs) => m.onRequestGet({ request: new Request('https://p/api/drafting-drafts' + qs), env });
+let res = await raw('?letter=lor1p:pdf&raw=1');
+ck(res.status === 200 && res.headers.get('Content-Type') === 'application/pdf' && Buffer.from(await res.arrayBuffer()).toString() === '%PDF-1.7 test'
+    && /^inline; filename="INS _ 1P\.pdf"$/.test(res.headers.get('Content-Disposition')), 'the saved PDF opens as itself, its name plain ASCII');
+r = await call('GET', null, '?pdfs=1'); ck(r.st === 403, 'a trainee can\'t list everyone\'s PDFs');
+__setSession(bo);
+r = await call('GET', null, '?pdfs=1'); ck(r.st === 200 && r.j.pdfs.length === 2 && r.j.pdfs.every(x => x.username === 'ann' && /:pdf$/.test(x.letter)), 'the trainer lists the trainees\' PDFs (and no letters)');
+res = await raw('?letter=lor1p:pdf&raw=1&user=ann'); ck(res.status === 200 && Buffer.from(await res.arrayBuffer()).toString() === '%PDF-1.7 test', 'and opens one');
+res = await raw('?letter=lor1p:pdf&raw=1&user=cy'); ck(res.status === 404, 'a PDF nobody saved: 404');
+
 console.log(fails.length ? `\n${fails.length} failed` : '\nall passed');
 process.exit(fails.length ? 1 : 0);

@@ -588,6 +588,35 @@ function nitroHtml(t) {
         <div data-pdf style="margin-top:10px;color:#64748b;">${cloudOn() ? 'Looking for a saved PDF…' : 'Sign in to save your PDF to the platform.'}</div>
     </div>`;
 }
+// The trainer's view (admins): every trainee's PDF saved back from Nitro Pro, newest first, each opening in the browser.
+function letterLabel(id) {
+    const tid = id.replace(/:pdf$/, ''), t = TEMPLATES.find(x => x.id === tid);
+    if (t) return t.title;
+    const m = tid.match(/^prov:(.+):(\w+)$/), p = m && PROVIDERS.find(x => x.id === m[1]);
+    return m ? (p ? p.name : m[1]) + ' — ' + (LETTER_KIND[m[2]] || m[2]) : tid;
+}
+function trainerHtml() {
+    return Sim.isAdmin() ? `<details class="dr-note" id="dr-trainer" open style="margin-bottom:14px;">
+        <summary style="cursor:pointer;"><h3 style="display:inline;">Trainees' edited PDFs (trainer)</h3></summary>
+        <div data-list style="margin-top:10px;color:#64748b;">Loading…</div></details>` : '';
+}
+async function showTrainer() {
+    const box = document.querySelector('#dr-trainer [data-list]'); if (!box) return;
+    let rows = null;
+    try {
+        const res = await Sim.fetchRetry(CLOUD_API + '?pdfs=1', { credentials: 'include', cache: 'no-store' });
+        const d = await res.json().catch(() => null);
+        rows = d && d.success ? d.pdfs || [] : null;
+    } catch (e) { /* offline */ }
+    if (!document.body.contains(box)) return;
+    if (!rows) { box.textContent = 'The trainees\' PDFs could not be loaded.'; return; }
+    box.innerHTML = rows.length ? `<table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+        <tr style="text-align:left;"><th style="padding:4px;">Trainee</th><th style="padding:4px;">Document</th><th style="padding:4px;">Saved</th><th></th></tr>
+        ${rows.map(r => `<tr style="border-top:1px solid #e2e8f0;"><td style="padding:4px;">${esc(r.username)}</td><td style="padding:4px;">${esc(letterLabel(r.letter))}</td>
+            <td style="padding:4px;">${esc(new Date(r.updatedAt).toLocaleString())}</td>
+            <td style="padding:4px;"><a href="${CLOUD_API}?raw=1&letter=${encodeURIComponent(r.letter)}&user=${encodeURIComponent(r.username)}" target="_blank" rel="noopener">Open PDF</a></td></tr>`).join('')}
+    </table>` : 'No trainee has saved an edited PDF yet.';
+}
 async function showSavedPdf(t) {
     const box = document.querySelector('#dr-nitro [data-pdf]'); if (!box || !cloudOn()) return;
     let at = null;
@@ -604,6 +633,7 @@ async function showSavedPdf(t) {
 }
 function renderView(t) {
     app().innerHTML = `
+        ${trainerHtml()}
         ${tabsHtml()}
         ${docBarHtml(t)}
         <div class="dr-grid">
@@ -629,6 +659,7 @@ function renderView(t) {
         </div>`;
     openViewer(t);
     showSavedPdf(t);
+    showTrainer();
 }
 
 function render() {
