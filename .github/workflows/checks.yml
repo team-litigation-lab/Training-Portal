@@ -134,6 +134,10 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/drafting-editor.cjs
+      - name: Demand Packets & Binders (many PDFs per section, the cover letter, index, PIP log, page and Bates numbers, bookmarks and tab sheets in one PDF; the .zip and .csv; Check my packet; kept after a reload)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node .github/scripts/demand-packet.cjs
       - name: Medical Records Requests clock (every date tracks the system date; same-day receipt works a whole collection in one sitting without changing a rule or a score)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
