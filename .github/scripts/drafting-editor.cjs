@@ -127,7 +127,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await page.waitForFunction(() => /saved to the platform/.test((document.querySelector('#dr-nitro [data-pdf]') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
     const keptPdf = ACCOUNT['lor1p:pdf'] && JSON.parse(ACCOUNT['lor1p:pdf'].data);
     check('Save my edited PDF puts it on the account', !!keptPdf && Buffer.from(keptPdf.b64, 'base64').equals(nitroPdf), 'not saved as sent');
-    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('text=⬇ Download my saved PDF')]);
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#dr-nitro button:has-text("Download my saved PDF")')]);
     check('and it downloads from the platform as it was saved', fs.readFileSync(await dl.path()).equals(nitroPdf), fs.readFileSync(await dl.path()).length + ' bytes, not ' + nitroPdf.length);
     await page.setInputFiles('#dr-nitro input[type=file]', { name: 'notes.pdf', mimeType: 'application/pdf', buffer: Buffer.from('not a pdf') });
     check('a file that is not a PDF is refused', Buffer.from(JSON.parse(ACCOUNT['lor1p:pdf'].data).b64, 'base64').equals(nitroPdf), 'overwritten');
@@ -141,8 +141,9 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     check('Edit in Word: Save to the platform · Download as PDF · Download Doc',
         (await page.$$eval('.dr-docacts .sim-btn', bs => bs.map(b => b.textContent.trim()).join(' | '))) === '← The original | 💾 Save to the platform | ⬇ Download as PDF | ⬇ Download Doc', 'other buttons');
     // Download as PDF prints Word's pages, edge to edge, with nothing else of the page
+    await page.waitForFunction(() => !!LSHDrafting.xml(), null, { timeout: 15000 });   // the editor is the page's (not only drawn)
     await page.evaluate(() => { window.print = () => { window.__printed = document.title; }; });
-    await page.click('text=⬇ Download as PDF');
+    await page.click('.dr-docacts button:has-text("Download as PDF")');
     const printed = await page.evaluate(() => window.__printed);
     const pdfOut = await page.pdf({ preferCSSPageSize: true, printBackground: true });
     const pdfPages = (pdfOut.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
