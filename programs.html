@@ -122,6 +122,8 @@
     .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
     .topic-action-btn.request { background: var(--orange); color: #0f172a; }
     .topic-action-btn.disabled { background: #f1f5f9; color: #334155; cursor: default; }
+    /* a finished program: Enter Program stays the button, the certificate a link under it */
+    .topic-card .topic-cert-link { grid-column: 1 / -1; justify-self: end; background: none; border: 0; padding: 0; font-size: 11.5px; font-weight: 700; color: var(--navy); text-decoration: underline; cursor: pointer; }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
     .sim-banner-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
@@ -528,7 +530,11 @@
 
             // No required order: any built program can be requested at any time, and an admin approves it.
 
-            if (status === 'passed') {
+            if (status === 'passed' && built) {
+                // finished: the program stays open to go back into; the certificate sits under it
+                actionHtml = `<a class="topic-action-btn primary" href="${programHref(t.key, built)}" target="_blank" rel="noopener">Enter Program &rarr;</a>
+                    <button type="button" class="topic-cert-link" onclick="downloadCertificate('${escapeHtml(t.key)}')">🏆 Download Certificate</button>`;
+            } else if (status === 'passed') {
                 actionHtml = `<button class="topic-action-btn primary" onclick="downloadCertificate('${escapeHtml(t.key)}')">🏆 Download Certificate</button>`;
             } else if (!built) {
                 actionHtml = `<span class="topic-action-btn disabled">Coming Soon</span>`;
