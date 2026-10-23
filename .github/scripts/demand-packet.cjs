@@ -25,6 +25,23 @@ const server = http.createServer((req, res) => {
         return req.on('end', () => { RESULTS.push(JSON.parse(body || '{}')); send({ success: true }); });
     }
     if (u.pathname.startsWith('/api/')) return send({ success: true });
+    // The course, with the packet builder in its tool frame: it answers cms-doc-file the way the course relays the CMS's
+    // answer (Case-Management-Training js/cm-doc-filing.js → the CMS's caseFileName), and keeps what it was sent.
+    if (u.pathname === '/__course.html') {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        return res.end(`<!doctype html><body style="margin:0"><iframe id="t" style="width:1400px;height:950px;border:0" src="/simulators/demand-packet.html?program=CM&type=demand&case=LSH-2026-MVA-770412"></iframe><script>
+            window.FILED = [];
+            const today = new Date(), iso = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+            addEventListener('message', (e) => {
+                const d = e.data; if (!d || d.lsh !== 'cms-doc-file') return;
+                const type = d.category.replace(/[^A-Za-z0-9]+/g, '-'), want = 'LSH-2026-MVA-770412_Doe-John_' + type + '_' + iso + '.pdf';
+                const ok = d.name === want;
+                window.FILED.push({ name: d.name, category: d.category, size: d.bytes.byteLength, bytes: Array.from(new Uint8Array(d.bytes)), ok });
+                e.source.postMessage(ok ? { lsh: 'cms-doc-filed', id: d.id, ok: true, name: d.name, category: d.category }
+                    : { lsh: 'cms-doc-filed', id: d.id, ok: false, problems: ['The name does not follow the convention.'], expected: want }, '*');
+            });
+        </script></body>`);
+    }
     let f = path.join(ROOT, decodeURIComponent(u.pathname)); if (f.endsWith('/')) f += 'index.html';
     if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end('not found'); }
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream' }); res.end(fs.readFileSync(f));
@@ -48,7 +65,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     const errors = [], dialogs = [];
     page.on('pageerror', e => errors.push(e.message));
     page.on('dialog', d => { dialogs.push(d.message()); d.accept(); });
-    await page.goto(base + '/simulators/demand-packet.html?program=CM');
+    await page.goto(base + '/simulators/demand-packet.html');
     await page.waitForFunction(() => window.LSHPacket && window.PDFLib && document.querySelector('.pk-sec'));
     await page.waitForTimeout(300);
 
@@ -73,7 +90,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     const caseVals = { client: 'John Doe', caseId: 'LSH-2026-MVA-770412', insured: 'Robert Smith', dol: '03/14/2026', carrier: 'Keystone Mutual',
         claimNo: 'KM-55120', adjuster: 'Dana Mercer', email: 'dmercer@keystone.example', limit: '10000', deadline: '11/20/2026', attorney: 'Atty. Elijah Thorne', firm: 'LSH Law Group' };
     for (const [k, v] of Object.entries(caseVals)) await page.fill(`[data-case="${k}"]`, v);
-    check('the file name is the firm\'s convention', /^LSH-2026-MVA-770412_Doe-John_Demand Packet_\d{4}-\d\d-\d\d\.pdf$/.test(await page.textContent('.pk-name')), await page.textContent('.pk-name'));
+    check('the file name is the firm\'s convention', /^LSH-2026-MVA-770412_Doe-John_Others_\d{4}-\d\d-\d\d\.pdf$/.test(await page.textContent('.pk-name')), await page.textContent('.pk-name'));
 
     // ---- many PDFs at once into a section; a Word file refused; a protected PDF flagged ----
     await input('Demand Letter').setInputFiles([await file('Demand Letter 2026-10-20.pdf', 'DEMAND', 3), { name: 'Demand.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: Buffer.from('PK') }]);
@@ -117,7 +134,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     // ---- build it ----
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('text=⬇ Build the packet (one PDF)')]);
     if (process.env.PACKET_OUT) fs.copyFileSync(await dl.path(), process.env.PACKET_OUT);
-    check('the packet downloads named the firm\'s way', /^LSH-2026-MVA-770412_Doe-John_Demand Packet_\d{4}-\d\d-\d\d\.pdf$/.test(dl.suggestedFilename()), dl.suggestedFilename());
+    check('the packet downloads named the firm\'s way', /^LSH-2026-MVA-770412_Doe-John_Others_\d{4}-\d\d-\d\d\.pdf$/.test(dl.suggestedFilename()), dl.suggestedFilename());
     const bytes = fs.readFileSync(await dl.path());
     const got = await page.evaluate(async (b) => {
         const { PDFDocument, PDFName, PDFDict, PDFHexString, PDFString } = PDFLib, d = await PDFDocument.load(new Uint8Array(b));
@@ -155,6 +172,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     check('the index totals the specials', /Total medical specials \(billed\): \$7,830\.00/.test(text[1]), text[1].slice(-200));
 
     // ---- each section as its own PDF, and the index as a spreadsheet ----
+    await page.waitForTimeout(1000);   // the page scrolls smoothly to the preview after a build: let it settle before the next click
     const [zdl] = await Promise.all([page.waitForEvent('download'), page.click('text=⬇ Each section as its own PDF (.zip)')]);
     const zip = await page.evaluate(async (b) => { const z = await JSZip.loadAsync(new Uint8Array(b)); const out = {};
         for (const n of Object.keys(z.files)) out[n] = (await PDFLib.PDFDocument.load(await z.file(n).async('uint8array'))).getPageCount(); return out; }, Array.from(fs.readFileSync(await zdl.path())));
@@ -211,6 +229,36 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await page.waitForTimeout(500);
     const sent = RESULTS[RESULTS.length - 1] || {};
     check('sent to the trainer as Drafting — Demand Packet, with the score and the index', sent.simulator === 'Drafting — Demand Packet' && sent.score === 100 && sent.details && sent.details.index && sent.details.index.length > 5 && sent.who && sent.who.name === 'Ann Lee', JSON.stringify(sent).slice(0, 300));
+
+    // ---- filed into the case in the CMS, from the course's tool frame ----
+    const host = await ctx.newPage();
+    host.on('pageerror', e => errors.push('course frame: ' + e.message));
+    host.on('dialog', d => d.accept());
+    await host.goto(base + '/__course.html');
+    const fr = () => host.frame({ url: /demand-packet\.html/ });
+    await host.waitForFunction(() => { const w = document.getElementById('t').contentWindow; return w && w.LSHPacket && w.PDFLib && w.document.querySelector('#pk-file'); }, null, { timeout: 30000 });
+    const f = fr();
+    check('opened from the course, the packet keeps the case and offers filing', await f.inputValue('[data-file="case"]') === 'LSH-2026-MVA-770412', await f.inputValue('[data-file="case"]'));
+    // a wrong tab: refused here, and nothing sent
+    await f.selectOption('[data-file="tab"]', 'Medical Records');
+    await f.fill('[data-file="name"]', 'LSH-2026-MVA-770412_Doe-John_Medical-Records_' + new Date().toISOString().slice(0, 10) + '.pdf');
+    let out = await f.evaluate(() => LSHPacket.file());
+    check('a wrong tab is refused with the tab the firm uses, and nothing is sent', !out.ok && /under <b>Others<\/b>/.test(out.problems.join(' ')) && (await host.evaluate(() => FILED.length)) === 0, JSON.stringify(out));
+    // a wrong name: the CMS refuses it
+    await f.selectOption('[data-file="tab"]', 'Others');
+    await f.fill('[data-file="name"]', 'John Doe demand.pdf');
+    out = await f.evaluate(() => LSHPacket.file());
+    check('a wrong name is refused by the CMS, with what it expects', !out.ok && /Others_\d{4}-\d\d-\d\d\.pdf/.test(await f.textContent('[data-file-msg]')), await f.textContent('[data-file-msg]'));
+    // right: filed, the packet itself
+    const loc = new Date(), iso = loc.getFullYear() + '-' + String(loc.getMonth() + 1).padStart(2, '0') + '-' + String(loc.getDate()).padStart(2, '0');
+    await f.fill('[data-file="name"]', `LSH-2026-MVA-770412_Doe-John_Others_${iso}.pdf`);
+    out = await f.evaluate(() => LSHPacket.file());
+    const filed = await host.evaluate(() => FILED[FILED.length - 1]);
+    check('the right tab and name file the packet into the case', out.ok && filed.ok && filed.category === 'Others', JSON.stringify(out));
+    check('what is filed is the whole packet', (await f.evaluate(async (b) => (await PDFLib.PDFDocument.load(new Uint8Array(b))).getPageCount(), filed.bytes)) === 18, 'not 18 pages');
+    check('the filing is graded by attempts (third time: 60)', out.score === 60 && RESULTS.some(r => r.simulator === 'Document Filing' && r.score === 60 && /Others/.test(r.scenario)), JSON.stringify(RESULTS.map(r => [r.simulator, r.score])));
+    check('Check my packet counts the filing when opened from a course', (await f.evaluate(() => LSHPacket.check())).checks.some(c => /Filed in the CMS/.test(c.label) && c.ok), 'no filing check');
+    await host.close();
 
     // ---- a binder: tab sheets before each section ----
     await page.click('.pk-tab:has-text("Mediation Binder")');
