@@ -9,19 +9,19 @@
    "caseFile": true,
    "from": {
     "name": "John Doe",
-    "email": "johndoe@example.com",
+    "email": "john.doe@example.com",
     "role": "Client"
    },
    "subject": "WHERE IS MY MONEY",
-   "body": "I just got the settlement statement. $150,000 and I get $60,746?? Who approved all these deductions? I was told the liens would be reduced. I want the check this week — I have bills. If I don't hear back today I'm calling the bar.\n\nJohn",
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
-   "facts": "Gross settlement $150,000. Costs $2,090. Fee 40% of (gross − costs) = $59,164 (40% because suit was filed, per the retainer John signed 02/15/2026). Liens negotiated from $77,400 asserted down to $28,000. Net to client $60,746. Checks issue only after the settlement funds clear the trust account and every lien payoff is confirmed in writing.",
+   "body": "I just got the settlement statement. $40,000 and I get $20,359.92?? Who approved all these deductions? I was told the bills would be reduced. I want the check this week — I have bills. If I don't hear back today I'm calling the bar.\n\nJohn",
+   "you": "You are the Case Manager on John Doe v. Robert Smith (LSH matter LSH-2026-MVA-770412) at LSH Law Group. John Doe was the front-seat passenger in the host vehicle that Robert Smith hit on 02/06/2026. You handle client, provider, lienholder and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Atty. Elijah Thorne.",
+   "facts": "Gross recovery $40,000.00: Keystone BI $10,000.00, Harbor Point Host UM $20,000.00, Cardinal State Relative UM $10,000.00. Fee one-third under the retainer, $13,333.33. Costs $486.75. Peach State Health Plan's reimbursement claim: $3,618.00 asserted, $1,860.00 confirmed, accepted in writing at $1,240.00. Letter of Protection balances accepted in writing at $4,580.00. Net to John $20,359.92. Checks issue only after the funds clear the firm's IOLTA trust account and every lien payoff is confirmed in writing.",
    "goals": [
     "Acknowledges his frustration first, without being defensive",
-    "Walks gross → costs → fee (40%, retainer) → liens → net accurately and plainly",
-    "Points out the lien reductions already won ($77,400 asserted → $28,000)",
-    "Makes no promise of a check date; explains trust-account clearance and signatures",
-    "Offers a call with the attorney about the fee, and stays professional about the bar comment"
+    "Walks gross → fee (one-third, per the retainer) → costs → liens → net accurately and plainly",
+    "Points out the reductions already won (Peach State $3,618.00 asserted → $1,240.00)",
+    "Makes no promise of a check date; explains trust-account clearance and the written lien payoffs",
+    "Offers a call with Atty. Thorne about the fee, and stays professional about the bar comment"
    ],
    "attachments": []
   },
@@ -32,22 +32,22 @@
    "title": "Adjuster wants a statement and records",
    "caseFile": true,
    "from": {
-    "name": "Tom Reeves",
-    "email": "t.reeves@aggressive-casualty.example",
-    "role": "BI adjuster, Aggressive Casualty"
+    "name": "Dana Whitfield",
+    "email": "dana.whitfield@keystonemutual.example",
+    "role": "BI adjuster, Keystone Mutual"
    },
-   "subject": "Claim 2026-0214-AX — John Doe — items needed by Friday",
-   "body": "Hi,\n\nTo move this along I need the following by Friday or the file goes to our SIU for review:\n1. A 15-minute recorded statement from Mr. Doe (I can call him directly at the number on the police report).\n2. The attached medical authorization signed (all providers, 10 years back).\n3. His prior chiropractic records — we understand he had a back injury before this accident.\n\nI can also put $45,000 on the table today if we can close this quickly.\n\nThanks,\nTom Reeves\nBodily Injury Adjuster, Aggressive Casualty\n(555) 700-1422 ext. 318",
+   "subject": "Claim KM-26-440871 — John Doe — items needed by Friday",
+   "body": "Hi,\n\nTo evaluate the demand I need the following by Friday or the file goes to our SIU for review:\n1. A 15-minute recorded statement from Mr. Doe (I can call him directly at the number on the police report).\n2. The attached medical authorization signed (all providers, 10 years back).\n3. His prior chiropractic records — we understand he had a back problem before this accident.\n\nI may also be able to put an offer on the table quickly if we can close this.\n\nThanks,\nDana Whitfield\nBodily Injury Adjuster, Keystone Mutual\n(555) 700-1422 ext. 318",
    "attachments": [
     "General_Medical_Authorization.pdf"
    ],
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
-   "facts": "Claim 2026-0214-AX; insured Apex Delivery Services. The firm sent a letter of representation; all contact goes through the firm. The attorney rejected a $45,000 counter on 05/26/2026. Prior history: a 2018 lumbar strain that resolved; no MRI then.",
+   "you": "You are the Case Manager on John Doe v. Robert Smith (LSH matter LSH-2026-MVA-770412) at LSH Law Group. John Doe was the front-seat passenger in the host vehicle that Robert Smith hit on 02/06/2026. You handle client, provider, lienholder and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Atty. Elijah Thorne.",
+   "facts": "Claim KM-26-440871; insured Robert Smith; per-person BI limit $10,000.00 (Keystone's 03/20/2026 limits letter). The firm sent a letter of representation: all contact goes through the firm. The BI Time-Limited Demand was served 07/20/2026 and acknowledged 07/22/2026, so its acceptance window closes 08/21/2026. Prior history: Birch Avenue Chiropractic, 2021, low back, resolved; those records went with the demand in Exhibit E. Any offer goes to Atty. Thorne.",
    "goals": [
     "Confirms the firm represents Mr. Doe and all contact goes through the firm — no direct contact",
-    "Declines the recorded statement and the blanket 10-year authorization pending the attorney",
-    "Doesn't discuss or characterize prior injuries",
-    "Doesn't respond to the $45,000 on the merits; routes it to the attorney and notes the prior rejection",
+    "Declines the recorded statement and the blanket 10-year authorization pending Atty. Thorne",
+    "Doesn't discuss or characterize the prior chiropractic history (the records are already in the demand)",
+    "Doesn't respond to any offer on the merits; routes it to Atty. Thorne and notes the demand's acceptance window",
     "Professional tone; asks for any requests in writing and gives a response timeline"
    ]
   },
@@ -55,22 +55,22 @@
    "id": "cm_hospital_lien",
    "program": "CM",
    "level": "Advanced",
-   "title": "Hospital lien letter",
+   "title": "Health plan reimbursement claim",
    "caseFile": true,
    "from": {
-    "name": "Brenda Sterling",
-    "email": "bsterling@metrogeneral.example",
-    "role": "Revenue Recovery Director, Metro General Hospital"
+    "name": "Recovery Unit",
+    "email": "recovery@peachstatehealth.example",
+    "role": "Recovery Unit, Peach State Health Plan"
    },
-   "subject": "NOTICE OF HOSPITAL LIEN — John Doe — $45,000",
-   "body": "Please be advised Metro General Hospital asserts a statutory lien of $45,000.00 against any recovery for patient John Doe (DOS 02/14/2026). This lien has first priority and must be protected in full before any disbursement. Please confirm receipt and advise the status of settlement.\n\nBrenda Sterling\nRevenue Recovery Director",
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
-   "facts": "Metro General's own ER billing statement shows $12,700. PIP (Local Farm Mutual) already paid ER $4,800 and CT $3,000. BCBS (ERISA) may also have paid. No itemized statement has been received. Settlement status is confidential.",
+   "subject": "NOTICE OF REIMBURSEMENT CLAIM — John Doe — $3,618.00",
+   "body": "Please be advised Peach State Health Plan asserts a reimbursement right of $3,618.00 against any recovery for member John Doe (PSH-55017742), injuries of 02/06/2026. This claim must be repaid in full, without reduction, within 30 days of settlement. Please confirm receipt and advise the status of settlement.\n\nRecovery Unit\nPeach State Health Plan",
+   "you": "You are the Case Manager on John Doe v. Robert Smith (LSH matter LSH-2026-MVA-770412) at LSH Law Group. John Doe was the front-seat passenger in the host vehicle that Robert Smith hit on 02/06/2026. You handle client, provider, lienholder and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Atty. Elijah Thorne.",
+   "facts": "Peach State's own interim itemization includes three lines unrelated to the collision: a 02/03/2026 eye exam ($95.00, before the date of loss), a 03/18/2026 sinusitis virtual visit ($49.00) and a 05/06/2026 allergy visit ($74.00). It claims Crescent Pain & Spine at the billed $3,400.00 though its own paid column shows $1,860.00. Summit Imaging's MRI is correctly $0.00 (PIP was primary). The accident-related amount Peach State actually paid is $1,860.00. Settlement status is confidential; any reduction is Atty. Thorne's to negotiate.",
    "goals": [
-    "Confirms receipt without agreeing to the $45,000 figure",
-    "Requests a full itemization (CPT codes, payments, adjustments) and the statutory basis",
-    "Raises the $12,700 billed vs $45,000 asserted and the PIP payments ($7,800)",
-    "Does not disclose settlement status or amounts",
+    "Confirms receipt without agreeing to the $3,618.00 figure",
+    "Requests a corrected, itemized statement limited to collision-related care (dates, providers, amounts paid)",
+    "Raises the unrelated lines and the Crescent billed vs paid difference ($3,400.00 vs $1,860.00)",
+    "Does not disclose settlement status or amounts, and leaves the repayment terms to Atty. Thorne",
     "Sets a clear next step and deadline"
    ],
    "attachments": []
@@ -83,17 +83,17 @@
    "caseFile": true,
    "from": {
     "name": "Grace Liu",
-    "email": "records@metroradiology.example",
-    "role": "Records department, Metro Radiology"
+    "email": "records@summitimaging.example",
+    "role": "Records department, Summit Imaging Center"
    },
    "subject": "RE: Records request — John Doe — UNABLE TO PROCESS",
-   "body": "We are unable to process your request for records for John Doe (DOS 03/15/2026). The date of birth on your authorization (08/14/1980) does not match our patient record (02/14/1980). Please submit a corrected authorization.\n\nMetro Radiology — Health Information Management",
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
-   "facts": "John's correct DOB is 08/14/1980 (intake, retainer, HIPAA, driver's license). Metro Radiology registered him with 02/14/1980 — their error, which also appears on the MRI report and bill. Records fee $25, rush 3 days for $15; the mediation binder is due in 3 weeks.",
+   "body": "We are unable to process your request for records for John Doe (DOS 03/13/2026). The date of birth on your authorization (08/14/1991) does not match our patient record (02/14/1991). Please submit a corrected authorization.\n\nSummit Imaging Center — Health Information Management",
+   "you": "You are the Case Manager on John Doe v. Robert Smith (LSH matter LSH-2026-MVA-770412) at LSH Law Group. John Doe was the front-seat passenger in the host vehicle that Robert Smith hit on 02/06/2026. You handle client, provider, lienholder and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Atty. Elijah Thorne.",
+   "facts": "John's correct DOB is 08/14/1991 (intake, retainer, HIPAA authorization, driver's license). Summit Imaging registered him with 02/14/1991 — their error, which also appears on the cervical MRI report and its bill. Records fee $25, rush 3 days for $15; the pre-demand audit is due in 2 weeks.",
    "goals": [
     "Explains politely that the authorization is correct and their registration has the wrong DOB",
     "Offers proof (e.g., a copy of ID) or asks what their demographics-correction process needs",
-    "Asks for both the MRI report and the itemized bill for DOS 03/15/2026, and a corrected report/bill",
+    "Asks for both the MRI report and the itemized bill for DOS 03/13/2026, and a corrected report/bill",
     "Asks about fees and the rush option with the deadline in mind",
     "Clear, courteous, HIPAA-appropriate (no unnecessary case details)"
    ],
@@ -107,17 +107,17 @@
    "caseFile": true,
    "from": {
     "name": "Kyle Brandt",
-    "email": "kbrandt@vanceholt.example",
-    "role": "Paralegal to Jane Vance, Vance & Holt LLP (defense)"
+    "email": "kbrandt@mercerhale.example",
+    "role": "Paralegal to Atty. Grant Mercer, Mercer & Hale LLP (defense)"
    },
-   "subject": "Doe v. Apex — discovery extension",
-   "body": "Hi there — Jane asked me to reach out. We need one more week on our discovery responses (currently due Monday). Can you just reply 'agreed' so we have it in writing? No need to bother your attorney, it's routine.\n\nThanks!\nKyle",
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
-   "facts": "Only the attorney can agree to extensions. All extensions must be documented in writing between counsel. Dana Carter is in trial until Thursday but checks email at lunch.",
+   "subject": "Doe v. Smith — discovery extension",
+   "body": "Hi there — Grant asked me to reach out. We need one more week on our discovery responses (currently due Monday). Can you just reply 'agreed' so we have it in writing? No need to bother your attorney, it's routine.\n\nThanks!\nKyle",
+   "you": "You are the Case Manager on John Doe v. Robert Smith (LSH matter LSH-2026-MVA-770412) at LSH Law Group. John Doe was the front-seat passenger in the host vehicle that Robert Smith hit on 02/06/2026. You handle client, provider, lienholder and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Atty. Elijah Thorne.",
+   "facts": "Only the attorney can agree to extensions. All extensions must be documented in writing between counsel. Atty. Thorne is in a deposition until Thursday but checks email at lunch.",
    "goals": [
     "Does not agree to the extension",
-    "Explains the request is going to the attorney, and when to expect an answer",
-    "Copies or forwards to the attorney (says so)",
+    "Explains the request is going to Atty. Thorne, and when to expect an answer",
+    "Copies or forwards to Atty. Thorne (says so)",
     "Friendly and professional, no lecturing",
     "Confirms that any agreement will come in writing from the attorney"
    ],
@@ -127,22 +127,22 @@
    "id": "cm_spouse",
    "program": "CM",
    "level": "Beginner",
-   "title": "Spouse asks for an update",
+   "title": "Client's mother asks for an update",
    "caseFile": true,
    "from": {
-    "name": "Jane Doe",
-    "email": "jane.doe@example.com",
-    "role": "Client's spouse (not a client)"
+    "name": "Margaret Doe",
+    "email": "margaret.doe@example.com",
+    "role": "Client's mother (not a client)"
    },
    "subject": "John's case",
-   "body": "Hi, it's Jane, John's wife. He's at PT and asked me to check — did the insurance make a new offer? Also, my neck still hurts from the accident. Should I be part of the case too?",
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
-   "facts": "Jane is not on the retainer and there's no authorization on file to share case information with her. She was the front-seat passenger. Her own injury claim would need an intake and a conflict check before anyone advises her.",
+   "body": "Hi, it's Margaret, John's mother. He lives with me and he's at PT, so he asked me to check — did the insurance make an offer yet? Also, my Civic was damaged in all this. Should that be part of the case too?",
+   "you": "You are the Case Manager on John Doe v. Robert Smith (LSH matter LSH-2026-MVA-770412) at LSH Law Group. John Doe was the front-seat passenger in the host vehicle that Robert Smith hit on 02/06/2026. You handle client, provider, lienholder and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Atty. Elijah Thorne.",
+   "facts": "Margaret is not on the retainer and there is no authorization on file to share case information with her. John lives with her; her own auto policy (Cardinal State) is the Relative UM layer on his claim. Her parked Civic is her own property-damage claim (Keystone KM-26-440871-PD), separate from John's injury case: anything about it needs Atty. Thorne's review before anyone advises her.",
    "goals": [
     "Warm tone; thanks her",
     "Does not share offer or case details without John's authorization; offers to update John directly or get his written permission",
-    "Flags her neck pain as a possible separate claim for intake/attorney review without advising her",
-    "Gives a clear next step (e.g., intake call, or John calls back)",
+    "Flags her Civic as her own, separate claim for Atty. Thorne's review without advising her",
+    "Gives a clear next step (e.g., John calls back, or a call about her car)",
     "No legal advice"
    ],
    "attachments": []
@@ -154,19 +154,19 @@
    "title": "Attorney wants a 3-bullet status",
    "caseFile": true,
    "from": {
-    "name": "Dana Carter",
-    "email": "dcarter@lshlawgroup.example",
-    "role": "Handling attorney"
+    "name": "Atty. Elijah Thorne",
+    "email": "ethorne@lshlawgroup.example",
+    "role": "Lead Counsel"
    },
    "subject": "Doe — where are we?",
-   "body": "In trial all week. Give me Doe in 3 bullets by 5. What do you need from me?\n\nD",
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
-   "facts": "Demand $250,000 sent 05/15; counter $45,000 rejected 05/26. Dr. Neil Ron's permanency report (5% WPI) arrived this week — not yet sent to the carrier. Metro General lien disputed ($45,000 asserted vs $12,700 billed). RFA responses due 07/15/2026. Need: approval to send a supplemental demand with the permanency report.",
+   "body": "In depositions all week. Give me Doe in 3 bullets by 5. What do you need from me?\n\nE.",
+   "you": "You are the Case Manager on John Doe v. Robert Smith (LSH matter LSH-2026-MVA-770412) at LSH Law Group. John Doe was the front-seat passenger in the host vehicle that Robert Smith hit on 02/06/2026. You handle client, provider, lienholder and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Atty. Elijah Thorne.",
+   "facts": "John reached MMI at Lakeside Orthopedics on 06/12/2026. Dr. Alana Reyes's causation letter arrived 06/19/2026. Specials: $14,817.40 medical + $1,584.00 wages = $16,401.40, every line tied to a bill. Keystone's per-person BI limit is $10,000.00 (03/20/2026 letter); the 14-day gap and the 19-day April break are documented in the Gap Explanation Record. Need: approval to serve the BI Time-Limited Demand at the $10,000.00 limit by 07/20/2026.",
    "goals": [
     "BLUF — bottom line in the first line",
     "Exactly 3 tight bullets with correct numbers and dates",
-    "States the decision needed clearly (approve supplemental demand)",
-    "Names the nearest hard deadline (RFAs 07/15)",
+    "States the decision needed clearly (approve serving the BI time-limited demand at the limit)",
+    "Names the nearest hard date (serve by 07/20/2026)",
     "Short; no background padding"
    ],
    "attachments": []
@@ -178,19 +178,19 @@
    "title": "LOP provider threatens to stop care",
    "caseFile": true,
    "from": {
-    "name": "Pam Whitfield",
-    "email": "billing@alignchiro.example",
-    "role": "Office manager, Dr. Al Lign's chiropractic office"
+    "name": "Pam Ortiz",
+    "email": "billing@rivertonspine.example",
+    "role": "Office manager, Riverton Spine & Rehab"
    },
    "subject": "John Doe balance",
-   "body": "John Doe has an $8,400 balance with us under the Letter of Protection. We can't keep treating without some payment or a settlement date. When is the case settling and for how much?\n\nPam",
-   "you": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001) at LSH Law Group. You handle client, provider and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Dana Carter.",
-   "facts": "The chiropractic billing statement in the file shows $320. The $8,400 figure came from a draft demand and may be a projection. The LOP is on file. Settlement value and timing are confidential; continuity of care matters for the claim.",
+   "body": "John Doe has a $6,290.00 balance with us under the Letter of Protection. We can't keep treating without some payment or a settlement date. When is the case settling and for how much?\n\nPam",
+   "you": "You are the Case Manager on John Doe v. Robert Smith (LSH matter LSH-2026-MVA-770412) at LSH Law Group. John Doe was the front-seat passenger in the host vehicle that Robert Smith hit on 02/06/2026. You handle client, provider, lienholder and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Atty. Elijah Thorne.",
+   "facts": "The Riverton Spine & Rehab attendance log shows 33 visits at $185.00 = $6,105.00; the ledger bills 05/04/2026 twice. The LOP is on file. Settlement value and timing are confidential; continuity of care matters for the claim.",
    "goals": [
     "Doesn't disclose settlement value or timing",
-    "Asks for the itemized ledger to reconcile $8,400 vs the $320 statement",
+    "Asks for the itemized ledger to reconcile $6,290.00 against the attendance log ($6,105.00; 05/04 billed twice)",
     "Reconfirms the LOP and the firm's commitment in writing",
-    "Protects continuity of care (flags it to the attorney)",
+    "Protects continuity of care (flags it to Atty. Thorne)",
     "Professional and appreciative"
    ],
    "attachments": []
@@ -250,21 +250,21 @@
    "title": "Client chased by bills and a collections letter",
    "caseFile": false,
    "from": {
-    "name": "Carla Nguyen",
-    "email": "carla.nguyen88@example.com",
+    "name": "John Doe",
+    "email": "john.doe@example.com",
     "role": "Client"
    },
    "subject": "any update?? bills keep coming",
-   "body": "Hi,\n\nsorry to bother again but I got two more bills from Harbor PT this week and a collections letter from the ambulance company. Is there any update on my case? When will this be over? I just want to know what is going on.\n\nThanks,\n\nCarla",
-   "you": "You are the Case Manager on Carla Nguyen's auto case at LSH Law Group. You handle client, provider and billing correspondence; settlement value, timing promises and legal advice belong to the handling attorney, Dana Carter.",
-   "facts": "Treatment is ongoing at Harbor PT (she is about 6 weeks in, discharge not yet scheduled). The firm has her ER and imaging records; Harbor PT's complete file and billing are still outstanding. A letter of representation went to the ambulance company's billing office on 03/04/2026 but has not been acknowledged — a collections notice means it needs to be re-sent with the lien/LOP paperwork. Clients forward all medical bills to the firm and pay nothing out of pocket. Nobody can give her a settlement date; the demand is not sent until treatment ends.",
+   "body": "Hi,\n\nsorry to bother again but I got two more bills from Riverton Spine & Rehab this week and a collections letter from the ambulance company. Is there any update on my case? When will this be over? I just want to know what is going on.\n\nThanks,\n\nJohn",
+   "you": "You are the Case Manager on John Doe v. Robert Smith (LSH matter LSH-2026-MVA-770412) at LSH Law Group. John Doe was the front-seat passenger in the host vehicle that Robert Smith hit on 02/06/2026. You handle client, provider, lienholder and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Atty. Elijah Thorne.",
+   "facts": "Treatment is ongoing at Riverton Spine & Rehab (discharge not yet scheduled). Bills go in the Payer Order: Harbor Point PIP ($5,000.00) first, then Peach State Health Plan, then the Letter of Protection. The firm has the EMS run report and the urgent care records; Riverton Spine & Rehab's complete file and ledger are still outstanding. A notice of representation went to Riverton Fire EMS billing on 03/02/2026 but has not been acknowledged — a collections letter means it needs to be re-sent with the PIP claim number (Harbor Point HP-26-7741). Clients forward all medical bills to the firm and pay nothing out of pocket. Nobody can give him a settlement date; the demand is not sent until treatment ends.",
    "goals": [
-    "Deals with the collections letter first: don't pay it, don't call them back, forward it today, the firm re-sends the representation notice",
-    "Tells her to forward the Harbor PT bills too and to pay no medical bills out of pocket",
+    "Deals with the collections letter first: don't pay it, don't call them back, forward it today, the firm re-sends the representation notice with the PIP claim",
+    "Tells him to forward the Riverton Spine & Rehab bills too and to pay no medical bills out of pocket",
     "Gives the actual status of the file (what is in, what is outstanding) rather than 'I will investigate'",
     "Commits to a written update on a named day instead of 'as soon as possible'",
-    "Explains honestly why there is no end date yet (demand follows the end of treatment) without promising a settlement or a figure",
-    "Warm and unhurried about her apologising for 'bothering' the firm"
+    "Explains honestly why there is no end date yet (the demand follows the end of treatment) without promising a settlement or a figure",
+    "Warm and unhurried about him apologising for 'bothering' the firm"
    ],
    "attachments": []
   }
