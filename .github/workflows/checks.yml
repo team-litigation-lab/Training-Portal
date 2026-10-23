@@ -48,6 +48,8 @@ jobs:
         run: node --no-warnings .github/scripts/gcal-reviews.mjs
       - name: Drafting letters saved to the trainee's account (saved and back, an older copy never over a newer one, only their own, Start over)
         run: node --no-warnings .github/scripts/drafting-drafts.mjs
+      - name: Drafting originals each have their PDF for Edit PDF (make-drafting-pdfs.cjs)
+        run: node .github/scripts/make-drafting-pdfs.cjs --check
       - name: Google Calendar weekly schedule (Standard Training as it was; the Case Management and EA / PA clones apart; Admin only; unknown tracks refused)
         run: node --no-warnings .github/scripts/gcal-schedule.mjs
       - name: AI gateway (one shared budget for every call flow; per-flow share, per-minute and per-person limits)

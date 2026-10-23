@@ -110,8 +110,22 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
         return page.evaluate(() => window.getSelection().toString());
     };
 
-    // 1. the letter opens in the editor, Word's chrome around it
+    // 0. the page opens on the firm's original, read-only, with Edit in Word · Edit PDF · Download Doc
     await page.goto(base + '/simulators/drafting.html?tab=lor1p', { waitUntil: 'load' });
+    await page.waitForSelector('section.docx > article', { timeout: 30000 });
+    await page.waitForFunction(() => /Original/.test((document.querySelector('.wd-title [data-state]') || {}).textContent || ''), null, { timeout: 15000 });
+    check('the original opens read-only', await page.$$eval('section.docx > article', as => as.length > 0 && as.every(a => a.contentEditable !== 'true')), 'an editable article');
+    check('Edit in Word · Edit PDF · Download Doc', (await page.$$eval('.dr-docacts .sim-btn', bs => bs.map(b => b.textContent.trim()).join(' | '))) === '✎ Edit in Word | ✎ Edit PDF | ⬇ Download Doc',
+        await page.$$eval('.dr-docacts .sim-btn', bs => bs.map(b => b.textContent.trim()).join(' | ')));
+    const pdfHref = await page.$eval('.dr-docacts a[href$=".pdf"]', a => a.getAttribute('href'));
+    check('Edit PDF has its PDF', fs.existsSync(path.join(ROOT, decodeURIComponent(pdfHref))), pdfHref);
+    check('Download Doc is the original .docx', (await page.$eval('.dr-docacts a[download]', a => a.getAttribute('href'))) === '/simulators/drafting/templates/1P_LOR.docx', 'another file');
+    await page.click('text=✎ Edit in Word');
+    await page.waitForSelector('section.docx > article[contenteditable="true"]', { timeout: 30000 });
+    check('Edit in Word opens the editor', !!(await page.$('.wd-tabs')), 'no ribbon');
+
+    // 1. the letter opens in the editor, Word's chrome around it
+    await page.goto(base + '/simulators/drafting.html?tab=lor1p&mode=word', { waitUntil: 'load' });
     await page.evaluate(() => { localStorage.clear(); });
     await page.reload({ waitUntil: 'load' });
     await ready();
@@ -218,7 +232,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
         return f && fs.existsSync(f) ? route.fulfill({ body: fs.readFileSync(f), contentType: 'text/javascript' }) : route.continue();
     });
     const o = await other.newPage();
-    await o.goto(base + '/simulators/drafting.html?tab=lor1p', { waitUntil: 'load' });
+    await o.goto(base + '/simulators/drafting.html?tab=lor1p&mode=word', { waitUntil: 'load' });
     await o.waitForFunction(() => window.LSHDrafting && LSHDrafting.xml() && /Claims Unit/.test(LSHDrafting.xml()), null, { timeout: 30000 }).catch(() => {});
     check('another browser opens the letter from the account, exactly as left', (await o.evaluate(() => LSHDrafting.xml())) === saved, 'the other browser has a different letter');
     await other.close();
@@ -233,7 +247,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
 
     // 8. a legacy Word check box ticks, and the file has it ticked
     // (Akers Chiropractic's Lien BV asks "Is treatment complete?" with Word form check boxes)
-    await page.goto(base + '/simulators/drafting.html?tab=prov&kind=lienbv', { waitUntil: 'load' });
+    await page.goto(base + '/simulators/drafting.html?tab=prov&kind=lienbv&mode=word', { waitUntil: 'load' });
     await ready();
     await page.selectOption('select[aria-label="Medical provider"]', { label: 'Akers Chiropractic' });
     await ready();
@@ -246,7 +260,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     }
 
     // 9. Word's paragraph commands: bullets, numbering, indents, line spacing — in the file, and drawn from it
-    await page.goto(base + '/simulators/drafting.html?tab=lor1p', { waitUntil: 'load' });
+    await page.goto(base + '/simulators/drafting.html?tab=lor1p&mode=word', { waitUntil: 'load' });
     await ready();
     const numId = (xml, needle) => page.evaluate(({ xml, needle }) => {
         const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main', doc = new DOMParser().parseFromString(xml, 'application/xml');
@@ -321,7 +335,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     check('and no list', (await numId(x, 'One pasted item')).numId == null, JSON.stringify(await numId(x, 'One pasted item')));
 
     // 11. pages, as Word lays them out: the letterhead on each, the text going on on the next page
-    await page.goto(base + '/simulators/drafting.html?tab=lor3p', { waitUntil: 'load' });
+    await page.goto(base + '/simulators/drafting.html?tab=lor3p&mode=word', { waitUntil: 'load' });
     await ready();
     await page.waitForFunction(() => /of 3$/.test(document.querySelector('[data-pages]').textContent), null, { timeout: 10000 }).catch(() => {});
     check('the 3P letter is three pages, as Word has it', /of 3$/.test(await page.textContent('[data-pages]')), await page.textContent('[data-pages]'));
@@ -364,7 +378,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
         const name = route.request().url().split('/').pop(), f = LOCAL[name] && path.join(LIBS, 'node_modules', LOCAL[name]);
         return f && fs.existsSync(f) ? route.fulfill({ body: fs.readFileSync(f), contentType: 'text/javascript' }) : route.continue();
     });
-    await phone.goto(base + '/simulators/drafting.html?tab=lor1p', { waitUntil: 'load' });
+    await phone.goto(base + '/simulators/drafting.html?tab=lor1p&mode=word', { waitUntil: 'load' });
     await phone.waitForSelector('section.docx > article[contenteditable="true"]', { timeout: 30000 });
     const sw = await phone.evaluate(() => document.scrollingElement.scrollWidth);
     check('phone width: no sideways scroll', sw <= 391, String(sw));

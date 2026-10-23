@@ -31,7 +31,8 @@ const esc = (v) => Sim.esc(String(v == null ? '' : v));
 const app = () => document.getElementById('app');
 // tab: a letter template's id, or 'prov' for the medical providers' letters, which are a letter
 // per provider (their own address block is part of their own file) in two kinds.
-const S = { tab: TEMPLATES[0].id, caseNo: 0, prov: 0, kind: 'medlor', answers: {}, savedAt: null };
+// mode: 'view' shows the firm's original document, with Edit in Word / Edit PDF / Download Doc; 'word' is the editor.
+const S = { tab: TEMPLATES[0].id, caseNo: 0, prov: 0, kind: 'medlor', answers: {}, savedAt: null, mode: 'view' };
 const LETTER_KIND = { medlor: 'Medical LOR + Unsworn Declaration', lienbv: 'Lien Balance Verification' };
 
 /* ---------- the trainee's own drafts, in their browser ---------- */
@@ -141,6 +142,9 @@ function tpl() {
     return Object.assign({}, t, { dir: 'templates' });
 }
 const srcOf = (t) => '/simulators/drafting/' + t.dir + '/' + t.file.split('/').map(encodeURIComponent).join('/');
+// The same document as a PDF (simulators/drafting/pdf/, made from the .docx by make-drafting-pdfs.cjs), for Edit PDF.
+const pdfOf = (t) => '/simulators/drafting/pdf/' + t.dir + '/' + t.file.replace(/\.docx$/i, '.pdf').split('/').map(encodeURIComponent).join('/');
+const origName = (t) => t.file.split('/').pop();
 const key = (tid, f) => tid + ':' + f;
 const answer = (tid, f) => S.answers[key(tid, f)] || '';
 // The letter's date is the day it is drafted, as a template editor fills it in.
@@ -238,6 +242,23 @@ function dropDoc(tid) {
     try { const all = docsAll(); if (all[slot()]) { delete all[slot()][tid]; localStorage.setItem(DOCS, JSON.stringify(all)); } } catch (e) { /* nothing kept */ }
 }
 const LETTER = {};                 // per letter: { paras, highlighted, checks } as last saved — for the name and the checks
+// The original: the firm's file as Word lays it out, letterhead and pages, with nothing to type in.
+async function openViewer(t) {
+    const host = document.getElementById('dr-paper'), shell = document.getElementById('dr-wd');
+    if (!host || !window.docx || !window.docx.renderAsync || !window.LSHDraftingEditor || !window.JSZip) { if (shell) shell.classList.add('wd-off'); return; }
+    const mine = ++drawing;
+    ED = null;
+    try {
+        const bytes = await templateBytes(t), tplXml = await LSHDraftingDocx.documentXml(bytes);
+        if (mine !== drawing || !document.body.contains(host)) return;
+        await LSHDraftingEditor.open({ host, status: document.getElementById('dr-status'), title: shell.querySelector('.wd-title'), baseXml: tplXml, bytes, readOnly: true });
+        if (mine !== drawing) return;
+        const st = shell.querySelector('.wd-title [data-state]'); if (st) st.textContent = 'Original · read-only';
+    } catch (e) {
+        if (shell) shell.classList.add('wd-off');
+        if (window.console) console.warn('Drafting: the original could not be drawn —', e && e.message);
+    }
+}
 async function openEditor(t) {
     const host = document.getElementById('dr-paper'), shell = document.getElementById('dr-wd');
     if (!host || !window.docx || !window.docx.renderAsync || !window.LSHDraftingEditor || !window.JSZip) { if (shell) shell.classList.add('wd-off'); return; }
@@ -532,15 +553,65 @@ function guideHtml(t) {
         'E-mail subject: <i>Client name - Lien holder (provider) - Request for Lien Verification</i>.'])}</div>`;
 }
 
-function render() {
-    const t = tpl(), done = doneCount(t), total = theirFields(t).length;
-    ED = null;
-    app().innerHTML = `
-        <div class="dr-bar">
+function tabsHtml() {
+    return `<div class="dr-bar">
             ${TEMPLATES.map(x => `<button class="dr-tab ${x.id === S.tab ? 'on' : ''}" onclick="LSHDrafting.tab('${esc(x.id)}')">${esc(x.title)}</button>`).join('')}
             ${PROVIDERS.length ? `<button class="dr-tab ${S.tab === 'prov' ? 'on' : ''}" onclick="LSHDrafting.tab('prov')">Medical provider letters</button>` : ''}
         </div>
-        ${S.tab === 'prov' ? providerBar() : ''}
+        ${S.tab === 'prov' ? providerBar() : ''}`;
+}
+// The three ways to work the original: in Word (the editor here), as a PDF, or the Word file itself.
+function docBarHtml(t) {
+    return `<div class="dr-docbar">
+        <span class="dr-docname" title="${esc(origName(t))}">📄 ${esc(t.provider ? t.provider + ' — ' : '')}${esc(t.title)}</span>
+        <span class="dr-docacts">
+            <button class="sim-btn orange" onclick="LSHDrafting.edit('word')">✎ Edit in Word</button>
+            <a class="sim-btn ghost" href="${pdfOf(t)}" target="_blank" rel="noopener">✎ Edit PDF</a>
+            <a class="sim-btn ghost" href="${srcOf(t)}" download="${esc(origName(t))}">⬇ Download Doc</a>
+        </span>
+    </div>`;
+}
+function renderView(t) {
+    app().innerHTML = `
+        ${tabsHtml()}
+        ${docBarHtml(t)}
+        <div class="dr-grid">
+            <div class="wd wd-view" id="dr-wd">
+                <div class="wd-title"><span class="wd-logo" aria-hidden="true">W</span><span class="wd-fname">${esc(origName(t))}</span><span data-state>Opening…</span></div>
+                <div class="wd-canvas"><div class="dr-paper" id="dr-paper">${paperHtml(t)}</div></div>
+                <div class="wd-status" id="dr-status"><span data-pages></span><span data-words></span><span>English (United States)</span><span data-say></span></div>
+            </div>
+            <div class="dr-side">
+                <div class="dr-note">
+                    <h3>The original document</h3>
+                    <p style="margin:0 0 7px;">This is the firm's own file, exactly as it was sent. Choose how to work it:</p>
+                    <ul style="margin:0;padding-left:18px;">
+                        <li style="margin:0 0 5px;"><b>✎ Edit in Word</b> opens it in the Word editor here: your changes are saved to your account, and you can check your letter and send it to your trainer.</li>
+                        <li style="margin:0 0 5px;"><b>✎ Edit PDF</b> opens it as a PDF in a new tab, to edit in your PDF editor (Edge's <i>Add text</i>, or Adobe Acrobat) and save.</li>
+                        <li style="margin:0;"><b>⬇ Download Doc</b> saves the original Word file, to edit in Microsoft Word.</li>
+                    </ul>
+                </div>
+                ${caseHtml()}
+                ${guideHtml(t)}
+            </div>
+        </div>`;
+    openViewer(t);
+}
+
+function render() {
+    const t = tpl(), done = doneCount(t), total = theirFields(t).length;
+    ED = null;
+    if (S.mode !== 'word') return renderView(t);
+    app().innerHTML = `
+        ${tabsHtml()}
+        <div class="dr-docbar">
+            <span class="dr-docname">✎ Editing in Word — ${esc(t.provider ? t.provider + ' — ' : '')}${esc(t.title)}</span>
+            <span class="dr-docacts">
+                <button class="sim-btn ghost" onclick="LSHDrafting.edit('view')">← The original</button>
+                <a class="sim-btn ghost" href="${pdfOf(t)}" target="_blank" rel="noopener">✎ Edit PDF</a>
+                <button class="sim-btn orange" onclick="LSHDrafting.download()">⬇ Download Doc</button>
+            </span>
+        </div>
         <div class="dr-grid">
             <div class="wd" id="dr-wd">
                 <div class="wd-title"><span class="wd-logo" aria-hidden="true">W</span><span class="wd-fname">${esc(fileName(t))}.docx</span><span data-state>Opening…</span></div>
@@ -557,7 +628,7 @@ function render() {
                     <div class="dr-prog"><i style="width:${total ? Math.round(done / total * 100) : 0}%"></i></div>
                     <div class="dr-saved">${done} of ${total} blanks filled${S.savedAt ? ` · saved ${new Date(S.savedAt).toLocaleTimeString()}` : ''}</div>
                     <div class="dr-actions" style="margin-top:12px;">
-                        <button class="sim-btn orange" onclick="LSHDrafting.download()">⬇ Download the Word letter</button>
+                        <button class="sim-btn orange" onclick="LSHDrafting.download()">⬇ Download Doc</button>
                         <button class="sim-btn ghost" onclick="LSHDrafting.check()">✔ Check my letter</button>
                         <button class="sim-btn ghost" onclick="LSHDrafting.submit()">✓ Send it to my trainer</button>
                         <a class="sim-btn ghost" href="${srcOf(t)}" download>⬇ The blank template</a>
@@ -587,6 +658,7 @@ function showChecks(res) {
 }
 const API = {
     tab(id) { S.tab = id; render(); window.scrollTo(0, 0); },
+    edit(mode) { S.mode = mode === 'word' ? 'word' : 'view'; render(); window.scrollTo(0, 0); },
     pickCase(i) { S.caseNo = Number(i) || 0; save(); render(); },
     pickProvider(i) {
         S.prov = Number(i) || 0;
@@ -726,6 +798,7 @@ Sim.label('Drafting');
 // (Standard Foundational Training's Provider Communication days open the MedLOR + HIPAA packet this way).
 function fromLink() {
     const q = new URLSearchParams(location.search), tab = q.get('tab'), kind = q.get('kind');
+    if (q.get('mode') === 'word') S.mode = 'word';
     if (tab === 'prov' && PROVIDERS.length) S.tab = 'prov';
     else if (tab && TEMPLATES.some(x => x.id === tab)) S.tab = tab;
     if (S.tab === 'prov' && kind && LETTER_KIND[kind]) {
