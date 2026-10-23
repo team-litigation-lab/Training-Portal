@@ -5,8 +5,8 @@ const EMAIL_PACKS = {
  "cm": {
   "id": "cm",
   "program": "Case Management",
-  "title": "John Doe v. Apex Delivery Services & Robert W. Smith — Monday inbox",
-  "role": "You are the Case Manager on John Doe v. Apex Delivery Services, Inc. & Robert W. Smith (LSH File # MVA-JD-2026-001, claim 2026-0214-AX) at LSH Law Group; the handling attorney is Dana Carter. You handle client, provider, lienholder and carrier correspondence. Legal advice, settlement authority and case valuation belong to the attorney. This is the same case file you work in the CMS, the Email Replies, Medical Records and Docket simulators.",
+  "title": "John Doe v. Robert Smith — Monday inbox",
+  "role": "You are the Case Manager on John Doe v. Robert Smith (LSH matter LSH-2026-MVA-770412) at LSH Law Group. John Doe was the front-seat passenger in the host vehicle that Robert Smith hit on 02/06/2026. You handle client, provider, lienholder and carrier correspondence; legal advice, settlement authority and case valuation belong to the handling attorney, Atty. Elijah Thorne. This is the same case file you work in the CMS, the Email Replies, Medical Records and Docket simulators. File every email under a label, give each one decision, and reply where a reply is needed.",
   "labels": [
    {
     "name": "Clients",
@@ -43,40 +43,40 @@ const EMAIL_PACKS = {
   ],
   "emails": [
    {
-    "from": "John Doe <johndoe@gmail.com>",
+    "from": "John Doe <john.doe@example.com>",
     "subject": "any update?? bills keep coming",
     "time": "9:14 AM",
     "label": "Clients",
     "decision": "do",
     "needsReply": true,
-    "body": "Hi,\n\nSorry to keep bugging you but I got another statement from Metro General this week and a collections letter about the ambulance. My PIP is supposed to be covering this stuff. Is there any update on my case? When will this be over?\n\nAlso my back is worse since the surgery follow up.\n\nThanks,\nJohn Doe"
+    "body": "Hi,\n\nSorry to keep bugging you but I got another statement from Riverton Spine & Rehab this week and a collections letter about the ambulance from the crash. I thought the insurance was covering this stuff. Is there any update on my case? When will this be over?\n\nAlso my neck is still stiff after PT.\n\nThanks,\nJohn Doe"
    },
    {
-    "from": "Tom Reeves <t.reeves@aggressive-casualty.example>",
-    "subject": "Claim 2026-0214-AX — recorded statement from Mr. Doe",
+    "from": "Dana Whitfield <dana.whitfield@keystonemutual.example>",
+    "subject": "Claim KM-26-440871 — recorded statement from Mr. Doe",
     "time": "8:52 AM",
     "label": "Insurance / Adjusters",
     "decision": "delegate",
     "needsReply": false,
-    "body": "Good morning,\n\nTo keep claim 2026-0214-AX (insured: Apex Delivery Services / Robert W. Smith) moving I would like a brief recorded statement from Mr. Doe this week. Please send me his direct cell number so I can set it up with him myself.\n\nRegards,\nTom Reeves\nBI Adjuster, Aggressive Casualty Insurance"
+    "body": "Good morning,\n\nTo keep claim KM-26-440871 (insured: Robert Smith) moving I would like a brief recorded statement from Mr. Doe this week. Please send me his direct cell number so I can set it up with him myself.\n\nRegards,\nDana Whitfield\nBodily Injury Adjuster, Keystone Mutual Insurance"
    },
    {
-    "from": "Brenda Sterling <b.sterling@metrogeneral.example>",
-    "subject": "Hospital lien $45,000 — patient John Doe, DOS 02/14/2026",
+    "from": "Peach State Recovery Unit <recovery@peachstatehealth.example>",
+    "subject": "Reimbursement claim $3,618.00 — member John Doe, PSH-55017742",
     "time": "8:31 AM",
     "label": "Billing & Liens",
     "decision": "do",
     "needsReply": true,
-    "body": "Hello,\n\nMetro General Hospital asserts a lien of $45,000.00 against any recovery for patient John Doe, date of service 02/14/2026. Please confirm the lien in writing and advise on the status of the case.\n\nBrenda Sterling\nRevenue Recovery, Metro General Hospital"
+    "body": "Hello,\n\nPeach State Health Plan asserts a reimbursement right of $3,618.00 against any recovery for member John Doe (PSH-55017742), injuries of 02/06/2026. Please confirm the claim in writing and advise on the status of the case.\n\nRecovery Unit\nPeach State Health Plan"
    },
    {
-    "from": "Superior Court e-Filing <efiling@metro-courts.example>",
-    "subject": "NOTICE: Hearing set — Motion to Compel, Dept 14, Wed 9:00 AM",
+    "from": "Riverton County e-Filing <efiling@riverton-courts.example>",
+    "subject": "NOTICE: Case Management Conference set — Dept 4, Wed 9:00 AM",
     "time": "7:58 AM",
     "label": "Court & Filings",
     "decision": "do",
     "needsReply": false,
-    "body": "NOTICE OF HEARING\n\nCase: Doe v. Apex Delivery Services, Inc. & Robert W. Smith\nLSH File # MVA-JD-2026-001\nMotion: Plaintiff's Motion to Compel Further Responses\nDate/Time: Wednesday, 9:00 AM, Department 14\n\nThis notice was served electronically on all parties of record."
+    "body": "NOTICE OF HEARING\n\nCase: John Doe v. Robert Smith\nLSH matter LSH-2026-MVA-770412\nHearing: Case Management Conference\nDate/Time: Wednesday, 9:00 AM, Department 4\n\nThis notice was served electronically on all parties of record, including Atty. Grant Mercer, Mercer & Hale LLP, for the defendant."
    },
    {
     "from": "Settlement Funds Release <release@docusign-secure-funds.com>",
@@ -86,32 +86,32 @@ const EMAIL_PACKS = {
     "decision": "report",
     "needsReply": false,
     "phishing": true,
-    "body": "A settlement disbursement for DOE / MVA-JD-2026-001 is pending your approval. Confirm the receiving trust account within 24 hours or the funds will be returned to the payer.\n\n{{LINK:Review & Confirm Wire Details}}\n\nFunds Release Team",
+    "body": "A settlement disbursement for DOE / LSH-2026-MVA-770412 is pending your approval. Confirm the receiving trust account within 24 hours or the funds will be returned to the payer.\n\n{{LINK:Review & Confirm Wire Details}}\n\nFunds Release Team",
     "redFlags": [
-     "Sender domain is not docusign.com and is not the carrier's",
+     "Sender domain is not docusign.com and is not Keystone Mutual's",
      "Settlement funds never move by a “confirm account” link in an email",
      "24-hour pressure to act",
      "Asks you to confirm wire / trust-account details",
-     "No case is at the disbursement stage — the carrier's $45,000 counter was rejected 05/26/2026"
+     "Keystone pays by check to the firm's IOLTA trust account, and only after the signed release"
     ]
    },
    {
-    "from": "Metro General Release of Information <roi@metrogeneral.example>",
-    "subject": "Records request received — fee $38 due before release",
+    "from": "Summit Imaging Records <records@summitimaging.example>",
+    "subject": "Records request received — fee $25 due before release",
     "time": "8:05 AM",
     "label": "Medical Providers & Records",
     "decision": "delegate",
     "needsReply": false,
-    "body": "Your request for the medical records of John Doe (DOS 02/14/2026) has been received. A processing fee of $38.00 is due before release. Payment can be made by firm check or through our release-of-information portal.\n\nNote: the authorization on file is unsigned and undated. We cannot release until a corrected authorization is received.\n\nMetro General Release of Information"
+    "body": "Your request for the records of John Doe (cervical MRI, DOS 03/13/2026) has been received. A processing fee of $25.00 is due before release. Payment can be made by firm check or through our records portal.\n\nNote: the authorization on file is unsigned and undated. We cannot release until a corrected authorization is received.\n\nSummit Imaging Center — Health Information Management"
    },
    {
-    "from": "Dana Carter <dcarter@lshlawgroup.example>",
+    "from": "Atty. Elijah Thorne <ethorne@lshlawgroup.example>",
     "subject": "Doe — medical chronology and specials by Thursday",
     "time": "7:45 AM",
     "label": "Internal / Team",
     "decision": "schedule",
     "needsReply": false,
-    "body": "Hi,\n\nPlease put together the medical chronology and an updated specials table for Doe (providers, dates, billed totals, what PIP paid) by end of day Thursday. I want it before the settlement conference Friday.\n\nReconcile the MRI while you are in there — the chronology says 3mm on 03/10 and the radiology report says 5mm on 03/15.\n\nThanks,\nDana Carter\nHandling Attorney, LSH Law Group"
+    "body": "Hi,\n\nPlease put together the medical chronology and an updated specials table for Doe (providers, dates, billed totals, what Harbor Point PIP paid) by end of day Thursday. I want it before the demand goes out.\n\nWhile you are in there, reconcile the MRI: the Summit report's history gives a different date of injury from 02/06/2026. We need the corrected addendum.\n\nThanks,\nElijah Thorne\nLead Counsel, LSH Law Group"
    },
    {
     "from": "PI Trial Report <news@pitrialreport.com>",
@@ -123,13 +123,13 @@ const EMAIL_PACKS = {
     "body": "This quarter's biggest verdicts, plus three trends every PI team should watch. Read the full report online."
    },
    {
-    "from": "Jane Doe <jane.doe80@gmail.com>",
-    "subject": "My own claim — was I ever signed up?",
+    "from": "Margaret Doe <margaret.doe@example.com>",
+    "subject": "My Civic — is that part of John's case?",
     "time": "9:03 AM",
     "label": "Clients",
     "decision": "do",
     "needsReply": true,
-    "body": "Hi,\n\nI was in the passenger seat when the truck hit us on February 14. I turned down the ambulance at the scene but my neck and shoulder have hurt ever since and I have never been seen for it.\n\nJohn says your firm handles everything. Am I signed up too, or is it only his case? Nobody has sent me anything to sign.\n\nJane Doe"
+    "body": "Hi,\n\nI'm John's mother. My Civic was parked outside when all this happened and it was damaged too. The insurance company keeps calling me about it.\n\nJohn says your firm handles everything. Is my car part of his case, or do I need to do something myself? Nobody has sent me anything to sign.\n\nMargaret Doe"
    },
    {
     "from": "IT Help Desk <it@lshlawgroup.example>",

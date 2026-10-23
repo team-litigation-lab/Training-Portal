@@ -136,7 +136,7 @@ function renderRead() {
         <div class="body">${Sim.esc(m.body)}</div>
         ${(m.attachments || []).map(a => `<span class="att">📎 ${Sim.esc(a)}</span>`).join('')}
         <div class="facts"><b>Your role:</b> ${Sim.esc(m.you)}<br><br><b>What you know:</b> ${Sim.esc(m.facts)}</div>
-        ${m.caseFile && window.CM_CASE_SUMMARY ? `<details class="casefile"><summary>📂 Case summary: John Doe v. Apex Delivery Services</summary><pre>${Sim.esc(window.CM_CASE_SUMMARY)}</pre></details>` : ''}
+        ${m.caseFile && window.CM_CASE_SUMMARY ? `<details class="casefile"><summary>📂 Case summary: John Doe v. Robert Smith</summary><pre>${Sim.esc(window.CM_CASE_SUMMARY)}</pre></details>` : ''}
     </div>`;
     let right;
     if (E.token) {
