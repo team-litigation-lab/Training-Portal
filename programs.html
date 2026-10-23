@@ -528,11 +528,9 @@
 
             // No required order: any built program can be requested at any time, and an admin approves it.
 
-            if (status === 'passed') {
-                actionHtml = `<button class="topic-action-btn primary" onclick="downloadCertificate('${escapeHtml(t.key)}')">🏆 Download Certificate</button>`;
-            } else if (!built) {
+            if (!built) {
                 actionHtml = `<span class="topic-action-btn disabled">Coming Soon</span>`;
-            } else if (isAdmin || status === 'approved') {
+            } else if (isAdmin || status === 'approved' || status === 'passed') {   // finished: the program stays open
                 actionHtml = `<a class="topic-action-btn primary" href="${programHref(t.key, built)}" target="_blank" rel="noopener">Enter Program &rarr;</a>`;
             } else if (status === 'pending') {
                 actionHtml = `<span class="topic-action-btn disabled">Awaiting Admin Approval</span>`;
@@ -636,69 +634,6 @@
         } catch (e) {
             showToast(e.message, 'error');
         }
-    }
-
-    // Client-side certificate PDF — generated on demand from data already
-    // in hand (session + cached topic list), no extra request needed. Kept
-    // deliberately simple: name, program, and the date it was passed.
-    function downloadCertificate(topicKey) {
-        if (!window.jspdf || !window.jspdf.jsPDF) {
-            showToast('PDF library failed to load — check your connection and try again.', 'error');
-            return;
-        }
-        const session = getSession();
-        const topic = __topicsCache.find(t => t.key === topicKey);
-        const access = __accessCache.find(a => a.topic_key === topicKey);
-        const programName = topic ? topic.name : topicKey;
-        const dateStr = access && access.decided_at ? formatDate(access.decided_at) : new Date().toLocaleDateString();
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'landscape' });
-        const w = doc.internal.pageSize.getWidth();
-        const h = doc.internal.pageSize.getHeight();
-
-        doc.setDrawColor(15, 33, 72);
-        doc.setLineWidth(3);
-        doc.rect(24, 24, w - 48, h - 48);
-        doc.setLineWidth(1);
-        doc.rect(34, 34, w - 68, h - 68);
-
-        doc.setTextColor(15, 33, 72);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(13);
-        doc.text('LEGAL SUPPORT HELP TRAINING AND RESOURCE CENTER', w / 2, 90, { align: 'center' });
-
-        doc.setFontSize(30);
-        doc.text('Certificate of Completion', w / 2, 140, { align: 'center' });
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(13);
-        doc.setTextColor(80, 80, 80);
-        doc.text('This certifies that', w / 2, 185, { align: 'center' });
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(24);
-        doc.setTextColor(15, 33, 72);
-        doc.text(session.fullName || session.username, w / 2, 220, { align: 'center' });
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(13);
-        doc.setTextColor(80, 80, 80);
-        doc.text('has successfully completed', w / 2, 250, { align: 'center' });
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(18);
-        doc.setTextColor(249, 115, 22);
-        doc.text(programName, w / 2, 280, { align: 'center' });
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(11);
-        doc.setTextColor(120, 120, 120);
-        doc.text(`Completed on ${dateStr}`, w / 2, 320, { align: 'center' });
-
-        const safeName = (session.fullName || session.username).replace(/[^a-z0-9]+/gi, '_').toLowerCase();
-        const safeTopic = programName.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
-        doc.save(`${safeName}_${safeTopic}_certificate.pdf`);
     }
 
     document.addEventListener('DOMContentLoaded', loadTrainingIndex);
