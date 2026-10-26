@@ -173,13 +173,14 @@ window.addEventListener('scroll', () => PortalNav.closeMenus(), true);
 })();
 // Safety net: every portal page gets a Back button, even one built without the shared
 // nav bar. If no "← Back" is on the page shortly after it loads (Home excepted), a
-// floating one is added. The Checks workflow also fails any page without one.
+// floating one is added. The Checks workflow also fails any page without one. The sign-in
+// and registration pages have their own "← Go to Main Portal" (.back-link), so they get none.
 (function () {
     const PARENT = { '/core.html': '/programs.html', '/progress.html': '/core.html', '/admin-login.html': '/index.html?stay=1', '/registration.html': '/index.html?stay=1', '/blueprint.html': '/index.html?stay=1', '/orientation.html': '/index.html?stay=1', '/referrals.html': '/core.html', '/attendance.html': '/core.html', '/system.html': '/programs.html' };
     function ensureBack() {
         // Cloudflare serves pages without ".html" too (/, /index, /programs): the main page never gets one.
         const path = location.pathname.replace(/\/$/, '/index.html').replace(/^(\/[^.]*[^/.])$/, '$1.html');
-        if (path === '/index.html' || PortalNav.embedded() || document.querySelector('.pn-back')) return;
+        if (path === '/index.html' || PortalNav.embedded() || document.querySelector('.pn-back, .back-link')) return;
         const st = document.createElement('style');
         st.textContent = `.pn-back.pn-float{position:fixed;left:16px;bottom:16px;z-index:9000;background:#0f2148;color:#fff !important;border-color:#0f2148;box-shadow:0 8px 22px -8px rgba(8,18,38,.55);font:700 13px/1 'IBM Plex Sans',Arial,sans-serif;}
             .pn-back.pn-float:hover{background:#132a5c;}

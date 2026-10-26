@@ -34,7 +34,7 @@ const server = http.createServer((req, res) => {
             if (vp.name === 'desktop') {
                 const nav = await page.evaluate(async (path) => {
                     await new Promise(r => setTimeout(r, 1300));   // the safety-net Back button appears ~1.5 s after load
-                    const back = [...document.querySelectorAll('.pn-back')].some(a => { const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+                    const back = [...document.querySelectorAll('.pn-back, .back-link')].some(a => { const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
                     const PORTAL = /^\/(index|programs|simulators|progress|core|blueprint|referrals|attendance)\.html$|^\/simulators\//;
                     const newTab = [...document.querySelectorAll('a[target="_blank"]')].map(a => { try { return new URL(a.getAttribute('href'), location.href); } catch (e) { return null; } })
                         .filter(u => u && u.origin === location.origin && PORTAL.test(u.pathname)).map(u => u.pathname);

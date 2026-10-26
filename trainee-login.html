@@ -43,6 +43,12 @@
                 <span class="auth-card-mark"><img src="/img/logo.svg" alt="Legal Support Help" width="75" height="46"></span>
                 <span>Legal Support Help</span>
             </div>
+            <!-- Log in as: switches between the two sign-ins (keeps ?next=). A wrong pick
+                 is also switched for you: attemptLogin() retries in the account's own role. -->
+            <div class="role-tabs" role="group" aria-label="Log in as">
+                <a href="/trainee-login.html" data-role-tab class="on" aria-current="page">Trainee</a>
+                <a href="/admin-login.html" data-role-tab>Admin</a>
+            </div>
             <h2 id="admin-login-heading">Trainee Log In</h2>
             <p class="sub" id="admin-login-sub">Log in once here, then open every training program from the Training Directory.</p>
 
@@ -53,7 +59,6 @@
                 <button class="auth-submit" onclick="attemptLogin()">Log In</button>
 
                 <div class="auth-switch">New to LSH? <a href="/registration.html">Register here</a></div>
-                <div class="role-switch"><a href="/admin-login.html">Administrator? Admin log in &rarr;</a></div>
             </div>
 
             <div id="auth-locked-notice" style="display:none; text-align:center; padding:24px 4px;">
