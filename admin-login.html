@@ -44,6 +44,12 @@
                 <span class="auth-card-mark"><img src="/img/logo.svg" alt="Legal Support Help" width="75" height="46"></span>
                 <span>Legal Support Help</span>
             </div>
+            <!-- Log in as: switches between the two sign-ins (keeps ?next=). A wrong pick
+                 is also switched for you: attemptLogin() retries in the account's own role. -->
+            <div class="role-tabs" role="group" aria-label="Log in as">
+                <a href="/trainee-login.html" data-role-tab>Trainee</a>
+                <a href="/admin-login.html" data-role-tab class="on" aria-current="page">Admin</a>
+            </div>
             <h2 id="admin-login-heading">Admin Login</h2>
             <p class="sub" id="admin-login-sub">Sign in with your own administrator username and password: one sign-in for every program, the simulators and Master Control.</p>
 

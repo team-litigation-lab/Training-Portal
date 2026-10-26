@@ -74,7 +74,16 @@ function submitRegistration() {
     });
 }
 
-function attemptLogin() {
+// The Trainee | Admin tabs on the two sign-in pages keep ?next= (where to land
+// afterwards) when switching between them.
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('a[data-role-tab]').forEach(a => {
+        if (location.search) a.href = a.getAttribute('href') + location.search;
+    });
+});
+
+// switched: true on the automatic retry, so an account is switched at most once.
+function attemptLogin(switched) {
     const loginMsgDiv = document.getElementById('auth-login-msg');
     if (loginMsgDiv) { loginMsgDiv.innerText = ""; loginMsgDiv.className = "auth-msg"; loginMsgDiv.style.display = "none"; }
 
@@ -148,6 +157,12 @@ function attemptLogin() {
             setTimeout(() => {
                 window.location.href = next;
             }, 900);
+        } else if (data.code === 'WRONG_PORTAL' && switched !== true) {
+            // Right username and password, other role: log in as that role
+            // instead of sending them to the other page to type it all again.
+            currentPortalMode = currentPortalMode === 'Admin' ? 'Trainee' : 'Admin';
+            if (loginMsgDiv) { loginMsgDiv.className = "auth-msg info"; loginMsgDiv.innerText = `Switching to ${currentPortalMode} log in...`; }
+            attemptLogin(true);
         } else {
             if (loginMsgDiv) { loginMsgDiv.className = "auth-msg error"; loginMsgDiv.innerText = data.error || "Login unauthorized."; }
             playSound('loginError');
