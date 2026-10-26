@@ -175,7 +175,10 @@ async function launch({ request, env }) {
         if (!isTool || ADMIN_TICKET_TOOLS.includes(tool)) {
             const name = isMaster(auth.session) ? '' : String(auth.session.fullName || auth.session.username || 'Trainer').trim();
             const ticket = await makeTicket(secret, { admin: true, name });
-            return Response.redirect(`${target}?ticket=${ticket}${to.query}${to.hash}`, 302);
+            // An admin in the Portal's 👁 trainee view: the program opens in its own trainee view (it only hides; the
+            // admin can switch back there), so what they see matches what a trainee sees
+            const view = !isTool && params.get('view') === 'trainee' ? '&view=trainee' : '';
+            return Response.redirect(`${target}?ticket=${ticket}${view}${to.query}${to.hash}`, 302);
         }
         return Response.redirect(`${target}?admin=1${to.query}${to.hash}`, 302);
     }

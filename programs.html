@@ -334,7 +334,8 @@
             body: JSON.stringify({ fullName: who, currentCase: 'Opening a program' }) })
             .catch(() => {}).finally(() => { clearTimeout(timer); go(); });
     }, true);
-    const programHref = (key, built) => SSO_PROGRAMS.includes(key) ? '/api/launch?program=' + encodeURIComponent(key) : built;
+    // An admin in 👁 trainee view (Switch view) opens a program the way a trainee sees it, too (&view=trainee)
+    const programHref = (key, built) => SSO_PROGRAMS.includes(key) ? '/api/launch?program=' + encodeURIComponent(key) + (PortalNav.traineeView() ? '&view=trainee' : '') : built;
 
     // Display names that replace the topics table's `name`, so a program can
     // be renamed without editing the live database. topics_seed.sql carries
