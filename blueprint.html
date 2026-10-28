@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blueprint — LSH Training Portal</title>
+<title>Blueprint — Legal Skills Hub</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <!--
-  Platform Blueprint for the LSH Training Portal (the master portal).
+  Platform Blueprint for the Legal Skills Hub (the master portal).
   The deck itself is drawn by /lsh-blueprint.js, the Blueprint engine every LSH platform shares:
   the same navy cover band with the numbered contents, the same points / where to find it / tip
   slide, and the same real-text PDF — so the portal's blueprint and every program's blueprint
@@ -86,7 +86,7 @@ function signedIn() { return !!lshSession(); }
 </script>
 
 <div class="sim-top">
-    <a class="sim-brand" href="/programs.html"><img src="/img/logo.svg" alt="Legal Support Help" width="75" height="46"><span>LSH Training Portal<small>Blueprint</small></span></a>
+    <a class="sim-brand" href="/programs.html"><img src="/img/logo.svg" alt="Legal Support Help" width="75" height="46"><span>Legal Skills Hub<small>Blueprint</small></span></a>
     <div class="sim-nav">
         <script>document.write(isAdmin() ? PortalNav.adminHtml('orient', { back: '/programs.html' })
             : PortalNav.traineeHtml('orient', { back: '/index.html?stay=1', signedIn: signedIn() }));</script>
@@ -97,7 +97,7 @@ function signedIn() { return !!lshSession(); }
     <div class="or-head">
         <div>
             <div class="eyebrow">Platform Blueprint · for screen sharing</div>
-            <h1>🧭 Welcome to the LSH Training Portal</h1>
+            <h1>🧭 Welcome to the Legal Skills Hub</h1>
         </div>
         <div class="or-tools">
             <div class="or-tabs" role="tablist" aria-label="Blueprint track">
@@ -261,8 +261,8 @@ admin: [
    The deck and its PDF are lsh-blueprint.js, the same Blueprint engine as every LSH platform: it is made from
    the slides deployed right now, stamped with the deploy and the date. */
 const SUBS = {
-    trainee: 'The LSH Training Portal: how to find and use your training',
-    admin: 'The LSH Training Portal: running training from the admin side'
+    trainee: 'The Legal Skills Hub: how to find and use your training',
+    admin: 'The Legal Skills Hub: running training from the admin side'
 };
 let track = 'trainee';
 const $ = id => document.getElementById(id);
@@ -275,7 +275,7 @@ function version() {
     return ver;
 }
 window.LSH_BLUEPRINT = {
-    product: 'LSH Training Portal', site: 'LSH Training Portal', file: 'LSH_Training_Portal', logo: '/lsh-logo-dark.png',
+    product: 'Legal Skills Hub', site: 'Legal Skills Hub', file: 'Legal_Skills_Hub', logo: '/lsh-logo-dark.png',
     trainee: { sub: SUBS.trainee, slides: SLIDES.trainee },
     get trainer() { return SLIDES.admin ? { sub: SUBS.admin, slides: SLIDES.admin } : null; },
     role: () => (isAdmin() ? 'trainer' : 'trainee'),
@@ -293,7 +293,7 @@ function renderTrack() {
     // the deck outside the portal, so it is not on the Trainees track even for an admin.
     const pdf = $('orPdf');
     if (pdf) pdf.hidden = !(isAdmin() && track === 'admin');
-    document.title = (track === 'admin' ? 'Trainer Blueprint' : 'Blueprint') + ' — LSH Training Portal';
+    document.title = (track === 'admin' ? 'Trainer Blueprint' : 'Blueprint') + ' — Legal Skills Hub';
     const q = new URLSearchParams(location.search);
     q.set('track', track);
     history.replaceState(null, '', location.pathname + '?' + q);

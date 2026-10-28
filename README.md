@@ -22,7 +22,7 @@ Trainees log in once, here, and open each training program from the Training Dir
    `https://cm-training-activity.pages.dev/api/email-inbound?key=<EMAIL_INBOUND_SECRET>`.
 3. In Cloudflare Pages → this project → **Settings → Variables and Secrets** (Production), add:
    - `POSTMARK_SERVER_TOKEN`: the server's API token (as a secret)
-   - `EMAIL_FROM`: e.g. `LSH Training Portal <training@legalsupporthelp.com>` (must be verified in step 1)
+   - `EMAIL_FROM`: e.g. `Legal Skills Hub <training@legalsupporthelp.com>` (must be verified in step 1)
    - `EMAIL_INBOUND_ADDRESS`: the inbound address from step 2
    - `EMAIL_INBOUND_SECRET`: a long random string, the same one used in the webhook URL (as a secret)
    - `EMAIL_DAILY_PER_ADDRESS` (optional): practice emails per address per day, default 5

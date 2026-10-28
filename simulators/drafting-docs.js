@@ -75,7 +75,7 @@ const DESTS = {
               files: 'the Doc Hub of your case in the CMS beside the lesson', wired: true },
     ft:     { key: 'ft',     name: 'Standard Foundational Training', url: 'https://foundational-training.legalsupporthelp.workers.dev/',
               files: 'the Doc Hub of your case in the CMS beside the lesson', wired: true },
-    portal: { key: 'portal', name: 'the LSH Training Portal', url: '/simulators.html', files: 'your own case file', wired: false }
+    portal: { key: 'portal', name: 'the Legal Skills Hub', url: '/simulators.html', files: 'your own case file', wired: false }
 };
 // what each course calls itself when it opens a tool (?program=CM, ?program=FT, …)
 const BY_PROGRAM = { cm: 'cm', 'case management': 'cm', ft: 'ft', standard: 'ft', foundational: 'ft', cms: 'cms' };

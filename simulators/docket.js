@@ -1,4 +1,4 @@
-/* LSH Training Portal — Docket System simulator.
+/* Legal Skills Hub — Docket System simulator.
    Court records (a federal-style docket report per case), the firm's deadline calendar,
    a rules-based deadline calculator, and docketing assignments: an inbox of court notices
    and mail to docket and calendar, checked against the key. Saved in this browser. */

@@ -41,7 +41,7 @@ const DESTS = {
               files: 'the Doc Hub of your case in the CMS beside the lesson', wired: true },
     md:     { key: 'md',     name: 'Medical Summary & Demand Training', url: 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/',
               files: 'the Doc Hub of your case in the CMS (records under Medical Records, bills under Bills), and your case folder in Drive', wired: false },
-    portal: { key: 'portal', name: 'the LSH Training Portal', url: '/simulators.html', files: 'your own case file', wired: false }
+    portal: { key: 'portal', name: 'the Legal Skills Hub', url: '/simulators.html', files: 'your own case file', wired: false }
 };
 // what each program's course calls itself when it opens a tool (?program=CM, ?program=md, …)
 const BY_PROGRAM = { cm: 'cm', 'case management': 'cm', md: 'md', medsum: 'md', 'medsum and demand': 'md', cms: 'cms' };

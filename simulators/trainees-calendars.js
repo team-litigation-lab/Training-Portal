@@ -1,4 +1,4 @@
-/* LSH Training Portal — 👥 Your trainees' calendars (trainers): everyone who has a calendar saved on a Google Calendar Simulator, with
+/* Legal Skills Hub — 👥 Your trainees' calendars (trainers): everyone who has a calendar saved on a Google Calendar Simulator, with
    👁 View & score on each track: their calendar in the Google Calendar look, read only, with the automated check and the CALENDAR MANAGEMENT
    MOCK CALL scorecard (gcal.html?trainee=<username>), and the last scorecard given.
    On the Trainee Evaluations page (gcal-review.html); the Calendaring Simulators page (calsim.html) points trainers there.

@@ -58,7 +58,7 @@ async function guardPublic(request, env) {
     const origin = request.headers.get('Origin');
     let originHost = null;
     try { originHost = origin ? new URL(origin).host : null; } catch (e) { originHost = null; }
-    if (originHost !== new URL(request.url).host) return json({ success: false, error: 'Referrals can only be sent from the LSH Training Portal.' }, 403);
+    if (originHost !== new URL(request.url).host) return json({ success: false, error: 'Referrals can only be sent from the Legal Skills Hub.' }, 403);
 
     const limit = Math.max(1, Number(env.REFERRAL_RATE_LIMIT) || 5);
     const ip = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';

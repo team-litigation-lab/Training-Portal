@@ -535,7 +535,7 @@ async function assemble() {
 
     // The merge, then the numbers on every page.
     const out = await PDFDocument.create();
-    out.setTitle(`${TYPES[S.type].name} — ${P().case.client || 'Client'}`); out.setCreator('LSH Training Portal'); out.setProducer('LSH Training Portal (pdf-lib)');
+    out.setTitle(`${TYPES[S.type].name} — ${P().case.client || 'Client'}`); out.setCreator('Legal Skills Hub'); out.setProducer('Legal Skills Hub (pdf-lib)');
     for (const p of parts) (await out.copyPages(p.pdf, p.pdf.getPageIndices())).forEach(pg => out.addPage(pg));
     const font = await out.embedFont(StandardFonts.Helvetica), bold = await out.embedFont(StandardFonts.HelveticaBold);
     out.getPages().forEach((pg, i) => {

@@ -491,7 +491,7 @@ async function cloudLoad(force) {
 function cloudText() {
     const t = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     return ({ pending: 'Unsaved changes…', saving: 'Saving…', saved: CLOUD.at ? `✓ Saved to your account ${t(CLOUD.at)}` : '✓ Saved to your account',
-        error: '⚠ Not saved to your account yet (kept in this browser). Try 💾 Save again.', newer: '⚠ A newer copy of this calendar is saved to your account (another tab or device). Your changes here are kept in this browser, not sent.', off: 'Sign in to the LSH Training Portal to save your calendar to your account (it’s kept in this browser for now).' })[CLOUD.state] || 'Your calendar saves to your account as you work.';
+        error: '⚠ Not saved to your account yet (kept in this browser). Try 💾 Save again.', newer: '⚠ A newer copy of this calendar is saved to your account (another tab or device). Your changes here are kept in this browser, not sent.', off: 'Sign in to the Legal Skills Hub to save your calendar to your account (it’s kept in this browser for now).' })[CLOUD.state] || 'Your calendar saves to your account as you work.';
 }
 function cloudHtml() {
     if (!cloudOn() || RV) return '';   // (a trainer looking at a trainee's calendar saves nothing)
@@ -1344,7 +1344,7 @@ async function submitEval() {
         try {
             const res = await Sim.fetchRetry(EV_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ action: 'submit' }, p)) });
             const d = await res.json().catch(() => ({}));
-            if (res.status === 401) { snack('Sign in to the LSH Training Portal to submit.'); return; }
+            if (res.status === 401) { snack('Sign in to the Legal Skills Hub to submit.'); return; }
             if (!res.ok || !d.success) { snack(d.error || 'Could not submit. Try again.'); return; }
             S.panel = 'evals'; EV.open = null; save(); renderPanel(); renderRail(); snack('Submitted to your trainer'); loadEvals();
         } catch (e) { snack('Could not submit: check your connection.'); }
@@ -1567,7 +1567,7 @@ async function start() {
     if (!document.getElementById('app')) return;
     await Sim.restore();   // opened in a new tab: the cookie says who is signed in (an admin must not be treated as a trainee), and the heartbeat starts
     const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal');
-    if (TRK) document.title = 'Basic Calendaring · ' + CFG.label + ' — LSH Training Portal';
+    if (TRK) document.title = 'Basic Calendaring · ' + CFG.label + ' — Legal Skills Hub';
     if (TRK) { const eb = document.querySelector('.eyebrow'); if (eb) eb.textContent = 'Simulator · ' + CFG.scenario; }
     heroRules();
     if (RV) { if (RV.live) liveStart(); else reviewStart(); return; }

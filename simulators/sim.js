@@ -1,4 +1,4 @@
-/* LSH Training Portal — shared simulator helpers (loaded after app.js / portal.js) */
+/* Legal Skills Hub — shared simulator helpers (loaded after app.js / portal.js) */
 const Sim = {
     esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); },
     session() { try { return (typeof getSession === 'function' ? getSession() : JSON.parse(sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1') || 'null')) || {}; } catch (e) { return {}; } },

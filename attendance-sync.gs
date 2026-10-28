@@ -1,5 +1,5 @@
 /* ============================================================
-   LSH Training Portal ⇄ Google Sheet: 🕘 Platform Attendance
+   Legal Skills Hub ⇄ Google Sheet: 🕘 Platform Attendance
    Keeps a "Platform Attendance" tab in this spreadsheet in step with the
    attendance on the platform, both ways, for every program and batch:
      • platform → sheet: each trainee's automatic Time In (recorded when they
