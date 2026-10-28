@@ -1,4 +1,4 @@
-/* LSH Training Portal — Email Workspace (universal Gmail-style simulator).
+/* Legal Skills Hub — Email Workspace (universal Gmail-style simulator).
    Packs: built-in (EMAIL_PACKS) or generated for any program. Each email leaves the
    Inbox through one decision; every email gets a label (folders + nested sub-labels).
    Grades: filing, security (phishing), triage decisions and reply writing. */

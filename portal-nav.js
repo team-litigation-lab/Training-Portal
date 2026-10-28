@@ -1,4 +1,4 @@
-/* LSH Training Portal — shared navigation.
+/* Legal Skills Hub — shared navigation.
    Every portal page shows the same links (Home, Training Directory, Blueprint)
    plus a Back button. The Simulators and the Knowledge Base aren't in the top bar:
    they open from the Home page and the Training Directory. Portal pages open in the

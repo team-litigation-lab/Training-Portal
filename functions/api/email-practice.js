@@ -17,7 +17,7 @@ import { deliveryConfigured, ensureEmailTable } from '../_email.js';
 //
 // Settings (Cloudflare Pages → Settings → Variables and Secrets):
 //   POSTMARK_SERVER_TOKEN   Postmark server API token (secret)
-//   EMAIL_FROM              verified sender, e.g. "LSH Training Portal <training@yourdomain.com>"
+//   EMAIL_FROM              verified sender, e.g. "Legal Skills Hub <training@yourdomain.com>"
 //   EMAIL_INBOUND_ADDRESS   the Postmark inbound address, e.g. 1a2b3c…@inbound.postmarkapp.com
 //   EMAIL_INBOUND_SECRET    a long random string; also used in the inbound webhook URL
 //   EMAIL_DAILY_PER_ADDRESS optional, default 5 practice emails per address per day
@@ -34,15 +34,15 @@ function isEmail(s) { return /^[^\s@<>(),;:"]+@[^\s@<>(),;:"]+\.[^\s@<>(),;:"]{2
 
 function renderText(e, who) {
     const lines = [
-        '[LSH Training Portal — practice email]',
-        'This is a training scenario, not a real case. Reply to this email the way you would at work; your reply is scored on the LSH Training Portal.',
+        '[Legal Skills Hub — practice email]',
+        'This is a training scenario, not a real case. Reply to this email the way you would at work; your reply is scored on the Legal Skills Hub.',
         '',
         `From: ${e.from.name} <${e.from.email}> — ${e.from.role}`,
         `Subject: ${e.subject}`
     ];
     if (e.attachments && e.attachments.length) lines.push(`Attachments: ${e.attachments.join(', ')}`);
     lines.push('', e.body, '', '—',
-        `You received this because ${who.name || 'someone'} asked for a practice email on the LSH Training Portal. If that wasn't you, ignore this message.`);
+        `You received this because ${who.name || 'someone'} asked for a practice email on the Legal Skills Hub. If that wasn't you, ignore this message.`);
     return lines.join('\n');
 }
 

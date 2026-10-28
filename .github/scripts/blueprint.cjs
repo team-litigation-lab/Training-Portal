@@ -126,7 +126,7 @@ function inspect(buf) {
     if (!st.tabs || !st.admin || st.track !== 'admin') fail(`an Admin should get both tracks, starting on the admin one: ${JSON.stringify(st)}`);
     if (await hidden(page, '#orPdf')) fail('an Admin has no ⬇ Download PDF button');
     pdf = await pdfOf(page);
-    if (pdf.name !== 'LSH_Training_Portal_Blueprint_Trainer.pdf' || pdf.pages !== st.adminSlides + 1) fail(`the admin PDF: ${pdf.name}, ${pdf.pages} pages for ${st.adminSlides} slides`);
+    if (pdf.name !== 'Legal_Skills_Hub_Blueprint_Trainer.pdf' || pdf.pages !== st.adminSlides + 1) fail(`the admin PDF: ${pdf.name}, ${pdf.pages} pages for ${st.adminSlides} slides`);
     const missing = st.adminTitles.map(t => t.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/[^\x00-\xff]/g, '').trim()).filter(t => !pdf.text.includes(t));
     if (missing.length) fail(`the admin PDF is missing slides: ${missing.join(' | ')}`);
     numbered(pdf, st.adminSlides, 'admin');
@@ -137,7 +137,7 @@ function inspect(buf) {
     // The trainee deck's PDF is still the engine's to make, and is checked here through the engine itself.
     if (!await hidden(page, '#orPdf')) fail('⬇ Download PDF is still there on the Trainees track');
     pdf = await pdfVia(page, () => page.evaluate(() => LSHBlueprint.pdf('trainee')));
-    if (pdf.name !== 'LSH_Training_Portal_Blueprint_Trainee.pdf' || !pdf.pdf || pdf.pages !== st.slides + 1) fail(`an Admin on the Trainees track downloaded ${pdf.name}, ${pdf.pages} pages for ${st.slides} slides`);
+    if (pdf.name !== 'Legal_Skills_Hub_Blueprint_Trainee.pdf' || !pdf.pdf || pdf.pages !== st.slides + 1) fail(`an Admin on the Trainees track downloaded ${pdf.name}, ${pdf.pages} pages for ${st.slides} slides`);
     if (!/One portal for all of your LSH training/.test(pdf.text) || !/deploy 7a1c9e0b/.test(pdf.text)) fail('the trainee PDF is missing its first slide or the deploy stamp');
     if (/Master Control|Access queue/.test(pdf.text)) fail('the trainee PDF has admin slides');
     numbered(pdf, st.slides, 'trainee (an Admin\'s)');

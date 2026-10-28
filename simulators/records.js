@@ -1,4 +1,4 @@
-/* LSH Training Portal — Medical Records Requests simulator.
+/* Legal Skills Hub — Medical Records Requests simulator.
    A records request center: check the HIPAA authorization, request records and itemized bills
    from providers, move the simulated calendar forward, and handle what comes back: rejections,
    invoices, silence, partial records. Review what arrives, flag problems, log it to the case

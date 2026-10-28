@@ -30,7 +30,7 @@ const DENIED_HTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Access Denied — LSH Training Portal</title>
+<title>Access Denied — Legal Skills Hub</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <style>
     body {
@@ -59,7 +59,7 @@ const PAGE_HTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Access Control — LSH Training Portal</title>
+<title>Access Control — Legal Skills Hub</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

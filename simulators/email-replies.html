@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Email Replies — LSH Training Portal</title>
+<title>Email Replies — Legal Skills Hub</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -154,7 +154,7 @@ function renderRead() {
                 <label>Your reply</label><textarea id="draft" oninput="E.draft=this.value">${Sim.esc(E.draft)}</textarea>
                 <div class="actions"><button class="sim-btn orange" onclick="gradeReply(document.getElementById('draft').value,'here')" ${E.busy ? 'disabled' : ''}>Send &amp; score</button></div>`
             : `<label>Your email address</label><input id="toAddr" type="email" autocomplete="email" value="${Sim.esc(E.to)}" placeholder="you@yourcompany.com" oninput="E.to=this.value">
-                <p class="note">We'll email this message to you from the LSH Training Portal. Reply from your inbox; your reply comes back here and is scored. Limit: a few practice emails per address per day.</p>
+                <p class="note">We'll email this message to you from the Legal Skills Hub. Reply from your inbox; your reply comes back here and is scored. Limit: a few practice emails per address per day.</p>
                 <div class="actions"><button class="sim-btn orange" onclick="sendToInbox()" ${E.busy ? 'disabled' : ''}>📨 Send it to me</button></div>`}
             ${E.delivery ? '' : '<p class="note">Inbox delivery isn’t set up on this portal yet, so replies are written here for now.</p>'}
         </div>`;

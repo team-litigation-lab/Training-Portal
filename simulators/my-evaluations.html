@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Evaluations — LSH Training Portal</title>
+<title>My Evaluations — Legal Skills Hub</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -60,7 +60,7 @@ const M = { list: null, drafts: {}, open: null, err: '', signedOut: false, timer
 async function get(q) {
     const res = await Sim.fetchRetry(API + q, { credentials: 'include', cache: 'no-store' });
     const d = await res.json().catch(() => ({}));
-    if (res.status === 401) { const e = new Error('Sign in to the LSH Training Portal to see your evaluations.'); e.signedOut = true; throw e; }
+    if (res.status === 401) { const e = new Error('Sign in to the Legal Skills Hub to see your evaluations.'); e.signedOut = true; throw e; }
     if (!res.ok || d.success === false) throw new Error(d.error || ('Request failed (' + res.status + ')'));
     return d;
 }

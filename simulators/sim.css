@@ -1,4 +1,4 @@
-/* LSH Training Portal — shared simulator styles */
+/* Legal Skills Hub — shared simulator styles */
 :root{--navy:#0f2148;--navy-deep:#081226;--navy-mid:#132a5c;--orange:#f97316;--orange-soft:#fb923c;--slate:#334155;--paper:#faf8f4;--line:#e5e7eb;--ok:#166534;--bad:#991b1b;}
 *{box-sizing:border-box;}
 body{margin:0;font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;background:var(--paper);color:var(--navy);height:auto;overflow:visible;}
@@ -9,7 +9,7 @@ a{color:inherit;}
    its left side and through its wordmark, which dropped out against the navy. The height
    is what the wordmark needs to stay legible rather than smear. */
 .sim-brand img{height:56px;width:auto;border-radius:0;padding:0;object-fit:contain;background:none;display:block;}
-/* the page's name under "LSH Training Portal", the same on every page that carries this bar */
+/* the page's name under "Legal Skills Hub", the same on every page that carries this bar */
 .sim-brand small{display:block;font-size:11px;font-weight:600;color:#fdba74;letter-spacing:.08em;text-transform:uppercase;}
 /* The standard page header (the Training Directory's): the mark, then the page's name in capitals, and nothing beside it. */
 .sim-title{font-size:clamp(16px,2vw,26px);font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#fff;white-space:nowrap;}
