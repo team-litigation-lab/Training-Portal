@@ -363,8 +363,8 @@ window.FTCalSim = {
 /* ---------- admin: every trainee's submitted calendars, and the trainer's review ---------- */
 const A = {rows:null, loading:false, open:{}, closed:{}, view:{}};
 // ?track=standard|litigation|executive: each program's trainers open just their own track (Standard, Case Management, EA / PA)
-const FILT = (() => { const t = new URLSearchParams(location.search).get("track");   // the portal links say cm / ea (calsim.html, simulators.html); the week ids here say litigation / executive
-    const want = ({ cm: "litigation", ea: "executive" })[String(t || "").toLowerCase()] || t;
+const FILT = (() => { const t = new URLSearchParams(location.search).get("track");   // the portal links say cm / ea (calsim.html, simulators.html); the week ids here say litigation / executive; the Calendar Management Activity clone is Standard Training's weeks
+    const want = ({ cm: "litigation", ea: "executive", activity: "standard" })[String(t || "").toLowerCase()] || t;
     return (C.TRACKS.find(x => x.id === want) || {}).id || ""; })();
 const inTrack = id => { const s = C.SCENARIOS.find(q => q.id === id); return !!s && (!FILT || s.track === FILT); };
 const subsOf = x => x.d.submissions.filter(z => inTrack(z.scn));
