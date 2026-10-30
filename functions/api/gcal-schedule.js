@@ -3,8 +3,9 @@ import { json, requireSession } from '../_utils.js';
 // The Google Calendar Simulator's weekly schedule: the attorney's week, the same every week
 // (simulators/gcal.html). It comes with the simulator (simulators/gcal-data.js, GCAL_ATTORNEY);
 // an Admin can change it for everyone, and it's kept here (one row, created on first use).
-//   ?track=cm|ea  → the Case Management / EA-PA clones' weeks (gcal.html?track=…), each kept separately; no track: the Standard
-//                   Training (Foundational) week, as it always was.
+//   ?track=activity|cm|ea  → the Calendar Management Activity's (Foundational · Day 5) and the Case Management / EA-PA clones'
+//                   weeks (gcal.html?track=…), each kept separately in gcal_schedule_tracks; no track: the Standard Training
+//                   (Foundational) week, as it always was.
 //   GET    → { success, rows | null, updatedAt, updatedBy }   (null: the schedule as it came). Signed in.
 //   PUT    { rows }  → Admins: the new weekly schedule for everyone.
 //   DELETE → Admins: back to the schedule as it came.
@@ -25,7 +26,7 @@ async function ensureTable(db) {
         updated_by TEXT
     )`).run();
 }
-const TRACKS = ['cm', 'ea'];
+const TRACKS = ['activity', 'cm', 'ea'];
 // The track asked for (null: the Standard Training week, kept in the first table) or false when it isn't one we know.
 const trackOf = (request) => { const t = new URL(request.url).searchParams.get('track'); return t === null || t === 'standard' ? null : TRACKS.includes(t) ? t : false; };   // (only a missing track is Standard Training: an empty one is refused)
 async function ensureTracks(db) {

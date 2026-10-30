@@ -193,8 +193,8 @@ async function simulatorSummary(db) {
 
 
 // Calendaring Simulators (calsim_records), by trainee name and by the program each track belongs to:
-// Standard Training → ft, Litigation Week → cm, Executive Week → eapa. Latest submission per week, with the
-// automated % and the trainer's score, so each program's grading shows its own calendaring.
+// Standard Training (and its Calendar Management Activity) → ft, Litigation Week → cm, Executive Week → eapa. Latest submission
+// per week, with the automated % and the trainer's score, so each program's grading shows its own calendaring.
 const CAL_WEEKS = { rivera: ['ft', 'Standard · Week 1'], chen: ['ft', 'Standard · Week 2'], litigation: ['cm', 'Litigation Week'], executive: ['eapa', 'Executive Week'] };
 async function calsimSummary(db, usersDb) {
     try {
@@ -214,8 +214,8 @@ async function calsimSummary(db, usersDb) {
                 const p = (byName[key] || (byName[key] = {}))[program] || (byName[key][program] = { weeks: [] });
                 p.weeks.push({ label, at: z.at || null, auto: z.auto && num(z.auto.pct) ? z.auto.pct : null, score: rev && num(rev.score) ? rev.score : null, comment: rev ? str(rev.comment, 400) : '' });
             }
-            // Google Calendar Simulator submissions (standard → ft, cm → cm, ea → eapa): the latest per track, with the trainer's score
-            const GSUB = { standard: ['ft', 'Google Calendar · Standard Training'], cm: ['cm', 'Google Calendar · Litigation Week'], ea: ['eapa', 'Google Calendar · Executive Week'] };
+            // Google Calendar Simulator submissions (standard and activity → ft, cm → cm, ea → eapa): the latest per track, with the trainer's score
+            const GSUB = { standard: ['ft', 'Google Calendar · Standard Training'], activity: ['ft', 'Google Calendar · Calendar Management Activity'], cm: ['cm', 'Google Calendar · Litigation Week'], ea: ['eapa', 'Google Calendar · Executive Week'] };
             const lastG = {};
             (Array.isArray(d.gsubs) ? d.gsubs : []).forEach(g => { if (g && GSUB[g.track]) lastG[g.track] = g; });
             for (const [track, g] of Object.entries(lastG)) {
@@ -228,7 +228,7 @@ async function calsimSummary(db, usersDb) {
         // 📤 Submit for evaluation (gcal_reviews, functions/api/gcal-reviews.js): the latest per trainee and track, with the trainer's
         // score and notes once the report is final; it takes the place of an older submission of the same track above.
         try {
-            const GTR = { standard: ['ft', 'Google Calendar · Standard Training'], cm: ['cm', 'Google Calendar · Litigation Week'], ea: ['eapa', 'Google Calendar · Executive Week'] };
+            const GTR = { standard: ['ft', 'Google Calendar · Standard Training'], activity: ['ft', 'Google Calendar · Calendar Management Activity'], cm: ['cm', 'Google Calendar · Litigation Week'], ea: ['eapa', 'Google Calendar · Executive Week'] };
             // the newest row of each trainee and track, chosen in SQL (a LIMIT on the whole table would cut off the newest ones as it grows)
             const { results: ev } = await db.prepare(`SELECT username, name, track, submitted_at, check_score, trainer, status FROM gcal_reviews
                 WHERE id IN (SELECT MAX(id) FROM gcal_reviews GROUP BY username, track) ORDER BY id DESC LIMIT 5000`).all();

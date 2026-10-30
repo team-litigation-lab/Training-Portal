@@ -14,8 +14,10 @@
      week after's Mon–Fri); from/to: the caller's hours (Eastern). sameDay: the caller wants today.
    • GCAL_RULES: the attorney's scheduling rules (Day 6: Scheduling Rules and Additional Notes), which the
      check uses (gcal.js, checkPlan).
-   • TRACKS (GCAL_TRACKS): the same simulator for three programs, picked by gcal.html?track=standard|cm|ea.
-     Standard Training (Foundational · Calendar Management) is the baseline above (GCAL_STD_*). The Case Management
+   • TRACKS (GCAL_TRACKS): the same simulator for four tracks, picked by gcal.html?track=standard|activity|cm|ea.
+     Standard Training (Foundational · Calendar Management) is the baseline above (GCAL_STD_*). The Calendar Management
+     Activity (Foundational · Day 5's Attorney Calendar Management Activity, track 'activity') is the same baseline again,
+     the same week, rules and check (GCAL_ACT_CFG: openCheck), with its own calendar, schedule and scores. The Case Management
      (Litigation Week) and EA / PA (Executive Week) simulators are clones of it: the same Google Calendar, the same
      way of putting a caller's appointment on the calendar and the same check, with their own week, callers, rules
      and request types (GCAL_CM_*, GCAL_EA_*). GCAL_CFG holds what the check reads from the track: the hours, the
@@ -207,6 +209,12 @@ const GCAL_STD_REQUESTS = [
 // Standard Training: the Foundational Training baseline above, exactly as it was built.
 const GCAL_STD_CFG = { who: null, open: 8 * 60, close: 17 * 60, buffer: 15, consultFrom: 9 * 60 + 30, consultTo: 15 * 60, newClientDays: [2, 4], newClientMax: 3,
     followUpFrom: 12 * 60, fields: ['dob', 'dol'], scenario: 'Calendar Management', label: 'Standard Training', lead: 'Calendar Management (Day 6).' };
+// Standard Training - Calendar Management Activity (the Foundational Training's Day 5 Attorney Calendar Management Activity): a clone
+// of Standard Training, not of the litigation or executive weeks. The same attorney's week, rules, appointment types and office, and
+// the same Standard Training behaviour (openCheck: no calendar requests, every appointment checked against the rules, the same
+// scorecard); only its name and the scenario its score is saved under are its own. (Its calendar, weekly schedule, submissions and
+// scorecards are kept apart by the track id, 'activity', in gcal.js and on the server.)
+const GCAL_ACT_CFG = Object.assign({}, GCAL_STD_CFG, { openCheck: true, scenario: 'Calendar Management Activity', label: 'Calendar Management Activity', lead: 'Calendar Management Activity (Day 5).' });
 
 /* ---------- Case Management: a litigation attorney's week (Litigation Week) ---------- */
 const GCAL_CM_ATTORNEY = (() => {
@@ -431,13 +439,15 @@ const GCAL_EA_REQUESTS = [
 const GCAL_EA_CFG = { who: { noun: 'executive', cal: 'Executive’s Calendar' }, exact: true, open: 8 * 60, close: 18 * 60, buffer: 15, consultFrom: 0, consultTo: 24 * 60, newClientDays: null, newClientMax: 3,
     followUpFrom: 0, fields: [], scenario: 'Executive Week · EA / PA', label: 'Executive Week', lead: 'EA / PA: the executive’s week.' };
 
-// The track this page runs (gcal.html?track=standard|cm|ea): the original Google Calendar Simulator is "standard".
+// The track this page runs (gcal.html?track=standard|activity|cm|ea): the original Google Calendar Simulator is "standard";
+// "activity" runs on its data too (the Calendar Management Activity: GCAL_ACT_CFG).
 const GCAL_TRACKS = {
     standard: { attorney: GCAL_STD_ATTORNEY, requests: GCAL_STD_REQUESTS, rules: GCAL_STD_RULES, types: GCAL_STD_TYPES, office: GCAL_STD_OFFICE, cfg: GCAL_STD_CFG },
+    activity: { attorney: GCAL_STD_ATTORNEY, requests: GCAL_STD_REQUESTS, rules: GCAL_STD_RULES, types: GCAL_STD_TYPES, office: GCAL_STD_OFFICE, cfg: GCAL_ACT_CFG },
     cm: { attorney: GCAL_CM_ATTORNEY, requests: GCAL_CM_REQUESTS, rules: GCAL_CM_RULES, types: GCAL_CM_TYPES, office: GCAL_CM_OFFICE, cfg: GCAL_CM_CFG },
     ea: { attorney: GCAL_EA_ATTORNEY, requests: GCAL_EA_REQUESTS, rules: GCAL_EA_RULES, types: GCAL_EA_TYPES, office: GCAL_EA_OFFICE, cfg: GCAL_EA_CFG }
 };
-const GCAL_TRACK = (() => { try { const t = new URLSearchParams(location.search).get('track'); return ['standard', 'cm', 'ea'].includes(t) ? t : 'standard'; } catch (e) { return 'standard'; } })();
+const GCAL_TRACK = (() => { try { const t = new URLSearchParams(location.search).get('track'); return ['standard', 'activity', 'cm', 'ea'].includes(t) ? t : 'standard'; } catch (e) { return 'standard'; } })();
 const GCAL_ATTORNEY = GCAL_TRACKS[GCAL_TRACK].attorney, GCAL_REQUESTS = GCAL_TRACKS[GCAL_TRACK].requests, GCAL_RULES = GCAL_TRACKS[GCAL_TRACK].rules,
     GCAL_TYPES = GCAL_TRACKS[GCAL_TRACK].types, GCAL_OFFICE = GCAL_TRACKS[GCAL_TRACK].office, GCAL_CFG = GCAL_TRACKS[GCAL_TRACK].cfg;
 // The calendar's name for the executive's week; the CM requests all belong to files.

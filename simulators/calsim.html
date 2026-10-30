@@ -45,16 +45,20 @@
 <script src="/simulators/calsim-core.js"></script>
 <script src="/simulators/cal-scorecard.js"></script>
 <script>
-// Calendaring Simulators: one page for the three Google Calendar Simulators (simulators/gcal.html), one per program:
-//   🎓 Standard Training (Foundational · Calendar Management): the original Google Calendar Simulator, as it was built;
+// Calendaring Simulators: one page for the four Google Calendar Simulators (simulators/gcal.html):
+//   🎓 Standard Training - Mock Call (Foundational · Calendar Management): the original Google Calendar Simulator, as it was built
+//      (track 'standard': its title only was renamed, so its saved calendars, scores and keys are where they always were);
+//   🗓️ Standard Training - Calendar Management Activity (Foundational · Day 5's Attorney Calendar Management Activity, track
+//      'activity'): Standard Training again, the same week, rules and check, with its own calendar, schedule, submissions and scores;
 //   ⚖️ Litigation Week (Case Management) and 🏢 Executive Week (EA / PA): clones of it with their own week, callers and rules.
-// ?track=standard|cm|ea opens that simulator at once (the Foundational Training's cards link that way). Admins also get
+// ?track=standard|activity|cm|ea opens that simulator at once (the Foundational Training's cards link that way, e.g.
+// ?program=FT&track=activity). Admins also get
 // 📊 Earlier scheduler scores (?view=scores): the earlier drag-and-drop scheduler's submissions (calsim.js, only used for this page now).
 // 📊 The Google Calendar Simulators' submissions (gsubs in each trainee's /api/calsim record): who submitted what, the automated score and the
 // trainer's score, and a link that opens it in the Google Calendar look to review (gcal.html?track=…&review=<user>|<at>).
 async function gsList(only) {
     const box = document.getElementById('gs-list'); if (!box) return;
-    const NAMES = { standard: '🎓 Standard Training', cm: '⚖️ Litigation Week', ea: '🏢 Executive Week' };
+    const NAMES = { standard: '🎓 Standard Training - Mock Call', activity: '🗓️ Standard Training - Calendar Management Activity', cm: '⚖️ Litigation Week', ea: '🏢 Executive Week' };
     box.innerHTML = '<div style="max-width:1180px;margin:0 auto;padding:10px 16px"><div class="card" style="padding:16px 18px;background:#fff;border:1px solid #e5e7eb;border-radius:14px">Loading the Google Calendar submissions…</div></div>';
     let rows = [];
     try {
@@ -81,7 +85,8 @@ async function gsList(only) {
     const go = (track) => { const n = new URLSearchParams(location.search); n.delete('track'); n.delete('view'); if (track !== 'standard') n.set('track', track); return '/simulators/gcal.html' + (n.toString() ? '?' + n : ''); };
     // (the Foundational Training's cards say litigation / executive for the Case Management / EA clones)
     const want = ({ litigation: 'cm', executive: 'ea' })[String(q.get('track') || '').toLowerCase()] || String(q.get('track') || '').toLowerCase();
-    const direct = ['standard', 'cm', 'ea'].includes(want) && q.get('view') !== 'scores';
+    const TRACK_IDS = ['standard', 'activity', 'cm', 'ea'];   // (the tracks gcal-data.js knows: GCAL_TRACKS)
+    const direct = TRACK_IDS.includes(want) && q.get('view') !== 'scores';
     let me, rec = null;
     try {
         const r = await fetch('/api/calsim', { credentials: 'include' });
@@ -99,21 +104,23 @@ async function gsList(only) {
     document.getElementById('topbar').innerHTML = Sim.topbar('calsim');
     if (me.admin && q.get('view') === 'scores') {
         root.innerHTML = '<div style="max-width:1180px;margin:0 auto;padding:14px 16px 0"><a href="/simulators/calsim.html" class="sim-btn ghost" style="text-decoration:none">← Calendaring Simulators</a></div><div id="gs-list"></div><div id="cs-scores"></div>';
-        gsList(['standard', 'cm', 'ea'].includes(want) ? want : '');
+        gsList(TRACK_IDS.includes(want) ? want : '');
         window.CalSimHost = { me, root: document.getElementById('cs-scores'), page: 'scores' };
         await new Promise((ok, no) => { const s = document.createElement('script'); s.src = '/simulators/calsim.js'; s.onload = ok; s.onerror = no; document.body.appendChild(s); });
         CalSim.show('scores');
         return;
     }
     const TRACKS = [
-        { id: 'standard', icon: '🎓', title: 'Standard Training', where: 'Foundational · Calendar Management',
+        { id: 'standard', icon: '🎓', title: 'Standard Training - Mock Call', where: 'Foundational · Calendar Management',
           desc: 'The attorney’s calendar in a Google Calendar look-alike. Callers ask for appointments: book them on the Attorney’s Calendar under the attorney’s rules (title, description, Google Meet for video calls, an email reminder a day before, Eastern time, 15-minute buffers), move or cancel what they ask, then check the calendar.' },
+        { id: 'activity', icon: '🗓️', title: 'Standard Training - Calendar Management Activity', where: 'Foundational · Calendar Management Activity',
+          desc: 'The Foundational Training’s Day 5 Attorney Calendar Management Activity: the same attorney’s week and rules in the Google Calendar look-alike. Book each appointment on the Attorney’s Calendar under the attorney’s rules (title, description, Google Meet for video calls, an email reminder a day before, Eastern time, 15-minute buffers), then check the calendar. Its calendar, submissions and scores are its own.' },
         { id: 'cm', icon: '⚖️', title: 'Litigation Week', where: 'Case Management',
           desc: 'The same Google Calendar practice on a litigation attorney’s week: hearings, depositions and focus blocks to work around, with case status, treatment, expert, adjuster, mediation and settlement requests to book, move or cancel, under the litigation attorney’s rules.' },
         { id: 'ea', icon: '🏢', title: 'Executive Week', where: 'EA / PA',
           desc: 'The same Google Calendar practice on an executive’s week: board, travel, focus time and the all-hands to protect, with interviews, investor, vendor, press and donor requests to book, move or cancel, under the executive’s rules.' }
     ];
-    // The three tracks. (Lesson 5's Calendar Management Mock Calls aren't here: they are part of the Foundational Training's
+    // The four tracks. (Lesson 5's Calendar Management Mock Calls aren't here: they are part of the Foundational Training's
     // Standard Training - Appointment Setting Mock Calls, in the course.)
     const kicker = (t) => `<div style="font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#c2410c">${Sim.esc(t)}</div>`;
     // 🤖 The automated calendar review, per track (a trainee's own): the last Check my calendar in the simulator (kept in this
@@ -139,7 +146,7 @@ async function gsList(only) {
         return `<div class="cs-review" style="font-size:13px;line-height:1.5;color:#334155;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px">${lines.length ? lines.join('<br>')
             : '🤖 No automated review yet: open it, book what the callers ask, then click <b>Check my calendar</b> to review it against the rules.'}${scLine}</div>`;
     };
-    // One wide screen: the heading and a one-line intro across the top, the three cards next to each other on the row
+    // One wide screen: the heading and a one-line intro across the top, the four cards next to each other on the row
     // below (wrapping on narrower screens), and for trainers one line at the foot with their links (Trainee Evaluations,
     // Recent results, Earlier scheduler scores) — no separate buttons row above the cards: it repeated that line.
     root.innerHTML = `<div style="max-width:1720px;margin:0 auto;padding:24px 24px 40px">

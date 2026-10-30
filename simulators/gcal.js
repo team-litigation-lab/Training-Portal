@@ -25,11 +25,13 @@
      to /api/gcal-reviews, where an AI review is written (done correctly, needs improvement, missed) from the attorney's rules and
      the trainer's own rules and notes. The trainer goes through it live with the trainee (simulators/gcal-review.html), adds
      written feedback and finalizes it; the trainee reads the final report under My evaluations (the rail) and downloads a PDF.
-   • Tracks (gcal.html?track=standard|cm|ea; data and numbers in gcal-data.js, GCAL_TRACKS / GCAL_CFG): Standard Training is this
-     simulator exactly as it was built. The Case Management (Litigation Week) and EA / PA (Executive Week) simulators are clones of
-     it with their own week, callers, rules and request types; the executive's wording is applied as the page is drawn. Each track
-     keeps its own calendar in the browser, its own weekly schedule (/api/gcal-schedule?track=…) and saves its score as
-     'Google Calendar' with the track in the scenario.
+   • Tracks (gcal.html?track=standard|activity|cm|ea; data and numbers in gcal-data.js, GCAL_TRACKS / GCAL_CFG): Standard Training is this
+     simulator exactly as it was built. The Calendar Management Activity (track 'activity', the Foundational Training's Day 5) is
+     Standard Training again (CFG.openCheck: the same week, rules, check and scorecard, no calendar requests) under its own name.
+     The Case Management (Litigation Week) and EA / PA (Executive Week) simulators are clones of it with their own week, callers,
+     rules and request types; the executive's wording is applied as the page is drawn. Each track keeps its own calendar in the
+     browser and on the trainee's account, its own weekly schedule and colors (/api/gcal-schedule?track=…), submissions and
+     scorecards, and saves its score as 'Google Calendar' with the track in the scenario.
    window.GCAL exposes the pure parts (solve, checkPlan, slotProblems…) for the test (.github/scripts/gcal.cjs). */
 (function () {
 Sim.module = 'calendaring';
@@ -122,7 +124,8 @@ const myCC = () => (S && S.cc) || { cal: {}, type: {} };
 // Own > the trainer's > the built-in default, for both calendars and the week.
 const calColor = (id) => GCAL_COLORS[myCC().cal[id]] || GCAL_COLORS[CC.cal[id]] || calOf(id).color;
 const seedColor = (r) => r.color || myCC().type[r.type] || CC.type[r.type] || (r.type === 'Blocked Time' ? (/review/i.test(r.title) ? 'blueberry' : 'graphite') : r.type === 'Phone Call' ? 'tangerine' : r.type === 'Internal Meeting' ? 'basil' : '');
-const guessType = (t) => (/block|lunch|daily case/i.test(t) || (TRK && /board|travel|focus|briefing/i.test(t))) ? 'Blocked Time' : /conference/i.test(t) ? 'Internal Meeting' : /preparation|strategy|settlement meeting|deposition/i.test(t) ? 'Client Meeting' : 'Phone Call';
+// (the board / travel / focus / briefing blocks are the litigation and executive weeks': not on Standard Training or its Activity, OPEN)
+const guessType = (t) => (/block|lunch|daily case/i.test(t) || (TRK && !OPEN && /board|travel|focus|briefing/i.test(t))) ? 'Blocked Time' : /conference/i.test(t) ? 'Internal Meeting' : /preparation|strategy|settlement meeting|deposition/i.test(t) ? 'Client Meeting' : 'Phone Call';
 const colorOf = (e) => (e.color && GCAL_COLORS[e.color]) || calColor(e.cal);
 // The attorney's color rule: the trainee colors each appointment by its length (30 minutes Tangerine, 45 Blueberry, 1 hour Tomato).
 const LEN_COLOR = { 30: 'tangerine', 45: 'blueberry', 60: 'tomato' };
@@ -132,15 +135,15 @@ const isBlock = (e) => e.seed && e.type === 'Blocked Time';
 const isNewConsult = (e) => Object.keys(GCAL_TYPES).some(t => GCAL_TYPES[t].newClient && new RegExp('^\\s*' + t.split(':').map(x => rx(x.trim())).join('\\W+'), 'i').test(e.title || ''));
 const nmins = (n) => (+n.v || 0) * ({ minutes: 1, hours: 60, days: 1440, weeks: 10080 }[n.u] || 1);
 const reqDef = (id) => GCAL_REQUESTS.find(r => r.id === id);
-// The track this page runs (gcal.html?track=standard|cm|ea; gcal-data.js GCAL_TRACKS): "standard" is the original Google Calendar
-// Simulator, and its numbers below are the ones it always had. The Case Management and EA / PA clones change the week, the callers,
-// the rules and these numbers, nothing else.
+// The track this page runs (gcal.html?track=standard|activity|cm|ea; gcal-data.js GCAL_TRACKS): "standard" is the original Google Calendar
+// Simulator, and its numbers below are the ones it always had ("activity", the Calendar Management Activity, has them too). The
+// Case Management and EA / PA clones change the week, the callers, the rules and these numbers, nothing else.
 const CFG = GCAL_CFG;
 /* Submit to the trainer and the trainer's review. A trainee presses 📤 Submit to my trainer: the automated check, the calendar they built and the
    week it was built on are kept in their /api/calsim record (gsubs). A trainer opens it from Calendar Scores as gcal.html?track=…&review=<user>|<at>:
    the same Google Calendar look, read-only, with the result and a feedback form (score, comment, a comment per request); the trainee sees it in the
    requests panel. Scores also reach the Progress page (functions/api/program-progress.js). */
-const GT = GCAL_TRACK;                                    // standard | cm | ea
+const GT = GCAL_TRACK;                                    // standard | activity | cm | ea
 const RVQ = new URLSearchParams(location.search).get('review') || '';
 // A trainer looking at a trainee's calendar as they last saved it (gcal.html?trainee=<username>, from the Calendaring Simulators
 // page): read only like a review, with the automated check and the CALENDAR MANAGEMENT MOCK CALL scorecard (cal-scorecard.js).
@@ -153,6 +156,8 @@ const BOOK_MAX = CFG.exact ? 11.5 : 10.5;   // what the checks add up to (gradeB
 // The executive's wording (EA / PA track): the page's own fixed texts say "executive" where the attorney's say "attorney". Only fixed
 // texts go through WW(); anything the trainee typed or a caller said is never reworded. Standard and Case Management are unchanged.
 const WW = (t) => !CFG.who ? t : String(t).replace(/Attorney['’]s Calendar/g, CFG.who.cal).replace(/Attorney(['’]s)?/g, (m, p) => 'Executive' + (p || '')).replace(/attorney(['’]s)?/g, (m, p) => 'executive' + (p || ''));
+// TRK: the track's own name in every key and address (its calendar in this browser, its schedule, the review page); '' on Standard
+// Training, whose keys stay as they always were. (The Calendar Management Activity has a TRK, 'activity', but runs as Standard Training: OPEN.)
 const TRK = GCAL_TRACK === 'standard' ? '' : GCAL_TRACK;
 const API_SCHEDULE = '/api/gcal-schedule' + (TRK ? '?track=' + TRK : '');   // (Standard Training: no query, as it always was)
 const rx = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -330,8 +335,9 @@ function gradeBookEvent(e, q, R, all, today) {
    (the type and the client's name), Eastern time, the slot (free, 15-minute buffers, hours, consult window, new client
    days and count, follow-ups in the afternoon, same-day approval), the length cap, the meeting type stated, the
    description (name, callback number, DOB, DOL, what it's about) and an email reminder a day before. Changes to the
-   attorney's own appointments are listed for the trainer (a caller may have asked for them), not marked. */
-const OPEN = !TRK;
+   attorney's own appointments are listed for the trainer (a caller may have asked for them), not marked.
+   The Calendar Management Activity (CFG.openCheck) is the same: OPEN is "Standard Training's behaviour", whatever the track's own keys. */
+const OPEN = !TRK || !!CFG.openCheck;
 function typeOf(title) {
     const t = alnum(title);
     return Object.keys(GCAL_TYPES).sort((a, b) => b.length - a.length).find(k => t.startsWith(alnum(k))) || '';
@@ -785,7 +791,7 @@ function reqCard(q) {
         <div class="acts"><button class="txt" data-a="req-go" data-id="${esc(q.id)}">Show on calendar</button><label><input type="checkbox" data-done="${esc(q.id)}" ${q.done ? 'checked' : ''}> Done</label></div></div>`;
 }
 function renderPanel() { renderSidePanel(); renderScores(); }
-// The attorney's rules for this track (gcal-data.js: Standard Training, Litigation Week, Executive Week), in the blue card on the
+// The attorney's rules for this track (gcal-data.js: Standard Training and its Activity, Litigation Week, Executive Week), in the blue card on the
 // left (heroRules).
 const rulesHtml = () => `<p class="lead">${esc(CFG.lead)} Plot every appointment on the <b>${WW('Attorney’s Calendar')}</b>, in Eastern time.</p>
     <h4>Get from every caller</h4><ul>${GCAL_RULES.collect.map(x => `<li>${esc(WW(x))}</li>`).join('')}</ul>
@@ -1383,7 +1389,7 @@ function evalsHtml() {
         return `<div class="res-r"><h5><span>${esc(evWhen(r.submittedAt))} · ${esc(trackName(r))}</span><span>${r.checkScore == null ? '' : r.checkScore + '%'}</span></h5><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${st}${r.status === 'final' && !seenFinal(r.id) ? '<span class="ev-new">New</span>' : ''}</div></div>`;
     }).join('');
 }
-const TRACK_NAMES = { standard: 'Standard Training', cm: 'Litigation Week · Case Management', ea: 'Executive Week · EA / PA' };
+const TRACK_NAMES = { standard: 'Standard Training - Mock Call', activity: 'Standard Training - Calendar Management Activity', cm: 'Litigation Week · Case Management', ea: 'Executive Week · EA / PA' };
 const trackName = (r) => TRACK_NAMES[r && r.track] || CFG.label || 'Standard Training';
 const reportPdf = (r) => EvalReport.pdf(r, trackName(r), snack);
 

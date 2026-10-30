@@ -6,7 +6,7 @@
         extra(person, trackId) → HTML added to a trainee's cell for that track (the Trainee Evaluations page adds the submission and its review there)
      TraineesCalendars.repaint()               draws the rows again (after `extra` has new things to show), keeping the search */
 const TraineesCalendars = (function () {
-    const TRACKS = [{ id: 'standard', icon: '🎓', title: 'Standard Training' }, { id: 'cm', icon: '⚖️', title: 'Litigation Week' }, { id: 'ea', icon: '🏢', title: 'Executive Week' }];
+    const TRACKS = [{ id: 'standard', icon: '🎓', title: 'Standard Training - Mock Call' }, { id: 'activity', icon: '🗓️', title: 'Standard Training - Calendar Management Activity' }, { id: 'cm', icon: '⚖️', title: 'Litigation Week' }, { id: 'ea', icon: '🏢', title: 'Executive Week' }];
     const E = (t) => Sim.esc(t), go = (u, o) => (Sim.fetchRetry ? Sim.fetchRetry(u, o) : fetch(u, o));
     const S = { box: null, people: [], extra: null, q: '', err: '' };
     const card = (inner) => `<div class="card tc-card" style="padding:18px">${inner}</div>`;

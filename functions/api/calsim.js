@@ -1,6 +1,7 @@
 import { json, requireSession } from '../_utils.js';
 
-// The Calendaring Simulators' saved work (Standard Training, Litigation Week, Executive Week: /simulators/calsim.html).
+// The Calendaring Simulators' saved work (Standard Training - Mock Call, Standard Training - Calendar Management Activity, Litigation Week,
+// Executive Week: /simulators/calsim.html).
 // One record per person in D1 (table calsim_records, made on first use):
 //   {v:2, drafts:{scenario:[events]}, autos:[…], submissions:[{scn, at, events, auto}], reviews:{"<scn>|<at>":{score, comment, tasks, by, at}}, external:[…],
 //    scorecards:{track:[cards]}, excluded:{track:[ids]}, gsubs:[{track, at, result, snap}]}   (Google Calendar Simulator submissions: reviewed under reviews["g:<track>|<at>"])
@@ -20,7 +21,7 @@ const MAX_BYTES = 400000;
 export const SCORECARD_TITLE = 'CALENDAR MANAGEMENT MOCK CALL';
 export const SCORECARD_METRICS = ['Professional Introduction & Call Control', 'Client Comprehension & Flow Control', 'Information Verification & Accuracy',
     'Slot Identification & Scheduling Rule Compliance', 'Alternative Time Offering', 'Calendar Creation & Attorney Reminder Setup', 'Notes, Recap & Call Closing'];
-const SCORECARD_TRACKS = ['standard', 'cm', 'ea'];
+const SCORECARD_TRACKS = ['standard', 'activity', 'cm', 'ea'];
 async function ensure(db) {
     await db.prepare(`CREATE TABLE IF NOT EXISTS calsim_records (username TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL)`).run();
 }
