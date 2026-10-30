@@ -153,7 +153,9 @@ function attemptLogin(switched) {
             // into from there, not the only destination this login serves.
             // ?next= : the page they asked for before signing in (the Training Directory sends visitors here).
             let next = '/programs.html';
-            try { const n = new URLSearchParams(location.search).get('next'); if (n && /^\/[A-Za-z0-9._~\/-]*$/.test(n) && !n.startsWith('//')) next = n; } catch (e) { /* the Directory then */ }
+            // (a page on this site only, its query kept: a simulator a course opened, e.g. /simulators/gcal.html?program=FT&track=activity)
+            try { const n = new URLSearchParams(location.search).get('next'); const u = n ? new URL(n, location.origin) : null;
+                if (u && /^\/(?![\/\\])/.test(n) && u.origin === location.origin) next = u.pathname + u.search; } catch (e) { /* the Directory then */ }
             setTimeout(() => {
                 window.location.href = next;
             }, 900);
