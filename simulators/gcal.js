@@ -1169,7 +1169,8 @@ async function doCheck() {
     const r = checkNow();
     S.result = Object.assign(r, { at: new Date().toISOString() }); save(); closeAll(); render();
     setTimeout(() => toScores(true), 60);
-    Sim.saveResult({ simulator: 'Google Calendar', scenario: OPEN ? `${CFG.scenario} · ${r.results.length} appointments` : `${CFG.scenario} · ${S.reqs.length} requests`, score: r.score,
+    // (the Calendaring Activity is Standard Training's, scored there under its own name: the Foundational Training's Scorecard)
+    Sim.saveResult({ simulator: BLANK ? 'Calendaring Activity' : 'Google Calendar', program: BLANK ? 'FT' : undefined, scenario: OPEN ? `${CFG.scenario} · ${r.results.length} appointments` : `${CFG.scenario} · ${S.reqs.length} requests`, score: r.score,
         summary: BLANK ? `${r.right}/${r.entries} entries fully right` : `${r.right}/${r.results.length} ${OPEN ? 'appointments' : 'requests'} fully right${r.penalty ? `; −${r.penalty} for unasked changes` : ''}`,
         details: BLANK ? { entries: r.entries, right: r.right } : { results: r.results.map(x => ({ request: x.head, points: Math.round(x.pts * 10) / 10, max: x.max, missed: x.items.filter(i => !i.ok).map(i => i.t) })), extra: r.extra } });
 }

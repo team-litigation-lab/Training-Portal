@@ -1,5 +1,6 @@
 import { json, requireSession } from '../_utils.js';
 import { runAi } from '../_ai-gateway.js';
+import { toCourseFor } from './sim-results.js';
 import '../_ft-facilitator-dna.js';   // the facilitator's feedback DNA (Michelle's: copied from the Foundational Training's js/ft-facilitator-dna.js): globalThis.FT_FACILITATOR_DNA
 
 // 📤 Submit for evaluation in the Google Calendar Simulator (simulators/gcal.html), and the trainer's live review of it
@@ -334,7 +335,14 @@ export async function onRequestPost({ request, env, waitUntil }) {
         }
         await db.prepare(`UPDATE gcal_reviews SET status = ?, finalized_at = ?, finalized_by = ?, ${TOUCH} WHERE id = ?`)
             .bind(fin ? 'final' : 'submitted', fin ? nowIso() : null, fin ? clean(s.fullName || s.username, 120) : null, nowIso(), id).run();
-        return json({ success: true });
+        // 📝 the Calendaring Activity's final evaluation: its score is Standard Training's (the Foundational Training's Scorecard, simresults);
+        // the record stays here. The trainer's score, else the automated check's.
+        let course = null;
+        if (fin && row.track === 'activity') {
+            const t = parse(row.trainer) || {}, score = t.score != null && Number.isFinite(Number(t.score)) ? Math.max(0, Math.min(100, Math.round(Number(t.score)))) : row.check_score;
+            if (score != null) try { course = await toCourseFor(env, row.username, 'FT', { simulator: 'Calendaring Activity · Final evaluation', scenario: 'Attorney Calendar Management Activity (Day 5)', score, at: nowIso() }); } catch (e) { course = null; }
+        }
+        return json({ success: true, course });
     }
     if (b.action === 'retry') {
         if (row.status === 'final') return json({ success: false, error: 'This report is final.' }, 409);

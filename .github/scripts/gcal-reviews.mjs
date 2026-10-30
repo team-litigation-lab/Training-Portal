@@ -15,6 +15,7 @@ import { pathToFileURL } from 'url';
 let s = fs.readFileSync('functions/api/gcal-reviews.js', 'utf8')
     .replace("import { json, requireSession } from '../_utils.js';", "const json=(d,s=200)=>new Response(JSON.stringify(d),{status:s,headers:{'Content-Type':'application/json'}});let CUR=null;const requireSession=async()=>CUR?{ok:true,session:CUR}:{ok:false,response:json({success:false},401)};globalThis.__setSession=(x)=>{CUR=x};")
     .replace("import { runAi } from '../_ai-gateway.js';", "const runAi=(...a)=>globalThis.__ai(...a);")
+    .replace("import { toCourseFor } from './sim-results.js';", "const toCourseFor=async(...a)=>{(globalThis.__course=globalThis.__course||[]).push(a);return 'ft:simresults:x';};")
     .replace("import '../_ft-facilitator-dna.js';", `import '${pathToFileURL(path.resolve('functions/_ft-facilitator-dna.js')).href}';`)
     // the real deadline (24 s) and pauses (1.5 s, 4 s) are shortened so the test doesn't wait for them
     .replace('const AI_MS = 24000;', 'const AI_MS = 600;').replace('const RETRY_WAIT = [1500, 4000];', 'const RETRY_WAIT = [20, 40];');
@@ -288,6 +289,13 @@ const zed = pr.calsim.byName['zed recent']; ck(zed && zed.ft && zed.ft.weeks[0].
         'an activity submission: the AI goes through every one of the 18 entries, in the facilitator\'s feedback DNA, from the automated check');
     ck(/Color: Tomato/.test(seen.messages[0].text) && /use the activity and its answer key/.test(seen.messages[0].text), 'the activity\'s AI review reads the automated check and the answer key');
     const sid = r.j.id; __setSession(bo); r = await call('GET', null, '?id=' + sid); ck(r.j.review && r.j.review.track === 'activity' && r.j.review.calendar.activity, 'the trainer opens the activity submission with its key');
+    // its score is Standard Training's: the trainer's final score goes to the Foundational Training's Scorecard (simresults), the record stays here
+    r = await call('POST', { action: 'trainer', id: sid, notes: 'Good, with Improvements Needed.', points: [], score: 88 });
+    globalThis.__course = []; r = await call('POST', { action: 'finalize', id: sid });
+    const sent = (globalThis.__course || [])[0] || [];
+    ck(r.st === 200 && sent[1] === 'ann' && sent[2] === 'FT' && sent[3] && sent[3].simulator === 'Calendaring Activity · Final evaluation' && sent[3].score === 88,
+        'the activity\'s final evaluation records the trainer\'s score on Standard Training: ' + JSON.stringify(sent.slice(1)));
+    globalThis.__course = []; r = await call('POST', { action: 'finalize', id: 1 }); ck(!(globalThis.__course || []).length, 'a mock-call calendar\'s final report sends nothing to Standard Training');
 }
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(fails.length ? 'FAILED' : 'all passed'); process.exit(fails.length ? 1 : 0);

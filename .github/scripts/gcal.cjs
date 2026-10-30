@@ -541,6 +541,8 @@ const server = http.createServer(async (req, res) => {
         let rr = await checked();
         const bad = (r) => (r.results || []).filter(x => !x.perfect).map(x => x.head + ': ' + x.items.filter(i => !i.ok).map(i => i.t).join(' | ')).join('; ');
         if (!rr || rr.score !== 100 || rr.right !== 20 || rr.entries !== 20 || rr.met !== rr.total || !rr.total) fail(`activity: a calendar built from the answer key should score 100% (${rr && rr.score}%, ${rr && rr.right}/${rr && rr.entries}): ${rr ? bad(rr) : 'no result'}`);
+        { const last = results[results.length - 1] || {};   // its score is Standard Training's, under its own name (the Foundational Training's Scorecard)
+          if (last.simulator !== 'Calendaring Activity' || !last.who || last.who.program !== 'FT' || last.score !== 100) fail(`activity: Check my calendar should save "Calendaring Activity" for FT: ${JSON.stringify(last).slice(0, 300)}`); }
         await build(true);
         rr = await checked();
         const miss = (n, re) => { const x = rr.results.find(y => y.id === n); return x && x.items.some(i => !i.ok && re.test(i.t)); };
