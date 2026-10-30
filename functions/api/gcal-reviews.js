@@ -145,8 +145,8 @@ const goodReview = (a) => isObj(a) && !a.error && !!(a.summary || ['correct', 'i
 const again = (r) => (r.status === 429 && (!r.body.scope || r.body.scope === 'minute')) || r.status >= 500;
 
 // 📝 The Calendaring Activity (track 'activity', the blank calendar for the Day 5 Attorney Calendar Management Activity): the AI reviews
-// EVERY entry of the activity (its 18 calendar items and the whole calendar) from the automated check the page sent (the Foundational
-// Training's own check, field by field against the answer key) and the events as entered, and writes it as the facilitator does: her
+// EVERY entry of the activity (its 18 calendar items and the whole calendar) from the automated check the page sent (the activity's own
+// scoring, simulators/gcal-activity.js: every check against the answer key) and the events as entered, and writes it as the facilitator does: her
 // feedback DNA (functions/_ft-facilitator-dna.js), verdict label first, exact counts, the items named.
 const DNA = globalThis.FT_FACILITATOR_DNA || { guide: '', examples: [] };
 const ACTIVITY_ENTRIES = '1 Client Meeting, 2 Team Meeting, 3 Deposition Meeting, 4 Gym Session, 5 Doctor’s Appointment, 6.1 Court Appearance, 6.2 Travel Block for travel to court, 6.3 Travel Block for return travel, 7 Recorded Statement Meeting, 8.1 Networking Dinner Event, 8.2 Transportation to Seattle Airport (SEA), 8.3 Flight from Seattle (SEA) to San Francisco (SFO), 8.4 Event Proper Arrival Block time, 8.5 Overnight Stay, 8.6 Check out of the hotel and travel to the airport, 8.7 Flight from San Francisco (SFO) to Seattle (SEA), 9 Document Review Session, 10 Family Dinner';
