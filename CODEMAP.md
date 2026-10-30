@@ -63,7 +63,7 @@ The Google Calendar look-alike, its data, the trainer review and the trainee eva
 |---|---|---|
 | `simulators/cal-scorecard.js` | 75 | The CALENDAR MANAGEMENT MOCK CALL scorecard: the 7 weighted metrics, sheet and form HTML, read/validate and live weighted average; window.CalScorecard + CommonJS export for the server-side metric check. |
 | `simulators/eval-report.js` | 53 | Shared EvalReport module: renders a finalized calendar evaluation as HTML and as a jsPDF download, plus shared esc/when/css used by my-evaluations.html and the simulator's panel. |
-| `simulators/gcal-data.js` | 445 | Per-track data: the attorney's/executive's weekly schedule rows, Google colors, calendars, holidays, caller requests, rules, request types and GCAL_CFG for standard/cm/ea tracks. |
+| `simulators/gcal-data.js` | 445 | Per-track data: the attorney's/executive's weekly schedule rows, Google colors, calendars, holidays, caller requests, rules, request types and GCAL_CFG for standard/activity/cm/ea tracks (GCAL_ACT_CFG: the activity track, Standard data with its own scores). |
 | `simulators/gcal-review.html` | 450 | Trainee Evaluations (trainers): live list of submissions, the submitted calendar week view, automated check, AI review, trainer feedback with autosave, finalize/reopen, and per-track AI-review rules. |
 | `simulators/gcal.html` | 362 | The simulator page shell: Google-Calendar-look CSS, hero/intro, script includes (jsPDF, sim.js, eval-report.js, gcal-data.js, cal-scorecard.js, gcal.js). |
 | `simulators/gcal.js` | 1591 | The Google Calendar Simulator: calendar views, event CRUD/drag, the attorney's rules engine (slotProblems/solve/checkPlan/checkOpen), cloud drafts, submit-for-evaluation, trainer review/live-view modes, and the window.GCAL test API. |
