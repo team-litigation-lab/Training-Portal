@@ -25,7 +25,7 @@
      to /api/gcal-reviews, where an AI review is written (done correctly, needs improvement, missed) from the attorney's rules and
      the trainer's own rules and notes. The trainer goes through it live with the trainee (simulators/gcal-review.html), adds
      written feedback and finalizes it; the trainee reads the final report under My evaluations (the rail) and downloads a PDF.
-   • Tracks (gcal.html?track=standard|cm|ea; data and numbers in gcal-data.js, GCAL_TRACKS / GCAL_CFG): Standard Training is this
+   • Tracks (gcal.html?track=standard|cm|ea, and activity: the blank calendar for the offline Calendaring Activity; data and numbers in gcal-data.js, GCAL_TRACKS / GCAL_CFG): Standard Training is this
      simulator exactly as it was built. The Case Management (Litigation Week) and EA / PA (Executive Week) simulators are clones of
      it with their own week, callers, rules and request types; the executive's wording is applied as the page is drawn. Each track
      keeps its own calendar in the browser, its own weekly schedule (/api/gcal-schedule?track=…) and saves its score as
@@ -136,6 +136,10 @@ const reqDef = (id) => GCAL_REQUESTS.find(r => r.id === id);
 // Simulator, and its numbers below are the ones it always had. The Case Management and EA / PA clones change the week, the callers,
 // the rules and these numbers, nothing else.
 const CFG = GCAL_CFG;
+// 📝 The blank calendar (gcal.html?track=activity, gcal-data.js GCAL_ACT_*): Standard Training's calendar with no attorney's week, no callers
+// and no check, for the Foundational Training's offline Calendaring Activity. The blue card holds the activity's instructions; the
+// calendar is still kept in this browser and saved to the trainee's account, apart from the mock calls' calendar.
+const BLANK = !!CFG.blank;
 /* Submit to the trainer and the trainer's review. A trainee presses 📤 Submit to my trainer: the automated check, the calendar they built and the
    week it was built on are kept in their /api/calsim record (gsubs). A trainer opens it from Calendar Scores as gcal.html?track=…&review=<user>|<at>:
    the same Google Calendar look, read-only, with the result and a feedback form (score, comment, a comment per request); the trainee sees it in the
@@ -331,7 +335,7 @@ function gradeBookEvent(e, q, R, all, today) {
    days and count, follow-ups in the afternoon, same-day approval), the length cap, the meeting type stated, the
    description (name, callback number, DOB, DOL, what it's about) and an email reminder a day before. Changes to the
    attorney's own appointments are listed for the trainer (a caller may have asked for them), not marked. */
-const OPEN = !TRK;
+const OPEN = !TRK || BLANK;
 function typeOf(title) {
     const t = alnum(title);
     return Object.keys(GCAL_TYPES).sort((a, b) => b.length - a.length).find(k => t.startsWith(alnum(k))) || '';
@@ -624,7 +628,8 @@ function heroRules() {
     let d = $('#hero-rules');
     if (!d) {
         const intro = hero.querySelector('p'), box = document.createElement('div'); box.className = 'hero-rules-wrap';
-        box.innerHTML = `<details class="hero-rules" id="hero-rules"><summary>📖 ${WW('The attorney’s rules')}</summary><div class="rules">${rulesHtml()}</div></details>`;
+        box.innerHTML = BLANK ? `<details class="hero-rules" id="hero-rules"><summary>📝 The activity’s instructions</summary><div class="rules">${activityHtml()}</div></details>`
+            : `<details class="hero-rules" id="hero-rules"><summary>📖 ${WW('The attorney’s rules')}</summary><div class="rules">${rulesHtml()}</div></details>`;
         if (intro) intro.replaceWith(box); else hero.appendChild(box);
         d = $('#hero-rules');
         if (WIDE) { const fit = () => { d.open = WIDE.matches; }; WIDE.addEventListener ? WIDE.addEventListener('change', fit) : WIDE.addListener(fit); }
@@ -676,7 +681,7 @@ function renderSide() {
     const side = $('#gc-side'); side.classList.toggle('off', !S.side);
     const box = (c) => `<label><input type="checkbox" data-cal="${c.id}" ${S.hidden[c.id] ? '' : 'checked'}><span class="box" style="border-color:${calColor(c.id)};background:${S.hidden[c.id] ? '#fff' : calColor(c.id)}">${S.hidden[c.id] ? '' : `<svg viewBox="0 0 24 24"><path d="${P.check}"/></svg>`}</span>${esc(c.name)}</label>`;
     side.innerHTML = `<button class="gc-create" data-a="create">${PLUS}Create</button>${miniHtml()}
-        <div class="cals"><h4>My calendars</h4>${GCAL_CALENDARS.filter(c => !c.other).map(box).join('')}<h4>Other calendars</h4>${GCAL_CALENDARS.filter(c => c.other).map(box).join('')}<button class="txt" data-a="cc-open" style="padding:0 6px;height:30px;margin:10px 0 0 2px" title="${Sim.isAdmin() && !RV ? 'Choose the colors of the calendars and of the existing schedule, for everyone' : RV ? 'The colors as this trainee sees them' : 'Choose your own colors for the calendars and the existing schedule'}">🎨 Color coding</button></div>`;
+        <div class="cals"><h4>My calendars</h4>${GCAL_CALENDARS.filter(c => !c.other).map(box).join('')}<h4>Other calendars</h4>${GCAL_CALENDARS.filter(c => c.other).map(box).join('')}${BLANK ? '' : `<button class="txt" data-a="cc-open" style="padding:0 6px;height:30px;margin:10px 0 0 2px" title="${Sim.isAdmin() && !RV ? 'Choose the colors of the calendars and of the existing schedule, for everyone' : RV ? 'The colors as this trainee sees them' : 'Choose your own colors for the calendars and the existing schedule'}">🎨 Color coding</button>`}</div>`;
     placeScores();   // (📊 Your scores, under Other calendars)
 }
 function layoutDay(evs) {
@@ -766,9 +771,9 @@ function renderRail() {
     const b = (on, attrs, icon, label, badge) => `<button class="rb ${on ? 'on' : ''}" ${attrs}>${ic(icon)}<span>${label}</span>${badge ? `<span class="badge">${badge}</span>` : ''}</button>`;
     $('#gc-rail').innerHTML = `<div class="rb-group">
             ${OPEN ? '' : b(S.panel === 'requests', 'data-a="panel" data-p="requests"', 'req', 'Calendar requests', open)}
-            ${Sim.isAdmin() ? `<a class="rb" id="gc-evals-link" href="${REVIEW_PAGE}" title="Trainee Evaluations: the submissions with their AI review, and your trainees' calendars">${ic('notes')}<span>Trainee evaluations</span></a>`   // (a trainer goes to the Trainee Evaluations page: a plain link, in this tab, like every Portal page)
+            ${BLANK ? '' : Sim.isAdmin() ? `<a class="rb" id="gc-evals-link" href="${REVIEW_PAGE}" title="Trainee Evaluations: the submissions with their AI review, and your trainees' calendars">${ic('notes')}<span>Trainee evaluations</span></a>`   // (a trainer goes to the Trainee Evaluations page: a plain link, in this tab, like every Portal page)
                 : b(S.panel === 'evals', 'data-a="evals"', 'notes', 'My evaluations', EV.ready)}</div>
-        <div class="rb-group rb-end">${cloudHtml()}${Sim.isAdmin() || RV ? '' : '<button class="blue" data-a="submit-eval">📤 Submit for evaluation</button>'}</div>`;
+        <div class="rb-group rb-end">${cloudHtml()}${Sim.isAdmin() || RV || BLANK ? '' : '<button class="blue" data-a="submit-eval">📤 Submit for evaluation</button>'}</div>`;
 }
 function reqCard(q) {
     const R = reqDef(q.id); if (!R) return '';
@@ -793,6 +798,12 @@ const rulesHtml = () => `<p class="lead">${esc(CFG.lead)} Plot every appointment
     <h4>Scheduling rules</h4><ul>${GCAL_RULES.scheduling.map(x => `<li>${esc(WW(x))}</li>`).join('')}</ul>
     <h4>Additional notes</h4><ul>${GCAL_RULES.notes.map(x => `<li>${esc(WW(x))}</li>`).join('')}</ul>
     <h4>Office</h4><ul><li>${esc(GCAL_OFFICE)} (in-person meetings)</li></ul>`;
+// 📝 The blank calendar's blue card: the Attorney Calendar Management Activity's instructions (gcal-data.js GCAL_ACT_INSTRUCTIONS).
+const activityHtml = () => { const A = GCAL_ACT_INSTRUCTIONS;
+    return `<p class="lead">A blank calendar for the <b>Attorney Calendar Management Activity</b> (Day 5): plot every activity item on the <b>Attorney’s Calendar</b>, in Eastern time. It is checked on the 📅 Calendar Activity Check in your course.</p>
+    <h4>Instructions</h4><ol>${A.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
+    <h4>Color coding</h4><ul style="list-style:none;padding-left:0">${A.colors.map(([c, n, t]) => `<li><span style="display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px;background:${GCAL_COLORS[c]}"></span><b>${esc(n)}</b> – ${esc(t)}</li>`).join('')}</ul>
+    <h4>Guests (if applicable)</h4><ul>${A.guests.map(([n, m]) => `<li><b>${esc(n)}</b> – ${esc(m)}</li>`).join('')}</ul>`; };
 function renderSidePanel() {
     // (no rules panel: the rules are in the blue card; Standard Training has no requests panel either: its appointments are on
     // the calendar, the scores in 📊 Your scores. A calendar saved with one of them open opens with the panel closed.)
@@ -1099,8 +1110,8 @@ function settings(anchor) {
         <label style="display:flex;gap:8px;align-items:center;padding:6px 0"><input type="checkbox" data-set="weekends" ${S.set.weekends ? 'checked' : ''}> Show weekends</label>
         <label style="display:flex;gap:8px;align-items:center;padding:6px 0"><input type="checkbox" data-set="tz2" ${S.set.tz2 ? 'checked' : ''}> Show Manila time too</label>
         <button class="txt" data-a="reset" style="margin-top:6px;padding:0">Start over (clear my calendar)</button>
-        ${Sim.isAdmin() ? '' : '<button class="txt" data-a="cc-open" style="margin-top:2px;padding:0">🎨 Color coding</button>'}
-        ${Sim.isAdmin() ? `<button class="txt" data-a="admin-edit" style="margin-top:2px;padding:0">${G.admin ? 'Stop editing the weekly schedule' : '✎ Edit the weekly schedule (everyone)'}</button>
+        ${Sim.isAdmin() || BLANK ? '' : '<button class="txt" data-a="cc-open" style="margin-top:2px;padding:0">🎨 Color coding</button>'}
+        ${Sim.isAdmin() && !BLANK ? `<button class="txt" data-a="admin-edit" style="margin-top:2px;padding:0">${G.admin ? 'Stop editing the weekly schedule' : '✎ Edit the weekly schedule (everyone)'}</button>
         <button class="txt" data-a="cc-open" style="margin-top:2px;padding:0">🎨 Color coding (everyone)</button>
         <a class="txt" href="${REVIEW_PAGE}" style="display:block;margin-top:2px;padding:0;line-height:36px;text-decoration:none">🖥 Trainee evaluations (live review)</a>` : ''}</div>`);
 }
@@ -1117,7 +1128,7 @@ function goDay(d) { S.anchor = d; S.view = 'day'; S.mini = d.slice(0, 7); G.q = 
 function createAt(date, start) {
     if (RV) return;
     const st = start != null ? start : Math.max(9 * 60, Math.min(mins(etNow().time) + 30 - (mins(etNow().time) % 30), 16 * 60));
-    openEditor({ title: '', date: date || S.anchor, start: hhmm(st), end: hhmm(Math.min(st + S.set.dur, 1439)), allDay: false, tz: ET, repeat: 'none', cal: G.admin ? 'attorney' : 'lsh', color: '', location: '', meet: '', desc: '', guests: [], notifs: [{ m: 'popup', v: 30, u: 'minutes' }], busy: true, vis: 'default' }, null);
+    openEditor({ title: '', date: date || S.anchor, start: hhmm(st), end: hhmm(Math.min(st + S.set.dur, 1439)), allDay: false, tz: ET, repeat: 'none', cal: G.admin || BLANK ? 'attorney' : 'lsh', color: '', location: '', meet: '', desc: '', guests: [], notifs: [{ m: 'popup', v: 30, u: 'minutes' }], busy: true, vis: 'default' }, null);
 }
 function doCheck() {
     if (RV) return;
@@ -1265,7 +1276,7 @@ function renderScores() {
     const box = SC || $('#gc-scores'); if (!box || !S) return;
     if (RV && RV.sub) { box.innerHTML = reviewScoresHTML(); return; }
     if (RV && RV.live) { box.innerHTML = liveScoresHTML(); return; }
-    if (RV) { box.innerHTML = ''; return; }   // (a review still loading)
+    if (RV || BLANK) { box.innerHTML = ''; return; }   // (a review still loading; the blank calendar has no check)
     const side = myScorecardBox() + mySubBox();
     const btn = `<div style="margin:2px 0 10px"><button class="blue" data-a="check">Check my calendar</button></div>`;
     const check = S.result ? checkSection(S.result)
@@ -1418,9 +1429,9 @@ function bind() {
             reset: () => dialog('Start over?', '<p style="margin:0;color:#444746">Your events and changes are cleared and a new set of requests comes in.</p>', () => { S = fresh(); save(); closeAll(); render(); }, 'Start over'),
             create: () => createAt(S.view === 'day' ? S.anchor : null),
             panel: () => { S.panel = a.dataset.p === S.panel ? '' : a.dataset.p; save(); renderPanel(); renderRail(); },
-            check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true), 'tv-skip': () => skipItem(a.dataset.id, true), 'tv-unskip': () => skipItem(a.dataset.id, false), 'to-scores': () => { ev.preventDefault(); toScores(); },
+            check: () => { if (!BLANK) doCheck(); }, 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true), 'tv-skip': () => skipItem(a.dataset.id, true), 'tv-unskip': () => skipItem(a.dataset.id, false), 'to-scores': () => { ev.preventDefault(); toScores(); },
             evals: () => { if (Sim.isAdmin()) { location.href = REVIEW_PAGE; return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
-            'submit-eval': () => submitEval(),
+            'submit-eval': () => { if (!BLANK) submitEval(); },
             'cc-open': () => { closeAll(); (RV ? colorLegend : colorDialog)(); },
             'cloud-save': () => { save(true); cloudSave(); },
             'cloud-newer': () => { if (confirm('Open the newer copy saved to your account? The changes you made in this tab since then are replaced.')) cloudLoad(true); },
@@ -1532,7 +1543,7 @@ function onMove(ev) {
         g.col = document.querySelector(`.wk-col[data-d="${g.date}"]`) || g.col;   // (the grid is redrawn on every move)
         g.b = yMin(g.col, ev.clientY);
         const s = snap(Math.min(g.a, g.b), 15), e = Math.max(snap(Math.max(g.a, g.b), 15), s + 15);
-        G.temp = { date: g.date, start: hhmm(s), end: hhmm(Math.min(e, 1439)), cal: G.admin ? 'attorney' : 'lsh' };
+        G.temp = { date: g.date, start: hhmm(s), end: hhmm(Math.min(e, 1439)), cal: G.admin || BLANK ? 'attorney' : 'lsh' };
         renderMain(); return;
     }
     if (g.inst.readOnly) return;
@@ -1548,7 +1559,7 @@ function onUp(ev) {
     document.removeEventListener('pointermove', onMove);
     const g = G.drag; G.drag = null; if (!g) return;
     if (g.kind === 'new') {
-        if (!g.moved) { const s = Math.min(Math.floor(g.a / 30) * 30, 1440 - S.set.dur); G.temp = { date: g.date, start: hhmm(s), end: hhmm(Math.min(s + S.set.dur, 1439)), cal: G.admin ? 'attorney' : 'lsh' }; }
+        if (!g.moved) { const s = Math.min(Math.floor(g.a / 30) * 30, 1440 - S.set.dur); G.temp = { date: g.date, start: hhmm(s), end: hhmm(Math.min(s + S.set.dur, 1439)), cal: G.admin || BLANK ? 'attorney' : 'lsh' }; }
         renderMain();
         const el = document.querySelector('.ev.temp');
         openQuick(G.temp, el ? el.getBoundingClientRect() : null);
@@ -1563,8 +1574,13 @@ function onUp(ev) {
 
 /* ---------- start ---------- */
 window.GCAL = { solve, checkPlan, checkOpen, slotProblems, concretize, instancesOf, dealRequests, simToday, trimPayload, datesIn, addDays, weekStart, lengthColor, mins, rows: () => ROWS, setRows: (r) => { ROWS = r; } };
+// One screen: the page is the window's height less the top bar's (its height varies with the bar's contents), so nothing scrolls.
+function fitScreen() { const tb = document.getElementById('topbar'), wrap = document.querySelector('.sim-wrap'); if (!tb || !wrap) return;
+    document.documentElement.style.setProperty('--gc-top', Math.ceil(wrap.getBoundingClientRect().top + scrollY) + 'px'); }
 async function start() {
     if (!document.getElementById('app')) return;
+    addEventListener('resize', fitScreen); if (window.ResizeObserver && document.getElementById('topbar')) new ResizeObserver(fitScreen).observe(document.getElementById('topbar'));
+    fitScreen();
     await Sim.restore();   // opened in a new tab: the cookie says who is signed in (an admin must not be treated as a trainee), and the heartbeat starts
     const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal');
     if (TRK) document.title = 'Basic Calendaring · ' + CFG.label + ' — Legal Skills Hub';
@@ -1575,6 +1591,7 @@ async function start() {
     render();
     mineStart();
     if (!Sim.isAdmin()) { loadEvals(); cloudLoad(); }   // My evaluations (a badge when a final report is waiting); the calendar saved to their account
+    if (BLANK) return;   // (the blank calendar has no weekly schedule)
     // the weekly schedule as an Admin set it (if they did)
     Sim.fetchRetry(API_SCHEDULE, { credentials: 'include' }).then(r => r.json()).then(data => {
         let redraw = false;

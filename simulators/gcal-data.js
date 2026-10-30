@@ -14,7 +14,8 @@
      week after's Mon–Fri); from/to: the caller's hours (Eastern). sameDay: the caller wants today.
    • GCAL_RULES: the attorney's scheduling rules (Day 6: Scheduling Rules and Additional Notes), which the
      check uses (gcal.js, checkPlan).
-   • TRACKS (GCAL_TRACKS): the same simulator for three programs, picked by gcal.html?track=standard|cm|ea.
+   • TRACKS (GCAL_TRACKS): the same simulator for three programs, picked by gcal.html?track=standard|cm|ea
+     (and 'activity': Standard Training's calendar left blank for the offline Calendaring Activity, GCAL_ACT_*).
      Standard Training (Foundational · Calendar Management) is the baseline above (GCAL_STD_*). The Case Management
      (Litigation Week) and EA / PA (Executive Week) simulators are clones of it: the same Google Calendar, the same
      way of putting a caller's appointment on the calendar and the same check, with their own week, callers, rules
@@ -431,13 +432,38 @@ const GCAL_EA_REQUESTS = [
 const GCAL_EA_CFG = { who: { noun: 'executive', cal: 'Executive’s Calendar' }, exact: true, open: 8 * 60, close: 18 * 60, buffer: 15, consultFrom: 0, consultTo: 24 * 60, newClientDays: null, newClientMax: 3,
     followUpFrom: 0, fields: [], scenario: 'Executive Week · EA / PA', label: 'Executive Week', lead: 'EA / PA: the executive’s week.' };
 
-// The track this page runs (gcal.html?track=standard|cm|ea): the original Google Calendar Simulator is "standard".
+/* ---------- 📝 Standard Training - Calendaring Activity: the blank calendar ----------
+   The Standard Training calendar with nothing on it: no attorney's week, no callers, no check. The Foundational Training's
+   Day 5 Attorney Calendar Management Activity (the offline activity: its items are on the slides) is plotted here, under the
+   activity's own instructions (GCAL_ACT_INSTRUCTIONS, in the blue card): the color for each kind of appointment, reminders,
+   the location and the guests. It is graded on the Foundational Training's 📅 Calendar Activity Check, not here. Its calendar
+   is kept apart from Standard Training's (the mock calls'), in this browser and on the trainee's account (track 'activity'). */
+const GCAL_ACT_CFG = Object.assign({}, GCAL_STD_CFG, { blank: true, scenario: 'Standard Training · Calendaring Activity', label: 'Calendaring Activity',
+    lead: 'Standard Training - Calendaring Activity: a blank calendar for the Attorney Calendar Management Activity (Day 5).' });
+const GCAL_ACT_INSTRUCTIONS = {
+    steps: ['Manage the calendar of an attorney by reviewing and scheduling the provided appointments (the activity items on the slides).',
+        'Review the given appointment details carefully.',
+        'Treat this calendar as your attorney’s official calendar: plot every appointment on the Attorney’s Calendar.',
+        'Apply time-blocking and color-coding for clarity (the colors below).',
+        'Add reminders with appropriate notes for each appointment, so all the details are covered.',
+        'For travel blocks, set a practical reminder time that leaves the attorney enough notice to prepare and leave without rushing: allow for traffic, last-minute preparation and the early arrival needed at the airport or point of departure.',
+        'Review the calendar for conflicts: no overlapping appointments, enough time between events.',
+        'Location: when no exact address is given, type the location the activity item gives. For travel blocks, make it specific, with both the departure point and the destination (e.g. John F. Kennedy International Airport → LAX).',
+        'Add the guests’ email addresses (if applicable).'],
+    colors: [['basil', 'Green', 'Client Meetings'], ['peacock', 'Blue', 'Internal Meetings'], ['tomato', 'Red', 'Court-Related Tasks'], ['grape', 'Purple', 'External Events'],
+        ['banana', 'Yellow', 'Internal Tasks'], ['tangerine', 'Orange', 'Personal Wellness'], ['flamingo', 'Pink', 'Personal Events']],
+    guests: [['Martin Anthony', 'martin@legalsupporthelp.com'], ['Michelle Velarde', 'michelle.velarde@legalsupporthelp.com'],
+        ['John Michael Dela Cruz', 'john.delacruz@legalsupporthelp.com'], ['Lei Lee Abut', 'team-litigation@legalsupporthelp.com']]
+};
+
+// The track this page runs (gcal.html?track=standard|cm|ea|activity): the original Google Calendar Simulator is "standard".
 const GCAL_TRACKS = {
     standard: { attorney: GCAL_STD_ATTORNEY, requests: GCAL_STD_REQUESTS, rules: GCAL_STD_RULES, types: GCAL_STD_TYPES, office: GCAL_STD_OFFICE, cfg: GCAL_STD_CFG },
+    activity: { attorney: [], requests: [], rules: GCAL_STD_RULES, types: GCAL_STD_TYPES, office: GCAL_STD_OFFICE, cfg: GCAL_ACT_CFG },
     cm: { attorney: GCAL_CM_ATTORNEY, requests: GCAL_CM_REQUESTS, rules: GCAL_CM_RULES, types: GCAL_CM_TYPES, office: GCAL_CM_OFFICE, cfg: GCAL_CM_CFG },
     ea: { attorney: GCAL_EA_ATTORNEY, requests: GCAL_EA_REQUESTS, rules: GCAL_EA_RULES, types: GCAL_EA_TYPES, office: GCAL_EA_OFFICE, cfg: GCAL_EA_CFG }
 };
-const GCAL_TRACK = (() => { try { const t = new URLSearchParams(location.search).get('track'); return ['standard', 'cm', 'ea'].includes(t) ? t : 'standard'; } catch (e) { return 'standard'; } })();
+const GCAL_TRACK = (() => { try { const t = new URLSearchParams(location.search).get('track'); return ['standard', 'cm', 'ea', 'activity'].includes(t) ? t : 'standard'; } catch (e) { return 'standard'; } })();
 const GCAL_ATTORNEY = GCAL_TRACKS[GCAL_TRACK].attorney, GCAL_REQUESTS = GCAL_TRACKS[GCAL_TRACK].requests, GCAL_RULES = GCAL_TRACKS[GCAL_TRACK].rules,
     GCAL_TYPES = GCAL_TRACKS[GCAL_TRACK].types, GCAL_OFFICE = GCAL_TRACKS[GCAL_TRACK].office, GCAL_CFG = GCAL_TRACKS[GCAL_TRACK].cfg;
 // The calendar's name for the executive's week; the CM requests all belong to files.

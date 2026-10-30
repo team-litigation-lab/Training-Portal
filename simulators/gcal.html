@@ -188,7 +188,7 @@
     .rq .av2 { font-size: 12.5px; margin-top: 8px; color: var(--ink2); } .rq .av2 b { color: var(--ink); font-weight: 500; }
     .rq .acts { display: flex; gap: 6px; margin-top: 8px; align-items: center; flex-wrap: wrap; }
     .rq .acts label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink2); margin-left: auto; cursor: pointer; }
-    .rules h4 { margin: 14px 0 6px; font-size: 13px; } .rules ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.55; color: var(--ink2); }
+    .rules h4 { margin: 14px 0 6px; font-size: 13px; } .rules ul, .rules ol { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.55; color: var(--ink2); }
     .res-top { display: flex; align-items: center; gap: 14px; margin: 4px 0 12px; }
     .res-ring { width: 76px; height: 76px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; border: 6px solid; flex: none; }
     .res-r { border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-bottom: 8px; font-size: 12.5px; }
@@ -295,14 +295,14 @@
     .hero-rules summary::marker { color: #fdba74; }
     .hero-rules .rules p.lead { margin: 8px 0 0; color: #c7d2fe; font-size: 13px; line-height: 1.5; max-width: none; }
     .hero-rules .rules h4 { margin: 12px 0 4px; font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: #fdba74; }
-    .hero-rules .rules ul { margin: 0; padding-left: 16px; font-size: 13px; line-height: 1.5; color: #dbe4ff; }
+    .hero-rules .rules ul, .hero-rules .rules ol { margin: 0; padding-left: 16px; font-size: 13px; line-height: 1.5; color: #dbe4ff; }
     .hero-rules .rules li { margin: 0 0 3px; }
     .hero-rules-wrap::-webkit-scrollbar { width: 6px; } .hero-rules-wrap::-webkit-scrollbar-thumb { background: rgba(199,210,254,.35); border-radius: 3px; }
     /* The simulator fits one screen (laptops and up): the page is as tall as the window, the intro stays small and
        the calendar takes the height that's left. From 1400px wide the intro sits in a column on the LEFT of the
        calendar; between 1100 and 1400px it stays on top, trimmed, so the week still shows five days. */
     @media (min-width: 1100px) {
-        .sim-wrap { max-width: none; height: calc(100vh - 62px); display: flex; flex-direction: column; gap: 14px; padding: 16px 20px; }
+        .sim-wrap { max-width: none; height: calc(100vh - var(--gc-top, 62px));   /* --gc-top: the top bar's real height (gcal.js fitScreen) */ display: flex; flex-direction: column; gap: 14px; padding: 16px 20px; }
         .sim-hero { flex: none; margin: 0; padding: 16px 22px; }
         .sim-hero .eyebrow { font-size: 10px; letter-spacing: .06em; padding: 4px 9px; margin-bottom: 8px; }
         .sim-hero h1 { font-size: 22px; margin-bottom: 6px; }

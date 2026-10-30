@@ -30,7 +30,7 @@ import { runAi } from '../_ai-gateway.js';
 //
 // The AI review always ends: 'done' or 'error' (the AI call has a deadline, is tried again when the gateway only says wait, and the result
 // is written whatever happens). A review still 'pending' after STALE_MS was cut off (the Worker was stopped): it reads as an 'error'.
-const TRACKS = ['standard', 'cm', 'ea'];
+const TRACKS = ['standard', 'cm', 'ea', 'activity'];   // (activity: the blank calendar's draft only; it has no check to submit)
 const MAX_CAL = 200000, MAX_AI = 60000, MAX_NOTES = 6000, MAX_RULES = 8000, MAX_DRAFT = 300000;   // MAX_AI: how much of the calendar the AI reads
 const AI_MS = 24000;                 // every attempt at the AI review shares this: waitUntil work is cut off about 30 s after the response
 const RETRY_WAIT = [1500, 4000];     // pauses before the 2nd and 3rd attempts when the gateway says wait a few seconds or the AI blipped

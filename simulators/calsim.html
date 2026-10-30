@@ -46,9 +46,10 @@
 <script src="/simulators/cal-scorecard.js"></script>
 <script>
 // Calendaring Simulators: one page for the three Google Calendar Simulators (simulators/gcal.html), one per program:
-//   🎓 Standard Training (Foundational · Calendar Management): the original Google Calendar Simulator, as it was built;
+//   🎓 Standard Training - Mock Calls (Foundational · Calendar Management): the original Google Calendar Simulator, as it was built;
+//   📝 Standard Training - Calendaring Activity (?track=activity): the same calendar left blank, for the offline Calendaring Activity;
 //   ⚖️ Litigation Week (Case Management) and 🏢 Executive Week (EA / PA): clones of it with their own week, callers and rules.
-// ?track=standard|cm|ea opens that simulator at once (the Foundational Training's cards link that way). Admins also get
+// ?track=standard|activity|cm|ea opens that simulator at once (the Foundational Training's cards link that way). Admins also get
 // 📊 Earlier scheduler scores (?view=scores): the earlier drag-and-drop scheduler's submissions (calsim.js, only used for this page now).
 // 📊 The Google Calendar Simulators' submissions (gsubs in each trainee's /api/calsim record): who submitted what, the automated score and the
 // trainer's score, and a link that opens it in the Google Calendar look to review (gcal.html?track=…&review=<user>|<at>).
@@ -81,7 +82,7 @@ async function gsList(only) {
     const go = (track) => { const n = new URLSearchParams(location.search); n.delete('track'); n.delete('view'); if (track !== 'standard') n.set('track', track); return '/simulators/gcal.html' + (n.toString() ? '?' + n : ''); };
     // (the Foundational Training's cards say litigation / executive for the Case Management / EA clones)
     const want = ({ litigation: 'cm', executive: 'ea' })[String(q.get('track') || '').toLowerCase()] || String(q.get('track') || '').toLowerCase();
-    const direct = ['standard', 'cm', 'ea'].includes(want) && q.get('view') !== 'scores';
+    const direct = ['standard', 'activity', 'cm', 'ea'].includes(want) && q.get('view') !== 'scores';
     let me, rec = null;
     try {
         const r = await fetch('/api/calsim', { credentials: 'include' });
@@ -106,8 +107,10 @@ async function gsList(only) {
         return;
     }
     const TRACKS = [
-        { id: 'standard', icon: '🎓', title: 'Standard Training', where: 'Foundational · Calendar Management',
+        { id: 'standard', icon: '🎓', title: 'Standard Training - Mock Calls', where: 'Foundational · Calendar Management',
           desc: 'The attorney’s calendar in a Google Calendar look-alike. Callers ask for appointments: book them on the Attorney’s Calendar under the attorney’s rules (title, description, Google Meet for video calls, an email reminder a day before, Eastern time, 15-minute buffers), move or cancel what they ask, then check the calendar.' },
+        { id: 'activity', icon: '📝', title: 'Standard Training - Calendaring Activity', where: 'Foundational · Calendaring Activity',
+          desc: 'A blank attorney’s calendar in the same Google Calendar look-alike, for the offline Attorney Calendar Management Activity (Day 5): plot each activity item with its color, reminder, location and guests, as the activity’s instructions say. It is checked on the Calendar Activity Check in your course.' },
         { id: 'cm', icon: '⚖️', title: 'Litigation Week', where: 'Case Management',
           desc: 'The same Google Calendar practice on a litigation attorney’s week: hearings, depositions and focus blocks to work around, with case status, treatment, expert, adjuster, mediation and settlement requests to book, move or cancel, under the litigation attorney’s rules.' },
         { id: 'ea', icon: '🏢', title: 'Executive Week', where: 'EA / PA',
@@ -129,6 +132,7 @@ async function gsList(only) {
         return `📋 Evaluation: submitted ${Sim.esc(new Date(r.submittedAt).toLocaleDateString())}${r.checkScore != null ? ` · check ${Sim.esc(r.checkScore)}%` : ''} · ${st} · <a href="/simulators/my-evaluations.html">My Evaluations →</a>`; };
     const reviewHTML = (track) => {
         if (me.admin) return '';
+        if (track === 'activity') return '';   // (the blank calendar has no automated review: the activity is checked in the course)
         const a = lastCheck(track), subs = (rec && Array.isArray(rec.gsubs) ? rec.gsubs : []).filter(x => x && x.track === track), last = subs[subs.length - 1];
         const fb = last && rec.reviews ? rec.reviews['g:' + track + '|' + last.at] : null, lines = [];
         if (a) lines.push(`🤖 Automated review: <b>${Sim.esc(a.score)}%</b>${Array.isArray(a.results) && a.right != null ? ` · ${Sim.esc(a.right)} of ${a.results.length} right` : ''}${a.at ? ` · ${Sim.esc(String(a.at).slice(0, 10))}` : ''}`);

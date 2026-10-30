@@ -106,13 +106,14 @@ const server = http.createServer((req, res) => {
     if (!/Ci Trainee/.test(list) || !/77\/100/.test(list)) fail('the trainer’s list does not show the submission: ' + list.slice(0, 160));
     if (!href.some(h => /track=cm/.test(h) && /review=ci%7C/.test(h))) fail('the list has no link to review it: ' + JSON.stringify(href));
     await page.close();
-    // 5. the Calendaring Simulators page: the three tracks. The Calendar Management Mock Calls aren't on it any more: they are part of
+    // 5. the Calendaring Simulators page: the tracks (Standard Training's two calendars, Litigation Week, Executive Week). The Calendar Management Mock Calls aren't on it any more: they are part of
     //    the Foundational Training's Calendaring Practice Lab, in the course.
     page = await open('/simulators/calsim.html?name=Ci%20Trainee&batch=B300926');
     const cs = await page.evaluate(() => { const r = document.getElementById('cs-root');
         return { h: r.querySelector('h1').textContent.trim(), cards: [...r.querySelectorAll('.card h3')].map(h => h.textContent.trim()),
             calls: r.querySelectorAll('.cs-calls').length, also: /Conflicts week/.test(r.textContent) }; });
-    if (cs.h !== '📅 Calendaring Simulators' || cs.cards.length !== 3 || cs.calls || /Mock Calls/.test(cs.cards.join(' ')) || cs.also) fail('the Calendaring Simulators page should be the three tracks, without the Calendar Management Mock Calls: ' + JSON.stringify(cs));
+    // (Standard Training has two cards: its Mock Calls calendar and the blank one for the offline Calendaring Activity)
+    if (cs.h !== '📅 Calendaring Simulators' || cs.cards.join('|') !== '🎓 Standard Training - Mock Calls|📝 Standard Training - Calendaring Activity|⚖️ Litigation Week|🏢 Executive Week' || cs.calls || /Calendar Management Mock Calls/.test(cs.cards.join(' ')) || cs.also) fail('the Calendaring Simulators page should be the tracks, without the Calendar Management Mock Calls: ' + JSON.stringify(cs));
     if (await page.$('.cs-review')) fail('an Admin\'s page shows a trainee\'s automated review');
     await page.close();
     // 6. a trainee's page: each track's 🤖 automated calendar review (the last Check my calendar in this browser), what they

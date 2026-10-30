@@ -473,11 +473,37 @@ const server = http.createServer(async (req, res) => {
     const dtxt = await sp.locator('.gc-pop').first().innerText().catch(() => '');
     if (!/11:15\s*[–-]\s*11:30am/.test(dtxt)) fail(`dragging 11:15 to 11:30 on the grid should make a 15-minute event (${dtxt.split('\n')[0]})`);
     await sp.close();
+    /* ---------- 📝 the blank calendar for the offline Calendaring Activity, gcal.html?track=activity ---------- */
+    {
+        const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+        const bp = await ctx.newPage(), asked = [];
+        bp.on('pageerror', e => fail(`activity: page error: ${e.message}`));
+        bp.on('request', r => { if (/\/api\/gcal-schedule/.test(r.url())) asked.push(r.url()); });
+        await bp.addInitScript(() => localStorage.setItem('LSH_SIM_WHO', JSON.stringify({ name: 'CI Trainee', batch: 'B100526', program: 'FT' })));
+        await bp.goto(base + '/simulators/gcal.html?program=FT&track=activity', { waitUntil: 'load' });
+        await bp.waitForSelector('#gc-main .wk-col, #gc-main .ag', { timeout: 10000 }); await bp.waitForTimeout(400);
+        await shot(bp, 'gcal-activity');
+        const b = await bp.evaluate(() => ({ track: GCAL_TRACK, rows: GCAL_ATTORNEY.length, reqs: GCAL_REQUESTS.length, events: document.querySelectorAll('#gc-main .ev').length,
+            card: (document.getElementById('hero-rules') || {}).textContent || '', check: document.querySelectorAll('[data-a="check"]').length,
+            submit: document.querySelectorAll('[data-a="submit-eval"]').length, requests: document.querySelectorAll('[data-a="panel"][data-p="requests"]').length,
+            key: Object.keys(localStorage).filter(k => /^lsh_gcal/.test(k)) }));
+        if (b.track !== 'activity' || b.rows || b.reqs) fail(`activity: the blank calendar should have no week and no callers: ${JSON.stringify(b)}`);
+        if (b.events) fail(`activity: the calendar should open empty (${b.events} events on it)`);
+        if (!/The activity’s instructions/.test(b.card) || !/Green – Client Meetings/.test(b.card) || !/Pink – Personal Events/.test(b.card) || !/team-litigation@legalsupporthelp\.com/.test(b.card)) fail(`activity: the blue card should hold the activity's instructions, colors and guests: ${b.card.slice(0, 200)}`);
+        if (b.check || b.submit || b.requests) fail(`activity: no Check my calendar, Submit for evaluation or requests on the blank calendar: ${JSON.stringify(b)}`);
+        if (!b.key.includes('lsh_gcal.activity:ci trainee') || b.key.includes('lsh_gcal:ci trainee')) fail(`activity: its calendar should be kept apart from Standard Training's: ${b.key}`);
+        if (asked.length) fail(`activity: the blank calendar shouldn't load a weekly schedule: ${asked}`);
+        // a new event goes on the Attorney's Calendar
+        await bp.keyboard.press('c'); await bp.waitForTimeout(300);
+        const cal = await bp.evaluate(() => { const s = document.querySelector('select[aria-label="Calendar"]'); return s ? s.value : ''; });
+        if (cal !== 'attorney') fail(`activity: a new event should default to the Attorney's Calendar (${cal})`);
+        await ctx.close();
+    }
     // the clones keep their own weekly schedule: the API takes ?track=cm|ea and refuses anything else (handled by functions/api/gcal-schedule.js)
     const sch = require('fs').readFileSync(path.join(ROOT, 'functions/api/gcal-schedule.js'), 'utf8');
     if (!/gcal_schedule_tracks/.test(sch) || !/trackOf/.test(sch)) fail('the weekly schedule should be kept per track (gcal_schedule_tracks)');
 
     await browser.close(); server.close();
     if (failures.length) { console.log(`\n${failures.length} failure(s):`); failures.forEach((m, i) => console.log(`${i + 1}. ${m}`)); process.exit(1); }
-    console.log('Google Calendar Simulator test passed (the week and its blocks; every request doable; the check right and wrong; create, edit, Meet, drag, delete and undo, move one week, views, search, rules, check and save; phone; an Admin\'s schedule for everyone).');
+    console.log('Google Calendar Simulator test passed (the week and its blocks; every request doable; the check right and wrong; create, edit, Meet, drag, delete and undo, move one week, views, search, rules, check and save; phone; an Admin\'s schedule for everyone; the blank Calendaring Activity calendar).');
 })().catch(e => { console.error(e); process.exit(1); });
