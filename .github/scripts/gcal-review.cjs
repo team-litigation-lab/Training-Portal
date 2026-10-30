@@ -123,7 +123,8 @@ const server = http.createServer((req, res) => {
     await page.evaluate(() => localStorage.setItem('lsh_gcal:ci trainee', JSON.stringify({ v: 1, reqs: [], result: { score: 90, right: 4, results: [{}, {}, {}, {}, {}], at: '2026-10-06T13:00:00.000Z' } })));
     await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(800);
     const rev = await page.$$eval('#cs-root .cs-review', els => els.map(e => e.innerText.replace(/\s+/g, ' ').trim()));
-    if (rev.length !== 3 || !/Automated review: 90% · 4 of 5 right · 2026-10-06/.test(rev[0]) || !/Submitted · its review 40% · 👤 trainer 77\/100/.test(rev[1]) || !/No automated review yet/.test(rev[2])) fail('the trainee\'s cards should show each track\'s automated review: ' + JSON.stringify(rev));
+    // (the cards: Standard Training's two calendars, the mock calls' and the blank Calendaring Activity, then Litigation Week and Executive Week)
+    if (rev.length !== 4 || !/Automated review: 90% · 4 of 5 right · 2026-10-06/.test(rev[0]) || !/^🤖 No automated review yet\.$/.test(rev[1]) || !/Submitted · its review 40% · 👤 trainer 77\/100/.test(rev[2]) || !/No automated review yet/.test(rev[3])) fail('the trainee\'s cards should show each track\'s automated review: ' + JSON.stringify(rev));
     await page.close();
     // 7. 👥 Your trainees' calendars are on Trainee Evaluations (trainees-on-evaluations.cjs), not on the Calendaring Simulators page:
     // a trainer's page has no table there, only a line pointing to Trainee Evaluations

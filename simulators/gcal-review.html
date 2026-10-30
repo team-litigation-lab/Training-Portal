@@ -86,7 +86,7 @@
 <script>
 (function () {
 const API = '/api/gcal-reviews';
-const TRACKS = { standard: 'Standard Training', cm: 'Litigation Week · Case Management', ea: 'Executive Week · EA / PA' };
+const TRACKS = { activity: 'Standard Training - Calendaring Activity', standard: 'Standard Training', cm: 'Litigation Week · Case Management', ea: 'Executive Week · EA / PA' };
 const STALE_MS = 120000, TOO_LONG = 'The AI review took too long. Try again.';   // 'pending' for longer than this: the run was cut off (the API says so too, but an older reply or another clock must not leave the trainer stuck)
 const esc = (s) => Sim.esc(s);
 const $ = (s) => document.querySelector(s);

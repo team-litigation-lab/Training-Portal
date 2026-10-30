@@ -390,7 +390,90 @@ function checkOpen(st, today) {
     const got = out.reduce((a, r) => a + r.pts, 0), max = out.reduce((a, r) => a + r.max, 0);
     return { score: max ? Math.min(100, Math.round(got / max * 100)) : 0, results: out, extra: [], changed, penalty: 0, right: out.filter(r => r.pts >= r.max - 0.01).length, open: true };
 }
-const checkNow = () => OPEN ? checkOpen(S, S.today) : checkPlan(S, S.reqs, S.today);
+const checkNow = () => BLANK ? checkAct(S) : OPEN ? checkOpen(S, S.today) : checkPlan(S, S.reqs, S.today);
+/* 📝 The Calendaring Activity's check (the blank calendar): the Foundational Training's own (gcal-activity.js), every field of the
+   activity's 18 events and the whole calendar. The calendar's events go to it as the Foundational Training's simulator keeps them:
+   the date and times in the event's own time zone, the guests' addresses, the reminders, the description as text. */
+const REM_TYPE = { email: 'email' };
+const actInstances = (st) => instancesOf(st, '2026-06-01', '2028-12-31').filter(e => !e.seed && e.cal !== 'holidays');
+function actEvents(st) {
+    return actInstances(st).map((e, i) => {
+        const tz = e.tz || ET, x = { id: 'p' + i, title: e.title || '', allDay: !!e.allDay, span: 1, tz, loc: e.location || '', meet: !!e.meet, color: e.color || '', desc: plain(e.desc).slice(0, 600),
+            guests: (e.guests || []).map(g => String((g && g.email) || g || '').trim().toLowerCase()).filter(Boolean),
+            reminders: (e.notifs || []).map(n => ({ type: REM_TYPE[n.m] || 'notification', n: Math.max(0, Math.round(+n.v || 0)), unit: n.u || 'minutes' })) };
+        if (e.allDay) return Object.assign(x, { date: e.date, start: 0, dur: 1440 });
+        const a = shiftWall(e.date, e.start, ET, tz), b = shiftWall(e.date, e.end === '23:59' ? '23:59' : e.end, ET, tz);
+        const st0 = Math.floor(mins(a.time) / 15) * 15, en = e.end === '23:59' && tz === ET ? 1440 : mins(b.time) + (b.date > a.date ? 1440 : 0);
+        return Object.assign(x, { date: a.date, start: st0, dur: Math.max(15, Math.ceil((en - st0) / 15) * 15) });
+    });
+}
+/* On top of the Foundational Training's check, this platform checks on every entry (the trainers' list):
+     • the title with the name: the client's name where the item gives one (item 1: Alyssa Lynn Arehart);
+     • the notes: every entry has notes, and they are complete: every detail the item gives (not only some of them);
+     • the travel buffers: each travel block on the calendar, right against its appointment (6.2 before the court appearance and 6.3
+       after it, 8.2 before the flight to SFO, 8.4 before the networking dinner) and the hotel check-out (8.6) before the flight home;
+     • the Attorney's Calendar: the entry moved from the default LSH Calendar onto the Attorney's Calendar;
+     • the color changed: from the calendar's default to the color of the entry's category (the Foundational Training's Color row). */
+const ACT_NAMES = { '1': ['alyssa lynn arehart', 'alyssa arehart'] };
+const ACT_BUFFERS = [['6.2', 'before', '6.1'], ['6.3', 'after', '6.1'], ['8.2', 'before', '8.3'], ['8.4', 'before', '8.1'], ['8.6', 'earlier', '8.7']];
+const ACT_LABEL = { 'Color': 'Color changed to its category', 'Description': 'Notes: the item’s details' };
+const nrmW = (t) => ' ' + String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’'`]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+const actAbs = (x) => { if (!x || x.allDay) return null; const u = shiftWall(x.date, hhmm(x.start), x.tz, 'UTC'), s0 = Date.parse(u.date + 'T' + u.time + ':00Z'); return { s: s0, e: s0 + x.dur * 60000 }; };
+function checkAct(st) {
+    const evs = actEvents(st), inst = actInstances(st);
+    const r = typeof GcalActivity !== 'undefined' && GcalActivity.loaded ? GcalActivity.review(evs, RV ? RV.batch || '' : (Sim.who() || {}).batch || '') : null;
+    if (!r) return { score: 0, results: [], extra: [], changed: [], penalty: 0, right: 0, open: true, activity: true, error: 'The activity check didn’t load. Reload the page.' };
+    const K = GcalActivity.core.act.check().keyFor(r.anchor), keyOf = (n) => K.find(k => k.n === n) || {};
+    const byN = {}; r.items.forEach(it => { if (it.event) byN[it.id] = it.event; });
+    const instOf = (x) => x ? inst[+String(x.id).slice(1)] : null, notesOf = (x) => x ? nrmW(x.desc) : ' ';
+    let addMet = 0, addTotal = 0;
+    const results = r.items.map(it => {
+        const more = [], x = it.event, k = keyOf(it.id);
+        const items = it.checks.map(c => ({ ok: !!c.ok, t: c.ok ? (c.label === 'Time zone' && x ? `Time zone: ${zoneName(x.tz)} (the item’s ${k.tz})` : ACT_LABEL[c.label] || c.label) : `${ACT_LABEL[c.label] || c.label}: ${c.why}` }));
+        if (x && it.id !== 'calendar') {
+            const e = instOf(x), title = nrmW(x.title);
+            if (ACT_NAMES[it.id]) { const ok = ACT_NAMES[it.id].some(n => title.includes(' ' + n + ' '));
+                more.push({ ok, t: ok ? 'Title: with the client’s name' : `Title: with the client’s name: add “${ACT_NAMES[it.id][0].replace(/\b\w/g, c => c.toUpperCase())}” (e.g. “${k.name} – Alyssa Lynn Arehart”). Yours: “${x.title}”.` }); }
+            const pair = k.alt || (K.find(o => o.alt === it.id) || {}).n, groups = k.notes || (pair && keyOf(pair).notes) || null;
+            if (!String(x.desc || '').trim()) more.push({ ok: false, t: `Notes: this entry has no notes. Add the item’s details${groups ? ` (${(k.notesShow || keyOf(pair).notesShow || '').trim()})` : ' (what it is for, where from and where to)'}, so the attorney has everything in the event (instruction 5).` });
+            else more.push({ ok: true, t: 'Notes: on the entry' });
+            if (groups && (k.notesMin || (pair && keyOf(pair).notesMin))) {   // complete: every detail the item gives, on this event or its travel block's other one
+                const txt = notesOf(x) + notesOf(pair && byN[pair]), miss = groups.filter(g => !g.some(w => txt.includes(' ' + nrmW(w).trim() + ' ')));
+                more.push({ ok: !miss.length, t: miss.length ? `Notes complete: missing ${miss.map(g => `“${g[0]}”`).join(', ')} (the item asks for all of: ${(k.notesShow || keyOf(pair).notesShow || '').replace(/ \(at least \d\)/, '')}).` : 'Notes complete: every detail the item gives' });
+            }
+            // the guests: an item with none has none added (the item's own guests and their addresses are the rows above)
+            if (!k.guests) { const g = x.guests || []; more.push({ ok: !g.length, t: g.length ? `Guests: this item has no guests; remove ${g.join(', ')}.` : 'Guests: none, as the item gives none' }); }
+            // a notification on every entry (instruction 5): where the item gives no reminder time of its own
+            if (!it.checks.some(c => /^Reminder|^Travel reminder/.test(c.label))) { const n = (x.reminders || []).length;
+                more.push({ ok: n > 0, t: n ? 'Notification: set' : 'Notification: none set. Add a reminder for this entry (instruction 5).' }); }
+            const onAtty = !!e && e.cal === 'attorney';
+            more.push({ ok: onAtty, t: onAtty ? 'On the Attorney’s Calendar' : `On the Attorney’s Calendar: it is on the ${e ? calOf(e.cal).name : 'wrong calendar'}. Change the calendar to the Attorney’s Calendar (instruction 3).` });
+        }
+        more.forEach(c => { addTotal++; if (c.ok) addMet++; });
+        const all = items.concat(more);
+        return { id: it.id, head: it.title, when: it.id === 'calendar' ? '' : it.found ? it.when : 'Not on the calendar', pts: it.pts + more.filter(c => c.ok).length, max: it.weight + (it.found ? more.length : it.id === 'calendar' ? 0 : 2),
+            perfect: it.perfect && more.every(c => c.ok), items: all.concat((it.info || []).map(t => ({ ok: true, info: true, t: 'ℹ ' + t }))) };
+    });
+    // the travel buffers: each travel block on the calendar, right against what it is for
+    const fmtT = (ms) => new Date(ms).toISOString().slice(11, 16);
+    const buf = ACT_BUFFERS.map(([t, rel, a]) => { const kt = keyOf(t), ka = keyOf(a), x = byN[t], y = byN[a], X = actAbs(x), Y = actAbs(y), name = `${t} ${kt.name}`;
+        if (!x) return { ok: false, t: `${name}: not on the calendar, so the attorney has no ${rel === 'after' ? 'return' : 'travel'} time ${rel === 'after' ? 'after' : 'before'} ${a} ${ka.name}.` };
+        if (!y || !X || !Y) return { ok: true, t: `${name}: on the calendar` };
+        const ok = rel === 'before' ? X.e === Y.s : rel === 'after' ? X.s === Y.e : X.e <= Y.s;
+        return { ok, t: ok ? `${name}: ${rel === 'after' ? 'right after' : rel === 'before' ? 'right before' : 'before'} ${a} ${ka.name}`
+            : `${name}: it should ${rel === 'after' ? 'start when' : rel === 'before' ? 'end when' : 'end before'} ${a} ${ka.name} ${rel === 'after' ? 'ends' : 'starts'} (${kt.start ? `${tl(mins(kt.start))} – ${tl(mins(kt.end))} ${kt.tz}` : 'as the activity gives it'}), so the attorney isn’t rushed and nothing overlaps (instructions 6 and 7).` };
+    });
+    buf.forEach(c => { addTotal++; if (c.ok) addMet++; });
+    const cal = results.findIndex(x => x.id === 'calendar');
+    results.splice(cal < 0 ? results.length : cal, 0, { id: 'buffers', head: 'Travel buffers', when: '', pts: buf.filter(c => c.ok).length, max: buf.length, perfect: buf.every(c => c.ok), items: buf });
+    if (r.extras.length) results.push({ id: 'extras', head: 'Not matched to an activity item', when: '', pts: 0, max: 0, perfect: false,
+        items: r.extras.map(x => ({ ok: false, t: `“${x.title || '(no title)'}” (${x.when}): ${[].concat(x.why || [], x.info || []).join(' ') || 'not one of the activity’s items'}` })) });
+    const graded = results.filter(x => x.id !== 'extras'), met = r.score + addMet, total = r.max + addTotal, allOk = graded.every(x => x.perfect) && !r.extras.length;
+    const missing = results.filter(x => x.id !== 'extras' && x.id !== 'calendar' && x.id !== 'buffers').reduce((n, x) => n + (x.when === 'Not on the calendar' ? 1 : 0), 0);
+    const score = allOk ? 100 : Math.min(99, total ? Math.round(met / (total + missing * 2) * 100) : 0);   // (an entry not on the calendar also misses its notes and the Attorney's Calendar: 2 more)
+    return { score, results, extra: [], changed: [], penalty: 0, right: graded.filter(x => x.perfect).length, entries: graded.length, open: true, activity: true, met, total: total + missing * 2, passed: score >= 80,
+        anchor: r.anchor, span: r.span, key: r.key, batchAnchor: r.batchAnchor };
+}
 function checkPlan(st, reqs, today) {
     const all = instancesOf(st, addDays(today, -7), addDays(today, 42));
     const handled = new Set();
@@ -791,9 +874,9 @@ function renderRail() {
     const b = (on, attrs, icon, label, badge) => `<button class="rb ${on ? 'on' : ''}" ${attrs}>${ic(icon)}<span>${label}</span>${badge ? `<span class="badge">${badge}</span>` : ''}</button>`;
     $('#gc-rail').innerHTML = `<div class="rb-group">
             ${OPEN ? '' : b(S.panel === 'requests', 'data-a="panel" data-p="requests"', 'req', 'Calendar requests', open)}
-            ${BLANK ? '' : Sim.isAdmin() ? `<a class="rb" id="gc-evals-link" href="${REVIEW_PAGE}" title="Trainee Evaluations: the submissions with their AI review, and your trainees' calendars">${ic('notes')}<span>Trainee evaluations</span></a>`   // (a trainer goes to the Trainee Evaluations page: a plain link, in this tab, like every Portal page)
+            ${Sim.isAdmin() ? `<a class="rb" id="gc-evals-link" href="${REVIEW_PAGE}" title="Trainee Evaluations: the submissions with their AI review, and your trainees' calendars">${ic('notes')}<span>Trainee evaluations</span></a>`   // (a trainer goes to the Trainee Evaluations page: a plain link, in this tab, like every Portal page)
                 : b(S.panel === 'evals', 'data-a="evals"', 'notes', 'My evaluations', EV.ready)}</div>
-        <div class="rb-group rb-end">${cloudHtml()}${Sim.isAdmin() || RV || BLANK ? '' : '<button class="blue" data-a="submit-eval">📤 Submit for evaluation</button>'}</div>`;
+        <div class="rb-group rb-end">${cloudHtml()}${Sim.isAdmin() || RV ? '' : '<button class="blue" data-a="submit-eval">📤 Submit for evaluation</button>'}</div>`;
 }
 function reqCard(q) {
     const R = reqDef(q.id); if (!R) return '';
@@ -820,7 +903,7 @@ const rulesHtml = () => `<p class="lead">${esc(CFG.lead)} Plot every appointment
     <h4>Office</h4><ul><li>${esc(GCAL_OFFICE)} (in-person meetings)</li></ul>`;
 // 📝 The blank calendar's blue card: the Attorney Calendar Management Activity's instructions (gcal-data.js GCAL_ACT_INSTRUCTIONS).
 const activityHtml = () => { const A = GCAL_ACT_INSTRUCTIONS;
-    return `<p class="lead">A blank calendar for the <b>Attorney Calendar Management Activity</b> (Day 5): plot every activity item on the <b>Attorney’s Calendar</b>, each in the time zone the item gives (set it in the event’s editor). This calendar shows <b class="act-zone">${esc(zoneName(ET))}</b>: change it under ⚙ Settings → Time zone. It is checked on the 📅 Calendar Activity Check in your course.</p>
+    return `<p class="lead">Attorney Calendar Management Activity · this calendar: <b class="act-zone">${esc(zoneName(ET))}</b></p>
     <h4>Instructions</h4><ol>${A.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
     <h4>Color coding</h4><ul style="list-style:none;padding-left:0">${A.colors.map(([c, n, t]) => `<li><span style="display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px;background:${GCAL_COLORS[c]}"></span><b>${esc(n)}</b> – ${esc(t)}</li>`).join('')}</ul>
     <h4>Guests (if applicable)</h4><ul>${A.guests.map(([n, m]) => `<li><b>${esc(n)}</b> – ${esc(m)}</li>`).join('')}</ul>`; };
@@ -863,11 +946,11 @@ function openQuick(temp, rect) {
     const el = document.createElement('div'); el.className = 'gc-pop'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'New event');
     const when = temp.allDay ? longDate(temp.date) : `${longDate(temp.date)} · ${span(mins(temp.start), mins(temp.end))}`;
     el.innerHTML = `<div class="tools"><button class="ib" data-a="pop-x" aria-label="Close">${ic('close')}</button></div>
-        <div class="row"><span></span><input class="qin" id="q-title" placeholder="Add title" aria-label="Title"></div>
+        <div class="row"><span></span><input class="qin" id="q-title" placeholder="${BLANK ? '' : 'Add title'}" aria-label="Title"></div>
         <div class="row">${ic('clock')}<div class="sub">${esc(when)}<br><span style="font-size:12.5px">Time zone: ${esc(BLANK ? zoneName(ET) : 'Eastern')} · Does not repeat</span></div></div>
         <div class="row">${ic('video')}<div id="q-meet"><button class="meetbtn" data-a="q-meet">Add Google Meet video conferencing</button></div></div>
-        <div class="row">${ic('place')}<input class="fin" id="q-loc" placeholder="Add location" aria-label="Location"></div>
-        <div class="row">${ic('notes')}<textarea class="fin" id="q-desc" rows="2" placeholder="Add description" aria-label="Description"></textarea></div>
+        <div class="row">${ic('place')}<input class="fin" id="q-loc" placeholder="${BLANK ? '' : 'Add location'}" aria-label="Location"></div>
+        <div class="row">${ic('notes')}<textarea class="fin" id="q-desc" rows="2" placeholder="${BLANK ? '' : 'Add description'}" aria-label="Description"></textarea></div>
         <div class="row">${ic('cal')}${calSelect('q-cal', temp.cal || 'lsh')}</div>
         <div class="foot"><button class="txt" data-a="q-more">More options</button><button class="blue" data-a="q-save">Save</button></div>`;
     gc().appendChild(el); place(el, rect); G.pop = el;
@@ -949,7 +1032,7 @@ function drawEditor() {
     const rep = [['none', 'Does not repeat'], ['daily', 'Daily'], ['weekly', `Weekly on ${DAYN[wd(d.date)]}`], ['weekdays', 'Every weekday (Monday to Friday)']];
     const isSeed = E.inst && E.inst.seed;
     const colorOpts = [['', 'Calendar color']].concat(Object.keys(GCAL_COLORS).map(k => [k, k[0].toUpperCase() + k.slice(1)]));
-    el.innerHTML = `<div class="ed-top"><button class="ib" data-a="ed-x" aria-label="Close">${ic('close')}</button><input id="ed-title" placeholder="Add title" value="${esc(d.title)}" aria-label="Title"><button class="blue" data-a="ed-save">Save</button></div>
+    el.innerHTML = `<div class="ed-top"><button class="ib" data-a="ed-x" aria-label="Close">${ic('close')}</button><input id="ed-title" placeholder="${BLANK ? '' : 'Add title'}" value="${esc(d.title)}" aria-label="Title"><button class="blue" data-a="ed-save">Save</button></div>
         <div class="ed-when"><input type="date" id="ed-date" value="${esc(d.date)}" aria-label="Date">
             ${d.allDay ? '' : `<select id="ed-start" aria-label="Start time">${timeOpts(d.start)}</select><span>to</span><select id="ed-end" aria-label="End time">${timeOpts(d.end, d.start)}</select>`}
             <label><input type="checkbox" id="ed-allday" ${d.allDay ? 'checked' : ''}> All day</label>
@@ -959,7 +1042,7 @@ function drawEditor() {
             <div class="ed-tabs"><button class="${E.tab === 'details' ? 'on' : ''}" data-a="ed-tab" data-t="details">Event details</button><button class="${E.tab === 'find' ? 'on' : ''}" data-a="ed-tab" data-t="find">Find a time</button></div>
             <div class="ed-body">${E.tab === 'find' ? findHtml(d) : `
                 <div class="row">${ic('video')}<div>${d.meet ? `<div class="meetbox"><button class="join" data-a="join-ed">Join with Google Meet</button><span>meet.google.com/${esc(d.meet)}</span><button class="ib" data-a="ed-copy" aria-label="Copy the link" title="Copy">${ic('copy')}</button><button class="ib" data-a="ed-unmeet" aria-label="Remove conferencing" title="Remove conferencing">${ic('close')}</button></div>` : `<button class="meetbtn" data-a="ed-meet" style="background:#0b57d0;color:#fff;border-radius:4px;padding:9px 14px;font-weight:500">Add Google Meet video conferencing</button>`}</div></div>
-                <div class="row">${ic('place')}<input class="fld" id="ed-loc" placeholder="Add location" value="${esc(d.location || '')}" aria-label="Location"></div>
+                <div class="row">${ic('place')}<input class="fld" id="ed-loc" placeholder="${BLANK ? '' : 'Add location'}" value="${esc(d.location || '')}" aria-label="Location"></div>
                 <div class="row">${ic('bell')}<div>${d.notifs.map((n, i) => `<div class="ntf" data-ntf="${i}"><select class="n-m" aria-label="Notification type"><option value="popup" ${n.m !== 'email' ? 'selected' : ''}>Notification</option><option value="email" ${n.m === 'email' ? 'selected' : ''}>Email</option></select>
                     <input class="n-v" type="number" min="0" max="999" value="${+n.v || 0}" aria-label="How long before"><select class="n-u" aria-label="Unit">${['minutes', 'hours', 'days', 'weeks'].map(u => `<option ${u === n.u ? 'selected' : ''}>${u}</option>`).join('')}</select>
                     <button class="ib" data-a="ed-unntf" data-i="${i}" aria-label="Remove notification">${ic('close')}</button></div>`).join('')}<button class="txt" data-a="ed-ntf">Add notification</button></div></div>
@@ -968,7 +1051,7 @@ function drawEditor() {
                 <div class="row">${ic('notes')}<div class="rte"><div class="bar"><button data-cmd="bold" aria-label="Bold"><b>B</b></button><button data-cmd="italic" aria-label="Italic"><i>I</i></button><button data-cmd="underline" aria-label="Underline"><u>U</u></button><button data-cmd="insertOrderedList" aria-label="Numbered list">1.</button><button data-cmd="insertUnorderedList" aria-label="Bulleted list">•</button><button data-cmd="createLink" aria-label="Link">🔗</button><button data-cmd="removeFormat" aria-label="Remove formatting">T̸</button></div>
                     <div class="area" id="ed-desc" contenteditable="true" data-ph="${esc(['Add description: name', 'callback number'].concat(CFG.fields.includes('dob') ? ['DOB'] : [], CFG.fields.includes('dol') ? ['DOL'] : []).join(', ') + ' and what it’s about')}" aria-label="Description">${sanitize(d.desc)}</div></div></div>`}
             </div></div>
-            <div class="guests"><h4>Guests</h4><input class="fld" id="ed-guest" placeholder="Add guests (email), then Enter" aria-label="Add guests" style="width:100%;font:inherit;border:0;background:#f1f3f4;border-radius:4px;padding:9px 10px">
+            <div class="guests"><h4>Guests</h4><input class="fld" id="ed-guest" placeholder="${BLANK ? '' : 'Add guests (email), then Enter'}" aria-label="Add guests" style="width:100%;font:inherit;border:0;background:#f1f3f4;border-radius:4px;padding:9px 10px">
                 ${d.guests.map((g, i) => `<div class="g"><span class="gav">${esc(g[0].toUpperCase())}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(g)}</span><button class="ib" data-a="ed-ungu" data-i="${i}" aria-label="Remove guest">${ic('close')}</button></div>`).join('')}
                 <div class="perm"><b>Guest permissions</b><label><input type="checkbox" id="perm-modify" ${d.perms.modify ? 'checked' : ''}> Modify event</label><label><input type="checkbox" id="perm-invite" ${d.perms.invite ? 'checked' : ''}> Invite others</label><label><input type="checkbox" id="perm-see" ${d.perms.see ? 'checked' : ''}> See guest list</label></div></div></div>`;
 }
@@ -1151,27 +1234,33 @@ function createAt(date, start) {
     const st = start != null ? start : Math.max(9 * 60, Math.min(mins(etNow().time) + 30 - (mins(etNow().time) % 30), 16 * 60));
     openEditor({ title: '', date: date || S.anchor, start: hhmm(st), end: hhmm(Math.min(st + S.set.dur, 1439)), allDay: false, tz: ET, repeat: 'none', cal: G.admin || BLANK ? 'attorney' : 'lsh', color: '', location: '', meet: '', desc: '', guests: [], notifs: [{ m: 'popup', v: 30, u: 'minutes' }], busy: true, vis: 'default' }, null);
 }
-function doCheck() {
+async function doCheck() {
     if (RV) return;
+    if (BLANK && !(await GcalActivity.ready())) { snack('The activity check couldn’t load. Check your connection and try again.'); return; }
     const r = checkNow();
     S.result = Object.assign(r, { at: new Date().toISOString() }); save(); closeAll(); render();
     setTimeout(() => toScores(true), 60);
     Sim.saveResult({ simulator: 'Google Calendar', scenario: OPEN ? `${CFG.scenario} · ${r.results.length} appointments` : `${CFG.scenario} · ${S.reqs.length} requests`, score: r.score,
-        summary: `${r.right}/${r.results.length} ${OPEN ? 'appointments' : 'requests'} fully right${r.penalty ? `; −${r.penalty} for unasked changes` : ''}`,
-        details: { results: r.results.map(x => ({ request: x.head, points: Math.round(x.pts * 10) / 10, max: x.max, missed: x.items.filter(i => !i.ok).map(i => i.t) })), extra: r.extra } });
+        summary: BLANK ? `${r.right}/${r.entries} entries fully right` : `${r.right}/${r.results.length} ${OPEN ? 'appointments' : 'requests'} fully right${r.penalty ? `; −${r.penalty} for unasked changes` : ''}`,
+        details: BLANK ? { entries: r.entries, right: r.right } : { results: r.results.map(x => ({ request: x.head, points: Math.round(x.pts * 10) / 10, max: x.max, missed: x.items.filter(i => !i.ok).map(i => i.t) })), extra: r.extra } });
 }
 
 // The automated check of a calendar: the score, then each appointment or request marked. A trainee's (📊 Your scores) is the score
 // alone; a trainer's view of a trainee's calendar gives it a heading (`head`) and says when there is nothing to check.
 function checkSection(r, rm, head) {
+    if (r.activity && !RV) return actScoreOnly(r);
     const col = r.score >= 85 ? '#188038' : r.score >= 70 ? '#e37400' : '#d93025';
     return `<div id="gc-check" style="margin-top:14px;padding-top:12px;border-top:1px solid #dadce0">${head ? `<h3 style="margin:0 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5f6368;font-weight:500">${esc(head)}</h3>` : ''}
         <div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.score}%</div>
-            <div class="lead" style="margin:0">${r.right} of ${r.results.length} ${r.open ? `appointment${r.results.length === 1 ? '' : 's'}` : 'requests'} fully right.${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}<br><span style="color:#70757a">Checked ${esc(Sim.fmtDate(r.at))}</span></div></div>
+            <div class="lead" style="margin:0">${r.activity ? `${r.right} of ${r.entries || 0} entries fully right · ${r.met || 0} of ${r.total || 0} fields met${r.span ? `<br>The activity’s dates: ${esc(r.span)}` : ''}${r.error ? `<br><b style="color:#d93025">${esc(r.error)}</b>` : ''}` : `${r.right} of ${r.results.length}`} ${r.activity ? '' : `${r.open ? `appointment${r.results.length === 1 ? '' : 's'}` : 'requests'} fully right.`}${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}<br><span style="color:#70757a">Checked ${esc(Sim.fmtDate(r.at))}</span></div></div>
         ${head && r.open && !r.results.length ? '<p class="lead">There are no appointments on the calendar to check yet.</p>' : ''}
         ${resRows(r, rm)}</div>`;
 }
-const resRows = (r, rm) => r.results.map(x => `<div class="res-r"><h5><span>${esc(x.head)}</span><span>${Math.round(x.pts * 10) / 10}/${x.max}${rm && x.id ? ` <button class="txt" data-a="tv-skip" data-id="${esc(x.id)}" title="Take this appointment out of this review and its score">✕ Remove</button>` : ''}</span></h5>${x.when ? `<div style="color:#70757a;margin-bottom:4px">${esc(x.when)}</div>` : ''}<ul>${x.items.map(i => `<li class="${i.ok ? 'ok' : 'no'}"><span>${esc(i.t)}</span></li>`).join('')}</ul></div>`).join('')
+// 📝 The trainee's own check of the Calendaring Activity: the score, and nothing that tells them what to fix (no fields, no answers)
+const actScoreOnly = (r) => { const col = r.score >= 85 ? '#188038' : r.score >= 70 ? '#e37400' : '#d93025';
+    return `<div id="gc-check" style="margin-top:14px;padding-top:12px;border-top:1px solid #dadce0"><div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.score}%</div>
+        <div class="lead" style="margin:0">${r.error ? `<b style="color:#d93025">${esc(r.error)}</b>` : `${r.right} of ${r.entries || 0} entries fully right`}<br><span style="color:#70757a">Checked ${esc(Sim.fmtDate(r.at))}</span></div></div></div>`; };
+const resRows = (r, rm) => r.results.map(x => `<div class="res-r"><h5><span>${esc(x.head)}</span><span>${x.max ? Math.round(x.pts * 10) / 10 + '/' + x.max : ''}${rm && x.id ? ` <button class="txt" data-a="tv-skip" data-id="${esc(x.id)}" title="Take this appointment out of this review and its score">✕ Remove</button>` : ''}</span></h5>${x.when ? `<div style="color:#70757a;margin-bottom:4px">${esc(x.when)}</div>` : ''}<ul>${x.items.map(i => `<li class="${i.ok ? 'ok' : 'no'}"><span>${esc(i.t)}</span></li>`).join('')}</ul></div>`).join('')
     + (r.extra && r.extra.length ? `<div class="res-r"><h5><span>Changed without a request</span><span>−${r.penalty}</span></h5><ul>${r.extra.map(t => `<li class="no"><span>${esc(t)}</span></li>`).join('')}</ul></div>` : '');
 async function recFetch(user) {
     const r = await Sim.fetchRetry('/api/calsim' + (user ? '?user=' + encodeURIComponent(user) : ''), { credentials: 'include' }), j = await r.json().catch(() => ({}));
@@ -1254,7 +1343,8 @@ async function liveStart(again) {
         RV.empty = !(c && c.v === 1 && Array.isArray(c.events));
         S = Object.assign(fresh(), RV.empty ? {} : c, { panel: 'result', side: false }, again ? keep : {});
         if (OPEN) S.reqs = []; else if (!Array.isArray(S.reqs)) S.reqs = [];
-        S.result = BLANK ? null : Object.assign(checkNow(), { at: new Date().toISOString() });   // (the blank calendar has no check)
+        if (BLANK) await GcalActivity.ready();
+        S.result = Object.assign(checkNow(), { at: new Date().toISOString() });
         if (!again) { S.anchor = S.today; S.mini = S.today.slice(0, 7); }
         closeAll(); render();
         if (again) snack('Their calendar is up to date');
@@ -1263,8 +1353,8 @@ async function liveStart(again) {
 // A trainer's view of a trainee's calendar (?trainee=): their scorecard to fill in and the automated check, below the calendar.
 function liveScoresHTML() {
     if (BLANK) return `<h2>📝 ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>
-        <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on the Calendaring Activity yet.' : `Their activity calendar as they last saved it${RV.savedAt ? ', ' + esc(new Date(String(RV.savedAt).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(RV.savedAt) ? '' : 'Z')).toLocaleString()) : ''}. It’s above, read only. The activity is graded on the Calendar Activity Check in the course, not here.`}
-            <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>`;
+        <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on the Calendaring Activity yet.' : `Their activity calendar as they last saved it${RV.savedAt ? ', ' + esc(new Date(String(RV.savedAt).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(RV.savedAt) ? '' : 'Z')).toLocaleString()) : ''}. It’s above, read only. `}
+            <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>${S.result && !RV.empty ? checkSection(S.result, false, 'Their calendar, checked (automated): every entry against the activity') : ''}`;
     const C = window.CalScorecard, last = RV.cards[RV.cards.length - 1], when = (t) => t ? new Date(t.replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(t) ? '' : 'Z')).toLocaleString() : '';
     return `<h2>📊 Scores · ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>
         <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on this simulator yet.' : `Their calendar as they last saved it${RV.savedAt ? ', ' + esc(when(RV.savedAt)) : ''}. It’s above, read only.`}
@@ -1300,11 +1390,11 @@ function renderScores() {
     const box = SC || $('#gc-scores'); if (!box || !S) return;
     if (RV && RV.sub) { box.innerHTML = reviewScoresHTML(); return; }
     if (RV && RV.live) { box.innerHTML = liveScoresHTML(); return; }
-    if (RV || BLANK) { box.innerHTML = ''; return; }   // (a review still loading; the blank calendar has no check)
+    if (RV) { box.innerHTML = ''; return; }   // (a review still loading)
     const side = myScorecardBox() + mySubBox();
     const btn = `<div style="margin:2px 0 10px"><button class="blue" data-a="check">Check my calendar</button></div>`;
     const check = S.result ? checkSection(S.result)
-        : `<div id="gc-check"><p class="lead">Click <b>Check my calendar</b> to check ${OPEN ? 'your appointments' : 'what the callers asked for'} against the ${WW('attorney’s')} rules. Your score shows here.</p></div>`;
+        : BLANK ? '<div id="gc-check"></div>' : `<div id="gc-check"><p class="lead">Click <b>Check my calendar</b> to check ${OPEN ? 'your appointments' : 'what the callers asked for'} against the ${WW('attorney’s')} rules. Your score shows here.</p></div>`;
     box.innerHTML = `<h2>📊 Your scores</h2>${btn}<div class="sc-grid${side ? '' : ' one'}"><div>${check}</div>${side ? `<div>${side}</div>` : ''}</div>`;
 }
 async function saveScorecard() {
@@ -1336,6 +1426,7 @@ const EV_API = '/api/gcal-reviews';
 const REVIEW_PAGE = '/simulators/gcal-review.html' + (TRK ? '?track=' + TRK : '');   // the trainer's live review
 function evalPayload() {
     const r = checkNow();
+    if (BLANK) return actPayload(r);
     const all = instancesOf(S, addDays(S.today, -7), addDays(S.today, 42));
     const appointments = all.filter(e => !e.seed && e.cal !== 'holidays').map(e => ({ title: e.title, calendar: calOf(e.cal).name, date: e.date, day: DAYN[wd(e.date)],
         time: e.allDay ? 'all day' : span(mins(e.start), mins(e.end)), timeZone: (TZS.find(z => z[0] === (e.tz || ET)) || [0, e.tz])[1], location: e.location || '',
@@ -1356,6 +1447,26 @@ function evalPayload() {
         automatedCheck: { score: r.score, requestsFullyRight: `${r.right} of ${r.results.length}`, changedWithoutARequest: r.extra, attorneyAppointmentsChanged: r.changed || [],
             results: r.results.map(x => ({ request: x.head, points: `${Math.round(x.pts * 10) / 10}/${x.max}`, when: x.when || '', met: x.items.filter(i => i.ok).map(i => i.t), missed: x.items.filter(i => !i.ok).map(i => i.t) })) } } };
 }
+// 📝 The Calendaring Activity's submission: the activity (instructions and items), the answer key at the trainee's dates, every
+// event as entered, and the automated check of every entry, field by field (functions/api/gcal-reviews.js writes the AI review from it,
+// in the facilitator's feedback DNA).
+function actPayload(r) {
+    const evs = actEvents(S), A = GCAL_ACT_INSTRUCTIONS;
+    const appointments = instancesOf(S, '2026-06-01', '2028-12-31').filter(e => !e.seed && e.cal !== 'holidays').map((e, i) => { const x = evs[i];
+        return { title: e.title, calendar: calOf(e.cal).name, date: x.date, time: e.allDay ? 'all day' : `${tl(x.start)} – ${tl(x.start + x.dur)}`, timeZone: zoneName(x.tz), location: e.location || '',
+            googleMeet: !!e.meet, description: plain(e.desc).slice(0, 1500), guests: x.guests.slice(0, 10), color: e.color ? colorName(e.color) : 'none (the calendar’s color)',
+            notifications: (e.notifs || []).map(n => `${n.m === 'email' ? 'Email' : 'Notification'} ${n.v} ${n.u} before`) }; });
+    const from = r.anchor || weekStart(S.today, true), to = addDays(from, 13);
+    const week = { from, to, today: S.today, events: instancesOf(S, from, to).filter(e => e.cal !== 'holidays').slice(0, 220)
+        .map(e => ({ t: String(e.title || '(No title)').slice(0, 90), d: e.date, s: e.allDay ? '' : e.start, e: e.allDay ? '' : e.end, c: colorOf(e), mine: true, cal: calOf(e.cal).name, meet: !!e.meet })) };
+    return { track: 'activity', calendar: { week, program: 'Standard Training - Calendaring Activity (Day 5: Attorney Calendar Management Activity)', calendarTimeZone: zoneName(ET), score: r.score,
+        activity: { dates: r.span || '', instructions: A.steps, colorCoding: A.colors.map(([c, n, t]) => `${n} (${colorName(c)}) – ${t}`), guests: A.guests.map(([n, m]) => `${n} – ${m}`),
+            answerKey: r.key || [] },
+        appointments,
+        automatedCheck: { score: r.score, requestsFullyRight: `${r.right} of ${r.entries || 0} entries`, fieldsMet: `${r.met || 0} of ${r.total || 0}`, changedWithoutARequest: [], attorneyAppointmentsChanged: [],
+            results: r.results.map(x => ({ request: x.head, points: x.max ? `${x.pts}/${x.max}` : '', when: x.when || '', met: x.items.filter(i => i.ok && !i.info).map(i => i.t),
+                missed: x.items.filter(i => !i.ok).map(i => i.t), notes: x.items.filter(i => i.info).map(i => i.t) })) } } };
+}
 // The server keeps a submitted calendar up to 200000 characters; a Standard Training week with many appointments can pass that, so the parts that are
 // only for the trainer's picture and the long texts are trimmed in steps (the automated check and the appointments' fields the AI judges stay).
 function trimPayload(p) {
@@ -1371,6 +1482,7 @@ function trimPayload(p) {
 async function submitEval() {
     if (Sim.isAdmin()) { snack('Trainers review submissions in Trainee evaluations (in Settings).'); return; }
     if (EV.busy) return;
+    if (BLANK && !(await GcalActivity.ready())) { snack('The activity check couldn’t load. Check your connection and try again.'); return; }
     const p = trimPayload(evalPayload());
     if (!p.calendar.appointments.length && !p.calendar.automatedCheck.results.some(x => x.met.length) && !(p.calendar.automatedCheck.attorneyAppointmentsChanged || []).length) { snack('Book the appointments first, then submit them.'); return; }
     dialog('Submit for evaluation?', `<p style="margin:0;color:#444746">${OPEN ? `Your ${p.calendar.appointments.length} appointment${p.calendar.appointments.length === 1 ? '' : 's'}` : `Your appointments for these ${S.reqs.length} requests`} go to your trainer. An AI review is written for them, your trainer goes through it with you and adds their own feedback, and then the final report shows under <b>My evaluations</b>.</p>`, async () => {
@@ -1418,7 +1530,7 @@ function evalsHtml() {
         return `<div class="res-r"><h5><span>${esc(evWhen(r.submittedAt))} · ${esc(trackName(r))}</span><span>${r.checkScore == null ? '' : r.checkScore + '%'}</span></h5><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${st}${r.status === 'final' && !seenFinal(r.id) ? '<span class="ev-new">New</span>' : ''}</div></div>`;
     }).join('');
 }
-const TRACK_NAMES = { standard: 'Standard Training', cm: 'Litigation Week · Case Management', ea: 'Executive Week · EA / PA' };
+const TRACK_NAMES = { activity: 'Standard Training - Calendaring Activity', standard: 'Standard Training', cm: 'Litigation Week · Case Management', ea: 'Executive Week · EA / PA' };
 const trackName = (r) => TRACK_NAMES[r && r.track] || CFG.label || 'Standard Training';
 const reportPdf = (r) => EvalReport.pdf(r, trackName(r), snack);
 
@@ -1453,9 +1565,9 @@ function bind() {
             reset: () => dialog('Start over?', '<p style="margin:0;color:#444746">Your events and changes are cleared and a new set of requests comes in.</p>', () => { S = fresh(); save(); closeAll(); render(); }, 'Start over'),
             create: () => createAt(S.view === 'day' ? S.anchor : null),
             panel: () => { S.panel = a.dataset.p === S.panel ? '' : a.dataset.p; save(); renderPanel(); renderRail(); },
-            check: () => { if (!BLANK) doCheck(); }, 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true), 'tv-skip': () => skipItem(a.dataset.id, true), 'tv-unskip': () => skipItem(a.dataset.id, false), 'to-scores': () => { ev.preventDefault(); toScores(); },
+            check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true), 'tv-skip': () => skipItem(a.dataset.id, true), 'tv-unskip': () => skipItem(a.dataset.id, false), 'to-scores': () => { ev.preventDefault(); toScores(); },
             evals: () => { if (Sim.isAdmin()) { location.href = REVIEW_PAGE; return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
-            'submit-eval': () => { if (!BLANK) submitEval(); },
+            'submit-eval': () => submitEval(),
             'cc-open': () => { closeAll(); (RV ? colorLegend : colorDialog)(); },
             'cloud-save': () => { save(true); cloudSave(); },
             'cloud-newer': () => { if (confirm('Open the newer copy saved to your account? The changes you made in this tab since then are replaced.')) cloudLoad(true); },

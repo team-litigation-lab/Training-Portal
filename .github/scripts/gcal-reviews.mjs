@@ -15,6 +15,7 @@ import { pathToFileURL } from 'url';
 let s = fs.readFileSync('functions/api/gcal-reviews.js', 'utf8')
     .replace("import { json, requireSession } from '../_utils.js';", "const json=(d,s=200)=>new Response(JSON.stringify(d),{status:s,headers:{'Content-Type':'application/json'}});let CUR=null;const requireSession=async()=>CUR?{ok:true,session:CUR}:{ok:false,response:json({success:false},401)};globalThis.__setSession=(x)=>{CUR=x};")
     .replace("import { runAi } from '../_ai-gateway.js';", "const runAi=(...a)=>globalThis.__ai(...a);")
+    .replace("import '../_ft-facilitator-dna.js';", `import '${pathToFileURL(path.resolve('functions/_ft-facilitator-dna.js')).href}';`)
     // the real deadline (24 s) and pauses (1.5 s, 4 s) are shortened so the test doesn't wait for them
     .replace('const AI_MS = 24000;', 'const AI_MS = 600;').replace('const RETRY_WAIT = [1500, 4000];', 'const RETRY_WAIT = [20, 40];');
 if (!/AI_MS = 600;/.test(s) || !/RETRY_WAIT = \[20, 40\];/.test(s)) throw new Error('the test could not shorten the AI deadline: update it with gcal-reviews.js');
@@ -276,5 +277,17 @@ ck(std && std.length === 1 && std[0].auto === 90 && std[0].score === 88 && std[0
 ck(late.cm && late.cm.weeks.length === 1 && late.cm.weeks[0].auto === 55, 'and the latest of each other track');
 const zed = pr.calsim.byName['zed recent']; ck(zed && zed.ft && zed.ft.weeks[0].auto === 66, 'the calendar records read are the most recently saved ones, not whichever the table lists first');
 
+// 📝 the Calendaring Activity: the AI checks every entry, in the facilitator's feedback DNA (Michelle's), from the automated check of every field
+{
+    __setSession(ann); const actCal = { program: 'Standard Training - Calendaring Activity', score: 91, activity: { answerKey: [{ n: '1', title: '1 Client Meeting', expect: 'Mon Oct 12, 10:00 AM PST' }] },
+        appointments: [{ title: 'Client Meeting', date: '2026-10-12' }], automatedCheck: { score: 91, results: [{ request: '1 Client Meeting', met: ['Title'], missed: ['Color: Tomato: this one is Green'] }] } };
+    const before = seen;
+    r = await call('POST', { action: 'submit', track: 'activity', calendar: actCal });
+    const sys = seen && seen !== before ? seen.system : '';
+    ck(r.st === 200 && /Very strong performance\./.test(sys) && /However, improvement is needed in/.test(sys) && /8\.5 Overnight Stay/.test(sys) && /Every one of the 18 entries/.test(sys) && /never invent errors/.test(sys) && seen.maxTokens >= 3000,
+        'an activity submission: the AI goes through every one of the 18 entries, in the facilitator\'s feedback DNA, from the automated check');
+    ck(/Color: Tomato/.test(seen.messages[0].text) && /use the activity and its answer key/.test(seen.messages[0].text), 'the activity\'s AI review reads the automated check and the answer key');
+    const sid = r.j.id; __setSession(bo); r = await call('GET', null, '?id=' + sid); ck(r.j.review && r.j.review.track === 'activity' && r.j.review.calendar.activity, 'the trainer opens the activity submission with its key');
+}
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(fails.length ? 'FAILED' : 'all passed'); process.exit(fails.length ? 1 : 0);
