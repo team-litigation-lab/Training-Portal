@@ -1224,7 +1224,7 @@ async function liveStart(again) {
         RV.cards = ((j.data && j.data.scorecards) || {})[GT] || [];
         RV.skip = new Set(((j.data && j.data.excluded) || {})[GT] || []);
         RV.savedAt = dr.updatedAt || null;
-        try {   // the weekly schedule as an Admin set it, before the check
+        if (!BLANK) try {   // the weekly schedule as an Admin set it, before the check (the blank calendar has none)
             const sch = await (await Sim.fetchRetry(API_SCHEDULE, { credentials: 'include' })).json();
             if (sch && sch.success && sch.colors) setCC(sch.colors);
             if (sch && sch.success && Array.isArray(sch.rows) && sch.rows.length && sch.rows.every(r => r && r.id && r.title && /^\d\d:\d\d$/.test(r.start))) ROWS = sch.rows;
@@ -1233,7 +1233,7 @@ async function liveStart(again) {
         RV.empty = !(c && c.v === 1 && Array.isArray(c.events));
         S = Object.assign(fresh(), RV.empty ? {} : c, { panel: 'result', side: false }, again ? keep : {});
         if (OPEN) S.reqs = []; else if (!Array.isArray(S.reqs)) S.reqs = [];
-        S.result = Object.assign(checkNow(), { at: new Date().toISOString() });
+        S.result = BLANK ? null : Object.assign(checkNow(), { at: new Date().toISOString() });   // (the blank calendar has no check)
         if (!again) { S.anchor = S.today; S.mini = S.today.slice(0, 7); }
         closeAll(); render();
         if (again) snack('Their calendar is up to date');
@@ -1241,6 +1241,9 @@ async function liveStart(again) {
 }
 // A trainer's view of a trainee's calendar (?trainee=): their scorecard to fill in and the automated check, below the calendar.
 function liveScoresHTML() {
+    if (BLANK) return `<h2>📝 ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>
+        <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on the Calendaring Activity yet.' : `Their activity calendar as they last saved it${RV.savedAt ? ', ' + esc(new Date(String(RV.savedAt).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(RV.savedAt) ? '' : 'Z')).toLocaleString()) : ''}. It’s above, read only. The activity is graded on the Calendar Activity Check in the course, not here.`}
+            <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>`;
     const C = window.CalScorecard, last = RV.cards[RV.cards.length - 1], when = (t) => t ? new Date(t.replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(t) ? '' : 'Z')).toLocaleString() : '';
     return `<h2>📊 Scores · ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>
         <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on this simulator yet.' : `Their calendar as they last saved it${RV.savedAt ? ', ' + esc(when(RV.savedAt)) : ''}. It’s above, read only.`}
