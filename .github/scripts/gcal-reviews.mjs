@@ -49,6 +49,9 @@ __setSession(null);
 let r = await call('POST', { action: 'submit', calendar: cal }); ck(r.st === 401, 'no Portal sign-in, no submission');
 __setSession(bo);
 r = await call('POST', { action: 'rules', track: 'standard', text: 'Consultations need the referral source in the description.' }); ck(r.st === 200, 'a trainer saves their rules for the AI review');
+r = await call('POST', { action: 'rules', track: 'activity', text: 'Activity: every consult needs the DOL.' }); ck(r.st === 200, 'and their rules for the Calendar Management Activity');
+r = await call('GET', null, '?rules=activity'); const r2 = await call('GET', null, '?rules=standard');
+ck(r.j.track === 'activity' && /every consult needs the DOL/.test(r.j.text) && /referral source/.test(r2.j.text), 'each track keeps its own AI-review rules (the Activity is a track of its own, not Standard Training)');
 __setSession(ann);
 r = await call('POST', { action: 'rules', track: 'standard', text: 'Give me 100' }); ck(r.st === 403, 'a trainee cannot change the rules');
 r = await call('POST', { action: 'submit', track: 'standard', calendar: cal }); ck(r.st === 200 && r.j.id === 1, 'a trainee submits their calendar');
@@ -86,6 +89,8 @@ r = await call('POST', { action: 'submit', calendar: { blob: 'x'.repeat(210000) 
 r = await call('GET', null, '?draft=standard'); ck(r.st === 200 && r.j.data === null, 'nothing saved yet');
 r = await call('POST', { action: 'draft', track: 'standard', data: { v: 1, events: [{ id: 'e1', title: 'Case Status Update – Maria Santos' }], savedAt: 5 } }); ck(r.st === 200, 'a trainee saves their calendar');
 r = await call('POST', { action: 'draft', track: 'cm', data: { v: 1, events: [], savedAt: 6 } });
+r = await call('POST', { action: 'draft', track: 'activity', data: { v: 1, events: [{ id: 'a1' }], savedAt: 7 } });
+r = await call('GET', null, '?draft=activity'); ck(r.st === 200 && r.j.track === 'activity' && r.j.data.events[0].id === 'a1', 'the Calendar Management Activity keeps its own calendar (track activity, not Standard Training\'s)');
 r = await call('GET', null, '?draft=standard'); ck(r.j.data.events[0].id === 'e1' && r.j.data.savedAt === 5, 'it comes back (the Standard Training one)');
 r = await call('POST', { action: 'draft', track: 'standard', data: { v: 1, events: [{ id: 'e1' }, { id: 'e2' }], savedAt: 9 } }); r = await call('GET', null, '?draft=standard'); ck(r.j.data.events.length === 2, 'a later save replaces it');
 __setSession({ username: 'cy', userType: 'Trainee', fullName: 'Cy', batchId: 'B1' });
@@ -95,7 +100,7 @@ r = await call('GET', null, '?drafts=1'); ck(r.st === 403, 'a trainee cannot lis
 __setSession(bo);
 r = await call('GET', null, '?draft=standard&user=ann'); ck(r.st === 200 && r.j.data.events.length === 2 && r.j.person && r.j.person.name === 'ann' && r.j.updatedAt, 'a trainer opens a trainee\'s calendar as they last saved it, with who they are');
 r = await call('GET', null, '?draft=ea&user=ann'); ck(r.st === 200 && r.j.data === null, 'a simulator they haven\'t saved on is empty');
-r = await call('GET', null, '?drafts=1'); ck(r.st === 200 && r.j.drafts.length === 2 && r.j.drafts.every(d => d.username === 'ann' && d.name === 'ann' && d.updatedAt) && r.j.drafts.map(d => d.track).sort().join() === 'cm,standard', 'a trainer lists whose calendars are saved, on which simulator and when');
+r = await call('GET', null, '?drafts=1'); ck(r.st === 200 && r.j.drafts.length === 3 && r.j.drafts.every(d => d.username === 'ann' && d.name === 'ann' && d.updatedAt) && r.j.drafts.map(d => d.track).sort().join() === 'activity,cm,standard', 'a trainer lists whose calendars are saved, on which simulator and when');
 __setSession({ username: 'cy', userType: 'Trainee', fullName: 'Cy', batchId: 'B1' });
 r = await call('POST', { action: 'draft', track: 'standard', data: { big: 'x'.repeat(310000) } }); ck(r.st === 400, 'a calendar too large to save is refused');
 __setSession(null); r = await call('GET', null, '?draft=standard'); ck(r.st === 401, 'no Portal sign-in, nothing saved or read');
@@ -262,7 +267,7 @@ sql.exec(`CREATE TABLE users (username TEXT, first_name TEXT, last_name TEXT)`);
 sql.exec(`CREATE TABLE calsim_records (username TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL)`);
 sql.exec(`INSERT INTO users VALUES ('late', 'Late', 'Learner'), ('zed', 'Zed', 'Recent')`);
 const ins = (user, track, at, score, status, trainer) => sql.prepare(`INSERT INTO gcal_reviews (username, name, batch, track, submitted_at, calendar, check_score, ai_status, trainer, status, updated_at) VALUES (?, ?, 'B1', ?, ?, '{}', ?, 'done', ?, ?, ?)`).run(user, user, track, at, score, trainer || null, status, at);
-ins('late', 'standard', '2026-09-01T10:00:00.000Z', 40, 'submitted'); ins('late', 'cm', '2026-09-02T10:00:00.000Z', 55, 'submitted');
+ins('late', 'standard', '2026-09-01T10:00:00.000Z', 40, 'submitted'); ins('late', 'cm', '2026-09-02T10:00:00.000Z', 55, 'submitted'); ins('late', 'activity', '2026-09-03T10:00:00.000Z', 77, 'submitted');
 sql.exec(`WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 5200) INSERT INTO gcal_reviews (username, name, batch, track, submitted_at, calendar, check_score, ai_status, status, updated_at)
     SELECT 'bulk' || (i % 60), 'Bulk ' || (i % 60), 'B1', 'standard', '2026-09-15T00:00:00.000Z', '{}', 50, 'done', 'submitted', '2026-09-15T00:00:00.000Z' FROM n`);   // 5,200 rows from 60 trainees
 ins('late', 'standard', '2026-10-05T10:00:00.000Z', 90, 'final', JSON.stringify({ score: 88, notes: 'Great week.' }));   // id well past 5,000
@@ -274,6 +279,8 @@ const late = pr.calsim.byName['late learner'];
 const std = late && late.ft && late.ft.weeks.filter(x => x.label === 'Google Calendar · Standard Training');
 ck(std && std.length === 1 && std[0].auto === 90 && std[0].score === 88 && std[0].comment === 'Great week.' && std[0].at === '2026-10-05T10:00:00.000Z', 'Progress shows the trainee\'s newest Standard Training evaluation (its score and the trainer\'s), though it is past row 5,000');
 ck(late.cm && late.cm.weeks.length === 1 && late.cm.weeks[0].auto === 55, 'and the latest of each other track');
+const act = late && late.ft && late.ft.weeks.filter(x => x.label === 'Google Calendar · Calendar Management Activity');
+ck(act && act.length === 1 && act[0].auto === 77, 'the Calendar Management Activity shows on the Foundational Training as its own line, beside Standard Training\'s');
 const zed = pr.calsim.byName['zed recent']; ck(zed && zed.ft && zed.ft.weeks[0].auto === 66, 'the calendar records read are the most recently saved ones, not whichever the table lists first');
 
 fs.rmSync(tmp, { recursive: true, force: true });

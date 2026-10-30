@@ -1,5 +1,5 @@
 // The Google Calendar Simulators' weekly schedule (functions/api/gcal-schedule.js) on SQLite: the Standard Training week keeps its own table exactly as it
-// was (no ?track), the Case Management (?track=cm) and EA / PA (?track=ea) clones are kept apart, an unknown or empty track is refused (and never reaches
+// was (no ?track), the Calendar Management Activity (?track=activity), Case Management (?track=cm) and EA / PA (?track=ea) clones are kept apart, an unknown or empty track is refused (and never reaches
 // the database), and only an Admin changes any of them.
 // Run: node --no-warnings .github/scripts/gcal-schedule.mjs   (from the repository root)
 import { DatabaseSync } from 'node:sqlite';
@@ -30,10 +30,11 @@ globalThis.__setSession(admin);
 r = await call('Put', '', [row('s1', 'Standard week')]); ck(r.st === 200, 'an Admin saves the Standard Training week');
 r = await call('Put', '?track=cm', [row('c1', 'CM week')]); ck(r.st === 200, 'an Admin saves the Case Management week');
 r = await call('Put', '?track=ea', [row('e1', 'EA week')]); ck(r.st === 200, 'an Admin saves the EA / PA week');
+r = await call('Put', '?track=activity', [row('a1', 'Activity week')]); ck(r.st === 200, 'an Admin saves the Calendar Management Activity week');
 const get = async (qs) => (await call('Get', qs)).j.rows;
 ck((await get(''))[0].title === 'Standard week' && (await get('?track=standard'))[0].title === 'Standard week', 'Standard Training keeps its own week (no track, or track=standard)');
-ck((await get('?track=cm'))[0].title === 'CM week' && (await get('?track=ea'))[0].title === 'EA week', 'the clones keep their own weeks');
-ck(sql.prepare('SELECT COUNT(*) n FROM gcal_schedule').get().n === 1 && sql.prepare('SELECT COUNT(*) n FROM gcal_schedule_tracks').get().n === 2, 'Standard Training stays in gcal_schedule; the clones are in gcal_schedule_tracks');
+ck((await get('?track=cm'))[0].title === 'CM week' && (await get('?track=ea'))[0].title === 'EA week' && (await get('?track=activity'))[0].title === 'Activity week', 'the clones keep their own weeks (the Calendar Management Activity too: not Standard Training\'s)');
+ck(sql.prepare('SELECT COUNT(*) n FROM gcal_schedule').get().n === 1 && sql.prepare('SELECT COUNT(*) n FROM gcal_schedule_tracks').get().n === 3, 'Standard Training stays in gcal_schedule; the clones are in gcal_schedule_tracks');
 r = await call('Delete', '?track=cm'); ck(r.st === 200 && (await get('?track=cm')) === null && (await get('?track=ea'))[0].title === 'EA week' && (await get(''))[0].title === 'Standard week', 'restoring one clone leaves the others alone');
 r = await call('Delete', ''); ck(r.st === 200 && (await get('')) === null && (await get('?track=ea'))[0].title === 'EA week', 'restoring Standard Training leaves the clones alone');
 // unknown or empty tracks: refused, and the database isn't touched
@@ -48,6 +49,7 @@ ck((await get(''))[0].title === 'Standard week 2', 'saving only colors leaves th
 r = await callC('Put', '?track=cm', { cal: { attorney: 'sage' } }); ck(r.st === 200, 'an Admin saves the Case Management color coding');
 r = await call('Get', ''); ck(r.j.colors.cal.attorney === 'tomato' && r.j.colors.cal.lsh === 'grape', 'the Standard Training color coding comes back with the schedule');
 r = await call('Get', '?track=cm'); ck(r.j.colors.cal.attorney === 'sage' && !r.j.colors.cal.lsh, 'each simulator keeps its own color coding');
+r = await call('Get', '?track=activity'); ck(r.st === 200 && Object.keys(r.j.colors).length === 0, 'the Calendar Management Activity doesn’t get Standard Training’s color coding');
 r = await call('Get', '?track=ea'); ck(r.st === 200 && Object.keys(r.j.colors).length === 0, 'a simulator with none has an empty color coding');
 r = await callC('Put', '', { cal: { attorney: 'neon' } }); ck(r.st === 400, 'a color that isn’t one of the calendar colors is refused');
 r = await callC('Put', '', { cal: { secret: 'tomato' } }); ck(r.st === 400, 'a calendar that doesn’t exist is refused');

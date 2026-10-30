@@ -14,20 +14,22 @@
 //     moving one week of the attorney's appointment ("This event"), Month / Schedule / search, Check my calendar
 //     (saved as 'Google Calendar'), the rules in the blue card (no rules button); no sideways scroll on a phone;
 //   - an Admin edits the weekly schedule for everyone (saved through /api/gcal-schedule; a trainee then sees
-//     it), and restores it; a trainee can't change it (the API refuses).
+//     it), and restores it; a trainee can't change it (the API refuses);
+//   - the tracks: Litigation Week and Executive Week (?track=cm|ea) with their requests, and the Calendar Management
+//     Activity (?track=activity): Standard Training's week, rules and check under its own calendar, schedule and scenario.
 // Usage: node .github/scripts/gcal.cjs   (from the repository root; needs playwright)
 const { chromium } = require('playwright');
 const http = require('http'); const fs = require('fs'); const path = require('path'); const { pathToFileURL } = require('url');
 const ROOT = process.cwd();
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
-let saved = null, savedColors = {}; const results = []; const puts = [], colorPuts = [];
+let saved = null, savedColors = {}; const results = []; const puts = [], colorPuts = [], schedGets = [];
 const server = http.createServer(async (req, res) => {
     const u = new URL(req.url, 'http://x');
     const send = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
     const body = () => new Promise(r => { let b = ''; req.on('data', c => { b += c; }); req.on('end', () => { try { r(JSON.parse(b || '{}')); } catch (e) { r({}); } }); });
     const admin = /role=admin/.test(req.headers.cookie || '');
     if (u.pathname === '/api/gcal-schedule') {
-        if (req.method === 'GET') return send(200, { success: true, rows: saved, colors: savedColors });
+        if (req.method === 'GET') { schedGets.push(u.search); return send(200, { success: true, rows: saved, colors: savedColors }); }
         if (!admin) return send(403, { success: false, error: 'Admins only.' });
         if (req.method === 'PUT') { const b = await body(); const mod = await import(pathToFileURL(path.join(ROOT, 'functions/api/gcal-schedule.js')).href);
             if (b.colors !== undefined && b.rows === undefined) { const cc = mod.cleanColors(b.colors); if (cc.error) return send(400, { success: false, error: cc.error }); savedColors = cc.colors; colorPuts.push(cc.colors); return send(200, { success: true, colors: cc.colors }); }
@@ -446,6 +448,45 @@ const server = http.createServer(async (req, res) => {
             const chip = await tp.locator('#gc-main .ev:has-text("test")').first().innerText();
             if (!/Attorney test: the attorney’s call/.test(chip)) fail(`ea: the trainee's own title was reworded (${chip})`);
         }
+        await ctx.close();
+    }
+    /* ---------- the Calendar Management Activity (gcal.html?track=activity): a clone of Standard Training, not of cm/ea ---------- */
+    // The same attorney's week, rules and check (no calendar requests, every appointment checked, out of 10.5), the blue card and
+    // Check my calendar in 📊 Your scores; its own calendar in the browser, its own schedule (?track=activity), title and scenario.
+    {
+        const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+        const ap = await ctx.newPage();
+        ap.on('pageerror', e => fail(`activity: page error: ${e.message}`));
+        await ap.addInitScript(() => localStorage.setItem('LSH_SIM_WHO', JSON.stringify({ name: 'Act Trainee', batch: 'B100526', program: 'FT' })));
+        const before = schedGets.length;
+        await ap.goto(base + '/simulators/gcal.html?program=FT&track=activity', { waitUntil: 'load' });
+        await ap.waitForSelector('#gc-main .wk-col, #gc-main .ag', { timeout: 10000 }); await ap.waitForTimeout(400);
+        const a = await ap.evaluate(() => {
+            const keys = Object.keys(localStorage).filter(k => k.startsWith('lsh_gcal'));
+            const st = JSON.parse(localStorage.getItem('lsh_gcal.activity:act trainee') || 'null');
+            // the same bookings checked here and as Standard Training would: one 30-minute consult on a free Tuesday morning slot
+            const mon = GCAL.weekStart('2026-10-05', true), tue = GCAL.addDays(mon, 8);
+            const ev = { id: 'ev1', cal: 'attorney', title: 'Client Consultation: New PI Case – Maria Santos', date: tue, start: '09:30', end: '10:00', allDay: false, tz: 'America/New_York', repeat: 'none',
+                color: 'tangerine', location: 'Phone', meet: '', desc: 'Name: Maria Santos<br>CB Number: 805-555-0100<br>DOB: 01/02/1980<br>DOL: 03/04/2026<br>Notes: new PI case', guests: [], notifs: [{ m: 'email', v: 1, u: 'days' }], busy: true };
+            const r = GCAL.checkOpen({ events: [ev], ex: {}, sx: {} }, '2026-10-05');
+            const d = document.getElementById('hero-rules');
+            return { keys, reqs: st ? st.reqs.length : -1, panelOff: document.getElementById('gc-panel').classList.contains('off'), rail: document.getElementById('gc-rail').innerText,
+                title: document.title, eyebrow: (document.querySelector('.eyebrow') || {}).textContent || '', rows: GCAL_ATTORNEY.length, std: GCAL_ATTORNEY === GCAL_TRACKS.standard.attorney && GCAL_RULES === GCAL_TRACKS.standard.rules,
+                cfg: { open: GCAL_CFG.openCheck, scenario: GCAL_CFG.scenario, fields: GCAL_CFG.fields.join() }, max: r.results[0] && r.results[0].max, score: r.score,
+                hero: { open: !!(d && d.open), summary: d ? d.querySelector('summary').textContent.trim() : '', text: d ? d.innerText : '', rule: GCAL_RULES.scheduling[0] } };
+        });
+        if (!a.keys.includes('lsh_gcal.activity:act trainee') || a.keys.includes('lsh_gcal:act trainee')) fail(`activity: its calendar should be kept under its own key (lsh_gcal.activity:<name>), not Standard Training's: ${a.keys.join()}`);
+        if (a.reqs !== 0 || !a.panelOff || /Calendar requests/.test(a.rail)) fail(`activity: like Standard Training, no calendar requests and no requests panel: ${JSON.stringify({ reqs: a.reqs, off: a.panelOff, rail: a.rail })}`);
+        if (!a.std || !a.cfg.open || a.cfg.fields !== 'dob,dol') fail(`activity: it should run on Standard Training's week and rules (openCheck): ${JSON.stringify(a.cfg)}`);
+        if (a.max !== 10.5) fail(`activity: an appointment should be graded as on Standard Training, out of 10.5 (${a.max})`);
+        if (!/Calendar Management Activity/.test(a.title) || !/Calendar Management Activity/.test(a.eyebrow)) fail(`activity: the page title and eyebrow should name it: ${a.title} / ${a.eyebrow}`);
+        if (!a.hero.open || a.hero.summary !== '📖 The attorney’s rules' || !a.hero.text.includes(a.hero.rule) || !/Calendar Management Activity \(Day 5\)/.test(a.hero.text)) fail(`activity: the blue card should hold the attorney's rules: ${JSON.stringify(a.hero).slice(0, 300)}`);
+        if (!schedGets.slice(before).includes('?track=activity')) fail(`activity: its weekly schedule should be its own (/api/gcal-schedule?track=activity): ${schedGets.slice(before).join()}`);
+        // Check my calendar (in 📊 Your scores) saves the score under its own scenario
+        const n0 = results.length;
+        await ap.click('#gc-scores [data-a="check"]'); await ap.waitForSelector('.res-ring'); await ap.waitForTimeout(300);
+        const res = results.slice(n0).pop();
+        if (!res || res.simulator !== 'Google Calendar' || !/^Calendar Management Activity · \d+ appointments$/.test(res.scenario || '')) fail(`activity: Check my calendar should save 'Calendar Management Activity · N appointments': ${JSON.stringify(res).slice(0, 200)}`);
         await ctx.close();
     }
     // Standard Training must grade exactly as it always did: an abbreviated office address still counts as the office, and a new-client

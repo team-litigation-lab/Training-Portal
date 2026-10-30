@@ -42,6 +42,7 @@ r=await call('POST',{scorecard:{user:'ann',track:'nope',rows}});ck(r.st===400,'a
 r=await call('POST',{scorecard:{user:'ann',track:'standard',rows,calendarAt:'2026-10-06 13:30:00'}});
 ck(r.st===200&&r.j.scorecard.average===4.1&&r.j.scorecard.pct===83&&r.j.scorecard.by==='Trainer Bo'&&r.j.scorecard.rows[5].feedback==='Add the DOB'&&r.j.scorecard.rows[0].metric===m.SCORECARD_METRICS[0]&&r.j.scorecards.length===1,'a trainer saves a scorecard: the weighted average out of 5 and as a %');
 r=await call('POST',{scorecard:{user:'cal',track:'cm',rows}});ck(r.st===200,'a trainee with no saved record can be scored');
+r=await call('POST',{scorecard:{user:'ann',track:'activity',rows}});ck(r.st===200&&r.j.scorecards.length===1,'the Calendar Management Activity keeps its own scorecards (not Standard Training\'s)');
 __setSession({username:'ann',userType:'Trainee',fullName:'Ann Lee',batchId:'B1'});
 r=await call('POST',{data:{v:2,drafts:{},submissions:[],scorecards:{standard:[{average:5,pct:100}]}}});r=await call('GET');
 ck(r.j.data.scorecards.standard.length===1&&r.j.data.scorecards.standard[0].pct===83,'the trainee\'s saves keep the trainer\'s scorecards (and can\'t write their own)');
