@@ -493,6 +493,16 @@ const server = http.createServer(async (req, res) => {
         if (b.check || b.submit || b.requests) fail(`activity: no Check my calendar, Submit for evaluation or requests on the blank calendar: ${JSON.stringify(b)}`);
         if (!b.key.includes('lsh_gcal.activity:ci trainee') || b.key.includes('lsh_gcal:ci trainee')) fail(`activity: its calendar should be kept apart from Standard Training's: ${b.key}`);
         if (asked.length) fail(`activity: the blank calendar shouldn't load a weekly schedule: ${asked}`);
+        // the calendar's time zone is the trainee's to set (⚙ Settings → Time zone): an event keeps its moment, shown on the new clock
+        await bp.evaluate(() => { const k = 'lsh_gcal.activity:ci trainee', st = JSON.parse(localStorage.getItem(k));
+            st.events = [{ id: 'z1', title: 'Client Meeting', date: '2026-11-03', start: '13:00', end: '14:00', allDay: false, tz: 'America/New_York', repeat: 'none', cal: 'attorney', color: 'basil', location: '', meet: '', desc: '', guests: [], notifs: [] }];
+            st.anchor = '2026-11-03'; localStorage.setItem(k, JSON.stringify(st)); });
+        await bp.reload({ waitUntil: 'load' }); await bp.waitForSelector('#gc-main .wk-col'); await bp.waitForTimeout(400);
+        await bp.click('[data-a="settings"]'); await bp.waitForTimeout(200);
+        await bp.selectOption('select[data-set="tz"]', 'America/Los_Angeles'); await bp.waitForTimeout(400);
+        const z = await bp.evaluate(() => ({ ev: JSON.parse(localStorage.getItem('lsh_gcal.activity:ci trainee')).events[0], set: JSON.parse(localStorage.getItem('lsh_gcal.activity:ci trainee')).set.tz,
+            card: (document.querySelector('.act-zone') || {}).textContent, gut: (document.querySelector('#gc-main .wk-gut .tz') || {}).textContent }));
+        if (z.set !== 'America/Los_Angeles' || z.ev.start !== '10:00' || z.ev.end !== '11:00' || z.ev.date !== '2026-11-03' || !/Pacific/.test(z.card) || !/GMT-0[78]/.test(z.gut)) fail(`activity: the calendar's time zone should be editable (1 PM Eastern shows as 10 AM Pacific): ${JSON.stringify(z)}`);
         // a new event goes on the Attorney's Calendar
         await bp.keyboard.press('c'); await bp.waitForTimeout(300);
         const cal = await bp.evaluate(() => { const s = document.querySelector('select[aria-label="Calendar"]'); return s ? s.value : ''; });

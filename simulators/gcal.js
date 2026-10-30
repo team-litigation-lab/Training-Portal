@@ -33,12 +33,16 @@
    window.GCAL exposes the pure parts (solve, checkPlan, slotProblems…) for the test (.github/scripts/gcal.cjs). */
 (function () {
 Sim.module = 'calendaring';
-const ET = 'America/New_York';
+// The calendar's time zone: the dates and times kept on the calendar and the grid are on this clock. Eastern (the firm's clock) on
+// every track, except the blank Calendaring Activity calendar, where the trainee chooses it (⚙ Settings → Time zone, as in Google
+// Calendar: S.set.tz; syncZone). Each event still has its own time zone, in the event's editor.
+const NY = 'America/New_York';
+let ET = NY;
 const HH = 48;                       // pixels per hour on the Day and Week grids
 const DAYN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY3 = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const TZS = [[ET, 'Eastern Time - New York'], ['America/Chicago', 'Central Time - Chicago'], ['America/Denver', 'Mountain Time - Denver'],
+const TZS = [[NY, 'Eastern Time - New York'], ['America/Chicago', 'Central Time - Chicago'], ['America/Denver', 'Mountain Time - Denver'],
     ['America/Los_Angeles', 'Pacific Time - Los Angeles'], ['Asia/Manila', 'Philippine Time - Manila'], ['UTC', 'Coordinated Universal Time']];
 const esc = (s) => Sim.esc(s);
 
@@ -599,7 +603,23 @@ const $ = (s, el) => (el || document).querySelector(s);
 const gc = () => $('#gc');
 
 /* ---------- drawing ---------- */
+// The calendar's zone from the calendar itself (a calendar saved with another zone, the trainee's own or one a trainer opens)
+function syncZone() { ET = BLANK && S && S.set && TZS.some(z => z[0] === S.set.tz) ? S.set.tz : NY; document.querySelectorAll('.act-zone').forEach(b => { b.textContent = zoneName(ET); }); }
+const zoneName = (z) => (TZS.find(x => x[0] === z) || [0, z])[1];
+// The trainee picks another time zone for the calendar: every event keeps its moment, its date and times moved to the new clock
+// (as in Google Calendar; an event that would then end the next day ends at 11:59 PM, as the editor does).
+function setZone(to) {
+    if (!BLANK || to === ET || !TZS.some(z => z[0] === to)) return;
+    const from = ET, move = (x) => { if (!x || x.allDay || !x.date || !/^\d\d:\d\d$/.test(x.start || '')) return;
+        const a = shiftWall(x.date, x.start, from, to), b = /^\d\d:\d\d$/.test(x.end || '') ? shiftWall(x.date, x.end, from, to) : null;
+        x.date = a.date; x.start = a.time; if (b) x.end = b.date > a.date ? '23:59' : b.time; };
+    G.undo = null;   // (Undo puts events back, not the zone: pick the zone again to go back)
+    (S.events || []).forEach(move);
+    Object.keys(S.ex || {}).forEach(k => { const x = S.ex[k]; if (x && !x.del && x.date && x.start) move(x); });
+    S.set.tz = to; ET = to; S.today = simToday(); save(); closeAll(); render(); snack('Time zone: ' + zoneName(to));
+}
 function render() {
+    syncZone();
     const app = $('#app');
     if (!$('#gc')) {
         app.innerHTML = `<div class="gc" id="gc" tabindex="-1"><div class="gc-head" id="gc-head"></div>
@@ -800,7 +820,7 @@ const rulesHtml = () => `<p class="lead">${esc(CFG.lead)} Plot every appointment
     <h4>Office</h4><ul><li>${esc(GCAL_OFFICE)} (in-person meetings)</li></ul>`;
 // 📝 The blank calendar's blue card: the Attorney Calendar Management Activity's instructions (gcal-data.js GCAL_ACT_INSTRUCTIONS).
 const activityHtml = () => { const A = GCAL_ACT_INSTRUCTIONS;
-    return `<p class="lead">A blank calendar for the <b>Attorney Calendar Management Activity</b> (Day 5): plot every activity item on the <b>Attorney’s Calendar</b>, in Eastern time. It is checked on the 📅 Calendar Activity Check in your course.</p>
+    return `<p class="lead">A blank calendar for the <b>Attorney Calendar Management Activity</b> (Day 5): plot every activity item on the <b>Attorney’s Calendar</b>, each in the time zone the item gives (set it in the event’s editor). This calendar shows <b class="act-zone">${esc(zoneName(ET))}</b>: change it under ⚙ Settings → Time zone. It is checked on the 📅 Calendar Activity Check in your course.</p>
     <h4>Instructions</h4><ol>${A.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
     <h4>Color coding</h4><ul style="list-style:none;padding-left:0">${A.colors.map(([c, n, t]) => `<li><span style="display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px;background:${GCAL_COLORS[c]}"></span><b>${esc(n)}</b> – ${esc(t)}</li>`).join('')}</ul>
     <h4>Guests (if applicable)</h4><ul>${A.guests.map(([n, m]) => `<li><b>${esc(n)}</b> – ${esc(m)}</li>`).join('')}</ul>`; };
@@ -844,7 +864,7 @@ function openQuick(temp, rect) {
     const when = temp.allDay ? longDate(temp.date) : `${longDate(temp.date)} · ${span(mins(temp.start), mins(temp.end))}`;
     el.innerHTML = `<div class="tools"><button class="ib" data-a="pop-x" aria-label="Close">${ic('close')}</button></div>
         <div class="row"><span></span><input class="qin" id="q-title" placeholder="Add title" aria-label="Title"></div>
-        <div class="row">${ic('clock')}<div class="sub">${esc(when)}<br><span style="font-size:12.5px">Time zone: Eastern · Does not repeat</span></div></div>
+        <div class="row">${ic('clock')}<div class="sub">${esc(when)}<br><span style="font-size:12.5px">Time zone: ${esc(BLANK ? zoneName(ET) : 'Eastern')} · Does not repeat</span></div></div>
         <div class="row">${ic('video')}<div id="q-meet"><button class="meetbtn" data-a="q-meet">Add Google Meet video conferencing</button></div></div>
         <div class="row">${ic('place')}<input class="fin" id="q-loc" placeholder="Add location" aria-label="Location"></div>
         <div class="row">${ic('notes')}<textarea class="fin" id="q-desc" rows="2" placeholder="Add description" aria-label="Description"></textarea></div>
@@ -1108,6 +1128,7 @@ function settings(anchor) {
     menu(anchor, `<div style="padding:8px 16px;font-size:14px;width:260px">
         <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0">Default event length <select data-set="dur">${[15, 30, 45, 60].map(n => `<option value="${n}" ${S.set.dur === n ? 'selected' : ''}>${n} min</option>`).join('')}</select></label>
         <label style="display:flex;gap:8px;align-items:center;padding:6px 0"><input type="checkbox" data-set="weekends" ${S.set.weekends ? 'checked' : ''}> Show weekends</label>
+        ${BLANK ? `<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0">Time zone <select data-set="tz" aria-label="The calendar’s time zone" style="max-width:150px">${TZS.map(z => `<option value="${z[0]}" ${z[0] === ET ? 'selected' : ''}>${esc(z[1])}</option>`).join('')}</select></label>` : ''}
         <label style="display:flex;gap:8px;align-items:center;padding:6px 0"><input type="checkbox" data-set="tz2" ${S.set.tz2 ? 'checked' : ''}> Show Manila time too</label>
         <button class="txt" data-a="reset" style="margin-top:6px;padding:0">Start over (clear my calendar)</button>
         ${Sim.isAdmin() || BLANK ? '' : '<button class="txt" data-a="cc-open" style="margin-top:2px;padding:0">🎨 Color coding</button>'}
@@ -1478,6 +1499,7 @@ function bind() {
     if (scores) scores.addEventListener('click', onClick);   // (the scores, wherever they sit: Save, Refresh)
     root.addEventListener('change', (ev) => {
         const t = ev.target;
+        if (t.dataset.set === 'tz') { setZone(t.value); return; }
         if (t.dataset.set) { S.set[t.dataset.set] = t.type === 'checkbox' ? t.checked : +t.value; save(); renderMain(); return; }
         if (G.ed && t.closest('#gc-ed') && ['ed-date', 'ed-start', 'ed-allday', 'ed-tz', 'ed-rep', 'ed-cal'].includes(t.id)) {
             const d = G.ed.d, oldS = d.start, oldE = d.end;
