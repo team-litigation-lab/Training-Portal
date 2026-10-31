@@ -3,7 +3,8 @@
 // Checks: the main page is never redirected; a valid cookie is redirected from /trainee-login.html and (an admin's only) /admin-login.html; a signed-out
 // visitor on the Training Directory goes to the sign-in and back after it (even with no live heartbeat, and the heartbeat
 // is restarted); no cookie, a revoked account, a locked site and ?stay=1 all get the page; a tampered cookie gets the page.
-// A simulator page opened with a course's ticket (?ticket=) signs the trainee in first (a bad, expired, revoked or admin ticket doesn't).
+// A simulator page opened with a course's ticket (?ticket=) signs the trainee in first, and a named trainer's their own admin account
+// (a bad, expired or revoked ticket, a nameless admin's or the system's, doesn't).
 // Run: node --no-warnings .github/scripts/front-door.mjs   (from the repository root)
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
@@ -93,7 +94,19 @@ check(/^\/trainee-login\.html\?next=/.test(r.loc), 'an expired ticket gets the s
 r = await withTicket(await ticketFor({ first: 'Gil', last: 'Out', b: 'B1', exp: soon() }));
 check(/^\/trainee-login\.html\?next=/.test(r.loc), 'a revoked trainee\'s ticket gets the sign-in page');
 r = await withTicket(await ticketFor({ r: 'a', exp: soon() }));
-check(/^\/trainee-login\.html\?next=/.test(r.loc), 'an administrator\'s ticket never signs anyone in');
+check(/^\/trainee-login\.html\?next=/.test(r.loc), 'an administrator\'s ticket with no name (the Master Account\'s) never signs anyone in');
+// single sign-on for trainers: a named administrator's ticket (a course opened from the main Hub) signs in that admin, exactly one
+const bossTicket = await ticketFor({ r: 'a', n: 'Bo Trainer', exp: soon() });
+r = await withTicket(bossTicket);
+check(r.status === 302 && r.loc === '/simulators/gcal.html?track=standard' && /lsh_session=/.test(r.cookie), 'a trainer\'s ticket signs them in on a simulator page');
+const bossSess = await u.verifySessionToken(decodeURIComponent((r.cookie.match(/lsh_session=([^;]+)/) || [])[1] || ''), env.SESSION_SECRET);
+check(bossSess && bossSess.username === 'boss' && bossSess.userType === 'Admin', 'the session is the trainer\'s own admin account');
+r = await withTicket(bossTicket);
+check(/^\/trainee-login\.html\?next=/.test(r.loc) && !/lsh_session=/.test(r.cookie), 'a trainer\'s ticket works once');
+r = await withTicket(await ticketFor({ r: 'a', n: 'Ann Lee', exp: soon() }));
+check(/^\/trainee-login\.html\?next=/.test(r.loc), 'a trainer\'s ticket naming a trainee (not an admin) signs no one in');
+r = await withTicket(await ticketFor({ r: 's', exp: soon() }));
+check(/^\/trainee-login\.html\?next=/.test(r.loc), 'the Portal\'s system ticket signs no one in');
 r = await withTicket(await ticketFor({ first: 'Ann', last: 'Lee', b: 'B1', exp: soon() }), boss);
 check(!/lsh_session=/.test(r.cookie), 'a signed-in admin keeps their own session');
 // the sign-in brings a trainee back to the simulator they were sent from, never to the Training Directory

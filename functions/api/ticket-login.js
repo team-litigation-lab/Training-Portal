@@ -7,7 +7,11 @@ import { verifyTicket } from './verify-ticket.js';
 //
 // The courses sign the same ticket the Portal's /api/launch does (their /api/auth/tool-ticket, js/lsh-tool-links.js, with the
 // shared PORTAL_SSO_SECRET): {first, last, b, exp}, good for 5 minutes.
-//   - trainees only: an administrator's ticket (or the Portal's system ticket) never signs anyone in; admins type their password;
+//   - a trainee's ticket: their Portal account (below);
+//   - single sign-on for trainers too: an administrator's ticket { r: 'a', n } from a course they opened from the main Hub
+//     (the Portal's /api/launch gave them one; the course signs one back only for a trainer who came from there) signs them in
+//     to their own admin account: the Approved admin whose full name is n, exactly one. A ticket with no name (the Master
+//     Account's), no such admin or more than one, and the Portal's system ticket, never sign anyone in: the password then;
 //   - the account is the trainee's Portal account with that first and last name (and Batch ID when the ticket has one), Approved;
 //     no account, more than one, or a pending, rejected, revoked or suspended one: refused, never guessed.
 // The session is the same as /api/login's (12 hours, the heartbeat seeded).
@@ -17,7 +21,27 @@ export async function ticketSession(env, ticket) {
     const db = env.DB;
     const t = await verifyTicket(String(env.PORTAL_SSO_SECRET || '').trim(), ticket);
     if (!t.ok) return { status: t.code === 'not-configured' ? 501 : 401, code: t.code, error: t.code === 'expired' ? 'This link has expired. Open it again from your training program.' : 'This sign-in link isn\'t valid.' };
-    if (t.admin || t.system) return { status: 403, code: 'admin-password', error: 'Administrators sign in with their password.' };
+    if (t.system) return { status: 403, code: 'admin-password', error: 'Administrators sign in with their password.' };
+    if (t.admin) {
+        const name = String(t.name || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        if (!name) return { status: 403, code: 'admin-password', error: 'Administrators sign in with their password.' };
+        const { results } = await db.prepare(`SELECT * FROM users WHERE user_type = 'Admin' AND status = 'Approved'`).all();
+        const admins = (results || []).filter(u => buildFullName(u).replace(/\s+/g, ' ').trim().toLowerCase() === name);
+        if (admins.length !== 1) return { status: 403, code: 'admin-password', error: 'Administrators sign in with their password.' };
+        // (a trainer's ticket works once, as every program takes it: a copy, from browser history or a forwarded link, can't sign
+        // anyone in again inside its 5 minutes)
+        await db.prepare(`CREATE TABLE IF NOT EXISTS sso_used_tickets (sig TEXT PRIMARY KEY, exp INTEGER NOT NULL)`).run();
+        await db.prepare(`DELETE FROM sso_used_tickets WHERE exp < ?`).bind(Date.now()).run();
+        const sig = String(ticket || '').split('.')[1] || '';
+        if (await db.prepare(`SELECT sig FROM sso_used_tickets WHERE sig = ?`).bind(sig).first()) return { status: 401, code: 'used', error: 'This sign-in link was already used. Open it again from your training program.' };
+        await db.prepare(`INSERT INTO sso_used_tickets (sig, exp) VALUES (?, ?)`).bind(sig, Date.now() + 10 * 60 * 1000).run();
+        const user = admins[0], fullName = buildFullName(user);
+        await logActivity(db, user.username, user.batch_id, 'login', 'ticket (trainer)');
+        await upsertSessionHeartbeat(db, { username: user.username, fullName, batchId: user.batch_id, userType: 'Admin' });
+        const token = await createSessionToken({ sub: user.id, username: user.username, batchId: user.batch_id, userType: 'Admin', fullName }, env.SESSION_SECRET);
+        const { password: _pw, ...safeUser } = user;
+        return { user: { ...safeUser, fullName, userType: 'Admin' }, cookie: sessionCookie(token, 43200) };
+    }
     const { results } = await db.prepare(`SELECT * FROM users WHERE lower(trim(first_name)) = lower(?) AND lower(trim(last_name)) = lower(?) AND (? = '' OR batch_id = ?) AND (user_type IS NULL OR user_type = 'Trainee')`)
         .bind(t.first, t.last, t.batch, t.batch).all();
     const list = results || [];
