@@ -25,7 +25,7 @@
      to /api/gcal-reviews, where an AI review is written (done correctly, needs improvement, missed) from the attorney's rules and
      the trainer's own rules and notes. The trainer goes through it live with the trainee (simulators/gcal-review.html), adds
      written feedback and finalizes it; the trainee reads the final report under My evaluations (the rail) and downloads a PDF.
-   • Tracks (gcal.html?track=standard|cm|ea; data and numbers in gcal-data.js, GCAL_TRACKS / GCAL_CFG): Standard Training is this
+   • Tracks (gcal.html?track=standard|cm|ea, and activity: the blank calendar for the offline Calendaring Activity; data and numbers in gcal-data.js, GCAL_TRACKS / GCAL_CFG): Standard Training is this
      simulator exactly as it was built. The Case Management (Litigation Week) and EA / PA (Executive Week) simulators are clones of
      it with their own week, callers, rules and request types; the executive's wording is applied as the page is drawn. Each track
      keeps its own calendar in the browser, its own weekly schedule (/api/gcal-schedule?track=…) and saves its score as
@@ -33,12 +33,16 @@
    window.GCAL exposes the pure parts (solve, checkPlan, slotProblems…) for the test (.github/scripts/gcal.cjs). */
 (function () {
 Sim.module = 'calendaring';
-const ET = 'America/New_York';
+// The calendar's time zone: the dates and times kept on the calendar and the grid are on this clock. Eastern (the firm's clock) on
+// every track, except the blank Calendaring Activity calendar, where the trainee chooses it (⚙ Settings → Time zone, as in Google
+// Calendar: S.set.tz; syncZone). Each event still has its own time zone, in the event's editor.
+const NY = 'America/New_York';
+let ET = NY;
 const HH = 48;                       // pixels per hour on the Day and Week grids
 const DAYN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY3 = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const TZS = [[ET, 'Eastern Time - New York'], ['America/Chicago', 'Central Time - Chicago'], ['America/Denver', 'Mountain Time - Denver'],
+const TZS = [[NY, 'Eastern Time - New York'], ['America/Chicago', 'Central Time - Chicago'], ['America/Denver', 'Mountain Time - Denver'],
     ['America/Los_Angeles', 'Pacific Time - Los Angeles'], ['Asia/Manila', 'Philippine Time - Manila'], ['UTC', 'Coordinated Universal Time']];
 const esc = (s) => Sim.esc(s);
 
@@ -136,6 +140,10 @@ const reqDef = (id) => GCAL_REQUESTS.find(r => r.id === id);
 // Simulator, and its numbers below are the ones it always had. The Case Management and EA / PA clones change the week, the callers,
 // the rules and these numbers, nothing else.
 const CFG = GCAL_CFG;
+// 📝 The blank calendar (gcal.html?track=activity, gcal-data.js GCAL_ACT_*): Standard Training's calendar with no attorney's week, no callers
+// and no check, for the Foundational Training's offline Calendaring Activity. The blue card holds the activity's instructions; the
+// calendar is still kept in this browser and saved to the trainee's account, apart from the mock calls' calendar.
+const BLANK = !!CFG.blank;
 /* Submit to the trainer and the trainer's review. A trainee presses 📤 Submit to my trainer: the automated check, the calendar they built and the
    week it was built on are kept in their /api/calsim record (gsubs). A trainer opens it from Calendar Scores as gcal.html?track=…&review=<user>|<at>:
    the same Google Calendar look, read-only, with the result and a feedback form (score, comment, a comment per request); the trainee sees it in the
@@ -331,7 +339,7 @@ function gradeBookEvent(e, q, R, all, today) {
    days and count, follow-ups in the afternoon, same-day approval), the length cap, the meeting type stated, the
    description (name, callback number, DOB, DOL, what it's about) and an email reminder a day before. Changes to the
    attorney's own appointments are listed for the trainer (a caller may have asked for them), not marked. */
-const OPEN = !TRK;
+const OPEN = !TRK || BLANK;
 function typeOf(title) {
     const t = alnum(title);
     return Object.keys(GCAL_TYPES).sort((a, b) => b.length - a.length).find(k => t.startsWith(alnum(k))) || '';
@@ -382,7 +390,20 @@ function checkOpen(st, today) {
     const got = out.reduce((a, r) => a + r.pts, 0), max = out.reduce((a, r) => a + r.max, 0);
     return { score: max ? Math.min(100, Math.round(got / max * 100)) : 0, results: out, extra: [], changed, penalty: 0, right: out.filter(r => r.pts >= r.max - 0.01).length, open: true };
 }
-const checkNow = () => OPEN ? checkOpen(S, S.today) : checkPlan(S, S.reqs, S.today);
+const checkNow = () => BLANK ? checkAct(S) : OPEN ? checkOpen(S, S.today) : checkPlan(S, S.reqs, S.today);
+/* 📝 The Calendaring Activity's check (the blank calendar): this activity's own scoring (simulators/gcal-activity.js), every check of
+   every entry and the whole calendar. The trainer's view and the AI read every entry; the trainee sees the score only (actScoreOnly). */
+const actInstances = (st) => instancesOf(st, '2026-06-01', '2028-12-31').filter(e => !e.seed && e.cal !== 'holidays');
+function checkAct(st) {
+    const list = actInstances(st).map(e => Object.assign({}, e, { desc: plain(e.desc) }));
+    const r = GcalActivity.review(list, { batch: RV ? RV.batch || '' : (Sim.who() || {}).batch || '', zone: ET });
+    const results = r.results.map(x => ({ id: x.id, head: x.head, when: x.when, pts: x.pts, max: x.max, perfect: x.perfect,
+        items: x.checks.map(c => ({ ok: c.ok, t: c.ok ? c.label : `${c.label}: ${c.why}` })) }));
+    if (r.extras.length) results.push({ id: 'extras', head: 'Not one of the activity’s entries', when: '', pts: 0, max: 0, perfect: false,
+        items: r.extras.map(x => ({ ok: false, t: `“${x.title || '(no title)'}” (${x.when})` })) });
+    return { score: r.score, results, extra: [], changed: [], penalty: 0, right: r.right, entries: r.entries, open: true, activity: true, met: r.met, total: r.total, passed: r.passed,
+        anchor: r.anchor, span: r.span, key: r.key, batchAnchor: r.batchAnchor };
+}
 function checkPlan(st, reqs, today) {
     const all = instancesOf(st, addDays(today, -7), addDays(today, 42));
     const handled = new Set();
@@ -595,7 +616,23 @@ const $ = (s, el) => (el || document).querySelector(s);
 const gc = () => $('#gc');
 
 /* ---------- drawing ---------- */
+// The calendar's zone from the calendar itself (a calendar saved with another zone, the trainee's own or one a trainer opens)
+function syncZone() { ET = BLANK && S && S.set && TZS.some(z => z[0] === S.set.tz) ? S.set.tz : NY; document.querySelectorAll('.act-zone').forEach(b => { b.textContent = zoneName(ET); }); }
+const zoneName = (z) => (TZS.find(x => x[0] === z) || [0, z])[1];
+// The trainee picks another time zone for the calendar: every event keeps its moment, its date and times moved to the new clock
+// (as in Google Calendar; an event that would then end the next day ends at 11:59 PM, as the editor does).
+function setZone(to) {
+    if (!BLANK || to === ET || !TZS.some(z => z[0] === to)) return;
+    const from = ET, move = (x) => { if (!x || x.allDay || !x.date || !/^\d\d:\d\d$/.test(x.start || '')) return;
+        const a = shiftWall(x.date, x.start, from, to), b = /^\d\d:\d\d$/.test(x.end || '') ? shiftWall(x.date, x.end, from, to) : null;
+        x.date = a.date; x.start = a.time; if (b) x.end = b.date > a.date ? '23:59' : b.time; };
+    G.undo = null;   // (Undo puts events back, not the zone: pick the zone again to go back)
+    (S.events || []).forEach(move);
+    Object.keys(S.ex || {}).forEach(k => { const x = S.ex[k]; if (x && !x.del && x.date && x.start) move(x); });
+    S.set.tz = to; ET = to; S.today = simToday(); save(); closeAll(); render(); snack('Time zone: ' + zoneName(to));
+}
 function render() {
+    syncZone();
     const app = $('#app');
     if (!$('#gc')) {
         app.innerHTML = `<div class="gc" id="gc" tabindex="-1"><div class="gc-head" id="gc-head"></div>
@@ -624,7 +661,8 @@ function heroRules() {
     let d = $('#hero-rules');
     if (!d) {
         const intro = hero.querySelector('p'), box = document.createElement('div'); box.className = 'hero-rules-wrap';
-        box.innerHTML = `<details class="hero-rules" id="hero-rules"><summary>📖 ${WW('The attorney’s rules')}</summary><div class="rules">${rulesHtml()}</div></details>`;
+        box.innerHTML = BLANK ? `<details class="hero-rules" id="hero-rules"><summary>📝 The activity’s instructions</summary><div class="rules">${activityHtml()}</div></details>`
+            : `<details class="hero-rules" id="hero-rules"><summary>📖 ${WW('The attorney’s rules')}</summary><div class="rules">${rulesHtml()}</div></details>`;
         if (intro) intro.replaceWith(box); else hero.appendChild(box);
         d = $('#hero-rules');
         if (WIDE) { const fit = () => { d.open = WIDE.matches; }; WIDE.addEventListener ? WIDE.addEventListener('change', fit) : WIDE.addListener(fit); }
@@ -676,7 +714,7 @@ function renderSide() {
     const side = $('#gc-side'); side.classList.toggle('off', !S.side);
     const box = (c) => `<label><input type="checkbox" data-cal="${c.id}" ${S.hidden[c.id] ? '' : 'checked'}><span class="box" style="border-color:${calColor(c.id)};background:${S.hidden[c.id] ? '#fff' : calColor(c.id)}">${S.hidden[c.id] ? '' : `<svg viewBox="0 0 24 24"><path d="${P.check}"/></svg>`}</span>${esc(c.name)}</label>`;
     side.innerHTML = `<button class="gc-create" data-a="create">${PLUS}Create</button>${miniHtml()}
-        <div class="cals"><h4>My calendars</h4>${GCAL_CALENDARS.filter(c => !c.other).map(box).join('')}<h4>Other calendars</h4>${GCAL_CALENDARS.filter(c => c.other).map(box).join('')}<button class="txt" data-a="cc-open" style="padding:0 6px;height:30px;margin:10px 0 0 2px" title="${Sim.isAdmin() && !RV ? 'Choose the colors of the calendars and of the existing schedule, for everyone' : RV ? 'The colors as this trainee sees them' : 'Choose your own colors for the calendars and the existing schedule'}">🎨 Color coding</button></div>`;
+        <div class="cals"><h4>My calendars</h4>${GCAL_CALENDARS.filter(c => !c.other).map(box).join('')}<h4>Other calendars</h4>${GCAL_CALENDARS.filter(c => c.other).map(box).join('')}${BLANK ? '' : `<button class="txt" data-a="cc-open" style="padding:0 6px;height:30px;margin:10px 0 0 2px" title="${Sim.isAdmin() && !RV ? 'Choose the colors of the calendars and of the existing schedule, for everyone' : RV ? 'The colors as this trainee sees them' : 'Choose your own colors for the calendars and the existing schedule'}">🎨 Color coding</button>`}</div>`;
     placeScores();   // (📊 Your scores, under Other calendars)
 }
 function layoutDay(evs) {
@@ -793,6 +831,12 @@ const rulesHtml = () => `<p class="lead">${esc(CFG.lead)} Plot every appointment
     <h4>Scheduling rules</h4><ul>${GCAL_RULES.scheduling.map(x => `<li>${esc(WW(x))}</li>`).join('')}</ul>
     <h4>Additional notes</h4><ul>${GCAL_RULES.notes.map(x => `<li>${esc(WW(x))}</li>`).join('')}</ul>
     <h4>Office</h4><ul><li>${esc(GCAL_OFFICE)} (in-person meetings)</li></ul>`;
+// 📝 The blank calendar's blue card: the Attorney Calendar Management Activity's instructions (gcal-data.js GCAL_ACT_INSTRUCTIONS).
+const activityHtml = () => { const A = GCAL_ACT_INSTRUCTIONS;
+    return `<p class="lead">Attorney Calendar Management Activity · this calendar: <b class="act-zone">${esc(zoneName(ET))}</b></p>
+    <h4>Instructions</h4><ol>${A.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
+    <h4>Color coding</h4><ul style="list-style:none;padding-left:0">${A.colors.map(([c, n, t]) => `<li><span style="display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px;background:${GCAL_COLORS[c]}"></span><b>${esc(n)}</b> – ${esc(t)}</li>`).join('')}</ul>
+    <h4>Guests (if applicable)</h4><ul>${A.guests.map(([n, m]) => `<li><b>${esc(n)}</b> – ${esc(m)}</li>`).join('')}</ul>`; };
 function renderSidePanel() {
     // (no rules panel: the rules are in the blue card; Standard Training has no requests panel either: its appointments are on
     // the calendar, the scores in 📊 Your scores. A calendar saved with one of them open opens with the panel closed.)
@@ -832,11 +876,11 @@ function openQuick(temp, rect) {
     const el = document.createElement('div'); el.className = 'gc-pop'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'New event');
     const when = temp.allDay ? longDate(temp.date) : `${longDate(temp.date)} · ${span(mins(temp.start), mins(temp.end))}`;
     el.innerHTML = `<div class="tools"><button class="ib" data-a="pop-x" aria-label="Close">${ic('close')}</button></div>
-        <div class="row"><span></span><input class="qin" id="q-title" placeholder="Add title" aria-label="Title"></div>
-        <div class="row">${ic('clock')}<div class="sub">${esc(when)}<br><span style="font-size:12.5px">Time zone: Eastern · Does not repeat</span></div></div>
+        <div class="row"><span></span><input class="qin" id="q-title" placeholder="${BLANK ? '' : 'Add title'}" aria-label="Title"></div>
+        <div class="row">${ic('clock')}<div class="sub">${esc(when)}<br><span style="font-size:12.5px">Time zone: ${esc(BLANK ? zoneName(ET) : 'Eastern')} · Does not repeat</span></div></div>
         <div class="row">${ic('video')}<div id="q-meet"><button class="meetbtn" data-a="q-meet">Add Google Meet video conferencing</button></div></div>
-        <div class="row">${ic('place')}<input class="fin" id="q-loc" placeholder="Add location" aria-label="Location"></div>
-        <div class="row">${ic('notes')}<textarea class="fin" id="q-desc" rows="2" placeholder="Add description" aria-label="Description"></textarea></div>
+        <div class="row">${ic('place')}<input class="fin" id="q-loc" placeholder="${BLANK ? '' : 'Add location'}" aria-label="Location"></div>
+        <div class="row">${ic('notes')}<textarea class="fin" id="q-desc" rows="2" placeholder="${BLANK ? '' : 'Add description'}" aria-label="Description"></textarea></div>
         <div class="row">${ic('cal')}${calSelect('q-cal', temp.cal || 'lsh')}</div>
         <div class="foot"><button class="txt" data-a="q-more">More options</button><button class="blue" data-a="q-save">Save</button></div>`;
     gc().appendChild(el); place(el, rect); G.pop = el;
@@ -918,7 +962,7 @@ function drawEditor() {
     const rep = [['none', 'Does not repeat'], ['daily', 'Daily'], ['weekly', `Weekly on ${DAYN[wd(d.date)]}`], ['weekdays', 'Every weekday (Monday to Friday)']];
     const isSeed = E.inst && E.inst.seed;
     const colorOpts = [['', 'Calendar color']].concat(Object.keys(GCAL_COLORS).map(k => [k, k[0].toUpperCase() + k.slice(1)]));
-    el.innerHTML = `<div class="ed-top"><button class="ib" data-a="ed-x" aria-label="Close">${ic('close')}</button><input id="ed-title" placeholder="Add title" value="${esc(d.title)}" aria-label="Title"><button class="blue" data-a="ed-save">Save</button></div>
+    el.innerHTML = `<div class="ed-top"><button class="ib" data-a="ed-x" aria-label="Close">${ic('close')}</button><input id="ed-title" placeholder="${BLANK ? '' : 'Add title'}" value="${esc(d.title)}" aria-label="Title"><button class="blue" data-a="ed-save">Save</button></div>
         <div class="ed-when"><input type="date" id="ed-date" value="${esc(d.date)}" aria-label="Date">
             ${d.allDay ? '' : `<select id="ed-start" aria-label="Start time">${timeOpts(d.start)}</select><span>to</span><select id="ed-end" aria-label="End time">${timeOpts(d.end, d.start)}</select>`}
             <label><input type="checkbox" id="ed-allday" ${d.allDay ? 'checked' : ''}> All day</label>
@@ -928,7 +972,7 @@ function drawEditor() {
             <div class="ed-tabs"><button class="${E.tab === 'details' ? 'on' : ''}" data-a="ed-tab" data-t="details">Event details</button><button class="${E.tab === 'find' ? 'on' : ''}" data-a="ed-tab" data-t="find">Find a time</button></div>
             <div class="ed-body">${E.tab === 'find' ? findHtml(d) : `
                 <div class="row">${ic('video')}<div>${d.meet ? `<div class="meetbox"><button class="join" data-a="join-ed">Join with Google Meet</button><span>meet.google.com/${esc(d.meet)}</span><button class="ib" data-a="ed-copy" aria-label="Copy the link" title="Copy">${ic('copy')}</button><button class="ib" data-a="ed-unmeet" aria-label="Remove conferencing" title="Remove conferencing">${ic('close')}</button></div>` : `<button class="meetbtn" data-a="ed-meet" style="background:#0b57d0;color:#fff;border-radius:4px;padding:9px 14px;font-weight:500">Add Google Meet video conferencing</button>`}</div></div>
-                <div class="row">${ic('place')}<input class="fld" id="ed-loc" placeholder="Add location" value="${esc(d.location || '')}" aria-label="Location"></div>
+                <div class="row">${ic('place')}<input class="fld" id="ed-loc" placeholder="${BLANK ? '' : 'Add location'}" value="${esc(d.location || '')}" aria-label="Location"></div>
                 <div class="row">${ic('bell')}<div>${d.notifs.map((n, i) => `<div class="ntf" data-ntf="${i}"><select class="n-m" aria-label="Notification type"><option value="popup" ${n.m !== 'email' ? 'selected' : ''}>Notification</option><option value="email" ${n.m === 'email' ? 'selected' : ''}>Email</option></select>
                     <input class="n-v" type="number" min="0" max="999" value="${+n.v || 0}" aria-label="How long before"><select class="n-u" aria-label="Unit">${['minutes', 'hours', 'days', 'weeks'].map(u => `<option ${u === n.u ? 'selected' : ''}>${u}</option>`).join('')}</select>
                     <button class="ib" data-a="ed-unntf" data-i="${i}" aria-label="Remove notification">${ic('close')}</button></div>`).join('')}<button class="txt" data-a="ed-ntf">Add notification</button></div></div>
@@ -937,7 +981,7 @@ function drawEditor() {
                 <div class="row">${ic('notes')}<div class="rte"><div class="bar"><button data-cmd="bold" aria-label="Bold"><b>B</b></button><button data-cmd="italic" aria-label="Italic"><i>I</i></button><button data-cmd="underline" aria-label="Underline"><u>U</u></button><button data-cmd="insertOrderedList" aria-label="Numbered list">1.</button><button data-cmd="insertUnorderedList" aria-label="Bulleted list">•</button><button data-cmd="createLink" aria-label="Link">🔗</button><button data-cmd="removeFormat" aria-label="Remove formatting">T̸</button></div>
                     <div class="area" id="ed-desc" contenteditable="true" data-ph="${esc(['Add description: name', 'callback number'].concat(CFG.fields.includes('dob') ? ['DOB'] : [], CFG.fields.includes('dol') ? ['DOL'] : []).join(', ') + ' and what it’s about')}" aria-label="Description">${sanitize(d.desc)}</div></div></div>`}
             </div></div>
-            <div class="guests"><h4>Guests</h4><input class="fld" id="ed-guest" placeholder="Add guests (email), then Enter" aria-label="Add guests" style="width:100%;font:inherit;border:0;background:#f1f3f4;border-radius:4px;padding:9px 10px">
+            <div class="guests"><h4>Guests</h4><input class="fld" id="ed-guest" placeholder="${BLANK ? '' : 'Add guests (email), then Enter'}" aria-label="Add guests" style="width:100%;font:inherit;border:0;background:#f1f3f4;border-radius:4px;padding:9px 10px">
                 ${d.guests.map((g, i) => `<div class="g"><span class="gav">${esc(g[0].toUpperCase())}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(g)}</span><button class="ib" data-a="ed-ungu" data-i="${i}" aria-label="Remove guest">${ic('close')}</button></div>`).join('')}
                 <div class="perm"><b>Guest permissions</b><label><input type="checkbox" id="perm-modify" ${d.perms.modify ? 'checked' : ''}> Modify event</label><label><input type="checkbox" id="perm-invite" ${d.perms.invite ? 'checked' : ''}> Invite others</label><label><input type="checkbox" id="perm-see" ${d.perms.see ? 'checked' : ''}> See guest list</label></div></div></div>`;
 }
@@ -1097,10 +1141,11 @@ function settings(anchor) {
     menu(anchor, `<div style="padding:8px 16px;font-size:14px;width:260px">
         <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0">Default event length <select data-set="dur">${[15, 30, 45, 60].map(n => `<option value="${n}" ${S.set.dur === n ? 'selected' : ''}>${n} min</option>`).join('')}</select></label>
         <label style="display:flex;gap:8px;align-items:center;padding:6px 0"><input type="checkbox" data-set="weekends" ${S.set.weekends ? 'checked' : ''}> Show weekends</label>
+        ${BLANK ? `<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0">Time zone <select data-set="tz" aria-label="The calendar’s time zone" style="max-width:150px">${TZS.map(z => `<option value="${z[0]}" ${z[0] === ET ? 'selected' : ''}>${esc(z[1])}</option>`).join('')}</select></label>` : ''}
         <label style="display:flex;gap:8px;align-items:center;padding:6px 0"><input type="checkbox" data-set="tz2" ${S.set.tz2 ? 'checked' : ''}> Show Manila time too</label>
         <button class="txt" data-a="reset" style="margin-top:6px;padding:0">Start over (clear my calendar)</button>
-        ${Sim.isAdmin() ? '' : '<button class="txt" data-a="cc-open" style="margin-top:2px;padding:0">🎨 Color coding</button>'}
-        ${Sim.isAdmin() ? `<button class="txt" data-a="admin-edit" style="margin-top:2px;padding:0">${G.admin ? 'Stop editing the weekly schedule' : '✎ Edit the weekly schedule (everyone)'}</button>
+        ${Sim.isAdmin() || BLANK ? '' : '<button class="txt" data-a="cc-open" style="margin-top:2px;padding:0">🎨 Color coding</button>'}
+        ${Sim.isAdmin() && !BLANK ? `<button class="txt" data-a="admin-edit" style="margin-top:2px;padding:0">${G.admin ? 'Stop editing the weekly schedule' : '✎ Edit the weekly schedule (everyone)'}</button>
         <button class="txt" data-a="cc-open" style="margin-top:2px;padding:0">🎨 Color coding (everyone)</button>
         <a class="txt" href="${REVIEW_PAGE}" style="display:block;margin-top:2px;padding:0;line-height:36px;text-decoration:none">🖥 Trainee evaluations (live review)</a>` : ''}</div>`);
 }
@@ -1117,29 +1162,35 @@ function goDay(d) { S.anchor = d; S.view = 'day'; S.mini = d.slice(0, 7); G.q = 
 function createAt(date, start) {
     if (RV) return;
     const st = start != null ? start : Math.max(9 * 60, Math.min(mins(etNow().time) + 30 - (mins(etNow().time) % 30), 16 * 60));
-    openEditor({ title: '', date: date || S.anchor, start: hhmm(st), end: hhmm(Math.min(st + S.set.dur, 1439)), allDay: false, tz: ET, repeat: 'none', cal: G.admin ? 'attorney' : 'lsh', color: '', location: '', meet: '', desc: '', guests: [], notifs: [{ m: 'popup', v: 30, u: 'minutes' }], busy: true, vis: 'default' }, null);
+    openEditor({ title: '', date: date || S.anchor, start: hhmm(st), end: hhmm(Math.min(st + S.set.dur, 1439)), allDay: false, tz: ET, repeat: 'none', cal: G.admin || BLANK ? 'attorney' : 'lsh', color: '', location: '', meet: '', desc: '', guests: [], notifs: [{ m: 'popup', v: 30, u: 'minutes' }], busy: true, vis: 'default' }, null);
 }
-function doCheck() {
+async function doCheck() {
     if (RV) return;
     const r = checkNow();
     S.result = Object.assign(r, { at: new Date().toISOString() }); save(); closeAll(); render();
     setTimeout(() => toScores(true), 60);
-    Sim.saveResult({ simulator: 'Google Calendar', scenario: OPEN ? `${CFG.scenario} · ${r.results.length} appointments` : `${CFG.scenario} · ${S.reqs.length} requests`, score: r.score,
-        summary: `${r.right}/${r.results.length} ${OPEN ? 'appointments' : 'requests'} fully right${r.penalty ? `; −${r.penalty} for unasked changes` : ''}`,
-        details: { results: r.results.map(x => ({ request: x.head, points: Math.round(x.pts * 10) / 10, max: x.max, missed: x.items.filter(i => !i.ok).map(i => i.t) })), extra: r.extra } });
+    // (the Calendaring Activity is Standard Training's, scored there under its own name: the Foundational Training's Scorecard)
+    Sim.saveResult({ simulator: BLANK ? 'Calendaring Activity' : 'Google Calendar', program: BLANK ? 'FT' : undefined, scenario: OPEN ? `${CFG.scenario} · ${r.results.length} appointments` : `${CFG.scenario} · ${S.reqs.length} requests`, score: r.score,
+        summary: BLANK ? `${r.right}/${r.entries} entries fully right` : `${r.right}/${r.results.length} ${OPEN ? 'appointments' : 'requests'} fully right${r.penalty ? `; −${r.penalty} for unasked changes` : ''}`,
+        details: BLANK ? { entries: r.entries, right: r.right } : { results: r.results.map(x => ({ request: x.head, points: Math.round(x.pts * 10) / 10, max: x.max, missed: x.items.filter(i => !i.ok).map(i => i.t) })), extra: r.extra } });
 }
 
 // The automated check of a calendar: the score, then each appointment or request marked. A trainee's (📊 Your scores) is the score
 // alone; a trainer's view of a trainee's calendar gives it a heading (`head`) and says when there is nothing to check.
 function checkSection(r, rm, head) {
+    if (r.activity && !RV) return actScoreOnly(r);
     const col = r.score >= 85 ? '#188038' : r.score >= 70 ? '#e37400' : '#d93025';
     return `<div id="gc-check" style="margin-top:14px;padding-top:12px;border-top:1px solid #dadce0">${head ? `<h3 style="margin:0 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5f6368;font-weight:500">${esc(head)}</h3>` : ''}
         <div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.score}%</div>
-            <div class="lead" style="margin:0">${r.right} of ${r.results.length} ${r.open ? `appointment${r.results.length === 1 ? '' : 's'}` : 'requests'} fully right.${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}<br><span style="color:#70757a">Checked ${esc(Sim.fmtDate(r.at))}</span></div></div>
+            <div class="lead" style="margin:0">${r.activity ? `${r.right} of ${r.entries || 0} entries fully right · ${r.met || 0} of ${r.total || 0} fields met${r.span ? `<br>The activity’s dates: ${esc(r.span)}` : ''}${r.error ? `<br><b style="color:#d93025">${esc(r.error)}</b>` : ''}` : `${r.right} of ${r.results.length}`} ${r.activity ? '' : `${r.open ? `appointment${r.results.length === 1 ? '' : 's'}` : 'requests'} fully right.`}${r.penalty ? ` −${r.penalty} for changing appointments no one asked about.` : ''}<br><span style="color:#70757a">Checked ${esc(Sim.fmtDate(r.at))}</span></div></div>
         ${head && r.open && !r.results.length ? '<p class="lead">There are no appointments on the calendar to check yet.</p>' : ''}
         ${resRows(r, rm)}</div>`;
 }
-const resRows = (r, rm) => r.results.map(x => `<div class="res-r"><h5><span>${esc(x.head)}</span><span>${Math.round(x.pts * 10) / 10}/${x.max}${rm && x.id ? ` <button class="txt" data-a="tv-skip" data-id="${esc(x.id)}" title="Take this appointment out of this review and its score">✕ Remove</button>` : ''}</span></h5>${x.when ? `<div style="color:#70757a;margin-bottom:4px">${esc(x.when)}</div>` : ''}<ul>${x.items.map(i => `<li class="${i.ok ? 'ok' : 'no'}"><span>${esc(i.t)}</span></li>`).join('')}</ul></div>`).join('')
+// 📝 The trainee's own check of the Calendaring Activity: the score, and nothing that tells them what to fix (no fields, no answers)
+const actScoreOnly = (r) => { const col = r.score >= 85 ? '#188038' : r.score >= 70 ? '#e37400' : '#d93025';
+    return `<div id="gc-check" style="margin-top:14px;padding-top:12px;border-top:1px solid #dadce0"><div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}">${r.score}%</div>
+        <div class="lead" style="margin:0">${r.error ? `<b style="color:#d93025">${esc(r.error)}</b>` : `${r.right} of ${r.entries || 0} entries fully right`}<br><span style="color:#70757a">Checked ${esc(Sim.fmtDate(r.at))}</span></div></div></div>`; };
+const resRows = (r, rm) => r.results.map(x => `<div class="res-r"><h5><span>${esc(x.head)}</span><span>${x.max ? Math.round(x.pts * 10) / 10 + '/' + x.max : ''}${rm && x.id ? ` <button class="txt" data-a="tv-skip" data-id="${esc(x.id)}" title="Take this appointment out of this review and its score">✕ Remove</button>` : ''}</span></h5>${x.when ? `<div style="color:#70757a;margin-bottom:4px">${esc(x.when)}</div>` : ''}<ul>${x.items.map(i => `<li class="${i.ok ? 'ok' : 'no'}"><span>${esc(i.t)}</span></li>`).join('')}</ul></div>`).join('')
     + (r.extra && r.extra.length ? `<div class="res-r"><h5><span>Changed without a request</span><span>−${r.penalty}</span></h5><ul>${r.extra.map(t => `<li class="no"><span>${esc(t)}</span></li>`).join('')}</ul></div>` : '');
 async function recFetch(user) {
     const r = await Sim.fetchRetry('/api/calsim' + (user ? '?user=' + encodeURIComponent(user) : ''), { credentials: 'include' }), j = await r.json().catch(() => ({}));
@@ -1213,7 +1264,7 @@ async function liveStart(again) {
         RV.cards = ((j.data && j.data.scorecards) || {})[GT] || [];
         RV.skip = new Set(((j.data && j.data.excluded) || {})[GT] || []);
         RV.savedAt = dr.updatedAt || null;
-        try {   // the weekly schedule as an Admin set it, before the check
+        if (!BLANK) try {   // the weekly schedule as an Admin set it, before the check (the blank calendar has none)
             const sch = await (await Sim.fetchRetry(API_SCHEDULE, { credentials: 'include' })).json();
             if (sch && sch.success && sch.colors) setCC(sch.colors);
             if (sch && sch.success && Array.isArray(sch.rows) && sch.rows.length && sch.rows.every(r => r && r.id && r.title && /^\d\d:\d\d$/.test(r.start))) ROWS = sch.rows;
@@ -1230,6 +1281,9 @@ async function liveStart(again) {
 }
 // A trainer's view of a trainee's calendar (?trainee=): their scorecard to fill in and the automated check, below the calendar.
 function liveScoresHTML() {
+    if (BLANK) return `<h2>📝 ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>
+        <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on the Calendaring Activity yet.' : `Their activity calendar as they last saved it${RV.savedAt ? ', ' + esc(new Date(String(RV.savedAt).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(RV.savedAt) ? '' : 'Z')).toLocaleString()) : ''}. It’s above, read only. `}
+            <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>${S.result && !RV.empty ? checkSection(S.result, false, 'Their calendar, checked (automated): every entry against the activity') : ''}`;
     const C = window.CalScorecard, last = RV.cards[RV.cards.length - 1], when = (t) => t ? new Date(t.replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(t) ? '' : 'Z')).toLocaleString() : '';
     return `<h2>📊 Scores · ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>
         <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on this simulator yet.' : `Their calendar as they last saved it${RV.savedAt ? ', ' + esc(when(RV.savedAt)) : ''}. It’s above, read only.`}
@@ -1269,7 +1323,7 @@ function renderScores() {
     const side = myScorecardBox() + mySubBox();
     const btn = `<div style="margin:2px 0 10px"><button class="blue" data-a="check">Check my calendar</button></div>`;
     const check = S.result ? checkSection(S.result)
-        : `<div id="gc-check"><p class="lead">Click <b>Check my calendar</b> to check ${OPEN ? 'your appointments' : 'what the callers asked for'} against the ${WW('attorney’s')} rules. Your score shows here.</p></div>`;
+        : BLANK ? '<div id="gc-check"></div>' : `<div id="gc-check"><p class="lead">Click <b>Check my calendar</b> to check ${OPEN ? 'your appointments' : 'what the callers asked for'} against the ${WW('attorney’s')} rules. Your score shows here.</p></div>`;
     box.innerHTML = `<h2>📊 Your scores</h2>${btn}<div class="sc-grid${side ? '' : ' one'}"><div>${check}</div>${side ? `<div>${side}</div>` : ''}</div>`;
 }
 async function saveScorecard() {
@@ -1301,6 +1355,7 @@ const EV_API = '/api/gcal-reviews';
 const REVIEW_PAGE = '/simulators/gcal-review.html' + (TRK ? '?track=' + TRK : '');   // the trainer's live review
 function evalPayload() {
     const r = checkNow();
+    if (BLANK) return actPayload(r);
     const all = instancesOf(S, addDays(S.today, -7), addDays(S.today, 42));
     const appointments = all.filter(e => !e.seed && e.cal !== 'holidays').map(e => ({ title: e.title, calendar: calOf(e.cal).name, date: e.date, day: DAYN[wd(e.date)],
         time: e.allDay ? 'all day' : span(mins(e.start), mins(e.end)), timeZone: (TZS.find(z => z[0] === (e.tz || ET)) || [0, e.tz])[1], location: e.location || '',
@@ -1320,6 +1375,25 @@ function evalPayload() {
         bookedFrom: OPEN ? 'the trainee\'s Calendar Management mock calls (no written requests): judge each appointment against the rules, and what the caller asked as far as the description shows it' : 'the calendar requests below',
         automatedCheck: { score: r.score, requestsFullyRight: `${r.right} of ${r.results.length}`, changedWithoutARequest: r.extra, attorneyAppointmentsChanged: r.changed || [],
             results: r.results.map(x => ({ request: x.head, points: `${Math.round(x.pts * 10) / 10}/${x.max}`, when: x.when || '', met: x.items.filter(i => i.ok).map(i => i.t), missed: x.items.filter(i => !i.ok).map(i => i.t) })) } } };
+}
+// 📝 The Calendaring Activity's submission: the activity (instructions and items), the answer key at the trainee's dates, every
+// event as entered, and the automated check of every entry, field by field (functions/api/gcal-reviews.js writes the AI review from it,
+// in the facilitator's feedback DNA).
+function actPayload(r) {
+    const A = GCAL_ACT_INSTRUCTIONS;
+    const appointments = actInstances(S).map(e => ({ title: e.title, calendar: calOf(e.cal).name, date: e.date, time: e.allDay ? 'all day' : `${span(mins(e.start), mins(e.end))} (${zoneName(ET)}, the calendar’s)`,
+        eventTimeZone: e.allDay ? '' : zoneName(e.tz || ET), location: e.location || '', googleMeet: !!e.meet, description: plain(e.desc).slice(0, 1500), guests: (e.guests || []).map(g => g.email || g).slice(0, 10),
+        color: e.color ? colorName(e.color) : 'none (the calendar’s color)', notifications: (e.notifs || []).map(n => `${n.m === 'email' ? 'Email' : 'Notification'} ${n.v} ${n.u} before`) }));
+    const from = r.anchor || weekStart(S.today, true), to = addDays(from, 13);
+    const week = { from, to, today: S.today, events: instancesOf(S, from, to).filter(e => e.cal !== 'holidays').slice(0, 220)
+        .map(e => ({ t: String(e.title || '(No title)').slice(0, 90), d: e.date, s: e.allDay ? '' : e.start, e: e.allDay ? '' : e.end, c: colorOf(e), mine: true, cal: calOf(e.cal).name, meet: !!e.meet })) };
+    return { track: 'activity', calendar: { week, program: 'Standard Training - Calendaring Activity (Day 5: Attorney Calendar Management Activity)', calendarTimeZone: zoneName(ET), score: r.score,
+        activity: { dates: r.span || '', instructions: A.steps, colorCoding: A.colors.map(([c, n, t]) => `${n} (${colorName(c)}) – ${t}`), guests: A.guests.map(([n, m]) => `${n} – ${m}`),
+            answerKey: r.key || [] },
+        appointments,
+        automatedCheck: { score: r.score, requestsFullyRight: `${r.right} of ${r.entries || 0} entries`, fieldsMet: `${r.met || 0} of ${r.total || 0}`, changedWithoutARequest: [], attorneyAppointmentsChanged: [],
+            results: r.results.map(x => ({ request: x.head, points: x.max ? `${x.pts}/${x.max}` : '', when: x.when || '', met: x.items.filter(i => i.ok && !i.info).map(i => i.t),
+                missed: x.items.filter(i => !i.ok).map(i => i.t), notes: x.items.filter(i => i.info).map(i => i.t) })) } } };
 }
 // The server keeps a submitted calendar up to 200000 characters; a Standard Training week with many appointments can pass that, so the parts that are
 // only for the trainer's picture and the long texts are trimmed in steps (the automated check and the appointments' fields the AI judges stay).
@@ -1383,7 +1457,7 @@ function evalsHtml() {
         return `<div class="res-r"><h5><span>${esc(evWhen(r.submittedAt))} · ${esc(trackName(r))}</span><span>${r.checkScore == null ? '' : r.checkScore + '%'}</span></h5><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${st}${r.status === 'final' && !seenFinal(r.id) ? '<span class="ev-new">New</span>' : ''}</div></div>`;
     }).join('');
 }
-const TRACK_NAMES = { standard: 'Standard Training', cm: 'Litigation Week · Case Management', ea: 'Executive Week · EA / PA' };
+const TRACK_NAMES = { activity: 'Standard Training - Calendaring Activity', standard: 'Standard Training', cm: 'Litigation Week · Case Management', ea: 'Executive Week · EA / PA' };
 const trackName = (r) => TRACK_NAMES[r && r.track] || CFG.label || 'Standard Training';
 const reportPdf = (r) => EvalReport.pdf(r, trackName(r), snack);
 
@@ -1464,6 +1538,7 @@ function bind() {
     if (scores) scores.addEventListener('click', onClick);   // (the scores, wherever they sit: Save, Refresh)
     root.addEventListener('change', (ev) => {
         const t = ev.target;
+        if (t.dataset.set === 'tz') { setZone(t.value); return; }
         if (t.dataset.set) { S.set[t.dataset.set] = t.type === 'checkbox' ? t.checked : +t.value; save(); renderMain(); return; }
         if (G.ed && t.closest('#gc-ed') && ['ed-date', 'ed-start', 'ed-allday', 'ed-tz', 'ed-rep', 'ed-cal'].includes(t.id)) {
             const d = G.ed.d, oldS = d.start, oldE = d.end;
@@ -1532,7 +1607,7 @@ function onMove(ev) {
         g.col = document.querySelector(`.wk-col[data-d="${g.date}"]`) || g.col;   // (the grid is redrawn on every move)
         g.b = yMin(g.col, ev.clientY);
         const s = snap(Math.min(g.a, g.b), 15), e = Math.max(snap(Math.max(g.a, g.b), 15), s + 15);
-        G.temp = { date: g.date, start: hhmm(s), end: hhmm(Math.min(e, 1439)), cal: G.admin ? 'attorney' : 'lsh' };
+        G.temp = { date: g.date, start: hhmm(s), end: hhmm(Math.min(e, 1439)), cal: G.admin || BLANK ? 'attorney' : 'lsh' };
         renderMain(); return;
     }
     if (g.inst.readOnly) return;
@@ -1548,7 +1623,7 @@ function onUp(ev) {
     document.removeEventListener('pointermove', onMove);
     const g = G.drag; G.drag = null; if (!g) return;
     if (g.kind === 'new') {
-        if (!g.moved) { const s = Math.min(Math.floor(g.a / 30) * 30, 1440 - S.set.dur); G.temp = { date: g.date, start: hhmm(s), end: hhmm(Math.min(s + S.set.dur, 1439)), cal: G.admin ? 'attorney' : 'lsh' }; }
+        if (!g.moved) { const s = Math.min(Math.floor(g.a / 30) * 30, 1440 - S.set.dur); G.temp = { date: g.date, start: hhmm(s), end: hhmm(Math.min(s + S.set.dur, 1439)), cal: G.admin || BLANK ? 'attorney' : 'lsh' }; }
         renderMain();
         const el = document.querySelector('.ev.temp');
         openQuick(G.temp, el ? el.getBoundingClientRect() : null);
@@ -1563,8 +1638,13 @@ function onUp(ev) {
 
 /* ---------- start ---------- */
 window.GCAL = { solve, checkPlan, checkOpen, slotProblems, concretize, instancesOf, dealRequests, simToday, trimPayload, datesIn, addDays, weekStart, lengthColor, mins, rows: () => ROWS, setRows: (r) => { ROWS = r; } };
+// One screen: the page is the window's height less the top bar's (its height varies with the bar's contents), so nothing scrolls.
+function fitScreen() { const tb = document.getElementById('topbar'), wrap = document.querySelector('.sim-wrap'); if (!tb || !wrap) return;
+    document.documentElement.style.setProperty('--gc-top', Math.ceil(wrap.getBoundingClientRect().top + scrollY) + 'px'); }
 async function start() {
     if (!document.getElementById('app')) return;
+    addEventListener('resize', fitScreen); if (window.ResizeObserver && document.getElementById('topbar')) new ResizeObserver(fitScreen).observe(document.getElementById('topbar'));
+    fitScreen();
     await Sim.restore();   // opened in a new tab: the cookie says who is signed in (an admin must not be treated as a trainee), and the heartbeat starts
     const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal');
     if (TRK) document.title = 'Basic Calendaring · ' + CFG.label + ' — Legal Skills Hub';
@@ -1575,6 +1655,7 @@ async function start() {
     render();
     mineStart();
     if (!Sim.isAdmin()) { loadEvals(); cloudLoad(); }   // My evaluations (a badge when a final report is waiting); the calendar saved to their account
+    if (BLANK) return;   // (the blank calendar has no weekly schedule)
     // the weekly schedule as an Admin set it (if they did)
     Sim.fetchRetry(API_SCHEDULE, { credentials: 'include' }).then(r => r.json()).then(data => {
         let redraw = false;

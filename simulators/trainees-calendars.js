@@ -6,7 +6,8 @@
         extra(person, trackId) → HTML added to a trainee's cell for that track (the Trainee Evaluations page adds the submission and its review there)
      TraineesCalendars.repaint()               draws the rows again (after `extra` has new things to show), keeping the search */
 const TraineesCalendars = (function () {
-    const TRACKS = [{ id: 'standard', icon: '🎓', title: 'Standard Training' }, { id: 'cm', icon: '⚖️', title: 'Litigation Week' }, { id: 'ea', icon: '🏢', title: 'Executive Week' }];
+    const TRACKS = [{ id: 'standard', icon: '🎓', title: 'Standard Training' }, { id: 'cm', icon: '⚖️', title: 'Litigation Week' }, { id: 'ea', icon: '🏢', title: 'Executive Week' },
+        { id: 'activity', icon: '📝', title: 'Calendaring Activity', viewOnly: true }];   // (the blank calendar: its automated check, every entry, and no mock-call scorecard)
     const E = (t) => Sim.esc(t), go = (u, o) => (Sim.fetchRetry ? Sim.fetchRetry(u, o) : fetch(u, o));
     const S = { box: null, people: [], extra: null, q: '', err: '' };
     const card = (inner) => `<div class="card tc-card" style="padding:18px">${inner}</div>`;
@@ -16,7 +17,7 @@ const TraineesCalendars = (function () {
     function cell(p, t) {
         const x = p.tracks[t.id], more = S.extra ? S.extra(p, t.id) : '';
         if (!x && !more) return '<td style="padding:8px;vertical-align:top;color:#94a3b8">—</td>';   // the cell carries its own padding: rows() patching a second style attribute onto it dropped the gray
-        return `<td style="padding:8px;vertical-align:top">${x ? `<a class="sim-btn orange cs-view" style="text-decoration:none;padding:5px 10px;font-size:13px" href="${E(href(p.username, t.id))}">👁 View &amp; score</a>
+        return `<td style="padding:8px;vertical-align:top">${x ? `<a class="sim-btn orange cs-view" style="text-decoration:none;padding:5px 10px;font-size:13px" href="${E(href(p.username, t.id))}">${t.viewOnly ? '👁 View' : '👁 View &amp; score'}</a>
             <div style="font-size:12px;color:#64748b;margin-top:3px">${x.at ? 'Saved ' + E(when(x.at)) : 'Not saved'}${x.card ? ` · 📋 <b style="color:#0b1633">${E(x.card.average)}/5 (${E(x.card.pct)}%)</b>` : ''}</div>` : ''}${more}</td>`;
     }
     function rows() {
@@ -27,7 +28,7 @@ const TraineesCalendars = (function () {
         if (!S.box) return;
         if (S.err && !S.people.length) { S.box.innerHTML = card(head + `<p class="sim-error" style="margin:6px 0 0">${E(S.err)} <button type="button" class="sim-btn ghost" data-tc="reload">Try again</button></p>`); return; }
         S.box.innerHTML = card(`${head}
-        <p style="margin:6px 0 10px;color:#475569;font-size:14px">Open a trainee’s calendar as they last saved it, read only, with the automated check, and score it on the <b>CALENDAR MANAGEMENT MOCK CALL</b> scorecard (each metric 0 to 5 with your feedback). The trainee sees your scorecard on their card here and in the simulator.</p>
+        <p style="margin:6px 0 10px;color:#475569;font-size:14px">Open a trainee’s calendar as they last saved it, read only, with the automated check, and score it on the <b>CALENDAR MANAGEMENT MOCK CALL</b> scorecard (each metric 0 to 5 with your feedback). The trainee sees your scorecard on their card here and in the simulator. <b>📝 Calendaring Activity</b> is the blank calendar for the offline activity: 👁 View shows it with the automated check of every entry (no mock-call scorecard).</p>
         ${S.people.length ? `<input id="cs-tfind" type="search" aria-label="Find a trainee or batch" placeholder="Find a trainee or batch…" value="${E(S.q)}" style="width:min(100%,320px);font:inherit;padding:7px 10px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:10px">
         <div style="overflow-x:auto"><table class="cs-ttable" style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="text-align:left;color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:.04em"><th style="padding:6px 8px">Trainee</th>${TRACKS.map(t => `<th style="padding:6px 8px">${t.icon} ${E(t.title)}</th>`).join('')}</tr></thead>
         <tbody>${rows()}</tbody></table></div>`

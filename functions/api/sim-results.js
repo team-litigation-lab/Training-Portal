@@ -15,9 +15,14 @@ import { courseTraineeId, ensureSimResultsTable } from './call-results.js';
 const COURSES = { FT: 'ft:', CM: 'cm:', PD: 'pd:', EA: '' };
 const PROGRAM_ALIASES = { STANDARD: 'FT', FOUNDATIONAL: 'FT', 'EA-PA': 'EA', 'EA/PA': 'EA' };
 async function toCourse(env, session, program, row) {
+    if (!session || session.userType !== 'Trainee') return null;
+    return toCourseFor(env, session.username, program, row);
+}
+// The same, for a trainee named by their Portal username (a trainer's final score on their evaluation: gcal-reviews.js)
+export async function toCourseFor(env, username, program, row) {
     const code = String(program || '').trim().toUpperCase(), c = PROGRAM_ALIASES[code] || code;
-    if (!env.COURSE_KV || !(c in COURSES) || !session || session.userType !== 'Trainee') return null;
-    const u = await env.DB.prepare(`SELECT first_name, last_name, batch_id FROM users WHERE username = ?`).bind(session.username).first();
+    if (!env.COURSE_KV || !(c in COURSES) || !env.DB || !username) return null;
+    const u = await env.DB.prepare(`SELECT first_name, last_name, batch_id FROM users WHERE username = ?`).bind(username).first();
     if (!u || !u.first_name || !u.last_name) return null;
     let id = courseTraineeId(u.first_name, u.last_name, u.batch_id || '');
     if (c === 'EA') { const alias = await env.COURSE_KV.get(`trainee-alias:${id}`); if (alias && /^[a-z0-9-]{1,80}$/.test(alias)) id = alias; }

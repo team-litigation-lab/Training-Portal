@@ -46,9 +46,10 @@
 <script src="/simulators/cal-scorecard.js"></script>
 <script>
 // Calendaring Simulators: one page for the three Google Calendar Simulators (simulators/gcal.html), one per program:
-//   🎓 Standard Training (Foundational · Calendar Management): the original Google Calendar Simulator, as it was built;
+//   🎓 Standard Training - Mock Calls (Foundational · Calendar Management): the original Google Calendar Simulator, as it was built;
+//   📝 Standard Training - Calendaring Activity (?track=activity): the same calendar left blank, for the offline Calendaring Activity;
 //   ⚖️ Litigation Week (Case Management) and 🏢 Executive Week (EA / PA): clones of it with their own week, callers and rules.
-// ?track=standard|cm|ea opens that simulator at once (the Foundational Training's cards link that way). Admins also get
+// ?track=standard|activity|cm|ea opens that simulator at once (the Foundational Training's cards link that way). Admins also get
 // 📊 Earlier scheduler scores (?view=scores): the earlier drag-and-drop scheduler's submissions (calsim.js, only used for this page now).
 // 📊 The Google Calendar Simulators' submissions (gsubs in each trainee's /api/calsim record): who submitted what, the automated score and the
 // trainer's score, and a link that opens it in the Google Calendar look to review (gcal.html?track=…&review=<user>|<at>).
@@ -81,7 +82,7 @@ async function gsList(only) {
     const go = (track) => { const n = new URLSearchParams(location.search); n.delete('track'); n.delete('view'); if (track !== 'standard') n.set('track', track); return '/simulators/gcal.html' + (n.toString() ? '?' + n : ''); };
     // (the Foundational Training's cards say litigation / executive for the Case Management / EA clones)
     const want = ({ litigation: 'cm', executive: 'ea' })[String(q.get('track') || '').toLowerCase()] || String(q.get('track') || '').toLowerCase();
-    const direct = ['standard', 'cm', 'ea'].includes(want) && q.get('view') !== 'scores';
+    const direct = ['standard', 'activity', 'cm', 'ea'].includes(want) && q.get('view') !== 'scores';
     let me, rec = null;
     try {
         const r = await fetch('/api/calsim', { credentials: 'include' });
@@ -106,8 +107,10 @@ async function gsList(only) {
         return;
     }
     const TRACKS = [
-        { id: 'standard', icon: '🎓', title: 'Standard Training', where: 'Foundational · Calendar Management',
+        { id: 'standard', icon: '🎓', title: 'Standard Training - Mock Calls', where: 'Foundational · Calendar Management',
           desc: 'The attorney’s calendar in a Google Calendar look-alike. Callers ask for appointments: book them on the Attorney’s Calendar under the attorney’s rules (title, description, Google Meet for video calls, an email reminder a day before, Eastern time, 15-minute buffers), move or cancel what they ask, then check the calendar.' },
+        { id: 'activity', icon: '📝', title: 'Standard Training - Calendaring Activity', where: 'Foundational · Calendaring Activity',
+          desc: 'A blank attorney’s calendar in the same Google Calendar look-alike, for the Attorney Calendar Management Activity (Day 5).' },
         { id: 'cm', icon: '⚖️', title: 'Litigation Week', where: 'Case Management',
           desc: 'The same Google Calendar practice on a litigation attorney’s week: hearings, depositions and focus blocks to work around, with case status, treatment, expert, adjuster, mediation and settlement requests to book, move or cancel, under the litigation attorney’s rules.' },
         { id: 'ea', icon: '🏢', title: 'Executive Week', where: 'EA / PA',
@@ -131,13 +134,13 @@ async function gsList(only) {
         if (me.admin) return '';
         const a = lastCheck(track), subs = (rec && Array.isArray(rec.gsubs) ? rec.gsubs : []).filter(x => x && x.track === track), last = subs[subs.length - 1];
         const fb = last && rec.reviews ? rec.reviews['g:' + track + '|' + last.at] : null, lines = [];
-        if (a) lines.push(`🤖 Automated review: <b>${Sim.esc(a.score)}%</b>${Array.isArray(a.results) && a.right != null ? ` · ${Sim.esc(a.right)} of ${a.results.length} right` : ''}${a.at ? ` · ${Sim.esc(String(a.at).slice(0, 10))}` : ''}`);
+        if (a) lines.push(`🤖 Automated review: <b>${Sim.esc(a.score)}%</b>${Array.isArray(a.results) && a.right != null ? ` · ${Sim.esc(a.right)} of ${track === 'activity' ? a.entries : a.results.length} right` : ''}${a.at ? ` · ${Sim.esc(String(a.at).slice(0, 10))}` : ''}`);
         const ev = evalLine(track); if (ev) lines.push(ev);
         if (last) lines.push(`📤 Submitted${subs.length > 1 ? ` ${subs.length} times` : ''}${last.result && last.result.score != null ? ` · its review ${Sim.esc(last.result.score)}%` : ''}${fb && fb.score != null ? ` · 👤 trainer <b>${Sim.esc(fb.score)}/100</b>` : ''}`);
         const cards = rec && rec.scorecards && Array.isArray(rec.scorecards[track]) ? rec.scorecards[track] : [], sc = cards[cards.length - 1];
         const scLine = sc && window.CalScorecard ? `<details class="cs-scorecard" style="margin-top:4px"><summary style="cursor:pointer">📋 Trainer’s scorecard: <b>${Sim.esc(sc.average)}/5 (${Sim.esc(sc.pct)}%)</b> · ${Sim.esc(String(sc.at).slice(0, 10))}</summary><div style="margin-top:6px">${CalScorecard.sheetHTML(sc)}</div></details>` : '';
         return `<div class="cs-review" style="font-size:13px;line-height:1.5;color:#334155;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px">${lines.length ? lines.join('<br>')
-            : '🤖 No automated review yet: open it, book what the callers ask, then click <b>Check my calendar</b> to review it against the rules.'}${scLine}</div>`;
+            : track === 'activity' ? '🤖 No automated review yet.' : '🤖 No automated review yet: open it, book what the callers ask, then click <b>Check my calendar</b> to review it against the rules.'}${scLine}</div>`;
     };
     // One wide screen: the heading and a one-line intro across the top, the three cards next to each other on the row
     // below (wrapping on narrower screens), and for trainers one line at the foot with their links (Trainee Evaluations,

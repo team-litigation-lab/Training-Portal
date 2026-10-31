@@ -473,11 +473,104 @@ const server = http.createServer(async (req, res) => {
     const dtxt = await sp.locator('.gc-pop').first().innerText().catch(() => '');
     if (!/11:15\s*[–-]\s*11:30am/.test(dtxt)) fail(`dragging 11:15 to 11:30 on the grid should make a 15-minute event (${dtxt.split('\n')[0]})`);
     await sp.close();
+    /* ---------- 📝 the blank calendar for the offline Calendaring Activity, gcal.html?track=activity ---------- */
+    {
+        const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+        const bp = await ctx.newPage(), asked = [];
+        bp.on('pageerror', e => fail(`activity: page error: ${e.message}`));
+        bp.on('request', r => { if (/\/api\/gcal-schedule/.test(r.url())) asked.push(r.url()); });
+        await bp.addInitScript(() => localStorage.setItem('LSH_SIM_WHO', JSON.stringify({ name: 'CI Trainee', batch: 'B100526', program: 'FT' })));
+        await bp.goto(base + '/simulators/gcal.html?program=FT&track=activity', { waitUntil: 'load' });
+        await bp.waitForSelector('#gc-main .wk-col, #gc-main .ag', { timeout: 10000 }); await bp.waitForTimeout(400);
+        await shot(bp, 'gcal-activity');
+        const b = await bp.evaluate(() => ({ track: GCAL_TRACK, rows: GCAL_ATTORNEY.length, reqs: GCAL_REQUESTS.length, events: document.querySelectorAll('#gc-main .ev').length,
+            card: (document.getElementById('hero-rules') || {}).textContent || '', check: document.querySelectorAll('[data-a="check"]').length,
+            submit: document.querySelectorAll('[data-a="submit-eval"]').length, requests: document.querySelectorAll('[data-a="panel"][data-p="requests"]').length,
+            key: Object.keys(localStorage).filter(k => /^lsh_gcal/.test(k)) }));
+        if (b.track !== 'activity' || b.rows || b.reqs) fail(`activity: the blank calendar should have no week and no callers: ${JSON.stringify(b)}`);
+        if (b.events) fail(`activity: the calendar should open empty (${b.events} events on it)`);
+        if (!/The activity’s instructions/.test(b.card) || !/Green – Client Meetings/.test(b.card) || !/Pink – Personal Events/.test(b.card) || !/team-litigation@legalsupporthelp\.com/.test(b.card)) fail(`activity: the blue card should hold the activity's instructions, colors and guests: ${b.card.slice(0, 200)}`);
+        if (!b.check || !b.submit || b.requests) fail(`activity: Check my calendar and Submit for evaluation, and no callers' requests, on the blank calendar: ${JSON.stringify({ check: b.check, submit: b.submit, requests: b.requests })}`);
+        if (!b.key.includes('lsh_gcal.activity:ci trainee') || b.key.includes('lsh_gcal:ci trainee')) fail(`activity: its calendar should be kept apart from Standard Training's: ${b.key}`);
+        if (asked.length) fail(`activity: the blank calendar shouldn't load a weekly schedule: ${asked}`);
+        // the calendar's time zone is the trainee's to set (⚙ Settings → Time zone): an event keeps its moment, shown on the new clock
+        await bp.evaluate(() => { const k = 'lsh_gcal.activity:ci trainee', st = JSON.parse(localStorage.getItem(k));
+            st.events = [{ id: 'z1', title: 'Client Meeting', date: '2026-11-03', start: '13:00', end: '14:00', allDay: false, tz: 'America/New_York', repeat: 'none', cal: 'attorney', color: 'basil', location: '', meet: '', desc: '', guests: [], notifs: [] }];
+            st.anchor = '2026-11-03'; localStorage.setItem(k, JSON.stringify(st)); });
+        await bp.reload({ waitUntil: 'load' }); await bp.waitForSelector('#gc-main .wk-col'); await bp.waitForTimeout(400);
+        await bp.click('[data-a="settings"]'); await bp.waitForTimeout(200);
+        await bp.selectOption('select[data-set="tz"]', 'America/Los_Angeles'); await bp.waitForTimeout(400);
+        const z = await bp.evaluate(() => ({ ev: JSON.parse(localStorage.getItem('lsh_gcal.activity:ci trainee')).events[0], set: JSON.parse(localStorage.getItem('lsh_gcal.activity:ci trainee')).set.tz,
+            card: (document.querySelector('.act-zone') || {}).textContent, gut: (document.querySelector('#gc-main .wk-gut .tz') || {}).textContent }));
+        if (z.set !== 'America/Los_Angeles' || z.ev.start !== '10:00' || z.ev.end !== '11:00' || z.ev.date !== '2026-11-03' || !/Pacific/.test(z.card) || !/GMT-0[78]/.test(z.gut)) fail(`activity: the calendar's time zone should be editable (1 PM Eastern shows as 10 AM Pacific): ${JSON.stringify(z)}`);
+        // 📝 the activity's own scoring (gcal-activity.js): a calendar built from its answer key, on the trainee's batch dates
+        // (B100526: the activity moved to the first Monday on or after Day 5), scores 100%; each mistake is caught on its entry and field
+        const build = async (mess) => bp.evaluate((mess) => {
+            const G = GcalActivity, at = G.anchorForBatch('B100526'), K = G.keyAt(at), NYZ = 'America/New_York';
+            const wall = (ms) => { const p = {}; new Intl.DateTimeFormat('en-US', { timeZone: NYZ, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(ms)).forEach(x => { p[x.type] = x.value; });
+                return { d: `${p.year}-${p.month}-${p.day}`, t: `${p.hour}:${p.minute}` }; };
+            const rem = (r) => Object.assign({ m: r.type === 'email' ? 'email' : 'popup' }, r.m % 1440 === 0 ? { v: r.m / 1440, u: 'days' } : r.m % 60 === 0 ? { v: r.m / 60, u: 'hours' } : { v: r.m, u: 'minutes' });
+            const evs = K.map((k, i) => {
+                const e = { id: 'k' + i, title: k.n === '1' ? k.name + ' – Alyssa Lynn Arehart' : k.name, cal: 'attorney', repeat: 'none', color: G.CATS[k.cat].colors[0], meet: '',
+                    location: k.travel ? k.eg : k.locShow || '', desc: k.notesShow || 'Travel block: ' + (k.eg || k.name), guests: (k.guests || []).map(n => ({ email: G.PEOPLE[n] })),
+                    notifs: k.rem ? [rem(k.rem)] : k.travel ? [{ m: 'popup', v: 1, u: 'hours' }] : [{ m: 'popup', v: 30, u: 'minutes' }] };
+                if (k.overnight) return Object.assign(e, { date: k.date, allDay: true, start: '', end: '', tz: NYZ });
+                const a = wall(k.s), b = wall(k.e);
+                return Object.assign(e, { date: a.d, start: a.t, end: b.t, allDay: false, tz: G.ZONE[k.tz] }); });
+            if (mess) { const f = (n) => evs[K.findIndex(k => k.n === n)];
+                f('1').color = 'tomato';                                    // 1: Red, not Green (a client meeting)
+                f('1').title = 'Client Meeting';                            // 1: no client's name in the title
+                f('2').guests.pop();                                        // 2: Lei Lee Abut not invited
+                f('4').cal = 'lsh';                                         // 4: on the LSH Calendar, not the Attorney's
+                f('5').notifs = [{ m: 'popup', v: 1, u: 'days' }];          // 5: a notification, not an email
+                f('6.2').location = 'Washington County Court';              // 6.2: no departure → destination
+                { const x = f('6.3'); x.start = x.start.replace(/:00$/, ':15'); x.end = x.end.replace(/:00$/, ':15'); }   // 6.3: not right after the court appearance
+                f('8.3').desc = 'Confirm flight details, check in luggage, bring travel documents';   // 8.3: the notes miss business cards and attire
+                f('8.4').desc = ''; f('8.4').notifs = [];                   // 8.4: no notes, no notification
+                f('9').tz = 'America/New_York';                             // 9: a CST item in Eastern (the same moment, the wrong zone)
+                f('9').guests = [{ email: 'martin@legalsupporthelp.com' }]; // 9: a guest on an item that has none
+                evs.splice(K.findIndex(k => k.n === '10'), 1);              // 10: not on the calendar
+            }
+            const k = 'lsh_gcal.activity:ci trainee', st = JSON.parse(localStorage.getItem(k)); st.set.tz = NYZ; st.events = evs; st.anchor = st.today = at; st.mini = at.slice(0, 7); st.result = null;
+            localStorage.setItem(k, JSON.stringify(st)); return at;
+        }, mess);
+        const checked = async () => { await bp.reload({ waitUntil: 'load' }); await bp.waitForSelector('#gc-main .wk-col'); await bp.waitForTimeout(400);
+            await bp.click('[data-a="check"]'); await bp.waitForTimeout(800);
+            return bp.evaluate(() => JSON.parse(localStorage.getItem('lsh_gcal.activity:ci trainee')).result); };
+        await build(false);
+        let rr = await checked();
+        const bad = (r) => (r.results || []).filter(x => !x.perfect).map(x => x.head + ': ' + x.items.filter(i => !i.ok).map(i => i.t).join(' | ')).join('; ');
+        if (!rr || rr.score !== 100 || rr.right !== 20 || rr.entries !== 20 || rr.met !== rr.total || !rr.total) fail(`activity: a calendar built from the answer key should score 100% (${rr && rr.score}%, ${rr && rr.right}/${rr && rr.entries}): ${rr ? bad(rr) : 'no result'}`);
+        { const last = results[results.length - 1] || {};   // its score is Standard Training's, under its own name (the Foundational Training's Scorecard)
+          if (last.simulator !== 'Calendaring Activity' || !last.who || last.who.program !== 'FT' || last.score !== 100) fail(`activity: Check my calendar should save "Calendaring Activity" for FT: ${JSON.stringify(last).slice(0, 300)}`); }
+        await build(true);
+        rr = await checked();
+        const miss = (n, re) => { const x = rr.results.find(y => y.id === n); return x && x.items.some(i => !i.ok && re.test(i.t)); };
+        for (const [n, re] of [['1', /^Color: changed to its category: Green/], ['1', /^Title: with the client’s name/], ['2', /^Guests: .*Missing: team-litigation/], ['4', /^On the Attorney’s Calendar: .*LSH Calendar/],
+                ['5', /^Notification: the item’s reminder: Email 1 day before/], ['6.2', /^Location: departure → destination/], ['8.3', /^Notes: complete: missing “business cards”, “attire”/], ['8.2', /^Notes: complete: missing/],
+                ['8.4', /^Notes: this entry has no notes/], ['8.4', /^Notification: set/], ['9', /^Time zone: CST is Central Time - Chicago/], ['9', /^Guests: this item has no guests/], ['10', /^Title: not on the calendar/],
+                ['buffers', /^6\.3 Travel Block: return travel: it should start when 6\.1 Court Appearance ends/]])
+            if (!miss(n, re)) fail(`activity: the check should catch ${n} ${re}: ${JSON.stringify((rr.results.find(y => y.id === n) || {}).items)}`);
+        if (rr.score >= 100 || rr.right > 9) fail(`activity: 11 entries and the buffers are wrong, so at most 9 of 20 can be fully right (${rr.right}, ${rr.score}%): ${bad(rr)}`);
+        await shot(bp, 'gcal-activity-check');
+        // the trainee gets no guide: their check is the score alone (no fields, no fixes), and the event's fields have no placeholders
+        const tv = await bp.evaluate(() => { const c = document.getElementById('gc-check'); return { rows: c ? c.querySelectorAll('.res-r, li').length : -1, text: c ? c.textContent : '' }; });
+        if (tv.rows || /Invite|should|Michelle|Tomato|instruction/i.test(tv.text) || !/\d+%/.test(tv.text)) fail(`activity: the trainee should see the score only: ${JSON.stringify(tv)}`);
+        await bp.keyboard.press('c'); await bp.waitForTimeout(300);
+        const ph = await bp.evaluate(() => [...document.querySelectorAll('input, textarea')].filter(i => i.offsetParent && i.placeholder && i.id !== 'gc-q').map(i => i.placeholder));
+        if (ph.length) fail(`activity: no placeholders in the event's fields: ${ph}`);
+        await bp.keyboard.press('Escape'); await bp.waitForTimeout(200);
+        // a new event goes on the Attorney's Calendar
+        await bp.keyboard.press('c'); await bp.waitForTimeout(300);
+        const cal = await bp.evaluate(() => { const s = document.querySelector('select[aria-label="Calendar"]'); return s ? s.value : ''; });
+        if (cal !== 'attorney') fail(`activity: a new event should default to the Attorney's Calendar (${cal})`);
+        await ctx.close();
+    }
     // the clones keep their own weekly schedule: the API takes ?track=cm|ea and refuses anything else (handled by functions/api/gcal-schedule.js)
     const sch = require('fs').readFileSync(path.join(ROOT, 'functions/api/gcal-schedule.js'), 'utf8');
     if (!/gcal_schedule_tracks/.test(sch) || !/trackOf/.test(sch)) fail('the weekly schedule should be kept per track (gcal_schedule_tracks)');
 
     await browser.close(); server.close();
     if (failures.length) { console.log(`\n${failures.length} failure(s):`); failures.forEach((m, i) => console.log(`${i + 1}. ${m}`)); process.exit(1); }
-    console.log('Google Calendar Simulator test passed (the week and its blocks; every request doable; the check right and wrong; create, edit, Meet, drag, delete and undo, move one week, views, search, rules, check and save; phone; an Admin\'s schedule for everyone).');
+    console.log('Google Calendar Simulator test passed (the week and its blocks; every request doable; the check right and wrong; create, edit, Meet, drag, delete and undo, move one week, views, search, rules, check and save; phone; an Admin\'s schedule for everyone; the blank Calendaring Activity calendar).');
 })().catch(e => { console.error(e); process.exit(1); });

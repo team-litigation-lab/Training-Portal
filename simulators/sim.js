@@ -127,7 +127,7 @@ const Sim = {
             localStorage.setItem('LSH_SIM_HISTORY', JSON.stringify(mine.slice(0, 50)));
         } catch (e) {}
         if (!Sim.isAdmin() && !(w.name && w.name.length >= 2)) return;   // "just practice": not sent to the trainer
-        try { await Sim.fetchRetry('/api/sim-results', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({}, r, { who: { name: w.name, batch: w.batch, program: w.program } })) }); } catch (e) { /* best effort */ }
+        try { await Sim.fetchRetry('/api/sim-results', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({}, r, { who: { name: w.name, batch: w.batch, program: r.program || w.program } })) }); } catch (e) { /* best effort */ }
     },
     async results() {
         if (!Sim.isAdmin()) {
