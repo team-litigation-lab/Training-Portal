@@ -227,6 +227,33 @@
         max-width: 340px; overflow: hidden; white-space: nowrap;
     }
     .top-ticker-mini .tag { font-weight: 800; color: var(--orange, #f97316); text-transform: uppercase; font-size: 10px; flex-shrink: 0; }
+    /* The announcement is the one thing in this bar an admin wants read, so it is
+       dressed to be seen: an orange ANNOUNCEMENT badge with a pulsing dot, and the
+       message in larger gold type inside a softly lit, edge-faded strip. */
+    .top-ticker-mini { max-width: 560px; gap: 10px; }
+    .top-ticker-mini .tag {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--orange, #f97316); color: #081226;
+        font-size: 10.5px; font-weight: 900; letter-spacing: .08em;
+        padding: 4px 10px; border-radius: 999px;
+        box-shadow: 0 0 0 3px rgba(249,115,22,.18), 0 0 14px rgba(249,115,22,.45);
+    }
+    .top-ticker-mini .tag::before {
+        content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff;
+        animation: tag-pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes tag-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.7); } }
+    .top-ticker-mini .ticker-viewport {
+        height: auto; padding: 5px 0; border-radius: 8px;
+        background: rgba(249,115,22,.10); border: 1px solid rgba(253,186,116,.40);
+        -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+                mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+    }
+    .top-ticker-mini .ticker-track, .top-ticker-mini #ticker-text {
+        font-size: 14px; font-weight: 700; letter-spacing: .01em; color: #fde68a;
+        text-shadow: 0 0 10px rgba(253,230,138,.35);
+    }
+    @media (prefers-reduced-motion: reduce) { .top-ticker-mini .tag::before { animation: none; } }
     .top-user { display: flex; align-items: center; gap: 10px; }
     .top-user-avatar {
         width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--navy), var(--navy-mid));
