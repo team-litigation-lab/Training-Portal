@@ -95,10 +95,8 @@ function attemptLogin(switched) {
             if (loginMsgDiv) { loginMsgDiv.innerText = "Username is required."; loginMsgDiv.className = "auth-msg error"; loginMsgDiv.style.display = ""; }
             return;
         }
-        if (!passwordInput) {
-            if (loginMsgDiv) { loginMsgDiv.innerText = "Password is required."; loginMsgDiv.className = "auth-msg error"; loginMsgDiv.style.display = ""; }
-            return;
-        }
+        // An empty password is sent anyway: an account still waiting for its first password (a new trainer's)
+        // has none to type, and the server answers SET_PASSWORD. Anyone else is told to enter both.
         payload = { username: usernameInput, password: passwordInput, portalMode: currentPortalMode };
     }
 
@@ -159,6 +157,8 @@ function attemptLogin(switched) {
             setTimeout(() => {
                 window.location.href = next;
             }, 900);
+        } else if (data.code === 'SET_PASSWORD') {
+            showPasswordPanel('first', payload.username, data.error);
         } else if (data.code === 'WRONG_PORTAL' && switched !== true) {
             // Right username and password, other role: log in as that role
             // instead of sending them to the other page to type it all again.
@@ -180,6 +180,80 @@ function attemptLogin(switched) {
         playSound('loginError');
         showToast("Network error. Failed to hit validation server.", 'error', 3500, { skipSound: true });
     });
+}
+
+// ==========================================
+// CHOOSE A PASSWORD: a new account's first one, or Forgot password
+// Both login pages. 'first': the account was made without a password (login answered SET_PASSWORD).
+// 'forgot': username + the email they registered with, then a new one. Either way the account stays
+// approved, then this signs in with the new password. Server: functions/api/set-password.js.
+// ==========================================
+function showPasswordPanel(mode, username, note) {
+    const form = document.getElementById('auth-form-content');
+    if (!form) return;
+    let panel = document.getElementById('auth-pw-panel');
+    if (!panel) { panel = document.createElement('div'); panel.id = 'auth-pw-panel'; form.parentNode.insertBefore(panel, form.nextSibling); }
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const first = mode === 'first';
+    const user = username != null ? username : (document.getElementById('login-username')?.value || '').trim();
+    panel.dataset.mode = first ? 'first' : 'forgot';
+    panel.innerHTML = `
+        <div id="pw-msg" class="auth-msg ${first ? 'info' : ''}" ${first ? '' : 'style="display:none"'}>${esc(first ? (note || 'Choose a password for your account.') : '')}</div>
+        <p class="auth-pw-lead">${first ? 'Set up your account.' : 'Enter your username and the email you registered with, then choose a new password. No new approval needed.'}</p>
+        <div class="field"><label>Username</label><input type="text" id="pw-username" autocomplete="username" value="${esc(user)}" ${first ? 'readonly' : ''} placeholder="Enter your username"></div>
+        ${first ? '' : '<div class="field"><label>Registered email</label><input type="email" id="pw-email" autocomplete="email" placeholder="The email you registered with"></div>'}
+        <div class="field"><label>${first ? 'Choose a password' : 'New password'}</label><input type="password" id="pw-new" autocomplete="new-password" placeholder="At least 8 characters"></div>
+        <div class="field"><label>Type it again</label><input type="password" id="pw-confirm" autocomplete="new-password" placeholder="The same password"></div>
+        <button class="auth-submit" id="pw-save" type="button" onclick="submitPasswordPanel()">Save and log in</button>
+        <div class="auth-switch"><a href="#" onclick="hidePasswordPanel(); return false;">&larr; Back to log in</a></div>`;
+    form.style.display = 'none';
+    panel.style.display = '';
+    const focus = first ? 'pw-new' : (user ? 'pw-email' : 'pw-username');
+    setTimeout(() => document.getElementById(focus)?.focus(), 0);
+}
+
+function hidePasswordPanel() {
+    const panel = document.getElementById('auth-pw-panel');
+    if (panel) panel.style.display = 'none';
+    const form = document.getElementById('auth-form-content');
+    if (form) form.style.display = '';
+}
+
+function submitPasswordPanel() {
+    const panel = document.getElementById('auth-pw-panel');
+    const msg = document.getElementById('pw-msg');
+    const say = (text, kind) => { if (msg) { msg.innerText = text; msg.className = 'auth-msg ' + kind; msg.style.display = ''; } };
+    const mode = panel?.dataset.mode === 'first' ? 'first' : 'forgot';
+    const username = (document.getElementById('pw-username')?.value || '').trim();
+    const email = (document.getElementById('pw-email')?.value || '').trim();
+    const newPassword = document.getElementById('pw-new')?.value || '';
+    const confirm = document.getElementById('pw-confirm')?.value || '';
+    if (!username) return say('Please enter your username.', 'error');
+    if (mode === 'forgot' && !email) return say('Please enter the email you registered with.', 'error');
+    const bad = validateRegPassword(newPassword);
+    if (bad) return say(bad, 'error');
+    if (newPassword !== confirm) return say("The two passwords don't match.", 'error');
+    const btn = document.getElementById('pw-save');
+    if (btn) btn.disabled = true;
+    say('Saving...', 'info');
+    fetch('/api/set-password', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ mode, username, email, newPassword, portalMode: currentPortalMode })
+    })
+    .then((r) => r.json())
+    .then((data) => {
+        if (btn) btn.disabled = false;
+        if (!data.success) { say(data.error || 'Could not save the password.', 'error'); return; }
+        // sign in with it, in the account's own role
+        if (data.userType === 'Admin' || data.userType === 'Trainee') currentPortalMode = data.userType;
+        const u = document.getElementById('login-username'), p = document.getElementById('login-password');
+        if (u) u.value = username;
+        if (p) p.value = newPassword;
+        hidePasswordPanel();
+        showToast('Password saved.', 'success', 3000, { skipSound: true });
+        attemptLogin(true);
+    })
+    .catch(() => { if (btn) btn.disabled = false; say('Network error. Please try again.', 'error'); });
 }
 
 // ==========================================

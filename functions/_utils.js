@@ -291,7 +291,7 @@ export async function hashPassword(password) {
 }
 
 export async function verifyPassword(password, stored) {
-    if (!stored) return false;
+    if (!stored || needsNewPassword(stored)) return false;   // the no-password-yet marker is never a password
     if (!stored.startsWith('pbkdf2:')) {
         return stored === password;
     }
@@ -306,7 +306,17 @@ export async function verifyPassword(password, stored) {
 }
 
 export function isLegacyPlaintext(stored) {
-    return !!stored && !stored.startsWith('pbkdf2:');
+    return !!stored && !stored.startsWith('pbkdf2:') && !needsNewPassword(stored);
+}
+
+/**
+ * An account made with no password yet (the trainers' accounts) holds this marker in its password column, which
+ * can't be NULL. Signing in with the username asks them to choose a password (api/login.js -> SET_PASSWORD,
+ * api/set-password.js). Never compared as a password: login checks for it before verifyPassword.
+ */
+export const SET_PASSWORD_MARK = 'set-password:';
+export function needsNewPassword(stored) {
+    return typeof stored === 'string' && stored.startsWith(SET_PASSWORD_MARK);
 }
 
 export async function upgradePasswordHash(db, userId, plainPassword) {
