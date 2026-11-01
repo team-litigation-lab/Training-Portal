@@ -1,4 +1,4 @@
-import { json, requireSession, logActivity } from '../_utils.js';
+import { json, requireSession, logActivity, buildFullName } from '../_utils.js';
 
 // Delivery is poll-based, not push — the client calls GET with
 // ?since=<fired_at of the last ping it already showed> at a short interval
@@ -25,7 +25,17 @@ export async function onRequestGet({ request, env }) {
         query += ` ORDER BY fired_at ASC LIMIT 20`;
 
         const { results } = await env.DB.prepare(query).bind(...binds).all();
-        return json({ success: true, pings: results || [] });
+        let rows = results || [];
+        // A trainee never sees a trainer's username: the sender is shown by name ("Trainer" if none is on file).
+        if (auth.session.userType !== 'Admin' && rows.length) {
+            const names = {};
+            for (const u of [...new Set(rows.map(r => r.by).filter(Boolean))]) {
+                const row = await env.DB.prepare(`SELECT first_name, mi, last_name, suffix FROM users WHERE username = ?`).bind(u).first().catch(() => null);
+                names[u] = (row && buildFullName(row).trim()) || 'Trainer';
+            }
+            rows = rows.map(r => ({ ...r, by: names[r.by] || 'Trainer' }));
+        }
+        return json({ success: true, pings: rows });
     } catch (err) {
         return json({ success: false, error: err.message }, 500);
     }

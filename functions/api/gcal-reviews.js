@@ -311,7 +311,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
         const track = TRACKS.includes(b.track) ? b.track : 'standard';
         await db.prepare(`INSERT INTO gcal_review_rules (track, text, updated_by, updated_at) VALUES (?, ?, ?, ?)
             ON CONFLICT(track) DO UPDATE SET text = excluded.text, updated_by = excluded.updated_by, updated_at = excluded.updated_at`)
-            .bind(track, clean(b.text, MAX_RULES), clean(s.fullName || s.username, 120), nowIso()).run();
+            .bind(track, clean(b.text, MAX_RULES), clean(s.fullName || 'Trainer', 120), nowIso()).run();
         return json({ success: true });
     }
     const id = Number(b.id), row = id ? await one(db, id) : null;
@@ -321,7 +321,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
         const sc = b.score === '' || b.score == null ? null : Number(b.score);
         if (sc != null && !(Number.isFinite(sc) && sc >= 0 && sc <= 100)) return json({ success: false, error: 'The score is out of 100.' }, 400);
         const points = (Array.isArray(b.points) ? b.points : []).map(x => clean(x, 600)).filter(Boolean).slice(0, 30);
-        const t = { notes: clean(b.notes, MAX_NOTES), points, score: sc == null ? null : Math.round(sc), by: clean(s.fullName || s.username, 120), at: nowIso() };
+        const t = { notes: clean(b.notes, MAX_NOTES), points, score: sc == null ? null : Math.round(sc), by: clean(s.fullName || 'Trainer', 120), at: nowIso() };
         await db.prepare(`UPDATE gcal_reviews SET trainer = ?, ${TOUCH} WHERE id = ?`).bind(JSON.stringify(t), t.at, id).run();
         return json({ success: true });
     }
@@ -334,7 +334,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
             if (!changed(w)) return json({ success: false, error: 'The AI review is still being written.' }, 409);
         }
         await db.prepare(`UPDATE gcal_reviews SET status = ?, finalized_at = ?, finalized_by = ?, ${TOUCH} WHERE id = ?`)
-            .bind(fin ? 'final' : 'submitted', fin ? nowIso() : null, fin ? clean(s.fullName || s.username, 120) : null, nowIso(), id).run();
+            .bind(fin ? 'final' : 'submitted', fin ? nowIso() : null, fin ? clean(s.fullName || 'Trainer', 120) : null, nowIso(), id).run();
         // 📝 the Calendaring Activity's final evaluation: its score is Standard Training's (the Foundational Training's Scorecard, simresults);
         // the record stays here. The trainer's score, else the automated check's.
         let course = null;
