@@ -8,7 +8,9 @@ export async function onRequestGet({ request, env }) {
         const { results } = await env.TRAINING_DB.prepare(
             "SELECT * FROM lectures ORDER BY created_at DESC"
         ).all();
-        return json({ success: true, lectures: results });
+        // the trainer's username who made it is for admins only
+        const lectures = auth.session.userType === 'Admin' ? results : (results || []).map(({ created_by, ...l }) => l);
+        return json({ success: true, lectures });
     } catch (err) {
         return json({ success: false, error: err.message }, 500);
     }

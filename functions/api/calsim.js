@@ -71,7 +71,7 @@ export async function onRequestPost({ request, env }) {
         d.reviews = d.reviews || {};
         const tasks = {};
         Object.entries(r.tasks && typeof r.tasks === 'object' ? r.tasks : {}).slice(0, 30).forEach(([k, v]) => { const t = clean(v, 400); if (t) tasks[clean(k, 60)] = t; });
-        d.reviews[key] = { score: Math.round(score), comment: clean(r.comment, 2000), tasks, by: s.fullName || s.username, at: new Date().toISOString() };
+        d.reviews[key] = { score: Math.round(score), comment: clean(r.comment, 2000), tasks, by: s.fullName || 'Trainer', at: new Date().toISOString() };
         await db.prepare(`UPDATE calsim_records SET data = ?, updated_at = ? WHERE username = ?`).bind(JSON.stringify(d), new Date().toISOString(), user).run();
         return json({ success: true, data: d });
     }
@@ -87,7 +87,7 @@ export async function onRequestPost({ request, env }) {
             rows.push({ metric: SCORECARD_METRICS[i], weight: 1, score: Math.round(v), feedback: clean(x.feedback, 600) });
         }
         const avg = rows.reduce((a, r) => a + r.weight * r.score, 0) / rows.reduce((a, r) => a + r.weight, 0);
-        const card = { title: SCORECARD_TITLE, rows, average: Math.round(avg * 10) / 10, pct: Math.round(avg / 5 * 100), by: s.fullName || s.username, at: new Date().toISOString(),
+        const card = { title: SCORECARD_TITLE, rows, average: Math.round(avg * 10) / 10, pct: Math.round(avg / 5 * 100), by: s.fullName || 'Trainer', at: new Date().toISOString(),
             calendarAt: clean(c.calendarAt, 40) || null };
         const row = await db.prepare(`SELECT data FROM calsim_records WHERE username = ?`).bind(user).first();
         const d = (row && parse(row.data)) || { v: 2, drafts: {}, autos: [], submissions: [], reviews: {}, external: [] };

@@ -119,7 +119,7 @@ export async function onRequestPut({ request, env }) {
     if (hasColors) { const c = cleanColors(body.colors); if (c.error) return json({ success: false, error: c.error }, 400); colors = c.colors; }
     const track = trackOf(request); if (track === false) return json({ success: false, error: 'Unknown track.' }, 400);
     try {
-        const who = auth.session.fullName || auth.session.username;
+        const who = auth.session.fullName || 'Trainer';
         if (colors) {   // 🎨 color coding: nothing chosen clears it
             await ensureColors(env.TRAINING_DB);
             if (Object.keys(colors.cal).length || Object.keys(colors.type).length) await env.TRAINING_DB.prepare(`INSERT INTO gcal_schedule_colors (track, colors, updated_at, updated_by) VALUES (?, ?, ?, ?)

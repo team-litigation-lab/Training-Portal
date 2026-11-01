@@ -76,6 +76,8 @@ export async function onRequestGet({ request, env }) {
             // Drafts and Unpublished items never existed as far as trainees
             // are concerned — only currently-or-previously-live content shows.
             activities = activities.filter(a => a.status === 'Published' || a.status === 'Closed');
+            // the trainer's username who made it is for admins only
+            activities = activities.map(({ created_by, ...a }) => a);
         }
 
         return json({ success: true, activities });
