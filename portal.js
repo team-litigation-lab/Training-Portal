@@ -914,7 +914,9 @@ let __liveAt = 0;
 async function pollLive() {
     __liveAt = Date.now();
     const signedIn = !!getSession();
-    const q = signedIn ? '?pings=1' + (__lastPingAt ? '&since=' + encodeURIComponent(__lastPingAt) : '') : '';
+    const approver = ApprovalPopup.wanted();   // a signed-in trainer, not on the landing page or in Trainee view
+    const q = signedIn ? '?pings=1' + (__lastPingAt ? '&since=' + encodeURIComponent(__lastPingAt) : '') + (approver ? '&pending=1' : '') : '';
+    if (!approver) ApprovalPopup.close();
     try {
         const res = await fetch('/api/live' + q, { credentials: 'include' });
         const d = await res.json().catch(() => null);
@@ -922,5 +924,150 @@ async function pollLive() {
         applySiteStateData(d.siteState);
         applyAlertData(d.alert);
         if (signedIn) applyPingsData(d.pings);
+        if (approver && Array.isArray(d.pending)) ApprovalPopup.sync(d.pending);
     } catch (e) { /* transient network error — next poll retries */ }
 }
+
+
+/* =====================================================================
+   ⏳ NEW REGISTRATION POPUP — trainers approve from any page
+   ---------------------------------------------------------------------
+   While a trainer (any Admin account, the Master Account included) is signed in, every registration waiting
+   for approval opens a popup on every Portal page: the Training Directory, Master Control, attendance,
+   progress, the simulators and the rest. Never on the public landing page (index.html, which trainees see;
+   it doesn't load this file, and the path is checked too) and never in 👁 Trainee view (a trainer may be
+   presenting it). Each registration has ✓ Approve and ✕ Decline (POST /api/update-status, the same as
+   Master Control → Registrations); "Open Registrations →" goes to that tab with the popup still showing.
+   It can't be closed: no ✕, Esc and clicking outside do nothing, and it stays until every registration in
+   it is decided. A registration decided elsewhere (Master Control, another trainer) leaves it; someone who
+   registers meanwhile is added. The list rides on /api/live (?pending=1), so it costs no extra request.
+   An Admin / Trainer registration is the Master Account's to decide, so only the Master Account sees those.
+   ===================================================================== */
+const ApprovalPopup = (() => {
+    const ID = 'lshApprovalPopup';
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const onLanding = () => /^\/(index(\.html)?)?$/.test(location.pathname);
+    const traineeView = () => { try { return sessionStorage.getItem('LSH_VIEW_AS') === 'trainee'; } catch (e) { return false; } };
+    const toast = (m, t) => { if (typeof showToast === 'function') showToast(m, t); };
+    const title = (n) => `⏳ New registration${n === 1 ? '' : 's'} waiting for approval (${n})`;
+
+    function wanted() {
+        const me = typeof getSession === 'function' ? getSession() : null;
+        return !!(me && me.userType === 'Admin') && !onLanding() && !traineeView();
+    }
+    function close() { const el = document.getElementById(ID); if (el) el.remove(); }
+
+    function styles() {
+        if (document.getElementById(ID + '-css')) return;
+        const st = document.createElement('style');
+        st.id = ID + '-css';
+        // Above the page and its dialogs (900–2000); below the alert, pause and lock screens (2600–3000), which
+        // must stay on top, and the toasts (5000), so an approval's confirmation shows over it.
+        st.textContent = `
+#${ID}{position:fixed;inset:0;z-index:2400;background:rgba(15,33,72,.55);display:flex;align-items:center;justify-content:center;padding:16px;font-family:inherit;}
+#${ID} .lap-card{background:#fff;color:#0f2148;border-radius:16px;box-shadow:0 24px 60px -18px rgba(0,0,0,.55);width:100%;max-width:540px;max-height:min(84vh,680px);display:flex;flex-direction:column;padding:22px 22px 18px;}
+#${ID} h3{margin:0 0 6px;font-size:18px;font-weight:800;}
+#${ID} p{margin:0 0 12px;font-size:13.5px;color:#475569;line-height:1.45;}
+#${ID} .lap-list{overflow:auto;margin:0 -4px 14px;padding:0 4px;}
+#${ID} .lap-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid #e2e8f0;}
+#${ID} .lap-who{min-width:0;}
+#${ID} .lap-who b{display:block;font-size:14.5px;overflow-wrap:anywhere;}
+#${ID} .lap-who span{display:block;font-size:12px;color:#64748b;overflow-wrap:anywhere;}
+#${ID} .lap-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#fff7ed;color:#9a3412;font-size:11px;font-weight:700;vertical-align:middle;}
+#${ID} .lap-btns{display:flex;gap:8px;flex-shrink:0;}
+#${ID} button{font:inherit;font-size:13px;font-weight:700;border-radius:9px;padding:7px 13px;cursor:pointer;border:1px solid transparent;}
+#${ID} button:disabled{opacity:.55;cursor:default;}
+#${ID} .lap-ok{background:#0f2148;color:#fff;}
+#${ID} .lap-no{background:#fff;color:#b91c1c;border-color:#fecaca;}
+#${ID} .lap-go{background:#fff;color:#0f2148;border-color:#cbd5e1;}
+#${ID} .lap-foot{display:flex;justify-content:flex-end;}
+@media (max-width:520px){#${ID} .lap-row{flex-direction:column;align-items:stretch;}#${ID} .lap-btns{justify-content:flex-end;}}`;
+        document.head.appendChild(st);
+    }
+
+    function row(u) {
+        const when = u.createdAt ? new Date(String(u.createdAt).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(u.createdAt) ? '' : 'Z')).toLocaleString() : 'recently';
+        const start = u.trainingStartDate ? ` · Starts ${esc(u.trainingStartDate)}` : '';
+        const tag = u.userType === 'Admin' ? '<span class="lap-tag">Admin / Trainer</span>' : '';
+        return `<div class="lap-row" data-id="${esc(u.id)}" data-type="${esc(u.userType)}">
+  <div class="lap-who"><b>${esc(u.fullName || '(no name)')}${tag}</b><span>${esc(u.email)}</span><span>Registered ${esc(when)}${start}</span></div>
+  <div class="lap-btns"><button type="button" class="lap-no" data-act="Rejected">✕ Decline</button><button type="button" class="lap-ok" data-act="Approved">✓ Approve</button></div>
+</div>`;
+    }
+
+    function build() {
+        styles();
+        const el = document.createElement('div');
+        el.id = ID;
+        el.setAttribute('role', 'alertdialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', ID + '-t');
+        el.innerHTML = `<div class="lap-card">
+  <h3 id="${ID}-t"></h3>
+  <p>They can't sign in until approved. Confirm each is a real trainee, then approve or decline: this stays open until every one is done.</p>
+  <div class="lap-list"></div>
+  <div class="lap-foot"><button type="button" class="lap-go" data-act="open">Open Registrations →</button></div>
+</div>`;
+        el.addEventListener('click', onClick);   // clicks outside the card do nothing
+        el.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); } });
+        document.body.appendChild(el);
+        return el;
+    }
+
+    function retitle(el) {
+        const n = el.querySelectorAll('.lap-row').length;
+        if (!n) { close(); return; }
+        el.querySelector('#' + ID + '-t').textContent = title(n);
+    }
+
+    // Show / update the popup so its rows are exactly `pending` (rows being saved are left alone).
+    function sync(pending) {
+        if (!wanted() || !pending.length) { if (!pending.length) close(); return; }
+        let el = document.getElementById(ID);
+        const fresh = !el;
+        if (fresh) el = build();
+        else if (el !== document.body.lastElementChild) document.body.appendChild(el);   // stay above anything opened since
+        const list = el.querySelector('.lap-list');
+        const want = new Set(pending.map(u => String(u.id)));
+        list.querySelectorAll('.lap-row').forEach(r => { if (!want.has(r.dataset.id) && !r.dataset.saving) r.remove(); });
+        const have = new Set([...list.querySelectorAll('.lap-row')].map(r => r.dataset.id));
+        pending.filter(u => !have.has(String(u.id))).forEach(u => list.insertAdjacentHTML('beforeend', row(u)));
+        retitle(el);
+        if (fresh) { const b = el.querySelector('.lap-ok'); if (b) b.focus(); }
+    }
+
+    async function onClick(e) {
+        const b = e.target.closest('button[data-act]'); if (!b) return;
+        const act = b.dataset.act;
+        if (act === 'open') {
+            // Master Control → Registrations (core.html's hash deep link); the popup stays over it.
+            if (location.pathname === '/core.html' && typeof openAdminDashboard === 'function' && typeof showAdminDashTab === 'function') {
+                try { openAdminDashboard(); showAdminDashTab('registrations'); } catch (err) { /* the tab is still one click away */ }
+            } else location.href = '/core.html#registrations';
+            return;
+        }
+        const r = b.closest('.lap-row'); if (!r) return;
+        const name = r.querySelector('b') ? r.querySelector('b').firstChild.textContent : 'this person';
+        if (act === 'Rejected' && !confirm(`Decline ${name}'s registration? They will need to register again.`)) return;
+        r.dataset.saving = '1';
+        r.querySelectorAll('button').forEach(x => { x.disabled = true; });
+        try {
+            const res = await fetch('/api/update-status', {
+                method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: Number(r.dataset.id) || r.dataset.id, newStatus: act })
+            });
+            const d = await res.json().catch(() => null);
+            if (!res.ok || !d || !d.success) throw new Error((d && d.error) || 'Could not save that — try again.');
+            toast(act === 'Approved' ? `✓ ${name} approved${d.batchId ? ` · Batch ID ${d.batchId}` : ''}.` : `${name}'s registration declined.`, 'success');
+        } catch (err) {
+            delete r.dataset.saving;
+            r.querySelectorAll('button').forEach(x => { x.disabled = false; });
+            toast(err.message || 'Could not save that — try again.', 'error');
+            return;
+        }
+        r.remove();
+        const el = document.getElementById(ID); if (el) retitle(el);
+        // Master Control's Registrations list, when this page shows it.
+        if (document.getElementById('registrations-list') && typeof loadUsersData === 'function') { try { loadUsersData(); } catch (err) {} }
+    }
+
+    return { wanted, sync, close };
+})();
