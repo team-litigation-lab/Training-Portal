@@ -382,11 +382,12 @@ body.no-portal-bg { background: var(--portal-base); }
 .at-note { background: rgba(255, 247, 237, .66); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); }
 
 /* The sign-in pages: the navy rings panel IS the page there, so the photo goes
-   behind its gradient rather than behind the body. The navy stays at .86 here
-   because the panel carries the headline and the small print in white. */
+   behind its gradient rather than behind the body. The navy is thinned (.78 at the
+   top left, where the headline sits, to .56 at the far corner) so the photo shows,
+   while the white headline and small print keep their contrast. */
 .auth-visual {
     background:
-        linear-gradient(135deg, rgba(8, 18, 38, .88) 0%, rgba(19, 42, 92, .86) 58%, rgba(29, 63, 134, .84) 100%),
+        linear-gradient(135deg, rgba(8, 18, 38, .78) 0%, rgba(19, 42, 92, .64) 58%, rgba(29, 63, 134, .56) 100%),
         var(--portal-photo) center center / cover no-repeat,
         var(--navy-deep, #081226);
 }
