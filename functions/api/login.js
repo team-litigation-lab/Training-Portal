@@ -1,4 +1,11 @@
-import { json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME, verifyMasterCredentials, normalizePassword, loginBlocked, loginFailed } from '../_utils.js';
+import { json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME, verifyMasterCredentials, normalizePassword, loginBlocked, loginFailed, needsNewPassword } from '../_utils.js';
+
+// An approved account made without a password (the trainers' accounts): whatever was typed in the password box,
+// the sign-in page asks them to choose their password (portal.js -> POST /api/set-password).
+function choosePassword(user) {
+    if (user.status !== 'Approved') return json({ success: false, error: 'This account is not active. Please contact an administrator.' }, 403);
+    return json({ success: false, code: 'SET_PASSWORD', error: 'Welcome! Choose a password for your account to finish setting it up.' }, 409);
+}
 
 export async function onRequestPost({ request, env }) {
     const db = env.DB;
@@ -28,7 +35,8 @@ export async function onRequestPost({ request, env }) {
         // training program from the Training Directory (/api/launch hands them over).
         // A name alone isn't enough: it can be guessed, and two trainees can share one.
         const { username, password } = body;
-        if (!username || !password) {
+        // (an empty password is let through to the lookup: an account still waiting for its first password has none to type)
+        if (!username) {
             return json({ success: false, error: 'Please enter both username and password.' }, 400);
         }
         // The master account is an administrator: with the right password, say where to sign in instead of "incorrect".
@@ -39,6 +47,8 @@ export async function onRequestPost({ request, env }) {
             return await wrong();
         }
         user = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(username).first();
+        if (user && needsNewPassword(user.password) && (user.user_type || 'Trainee') === 'Trainee') return choosePassword(user);
+        if (!password) return json({ success: false, error: 'Please enter both username and password.' }, 400);
         if (!user || !(await verifyPassword(password, user.password))) {
             return await wrong();
         }
@@ -57,7 +67,7 @@ export async function onRequestPost({ request, env }) {
         // Admin Portal — unchanged: real username + password required,
         // including the Master Account's own credential path.
         const { username, password } = body;
-        if (!username || !password) {
+        if (!username) {
             return json({ success: false, error: 'Please enter both username and password.' }, 400);
         }
 
@@ -66,13 +76,15 @@ export async function onRequestPost({ request, env }) {
             if (!normalizePassword(env.MASTER_ADMIN_PASSWORD)) {
                 return json({ success: false, code: 'MASTER_NOT_SET', error: "The master admin password isn't set up on this site yet. In Cloudflare, add MASTER_ADMIN_PASSWORD (Settings → Variables and Secrets) and redeploy." }, 503);
             }
-            if (!verifyMasterCredentials(env, username, password)) {
+            if (!password || !verifyMasterCredentials(env, username, password)) {
                 return await wrong();
             }
             user = { id: 'MASTER', username: MASTER_USERNAME, batch_id: 'MASTER-ADMIN', status: 'Approved' };
             dbUserType = 'Admin';
         } else {
             user = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(username).first();
+            if (user && needsNewPassword(user.password) && user.user_type === 'Admin') return choosePassword(user);
+            if (!password) return json({ success: false, error: 'Please enter both username and password.' }, 400);
             if (!user || !(await verifyPassword(password, user.password))) {
                 return await wrong();
             }
