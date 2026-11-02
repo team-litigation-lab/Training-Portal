@@ -629,12 +629,12 @@ async function loadMonitoringData() {
     }
 }
 
-// The grey line under a login's name: Batch · username · email. An Admin / Trainer is given no Batch ID by
-// design (update-status.js), so the API's 'UNASSIGNED' placeholder is shown as their role instead; a trainee
-// still waiting on a batch reads "No Batch yet". Empty parts are left out so no stray "·" trails the line.
+// The grey line under a login's name: Batch · username · email. An Admin / Trainer belongs to no batch
+// (update-status.js gives them none), so their line shows no Batch ID at all, just username · email; a
+// trainee still waiting on a batch reads "No Batch yet". Empty parts are left out so no stray "·" trails the line.
 function userRowMeta(u) {
     const hasBatch = u.batchId && u.batchId !== 'UNASSIGNED';
-    const first = hasBatch ? batchLabel(u.batchId) : (u.userType === 'Admin' ? 'Admin / Trainer' : 'No Batch yet');
+    const first = u.userType === 'Admin' ? '' : (hasBatch ? batchLabel(u.batchId) : 'No Batch yet');
     return [first, u.username, u.email].filter(v => String(v || '').trim()).map(v => escapeHtml(v)).join(' &middot; ');
 }
 function renderUserRow(u) {
