@@ -4,9 +4,9 @@
 // COURSE_KV), under each course's key prefix:
 //   <prefix>attendance:<batch key>:<YYYY-MM-DD> = { v, batch, date, day, training,
 //       rows: { <trainee id>: { name, training, timeIn, timeOut, status, note, at, by } }, updatedAt }
-//     written by /attendance.html (the one place attendance is taken) and the Google Sheet. The courses
-//     used to carry their own Admin → 🕘 Attendance tab (js/attendance.js); it has been removed from all
-//     of them, so this prefix now has exactly two writers. The batch key is the course's slugPart(cleanBatch(batch)),
+//     written by /attendance.html (the one place attendance is taken) and the Google Sheet, and, for one
+//     field, by Foundational's Admin → 🕘 Attendance ✍ manual override (its worker.js setTimeIn, which
+//     re-reads the day and sets only that trainee's timeIn). The courses' old js/attendance.js is gone. The batch key is the course's slugPart(cleanBatch(batch)),
 //     "_none" for no batch.
 //   <prefix>checkin:<YYYY-MM-DD>:<trainee id> = { timeIn, at, name, batch, training }, metadata { t: timeIn }
 //     the automatic Time In: the course Worker records it the first time a trainee opens the course that
