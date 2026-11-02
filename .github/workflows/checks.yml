@@ -40,6 +40,8 @@ jobs:
         run: node --no-warnings .github/scripts/front-door.mjs
       - name: Master Control (a trainer's own admin account opens it; only the site lock is the master account's)
         run: node --no-warnings .github/scripts/master-control.mjs
+      - name: Program access (Suspend / Restore keep Passed, a suspended program won't launch, orphaned requests can be cleared)
+        run: node --no-warnings .github/scripts/program-access.mjs
       - name: Admin registrations (a trainer sets an admin account up; only the master account approves it)
         run: node --no-warnings .github/scripts/admin-approval.mjs
       - name: New-registration popup's list (trainers only; an Admin / Trainer registration only for the master account; on /api/live only when asked)
