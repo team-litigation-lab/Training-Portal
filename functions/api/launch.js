@@ -191,6 +191,9 @@ async function launch({ request, env }) {
     // Same rule the directory shows: the trainee needs approved (or passed) access to this program.
     // Program access lives in TRAINING_DB (with the topics), not in DB (accounts and sessions).
     const access = isTool ? { status: 'Approved' } : await env.TRAINING_DB.prepare(`SELECT status FROM trainee_topic_access WHERE trainee_username = ? AND topic_key = ?`).bind(auth.session.username, program).first();
+    if (access && String(access.status).startsWith('Suspended')) {
+        return page(403, 'Access suspended', 'An administrator has suspended your access to this program for now. Please talk to your trainer.');
+    }
     if (!access || (access.status !== 'Approved' && access.status !== 'Passed')) {
         return page(403, 'Access not approved', 'Request access to this program in the Training Directory first, and wait for an administrator to approve it.');
     }

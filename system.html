@@ -60,10 +60,12 @@
     <div class="sy-grid">
         <section class="sy-card">
             <span class="sy-ic">🔑</span><h2>Access Management</h2>
-            <p>Approve registrations, revoke or restore users, and choose which programs each trainee can open (and mark them passed).</p>
+            <p>Approve log-ins, approve or deny access requests, and grant, suspend, restore or revoke each trainee's programs and tools (and mark them passed).</p>
             <div class="sy-links">
                 <a class="main" href="/core.html#master">Open Master Control</a>
-                <a href="/core.html#registrations">📝 Registrations <b class="sy-badge" id="sy-reg"></b></a>
+                <a href="/core.html#registrations">📝 Log-in Approvals <b class="sy-badge" id="sy-reg"></b></a>
+                <a href="/core.html#access-requests">🙋 Access Requests <b class="sy-badge" id="sy-acc"></b></a>
+                <a href="/core.html#access">🔑 Program Access: suspend, restore, revoke</a>
                 <a href="/api/admin-password-check" title="Does every platform accept the admin password?">🔐 Admin password check</a>
             </div>
         </section>
@@ -114,6 +116,12 @@
         const n = (Array.isArray(users) ? users : []).filter(u => u.status === 'Pending' && u.userType === 'Trainee').length;
         if (!n) return;
         ['sy-reg', 'idx-reg-badge'].forEach(id => { const b = document.getElementById(id); if (b) { b.textContent = n; b.classList.add('has'); } });
+    }).catch(() => {});
+    // Access requests waiting, on the Access Requests link (and the System Management menu's)
+    fetch('/api/topics', { credentials: 'include', cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
+        const n = d && d.success ? (d.access || []).filter(a => a.status === 'Pending').length : 0;
+        if (!n) return;
+        ['sy-acc', 'idx-access-badge'].forEach(id => { const b = document.getElementById(id); if (b) { b.textContent = n; b.classList.add('has'); } });
     }).catch(() => {});
 </script>
 </body>

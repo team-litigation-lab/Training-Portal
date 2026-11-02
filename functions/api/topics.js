@@ -105,6 +105,42 @@ export async function onRequestPost({ request, env }) {
             return json({ success: true });
         }
 
+        // ⏸ Suspend / ▶ Restore: a pause on one trainee's access to one program, short of Revoke. A suspended program can't be
+        // opened (launch.js lets only Approved / Passed through) and the trainee can't re-request it; Restore puts back what
+        // they had. The row remembers which: 'Suspended' was Approved, 'Suspended-Passed' was Passed (finished), so a
+        // trainee who had completed a program is still Completed once restored.
+        if (action === 'SUSPEND' || action === 'RESTORE') {
+            if (auth.session.userType !== 'Admin') return json({ success: false, error: 'Only admins can suspend or restore program access.' }, 403);
+            const { traineeUsername } = body;
+            if (!topicKey || !traineeUsername) return json({ success: false, error: 'topicKey and traineeUsername are required.' }, 400);
+            const row = await db.prepare(`SELECT status FROM trainee_topic_access WHERE trainee_username = ? AND topic_key = ?`).bind(traineeUsername, topicKey).first();
+            const cur = row ? String(row.status) : '';
+            let next;
+            if (action === 'SUSPEND') {
+                if (cur !== 'Approved' && cur !== 'Passed') return json({ success: false, error: 'Only open access (Approved or Passed) can be suspended.' }, 409);
+                next = cur === 'Passed' ? 'Suspended-Passed' : 'Suspended';
+            } else {
+                if (cur !== 'Suspended' && cur !== 'Suspended-Passed') return json({ success: false, error: 'That access isn\'t suspended.' }, 409);
+                next = cur === 'Suspended-Passed' ? 'Passed' : 'Approved';
+            }
+            await db.prepare(
+                `UPDATE trainee_topic_access SET status = ?, decided_at = datetime('now'), decided_by = ? WHERE trainee_username = ? AND topic_key = ?`
+            ).bind(next, auth.session.username, traineeUsername, topicKey).run();
+            await logActivity(db, auth.session.username, auth.session.batchId, action === 'SUSPEND' ? 'TOPIC_ACCESS_SUSPENDED' : 'TOPIC_ACCESS_RESTORED', { topicKey, traineeUsername });
+            return json({ success: true, status: next });
+        }
+
+        // 🧹 A request left by an account that no longer exists (revoked, or a registration rejected) can't be approved or
+        // denied (both need the account), so it would sit in the queue for ever: an admin clears it.
+        if (action === 'CLEAR') {
+            if (auth.session.userType !== 'Admin') return json({ success: false, error: 'Only admins can clear a request.' }, 403);
+            const { traineeUsername } = body;
+            if (!topicKey || !traineeUsername) return json({ success: false, error: 'topicKey and traineeUsername are required.' }, 400);
+            await db.prepare(`DELETE FROM trainee_topic_access WHERE trainee_username = ? AND topic_key = ? AND status = 'Pending'`).bind(traineeUsername, topicKey).run();
+            await logActivity(db, auth.session.username, auth.session.batchId, 'TOPIC_ACCESS_CLEARED', { topicKey, traineeUsername });
+            return json({ success: true });
+        }
+
         if (action === 'MARK_PASSED') {
             if (auth.session.userType !== 'Admin') return json({ success: false, error: 'Only admins can mark a training as passed.' }, 403);
             const { traineeUsername } = body;

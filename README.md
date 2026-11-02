@@ -119,6 +119,13 @@ One sign-in opens everything: a trainer registers on the Portal as **Admin / Tra
 
 The one exception is the **site-wide Lock**, which belongs to the master account, `LSHADMIN123`, whose password is the `MASTER_ADMIN_PASSWORD` secret in Cloudflare (it has no row in the users table). Only a session belonging to it may LOCK, and UNLOCK takes that password since a lock leaves nobody with a valid session. A site with no `MASTER_ADMIN_PASSWORD` says so (`503 MASTER_NOT_SET`) at the Admin Login instead of "incorrect password". `.github/scripts/master-control.mjs` checks this in CI.
 
+### 📝 Log-in Approvals, 🙋 Access Requests and Program Access
+
+- **📝 Log-in Approvals** (Master Control's Registrations tab, `core.html#registrations`) lists every registration waiting as a table, oldest first: name, username, type, email, when they registered, training start, then **Approve** / **Reject** (`renderRegistrations()` in `app.js`).
+- **🙋 Access Requests** are trainees asking to open a program or tool from the Training Directory's **Request Access**. They show as a table at the top of the Training Directory for an admin, and at the top of Master Control → 🔑 Program Access, reached from the admin menu's **🙋 Access Requests** (with the count waiting), the System Management menu and System Management page (`core.html#access-requests`). **Approve** / **Deny** each; a request left by an account that no longer exists can't be decided, so it offers **Clear** (`CLEAR` in `functions/api/topics.js`).
+- **Program Access** has four actions per trainee per program: **Grant** (open it), **Revoke** (close it; they can request it again), **⏸ Suspend** (pause it: they can't open it or ask again, nothing of theirs is removed) and **▶ Restore** (gives back what they had). A suspended row is `Suspended` (was Approved) or `Suspended-Passed` (was Passed, so a trainee who had finished is Completed again once restored). `/api/launch` refuses a suspended program with "Access suspended". Checked by `.github/scripts/program-access.mjs`.
+- The **Users** tab's Suspend / **Restore** / Revoke act on the whole account.
+
 ### 🗑 Revoking an account takes their record with it
 
 **Master Control → Users & Revoke Access → Revoke** is permanent and leaves nothing of that person's work on the platform: their account, submitted activities and grades, simulator results, calendaring work and evaluations, program access, presence, and the course's own progress and trainer feedback (the `COURSE_KV` keys for their trainee record). **Scores go too** — a batch average after a revocation is the average of the people still in the batch, not of a ghost.

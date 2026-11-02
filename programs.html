@@ -76,6 +76,15 @@
     .queue-btn { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; }
     .queue-btn.approve { background: #166534; color: #fff; }
     .queue-btn.deny { background: #fff; color: #b91c1c; border: 1px solid #fca5a5; }
+    .queue-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .queue-head h3 { margin: 0; }
+    .queue-head a { font-size: 12px; font-weight: 700; color: #9a3412; text-decoration: underline; }
+    .queue-table { width: 100%; border-collapse: collapse; font-size: 12.5px; background: #fff; border-radius: 10px; overflow: hidden; }
+    .queue-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: #9a3412; padding: 8px 10px; border-bottom: 1px solid #fed7aa; background: #fffaf5; }
+    .queue-table td { padding: 8px 10px; border-top: 1px solid #ffedd5; vertical-align: middle; }
+    .queue-table .queue-actions { justify-content: flex-end; }
+    .queue-table .sub { color: #64748b; font-size: 11.5px; }
+    .queue-wrap { overflow-x: auto; }
 
     /* Four across is the default, but a group's last row should not be a stub:
        Personal Injury Law has six, which is 4 + 2 on a four-column grid and a
@@ -114,6 +123,7 @@
     .topic-status.pending { background: #fffbeb; color: #b45309; }
     .topic-status.locked { background: #f1f5f9; color: #334155; }
     .topic-status.denied { background: #fef2f2; color: #b91c1c; }
+    .topic-status.suspended, .topic-status.suspended-passed { background: #eef2ff; color: #3730a3; }
     .topic-action-btn {
         margin-top: auto; padding: 9px; border-radius: 999px; border: none; font-weight: 800; font-size: 11.5px;
         text-transform: uppercase; letter-spacing: 0.03em; text-align: center; text-decoration: none; cursor: pointer;
@@ -442,34 +452,51 @@
         }
     }
 
-    function renderQueue(session) {
+    // 🙋 Access requests (admins): every trainee waiting to open a program or tool, as a table at the top of the Directory,
+    // with Approve / Deny. The same list, with Suspend / Restore / Revoke for access already given, is Master Control's
+    // 🙋 Access Requests (core.html#access-requests), linked from here and from the System Management menu.
+    let __queueUsers = null;
+    async function queueUsers() {
+        if (__queueUsers) return __queueUsers;
+        try { const r = await fetch('/api/users', { credentials: 'include' }); const d = r.ok ? await r.json() : []; __queueUsers = Array.isArray(d) ? d : []; }
+        catch (e) { __queueUsers = []; }
+        return __queueUsers;
+    }
+    async function renderQueue(session) {
         const wrap = document.getElementById('idx-queue-wrap');
         if (!wrap) return;
         if (session.userType !== 'Admin') { wrap.innerHTML = ''; return; }
 
         const topicName = key => (__topicsCache.find(t => t.key === key) || {}).name || key;
-        const pending = __accessCache.filter(a => a.status === 'Pending');
-        // (Marking a program as passed lives in the admin screen now: Program Access.)
+        const pending = __accessCache.filter(a => a.status === 'Pending')
+            .sort((a, b) => String(a.requested_at || '').localeCompare(String(b.requested_at || '')));
+        const badge = document.getElementById('idx-access-badge');
+        if (badge) { badge.textContent = pending.length || ''; badge.classList.toggle('has', pending.length > 0); }
+        // (Marking a program as passed, suspending and restoring live in the admin screen: Program Access.)
         if (!pending.length) { wrap.innerHTML = ''; return; }
-
-        let html = '';
-        if (pending.length) {
-            html += `
-                <div class="queue-card">
-                    <h3>Pending Topic Requests (${pending.length})</h3>
-                    ${pending.map(a => `
-                        <div class="queue-row">
-                            <span><b>${escapeHtml(a.trainee_username)}</b> &mdash; ${escapeHtml(topicName(a.topic_key))}</span>
-                            <span class="queue-actions">
-                                <button class="queue-btn approve" onclick="decideTopicAccess('${escapeHtml(a.topic_key)}','${escapeHtml(a.trainee_username)}','APPROVE')">Approve</button>
-                                <button class="queue-btn deny" onclick="decideTopicAccess('${escapeHtml(a.topic_key)}','${escapeHtml(a.trainee_username)}','DENY')">Deny</button>
-                            </span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-        wrap.innerHTML = html;
+        const users = await queueUsers();
+        const when = v => { if (!v) return ''; const d = new Date(String(v).replace(' ', 'T') + (/[zZ]$/.test(String(v)) ? '' : 'Z')); return isNaN(d) ? escapeHtml(v) : d.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); };
+        wrap.innerHTML = `
+            <div class="queue-card" id="access-requests">
+                <div class="queue-head"><h3>🙋 Access Requests waiting (${pending.length})</h3><a href="/core.html#access-requests">Open in Master Control &rarr;</a></div>
+                <div class="queue-wrap"><table class="queue-table">
+                    <thead><tr><th>Trainee</th><th>Batch</th><th>Program / tool</th><th>Requested</th><th style="text-align:right;">Decision</th></tr></thead>
+                    <tbody>${pending.map(a => {
+                        const u = users.find(x => x.username === a.trainee_username);
+                        const k = escapeHtml(a.topic_key), n = escapeHtml(a.trainee_username);
+                        return `<tr>
+                            <td><b>${escapeHtml(u ? u.fullName : a.trainee_username)}</b><br><span class="sub">${n}</span></td>
+                            <td class="sub">${u && typeof batchLabel === 'function' ? escapeHtml(batchLabel(u.batchId)) : ''}</td>
+                            <td>${escapeHtml(topicName(a.topic_key))}</td>
+                            <td class="sub">${when(a.requested_at)}</td>
+                            <td><span class="queue-actions">${u
+                                ? `<button class="queue-btn approve" onclick="decideTopicAccess('${k}','${n}','APPROVE')">Approve</button>
+                                   <button class="queue-btn deny" onclick="decideTopicAccess('${k}','${n}','DENY')">Deny</button>`
+                                : `<span class="sub">No account any more</span><button class="queue-btn deny" onclick="decideTopicAccess('${k}','${n}','CLEAR')">Clear</button>`}</span></td>
+                        </tr>`;
+                    }).join('')}</tbody>
+                </table></div>
+            </div>`;
     }
 
     // Archived — old/superseded modules kept in the database (and in any
@@ -523,7 +550,7 @@
                 </div>`;
             }
 
-            let statusLabel = { approved: 'Approved', passed: 'Completed', pending: 'Pending Approval', denied: 'Access Denied', locked: 'Not Yet Requested' }[status];
+            let statusLabel = { approved: 'Approved', passed: 'Completed', pending: 'Pending Approval', denied: 'Access Denied', locked: 'Not Yet Requested', suspended: 'Access Suspended', 'suspended-passed': 'Access Suspended' }[status];
             let actionHtml;
 
             // No required order: any built program can be requested at any time, and an admin approves it.
@@ -534,6 +561,8 @@
                 actionHtml = `<a class="topic-action-btn primary" href="${programHref(t.key, built)}" target="_blank" rel="noopener">Enter Program &rarr;</a>`;
             } else if (status === 'pending') {
                 actionHtml = `<span class="topic-action-btn disabled">Awaiting Admin Approval</span>`;
+            } else if (status.startsWith('suspended')) {   // ⏸ an admin paused it (Program Access → Suspend): no asking again until restored
+                actionHtml = `<span class="topic-action-btn disabled" title="Your trainer suspended your access for now">Suspended: talk to your trainer</span>`;
             } else {
                 // not requested yet, or denied: (re)request it
                 actionHtml = `<button class="topic-action-btn request" onclick="requestTopicAccess('${escapeHtml(t.key)}')">Request Access</button>`;
@@ -629,7 +658,7 @@
     async function decideTopicAccess(topicKey, traineeUsername, action) {
         try {
             await postJson('/api/topics', { action, topicKey, traineeUsername });
-            showToast(action === 'APPROVE' ? 'Access approved.' : 'Access denied.', 'success');
+            showToast(action === 'APPROVE' ? 'Access approved.' : action === 'CLEAR' ? 'Request cleared.' : 'Access denied.', 'success');
             loadTrainingIndex();
         } catch (e) {
             showToast(e.message, 'error');

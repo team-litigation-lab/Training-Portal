@@ -121,8 +121,9 @@
                 <button onclick="switchView('admin-lectures')" class="side-nav-btn view-nav-btn" id="nav-admin-lectures"><span>🎬</span> Manage Lectures</button>
                 <a class="side-nav-btn" href="/programs.html" style="text-decoration:none"><span>🎓</span> Training Directory</a>
                 <div class="admin-nav-group">People &amp; Access</div>
-                <button onclick="mcGo('registrations')" class="side-nav-btn mc-nav-btn" data-mc="registrations"><span>📝</span> Registrations <span id="reg-pending-badge-side" class="admin-nav-badge"></span></button>
-                <button onclick="mcGo('users')" class="side-nav-btn mc-nav-btn" data-mc="users"><span>👥</span> Users &amp; Revoke Access</button>
+                <button onclick="mcGo('registrations')" class="side-nav-btn mc-nav-btn" data-mc="registrations"><span>📝</span> Log-in Approvals <span id="reg-pending-badge-side" class="admin-nav-badge"></span></button>
+                <button onclick="openAccessRequests()" class="side-nav-btn" title="Trainees asking to open a program or tool: approve or deny"><span>🙋</span> Access Requests <span id="access-req-badge-side" class="admin-nav-badge"></span></button>
+                <button onclick="mcGo('users')" class="side-nav-btn mc-nav-btn" data-mc="users"><span>👥</span> Users: Suspend, Restore &amp; Revoke</button>
                 <button onclick="mcGo('program-access')" class="side-nav-btn mc-nav-btn" data-mc="program-access"><span>🔑</span> Program Access</button>
                 <div class="admin-nav-group">Monitoring</div>
                 <button onclick="mcGo('overview')" class="side-nav-btn mc-nav-btn" data-mc="overview"><span>🧭</span> Overview</button>
@@ -594,7 +595,7 @@
             <a class="mc-tab" href="/attendance.html" style="text-decoration:none;" title="Take and review attendance: every program, batch by batch. The one place it is taken.">🕘 Attendance</a>
             <a class="mc-tab" href="/api/launch?tool=kb" style="text-decoration:none;" title="Review VA posts and manage the Knowledge Base">📚 Knowledge Base</a>
             <a class="mc-tab" href="/referrals.html" style="text-decoration:none;" title="People referred from “Got a referral?” on the home page, with their CVs">🤝 Referrals</a>
-            <button class="mc-tab" onclick="showAdminDashTab('registrations')">Registrations <span id="reg-pending-badge"></span></button>
+            <button class="mc-tab" onclick="showAdminDashTab('registrations')">Log-in Approvals <span id="reg-pending-badge"></span></button>
             <button class="mc-tab" onclick="showAdminDashTab('users')">Users</button>
             <button class="mc-tab" onclick="showAdminDashTab('monitoring')">Monitoring</button>
             <button class="mc-tab" onclick="showAdminDashTab('activity-logs')">Activity Logs</button>
@@ -660,7 +661,7 @@
             <!-- REGISTRATIONS -->
             <div class="mc-pane" id="admin-dash-registrations">
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;">
-                    <p style="font-size:11px;color:#334155;margin:0;">Pending registrations, whether someone signed up on the login screen or a trainer set the account up here. Approve to move an account into the <b>Users</b> tab and issue its Batch ID.</p>
+                    <p style="font-size:11px;color:#334155;margin:0;">Log-in approvals: every registration waiting, oldest first, whether someone signed up on the login screen or a trainer set the account up here. <b>Approve</b> moves the account into the <b>Users</b> tab and issues its Batch ID.</p>
                     <button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;flex-shrink:0;" onclick="openCreateUser()">+ Create account</button>
                 </div>
                 <div id="registrations-list"></div>
@@ -668,7 +669,7 @@
 
             <!-- USERS -->
             <div class="mc-pane" id="admin-dash-users">
-                <p style="font-size:11px;color:#334155;margin-bottom:14px;">All approved logins, grouped by batch (newest first). <b>Edit</b> changes a login's Batch ID, name, email, username or password; Suspend, Reactivate and Revoke are on each row.</p>
+                <p style="font-size:11px;color:#334155;margin-bottom:14px;">All approved logins, grouped by batch (newest first). <b>Edit</b> changes a login's Batch ID, name, email, username or password; <b>Suspend</b>, <b>Restore</b> and <b>Revoke</b> (the whole account) are on each row. For one program at a time, use <b>Program Access</b>.</p>
                 <div id="users-list"></div>
             </div>
 
@@ -787,7 +788,9 @@
             <!-- ACCESS CONTROL (Pause vs Lock) -->
             <div class="mc-pane" id="admin-dash-program-access">
                 <div class="mc-section-title">🔑 Program Access</div>
-                <p style="font-size:11px;color:#334155;margin-bottom:12px;">Who can open which program. <b>Revoke</b> closes a program for one trainee at once (their open session there ends at the next sign-in); <b>Grant</b> opens it again. To remove a whole account, use <b>Users &amp; Revoke Access</b>.</p>
+                <p style="font-size:11px;color:#334155;margin-bottom:12px;">Who can open which program. <b>🙋 Access Requests</b> (first) are trainees waiting for a program or tool: <b>Approve</b> or <b>Deny</b>. Below, each trainee's programs: <b>Grant</b> opens one; <b>⏸ Suspend</b> pauses it (they can't open it or ask for it again; nothing of theirs is removed) and <b>▶ Restore</b> gives back what they had, Completed included; <b>Revoke</b> closes it (they can request it again). To act on a whole account, use <b>Users</b>.</p>
+                <div id="access-requests-list"></div>
+                <div class="mc-section-sub">👥 Each trainee's programs</div>
                 <input type="text" id="pa-search" placeholder="Search by name or username" oninput="renderProgramAccess()" style="width:100%;max-width:360px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:12px;font-size:12px;">
                 <div id="program-access-list"></div>
             </div>
@@ -1057,11 +1060,11 @@
 <script src="app.js"></script>
     <script src="portal.js"></script>
 <script>
-// /core.html#master, #registrations, #users, #access and #monitoring open Master Control (the admin screen, not the trainee workspace) on that tab:
+// /core.html#master, #registrations, #users, #access, #access-requests and #monitoring open Master Control (the admin screen, not the trainee workspace) on that tab:
 // the admin bar's System Management menu (portal-nav.js) uses them.
 (function () {
     const want = (location.hash || '').replace('#', '');
-    const tabs = { master: 'overview', registrations: 'registrations', users: 'users', access: 'program-access', monitoring: 'monitoring' };
+    const tabs = { master: 'overview', registrations: 'registrations', users: 'users', access: 'program-access', 'access-requests': 'program-access', monitoring: 'monitoring' };
     if (!tabs[want]) return;
     function open() {
         if (typeof openAdminDashboard !== 'function' || typeof showAdminDashTab !== 'function' || !document.getElementById('admin-dash-' + tabs[want])) return false;
@@ -1071,6 +1074,11 @@
     }
     let tries = 0; const t = setInterval(() => { if (open() || ++tries > 30) clearInterval(t); }, 300);
 })();
+</script>
+<script>
+// 🙋 the number of access requests waiting, on the admin menu's Access Requests, once the page has its session
+(function () { let n = 0; const t = setInterval(() => { const s = typeof getSession === 'function' ? getSession() : null;
+    if (s && s.userType === 'Admin' && typeof refreshAccessRequestBadge === 'function') { clearInterval(t); refreshAccessRequestBadge(); } else if (++n > 40) clearInterval(t); }, 500); })();
 </script>
 <script src="/show-password.js?v=1"></script>
 </body>

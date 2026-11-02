@@ -292,6 +292,7 @@ function openAdminDashboard() {
     __currentViewLabel = MC_TAB_LABELS.overview;
     loadUsersData();
     loadOverviewStats();
+    refreshAccessRequestBadge();
 }
 
 // Locking is restricted to the Master Account, which now logs in normally
@@ -319,7 +320,7 @@ const MC_TAB_LABELS = {
     overview: 'Master Control — Overview', registrations: 'Master Control — Registrations',
     users: 'Master Control — Users', monitoring: 'Master Control — Monitoring',
     'activity-logs': 'Master Control — Activity Logs', announce: 'Master Control — Announcements & Alerts',
-    access: 'Master Control — Access Control', 'program-access': 'Master Control — Program Access'
+    access: 'Master Control — Access Control', 'program-access': 'Master Control — Program Access & Access Requests'
 };
 function showAdminDashTab(tab) {
     __currentViewLabel = MC_TAB_LABELS[tab] || ('Master Control — ' + tab);
@@ -452,24 +453,28 @@ function renderRegistrations() {
         return;
     }
 
-    container.innerHTML = pending.map(u => `
-        <div class="admin-tile" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;text-align:left;">
-            <div>
-                <div style="font-weight:800;font-size:13px;color:var(--navy);">
-                    ${escapeHtml(u.fullName)}
-                    <span style="font-weight:600;color:#64748b;font-size:11px;">(${escapeHtml(u.userType)})</span>
-                </div>
-                <div style="font-size:11px;color:#64748b;margin-top:2px;">${escapeHtml(u.username)} &middot; ${escapeHtml(u.email || '')}</div>
-                ${u.trainingStartDate ? `<div style="font-size:11px;color:#64748b;">Training start: ${escapeHtml(u.trainingStartDate)}</div>` : ''}
-            </div>
-            <div style="display:flex;gap:8px;flex-shrink:0;">
-                ${canDecideRegistration(u) ? `
-                <button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="approveRegistration(${u.id})">Approve</button>
-                <button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;color:var(--classified-red);border-color:var(--classified-red);" onclick="rejectRegistration(${u.id})">Reject</button>`
-                : `<div style="font-size:10.5px;color:#94a3b8;text-align:right;max-width:170px;">The Master Account approves an Admin / Trainer registration.</div>`}
-            </div>
-        </div>
-    `).join('');
+    // One row per login waiting for approval, as a table: who, the account type, their email, when they registered, the
+    // training start date, then Approve / Reject.
+    const when = (v) => { if (!v) return ''; const d = new Date(String(v).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(v)) ? '' : 'Z')); return isNaN(d) ? escapeHtml(v) : d.toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); };
+    container.innerHTML = `
+        <div class="mc-table-wrap"><table class="mc-table">
+            <thead><tr><th>#</th><th>Name</th><th>Username</th><th>Type</th><th>Email</th><th>Registered</th><th>Training start</th><th style="text-align:right;">Decision</th></tr></thead>
+            <tbody>${pending.map((u, i) => `
+                <tr>
+                    <td class="mc-sub">${i + 1}</td>
+                    <td><b style="color:var(--navy);">${escapeHtml(u.fullName)}</b></td>
+                    <td>${escapeHtml(u.username)}</td>
+                    <td>${escapeHtml(u.userType === 'Admin' ? 'Admin / Trainer' : u.userType)}</td>
+                    <td class="mc-sub">${escapeHtml(u.email || '')}</td>
+                    <td class="mc-sub">${when(u.created_at)}</td>
+                    <td class="mc-sub">${escapeHtml(u.trainingStartDate || '')}</td>
+                    <td class="mc-actions">${canDecideRegistration(u) ? `
+                        <button class="btn-primary" onclick="approveRegistration(${u.id})">Approve</button>
+                        <button class="btn-ghost btn-danger-ghost" onclick="rejectRegistration(${u.id})">Reject</button>`
+                        : `<span class="mc-sub">The Master Account decides an Admin / Trainer registration.</span>`}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
 }
 
 // A Batch ID as it's shown: the batch only. Batch IDs given out before October 2026 carry a trainee number
@@ -640,7 +645,7 @@ function renderUserRow(u) {
             <div style="display:flex;gap:8px;flex-shrink:0;">
                 ${canEditUser(u) ? `<button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="openEditUser(${u.id})">Edit</button>` : ''}
                 ${isSuspended
-                    ? `<button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="reactivateUser(${u.id})">Reactivate</button>`
+                    ? `<button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="reactivateUser(${u.id})" title="Restore the account: the user can sign in again">Restore</button>`
                     : `<button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="suspendUser(${u.id})">Suspend</button>`
                 }
                 <button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;color:var(--classified-red);border-color:var(--classified-red);" onclick="revokeUser(${u.id}, '${safeName}')">Revoke</button>
@@ -701,7 +706,7 @@ async function suspendUser(id) {
 async function reactivateUser(id) {
     try {
         await postJson('/api/update-access', { userId: id, newStatus: 'Approved' });
-        showToast('Account reactivated.', 'success');
+        showToast('Account restored.', 'success');
         loadUsersData();
     } catch (e) {
         showToast(e.message, 'error');
@@ -2866,13 +2871,17 @@ function mcGo(tab) {
     showAdminDashTab(tab);
 }
 
-// ===== Program Access: who can open which program, with Revoke / Grant (functions/api/topics.js) =====
+// ===== Program Access: who can open which program (functions/api/topics.js) =====
+// 🙋 Access Requests first: every trainee's request to open a program, waiting for an admin, as a table with Approve / Deny
+// (the same queue the Training Directory shows an admin). Then each trainee's programs, with the four ways an admin changes
+// one: Grant (open it), Revoke (close it: the trainee can ask again), ⏸ Suspend (pause it: no opening it, no asking again)
+// and ▶ Restore (give back what they had, Completed included).
 let __paTopics = [], __paAccess = [];
 async function loadProgramAccess() {
     const box = document.getElementById('program-access-list');
     if (box && !__paTopics.length) box.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Loading…</p>';
     try {
-        const [tRes] = await Promise.all([fetch('/api/topics', { credentials: 'include' }), loadUsersData()]);
+        const [tRes] = await Promise.all([fetch('/api/topics', { credentials: 'include', cache: 'no-store' }), loadUsersData()]);
         const data = await tRes.json();
         if (!data.success) throw new Error(data.error || 'Could not load program access.');
         __paTopics = data.topics || []; __paAccess = data.access || [];
@@ -2882,7 +2891,55 @@ async function loadProgramAccess() {
     }
 }
 const PA_HIDDEN = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];   // keep in step with ARCHIVED_TOPICS in programs.html (same list; a different name because programs.html loads app.js into the same global scope)
+// the programs' names as the Training Directory shows them (PROGRAM_NAMES in programs.html)
+const PA_NAMES = { 'STANDARD TRAINING': 'Standard Foundational Training', 'CM TRAINING': 'Case Management Training', 'REVISED CM TRAINING': 'Revised Case Management Training', 'PROPERTY DAMAGE': 'Property Damage Claims Training', 'MEDSUM AND DEMAND': 'Medsum & Demand Training' };
+const paName = (key) => PA_NAMES[key] || ((__paTopics.find(t => t.key === key) || {}).name) || key;
+const paIsSuspended = (st) => String(st || '').startsWith('Suspended');
+const paPillClass = (st) => paIsSuspended(st) ? 'suspended' : String(st || '').toLowerCase();
+const paPillText = (st) => st === 'Suspended-Passed' ? 'Suspended (completed)' : st === 'Passed' ? 'Completed' : st;
+// how many requests are waiting, on the 🙋 Access Requests menu entry (and the System Management menu's)
+function paPendingCount() { return __paAccess.filter(a => a.status === 'Pending').length; }
+function updateAccessRequestBadge(n) {
+    ['access-req-badge-side', 'idx-access-badge'].forEach(id => { const b = document.getElementById(id); if (!b) return; b.textContent = n > 0 ? n : ''; b.classList.toggle('has', n > 0); });
+}
+async function refreshAccessRequestBadge() {
+    try {
+        const s = typeof getSession === 'function' ? getSession() : null;
+        if (!s || s.userType !== 'Admin') return;
+        const res = await fetch('/api/topics', { credentials: 'include', cache: 'no-store' });
+        const data = await res.json().catch(() => null);
+        if (data && data.success) updateAccessRequestBadge((data.access || []).filter(a => a.status === 'Pending').length);
+    } catch (e) { /* no badge */ }
+}
+window.refreshAccessRequestBadge = refreshAccessRequestBadge;
+function paWhen(v) {
+    if (!v) return '';
+    const d = new Date(String(v).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(v)) ? '' : 'Z'));
+    return isNaN(d) ? escapeHtml(v) : d.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+function renderAccessRequests() {
+    const box = document.getElementById('access-requests-list');
+    if (!box) return;
+    const users = __usersCache || [];
+    const pending = __paAccess.filter(a => a.status === 'Pending').sort((a, b) => String(a.requested_at || '').localeCompare(String(b.requested_at || '')));
+    updateAccessRequestBadge(pending.length);
+    const head = `<div class="mc-section-sub">🙋 Access Requests <span class="admin-nav-badge">${pending.length || ''}</span></div>`;
+    if (!pending.length) { box.innerHTML = head + '<p style="font-size:12px;color:#94a3b8;margin:0 0 16px;">No requests waiting. A trainee asks from the Training Directory\'s <b>Request Access</b>; it shows up here.</p>'; return; }
+    box.innerHTML = head + `<div class="mc-table-wrap"><table class="mc-table">
+        <thead><tr><th>Trainee</th><th>Username</th><th>Batch</th><th>Program / tool</th><th>Requested</th><th style="text-align:right;">Decision</th></tr></thead>
+        <tbody>${pending.map(a => {
+            const u = users.find(x => x.username === a.trainee_username);
+            const k = escapeHtml(a.topic_key), n = escapeHtml(a.trainee_username);
+            const actions = u
+                ? `<button class="btn-primary" onclick="paSet('${n}','${k}','APPROVE')">Approve</button><button class="btn-ghost btn-danger-ghost" onclick="paSet('${n}','${k}','DENY')">Deny</button>`
+                : `<span class="mc-sub" style="margin-right:6px;">No account any more</span><button class="btn-ghost" onclick="paSet('${n}','${k}','CLEAR')">Clear</button>`;
+            return `<tr><td><b style="color:var(--navy);">${escapeHtml(u ? u.fullName : a.trainee_username)}</b>${u && u.status === 'Suspended' ? ' <span class="mc-pill suspended">account suspended</span>' : ''}</td>
+                <td>${n}</td><td class="mc-sub">${u ? escapeHtml(batchLabel(u.batchId)) : ''}</td><td>${escapeHtml(paName(a.topic_key))}</td>
+                <td class="mc-sub">${paWhen(a.requested_at)}</td><td class="mc-actions">${actions}</td></tr>`;
+        }).join('')}</tbody></table></div>`;
+}
 function renderProgramAccess() {
+    renderAccessRequests();
     const box = document.getElementById('program-access-list');
     if (!box) return;
     const q = ((document.getElementById('pa-search') || {}).value || '').trim().toLowerCase();
@@ -2891,32 +2948,43 @@ function renderProgramAccess() {
         .filter(u => !q || (u.fullName || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q));
     if (!trainees.length) { box.innerHTML = '<p style="font-size:12px;color:#94a3b8;">No trainees match.</p>'; return; }
     const status = (u, key) => { const r = __paAccess.find(a => a.trainee_username === u.username && a.topic_key === key); return r ? r.status : ''; };
+    const btn = (cls, label, u, key, action) => `<button class="${cls}" onclick="paSet('${escapeHtml(u.username)}','${escapeHtml(key)}','${action}')">${label}</button>`;
     box.innerHTML = trainees.map(u => {
         const rows = topics.map(t => {
             const st = status(u, t.key);
             if (!st) return '';
-            const open = st === 'Approved' || st === 'Passed';
-            const color = open ? '#166534' : (st === 'Pending' ? '#92400e' : '#991b1b');
-            const passBtn = st === 'Approved'
-                ? `<button class="btn-primary" style="padding:5px 10px;font-size:10.5px;border-radius:6px;margin-right:6px;" onclick="paSet('${escapeHtml(u.username)}','${escapeHtml(t.key)}','MARK_PASSED')">Mark Passed</button>`
-                : '';
-            const action = open
-                ? passBtn + `<button class="btn-ghost" style="padding:5px 10px;font-size:10.5px;border-radius:6px;color:var(--classified-red);border-color:var(--classified-red);" onclick="paSet('${escapeHtml(u.username)}','${escapeHtml(t.key)}','DENY')">Revoke</button>`
-                : `<button class="btn-primary" style="padding:5px 10px;font-size:10.5px;border-radius:6px;" onclick="paSet('${escapeHtml(u.username)}','${escapeHtml(t.key)}','GRANT')">Grant</button>`;
-            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid #eef2f7;font-size:12px;"><span>${escapeHtml(t.name)} <b style="color:${color};font-size:10.5px;text-transform:uppercase;margin-left:6px;">${escapeHtml(st)}</b></span>${action}</div>`;
+            const actions = st === 'Approved' || st === 'Passed'
+                ? (st === 'Approved' ? btn('btn-primary', 'Mark Passed', u, t.key, 'MARK_PASSED') : '')
+                  + btn('btn-ghost', '⏸ Suspend', u, t.key, 'SUSPEND') + btn('btn-ghost btn-danger-ghost', 'Revoke', u, t.key, 'DENY')
+                : paIsSuspended(st)
+                ? btn('btn-primary', '▶ Restore', u, t.key, 'RESTORE') + btn('btn-ghost btn-danger-ghost', 'Revoke', u, t.key, 'DENY')
+                : st === 'Pending'
+                ? btn('btn-primary', 'Approve', u, t.key, 'APPROVE') + btn('btn-ghost btn-danger-ghost', 'Deny', u, t.key, 'DENY')
+                : btn('btn-primary', 'Grant', u, t.key, 'GRANT');
+            return `<tr><td>${escapeHtml(paName(t.key))}</td><td><span class="mc-pill ${paPillClass(st)}">${escapeHtml(paPillText(st))}</span></td><td class="mc-actions">${actions}</td></tr>`;
         }).join('');
-        const grant = `<div style="display:flex;gap:6px;margin-top:8px;"><select id="pa-add-${u.id}" style="flex:1;padding:5px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;">${topics.filter(t => !['Approved', 'Passed'].includes(status(u, t.key))).map(t => `<option value="${escapeHtml(t.key)}">${escapeHtml(t.name)}</option>`).join('')}</select><button class="btn-primary" style="padding:5px 10px;font-size:10.5px;border-radius:6px;" onclick="paSet('${escapeHtml(u.username)}', document.getElementById('pa-add-${u.id}').value, 'GRANT')">Grant access</button></div>`;
-        return `<div class="admin-tile" style="text-align:left;margin-bottom:10px;"><div style="font-weight:800;font-size:13px;color:var(--navy);">${escapeHtml(u.fullName)} <span style="font-weight:600;color:#64748b;font-size:11px;">${escapeHtml(u.username)} · ${escapeHtml(batchLabel(u.batchId))}${u.status === 'Suspended' ? ' · SUSPENDED' : ''}</span></div>${rows || '<div style="font-size:11.5px;color:#94a3b8;margin-top:4px;">No program access yet.</div>'}${grant}</div>`;
+        const grant = `<div style="display:flex;gap:6px;margin-top:8px;"><select id="pa-add-${u.id}" style="flex:1;padding:5px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;">${topics.filter(t => !['Approved', 'Passed'].includes(status(u, t.key))).map(t => `<option value="${escapeHtml(t.key)}">${escapeHtml(paName(t.key))}</option>`).join('')}</select><button class="btn-primary" style="padding:5px 10px;font-size:10.5px;border-radius:6px;" onclick="paSet('${escapeHtml(u.username)}', document.getElementById('pa-add-${u.id}').value, 'GRANT')">Grant access</button></div>`;
+        const table = rows ? `<div class="mc-table-wrap" style="margin:8px 0 0;"><table class="mc-table"><thead><tr><th>Program / tool</th><th>Status</th><th style="text-align:right;">Actions</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div style="font-size:11.5px;color:#94a3b8;margin-top:4px;">No program access yet.</div>';
+        return `<div class="admin-tile" style="text-align:left;margin-bottom:10px;"><div style="font-weight:800;font-size:13px;color:var(--navy);">${escapeHtml(u.fullName)} <span style="font-weight:600;color:#64748b;font-size:11px;">${escapeHtml(u.username)} · ${escapeHtml(batchLabel(u.batchId))}${u.status === 'Suspended' ? ' · ACCOUNT SUSPENDED' : ''}</span></div>${table}${grant}</div>`;
     }).join('');
 }
+const PA_DONE = { APPROVE: 'Access approved.', DENY: 'Access revoked.', GRANT: 'Access granted.', MARK_PASSED: 'Marked as passed.', SUSPEND: 'Access suspended.', RESTORE: 'Access restored.', CLEAR: 'Request cleared.' };
 async function paSet(username, topicKey, action) {
-    if (action === 'DENY' && !confirm('Revoke this trainee\'s access to ' + topicKey + '?')) return;
+    const name = paName(topicKey);
+    if (action === 'DENY' && !confirm(`Revoke or deny ${username}'s access to ${name}?\n\nThey can request it again from the Training Directory.`)) return;
+    if (action === 'SUSPEND' && !confirm(`Suspend ${username}'s access to ${name}?\n\nThey can't open it (or ask for it again) until you restore it. Nothing of theirs is removed.`)) return;
     try {
         await postJson('/api/topics', { action, topicKey, traineeUsername: username });
-        showToast(action === 'DENY' ? 'Access revoked.' : action === 'MARK_PASSED' ? 'Marked as passed.' : 'Access granted.', 'success');
+        showToast(PA_DONE[action] || 'Saved.', 'success');
         loadProgramAccess();
     } catch (e) { showToast(e.message, 'error'); }
 }
+// 🙋 Access Requests in the menu opens Program Access with the requests on top
+function openAccessRequests() {
+    mcGo('program-access');
+    setTimeout(() => { const el = document.getElementById('access-requests-list'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+}
+window.openAccessRequests = openAccessRequests;
 
 
 // ===== Edit an account: Batch ID, name, email, username, new password (functions/api/update-user.js) =====

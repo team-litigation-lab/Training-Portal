@@ -353,6 +353,23 @@
     .btn-ghost { background: #f1f5f9; color:#334155; }
     .btn-ghost:hover { background:#e2e8f0; }
 
+    /* Master Control's tables: Registrations, Access Requests, Program Access (app.js) */
+    .mc-table-wrap { overflow-x:auto; background:#fff; border:1px solid #e2e8f0; border-radius:12px; margin-bottom:14px; }
+    .mc-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .mc-table th { background:#f8fafc; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:0.04em; color:#334155; font-weight:800; padding:10px 12px; border-bottom:2px solid #e2e8f0; white-space:nowrap; }
+    .mc-table td { padding:9px 12px; border-bottom:1px solid #f1f5f9; vertical-align:middle; color:#0f172a; }
+    .mc-table tbody tr:last-child td { border-bottom:none; }
+    .mc-table tbody tr:hover { background:#fafaf9; }
+    .mc-table .mc-sub { color:#64748b; font-size:11px; }
+    .mc-table .mc-actions { white-space:nowrap; text-align:right; }
+    .mc-table .mc-actions button { padding:6px 11px; font-size:10.5px; border-radius:6px; margin-left:4px; }
+    .mc-pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.03em; }
+    .mc-pill.approved, .mc-pill.passed { background:#dcfce7; color:#166534; }
+    .mc-pill.pending { background:#fef3c7; color:#92400e; }
+    .mc-pill.denied { background:#fee2e2; color:#991b1b; }
+    .mc-pill.suspended { background:#e0e7ff; color:#3730a3; }
+    .mc-section-sub { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:#334155; margin:4px 0 8px; display:flex; align-items:center; gap:8px; }
+    .btn-danger-ghost { color:var(--classified-red) !important; border:1px solid var(--classified-red) !important; background:#fff !important; }
     .admin-panel-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:6px; }
     .admin-tile { background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:16px; transition: box-shadow 0.2s ease; }
     .admin-tile:hover { box-shadow: 0 8px 20px rgba(15, 33, 72, 0.06); }
