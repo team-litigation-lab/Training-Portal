@@ -629,6 +629,14 @@ async function loadMonitoringData() {
     }
 }
 
+// The grey line under a login's name: Batch · username · email. An Admin / Trainer is given no Batch ID by
+// design (update-status.js), so the API's 'UNASSIGNED' placeholder is shown as their role instead; a trainee
+// still waiting on a batch reads "No Batch yet". Empty parts are left out so no stray "·" trails the line.
+function userRowMeta(u) {
+    const hasBatch = u.batchId && u.batchId !== 'UNASSIGNED';
+    const first = hasBatch ? batchLabel(u.batchId) : (u.userType === 'Admin' ? 'Admin / Trainer' : 'No Batch yet');
+    return [first, u.username, u.email].filter(v => String(v || '').trim()).map(v => escapeHtml(v)).join(' &middot; ');
+}
 function renderUserRow(u) {
     const isSuspended = u.status === 'Suspended';
     const statusColor = isSuspended ? 'var(--classified-red)' : '#059669';
@@ -640,7 +648,7 @@ function renderUserRow(u) {
                     ${escapeHtml(u.fullName)}
                     <span style="font-weight:700;font-size:10px;color:${statusColor};border:1px solid ${statusColor};border-radius:4px;padding:1px 6px;margin-left:6px;">${escapeHtml(u.status)}</span>
                 </div>
-                <div style="font-size:11px;color:#64748b;margin-top:2px;">${batchLabel(u.batchId) ? escapeHtml(batchLabel(u.batchId)) + ' &middot; ' : ''}${escapeHtml(u.username)} &middot; ${escapeHtml(u.email || '')}</div>
+                <div style="font-size:11px;color:#64748b;margin-top:2px;">${userRowMeta(u)}</div>
             </div>
             <div style="display:flex;gap:8px;flex-shrink:0;">
                 ${canEditUser(u) ? `<button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="openEditUser(${u.id})">Edit</button>` : ''}
