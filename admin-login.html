@@ -53,16 +53,20 @@
             <h2 id="admin-login-heading">Admin Login</h2>
             <p class="sub" id="admin-login-sub">Sign in with your own administrator username and password: one sign-in for every program, the simulators and Master Control.</p>
 
-            <div id="auth-form-content">
+            <!-- A real <form> with name + autocomplete="username"/"current-password", so the browser
+                 recognises a login and offers only the credentials saved in its password manager,
+                 not every username ever typed into this box (Chrome ignores autocomplete="off" on
+                 login fields and falls back to field history). The ids stay: portal.js reads them. -->
+            <form id="auth-form-content" method="post" action="#" onsubmit="event.preventDefault(); attemptLogin();">
                 <div id="auth-login-msg" class="auth-msg"></div>
-                <div class="field"><label>Username</label><input type="text" id="login-username" autocomplete="off" placeholder="Enter your username"></div>
-                <div class="field"><label>Password</label><input type="password" id="login-password" autocomplete="off" placeholder="Enter your password"></div>
+                <div class="field"><label>Username</label><input type="text" id="login-username" name="username" autocomplete="username" placeholder="Enter your username"></div>
+                <div class="field"><label>Password</label><input type="password" id="login-password" name="password" autocomplete="current-password" placeholder="Enter your password"></div>
                 <div class="auth-forgot"><a href="#" onclick="showPasswordPanel('forgot'); return false;">Forgot password?</a></div>
-                <button class="auth-submit" onclick="attemptLogin()">Log In</button>
+                <button class="auth-submit" type="submit">Log In</button>
 
                 <div class="auth-switch">No account yet? <a href="/registration.html">Register here</a></div>
                 <div class="role-switch"><a href="/programs.html">Looking for your training? Open the Training Directory &rarr;</a></div>
-            </div>
+            </form>
 
             <!-- Shown instead of the normal login form when the site is
                  locked — admin-login.html is deliberately the ONE
