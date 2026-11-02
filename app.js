@@ -502,7 +502,9 @@ function renderUsersList() {
     const container = document.getElementById('users-list');
     if (!container) return;
 
-    const visible = __usersCache.filter(u => u.status === 'Approved' || u.status === 'Suspended');
+    // The Master Account (LSHADMIN123) signs in with its own secret and can't be edited, suspended or revoked,
+    // so it isn't listed here even when a users row exists for it.
+    const visible = __usersCache.filter(u => (u.status === 'Approved' || u.status === 'Suspended') && u.username !== 'LSHADMIN123');
     if (visible.length === 0) {
         container.innerHTML = `<p style="font-size:12px;color:#94a3b8;">No accounts yet.</p>`;
         return;
@@ -629,6 +631,14 @@ async function loadMonitoringData() {
     }
 }
 
+// The grey line under a login's name: Batch · username · email. An Admin / Trainer belongs to no batch
+// (update-status.js gives them none), so their line shows no Batch ID at all, just username · email; a
+// trainee still waiting on a batch reads "No Batch yet". Empty parts are left out so no stray "·" trails the line.
+function userRowMeta(u) {
+    const hasBatch = u.batchId && u.batchId !== 'UNASSIGNED';
+    const first = u.userType === 'Admin' ? '' : (hasBatch ? batchLabel(u.batchId) : 'No Batch yet');
+    return [first, u.username, u.email].filter(v => String(v || '').trim()).map(v => escapeHtml(v)).join(' &middot; ');
+}
 function renderUserRow(u) {
     const isSuspended = u.status === 'Suspended';
     const statusColor = isSuspended ? 'var(--classified-red)' : '#059669';
@@ -640,7 +650,7 @@ function renderUserRow(u) {
                     ${escapeHtml(u.fullName)}
                     <span style="font-weight:700;font-size:10px;color:${statusColor};border:1px solid ${statusColor};border-radius:4px;padding:1px 6px;margin-left:6px;">${escapeHtml(u.status)}</span>
                 </div>
-                <div style="font-size:11px;color:#64748b;margin-top:2px;">${batchLabel(u.batchId) ? escapeHtml(batchLabel(u.batchId)) + ' &middot; ' : ''}${escapeHtml(u.username)} &middot; ${escapeHtml(u.email || '')}</div>
+                <div style="font-size:11px;color:#64748b;margin-top:2px;">${userRowMeta(u)}</div>
             </div>
             <div style="display:flex;gap:8px;flex-shrink:0;">
                 ${canEditUser(u) ? `<button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="openEditUser(${u.id})">Edit</button>` : ''}
