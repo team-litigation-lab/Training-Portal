@@ -502,7 +502,9 @@ function renderUsersList() {
     const container = document.getElementById('users-list');
     if (!container) return;
 
-    const visible = __usersCache.filter(u => u.status === 'Approved' || u.status === 'Suspended');
+    // The Master Account (LSHADMIN123) signs in with its own secret and can't be edited, suspended or revoked,
+    // so it isn't listed here even when a users row exists for it.
+    const visible = __usersCache.filter(u => (u.status === 'Approved' || u.status === 'Suspended') && u.username !== 'LSHADMIN123');
     if (visible.length === 0) {
         container.innerHTML = `<p style="font-size:12px;color:#94a3b8;">No accounts yet.</p>`;
         return;
