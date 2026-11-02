@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
     :root {
@@ -95,16 +95,16 @@
         nav::before { width: 186px; bottom: auto; height: 86px; } }
     /* The standard page header (the Training Directory's): the mark, then the page's name in capitals. */
     .brand-title { font-size: 40px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
-    /* The landing page's grand lockup: the name in classical Roman capitals (Cinzel),
+    /* The landing page's grand lockup, in the portal's own IBM Plex Sans: the name,
        a fine gold rule with a diamond, then ACADEMY in polished gold that a slow band
        of light crosses now and then. Sized in em so the breakpoints above only have
        to set .brand-title's font-size. */
-    .brand-title:has(.bt-main) { display: inline-grid; justify-items: stretch; line-height: 1; letter-spacing: 0; font-family: 'Cinzel', Georgia, 'Times New Roman', serif; }
-    .brand-title .bt-top { font-size: .32em; font-weight: 600; letter-spacing: .5em; color: #f6efe2; text-align: justify; text-align-last: justify; margin-right: -.5em; }
+    .brand-title:has(.bt-main) { display: inline-grid; justify-items: stretch; line-height: 1; letter-spacing: 0; }
+    .brand-title .bt-top { font-size: .32em; font-weight: 700; letter-spacing: .5em; color: #f6efe2; text-align: justify; text-align-last: justify; margin-right: -.5em; }
     .brand-title .bt-rule { position: relative; height: 1px; margin: .2em 0 .16em; background: linear-gradient(90deg, transparent, rgba(245,196,81,.9) 18%, rgba(245,196,81,.9) 82%, transparent); }
     .brand-title .bt-rule::after { content: ""; position: absolute; left: 50%; top: 50%; width: .16em; height: .16em; background: #f5c451; transform: translate(-50%, -50%) rotate(45deg); box-shadow: 0 0 0 .07em #0b1730, 0 0 .3em rgba(245,196,81,.8); }
     .brand-title .bt-main {
-        font-size: 1em; font-weight: 700; letter-spacing: .2em; margin-right: -.2em; text-align: center;
+        font-size: 1em; font-weight: 900; letter-spacing: .16em; margin-right: -.16em; text-align: center;
         background: linear-gradient(100deg, #c8902c 0%, #f5c451 22%, #fff4d0 32%, #f5c451 42%, #d99a2b 60%, #f8d77a 80%, #c8902c 100%);
         background-size: 250% 100%; background-position: 100% 0;
         -webkit-background-clip: text; background-clip: text; color: transparent;
