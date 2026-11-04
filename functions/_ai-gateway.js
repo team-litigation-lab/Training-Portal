@@ -18,6 +18,9 @@
 //                             so practice chats can't use it up; a review isn't held back by one flow's share either
 // Whoever is refused gets a 429 with a plain reason and the page retries or tells the trainee to wait.
 //
+// Which goes first: with AI_RELAY_SECRET set the US relay answers first and the keys below are its fallback; set AI_PREFER=gemini
+// and the keys answer first, the relay only when every key has failed (so the relay's credits are kept for when they're needed).
+//
 // The keys (GEMINI_API_KEY, GEMINI_API_KEY1, …): each request starts on the next key in turn, and each model is tried on
 // every key before the next model, as the CMS's practice calls do (functions/_ai.js there). A key that hits a rate limit
 // rests for that model (a minute; a day's quota, an hour) and the next key answers. A key that is out of credits, has
@@ -151,21 +154,43 @@ async function viaRelay(env, { system, messages, json, maxTokens, signal }) {
 // fires the relay and Gemini fetches stop and the answer is { ok: false, status: 504 } instead of walking on through the other keys and models.
 // fast: a live call's next line (1–3 sentences): as little thinking as the model allows, so the caller answers in about a second
 const noThinking = new Set();   // models that refused a thinking setting: not sent to them again (no second request every turn)
+// AI_PREFER=gemini: the Portal's own Gemini keys answer first and the relay is only the fallback (when every key has failed, say
+// out of credits or a region Gemini refuses). Unset (or "relay"), the relay goes first and the keys are the fallback, as before.
+export const prefersKeys = (env) => /^gemini$/i.test(String((env && env.AI_PREFER) || '').trim());
 export async function generate(env, { system, messages, json, maxTokens, signal, fast }) {
     const chars = String(system || '').length + messages.reduce((a, m) => a + String(m.text || '').length, 0);
     const names = keyNames(env);
     const slow = () => ({ ok: false, status: 504, error: 'The AI took too long to answer.', tokens: 0 });
-    let relayError = '';
-    if (env.AI_RELAY_SECRET) {
+    const relay = async () => {
         try {
             const r = await viaRelay(env, { system, messages, json, maxTokens, signal });
             if (r.ok) return { ok: true, text: r.text, model: r.model, tokens: r.tokens || Math.ceil((chars + r.text.length) / 4), via: 'relay' };
-            if (r.status === 429 && !names.length) return { ok: false, status: 429, error: 'AI generation limit reached. Try again in a minute.', tokens: 0 };
-            relayError = r.status === 429 ? 'the relay is at its limit' : (r.error || `relay error ${r.status}`);   // (the keys here take over)
-        } catch (e) { if (signal && signal.aborted) return slow(); relayError = String(e && e.message || e); }
+            return { ok: false, status: r.status, error: r.status === 429 ? 'the relay is at its limit' : (r.error || `relay error ${r.status}`) };
+        } catch (e) { return signal && signal.aborted ? slow() : { ok: false, status: 502, error: String(e && e.message || e) }; }
+    };
+    if (env.AI_RELAY_SECRET && names.length && prefersKeys(env)) {
+        const k = await viaKeys(env, names, { system, messages, json, maxTokens, signal, fast, chars, slow });
+        if (k.ok || k.status === 504 || (signal && signal.aborted)) return k;
+        console.error('ai-gateway: the Gemini keys failed, trying the relay:', k.error);
+        const r = await relay();
+        if (r.ok || r.status === 504) return r;
+        console.error('ai-gateway: the relay failed too:', r.error);
+        return k;   // (the keys' reason says what to fix on the Portal)
+    }
+    let relayError = '';
+    if (env.AI_RELAY_SECRET) {
+        const r = await relay();
+        if (r.ok || r.status === 504) return r;
+        if (r.status === 429 && !names.length) return { ok: false, status: 429, error: 'AI generation limit reached. Try again in a minute.', tokens: 0 };
+        relayError = r.error;   // (the keys here take over)
         console.error('ai-gateway: relay failed, calling Gemini directly:', relayError);
     }
     if (!names.length) return { ok: false, status: 500, tokens: 0, error: relayError ? 'The AI service is unavailable right now. Try again in a minute.' : 'No Gemini key is set on the Portal (GEMINI_API_KEY).' };
+    return viaKeys(env, names, { system, messages, json, maxTokens, signal, fast, chars, slow });
+}
+
+// The Portal's own Gemini keys, in turn (see the top of the file). → { ok, text, model, tokens } or { ok: false, status, error }
+async function viaKeys(env, names, { system, messages, json, maxTokens, signal, fast, chars, slow }) {
     const start = turn++ % names.length, ring = names.slice(start).concat(names.slice(0, start));
     // every key resting on every model: try them all anyway (a key may have been topped up or its minute may be over)
     const everyResting = MODELS.every(m => ring.every(n => resting(n, m)));

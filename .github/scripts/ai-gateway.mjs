@@ -164,6 +164,22 @@ check(noSecret.status === 501, 'with no gateway secret set the gateway says so')
     check(relayed.length === 1 && o.ok && /^from K/.test(o.text), `the relay at its limit hands over to the Portal's keys: ${o.ok ? o.text : o.error}`);
     o = await gw.generate({ AI_RELAY_SECRET: 'r' }, { system: 's', messages: [{ role: 'user', text: 'x' }] });
     check(!o.ok && o.status === 429, 'with no keys of its own, the relay\'s limit is the answer');
+    // AI_PREFER=gemini: the Portal's keys answer first and the relay isn't asked at all
+    gw._resetKeys(); answer = {}; relayed.length = 0;
+    globalThis.fetch = async (url, init) => { if (String(url).includes('/api/ai-relay')) { relayed.push(url); return new Response(JSON.stringify({ content: [{ text: 'from relay' }], usage: { input_tokens: 3, output_tokens: 4 } }), { status: 200 }); } return withRelay(url, init); };
+    o = await gen({ ...kenv, AI_RELAY_SECRET: 'r', AI_PREFER: 'gemini' });
+    check(o.ok && /^from K/.test(o.text) && relayed.length === 0, `AI_PREFER=gemini: the Gemini keys answer first and the relay isn't used (${o.ok ? o.text : o.error}, relay asked ${relayed.length})`);
+    o = await gen({ ...kenv, AI_RELAY_SECRET: 'r' });
+    check(o.ok && o.text === 'from relay' && relayed.length === 1, 'without AI_PREFER the relay still goes first');
+    // …and when every key is out of credits the relay takes over
+    gw._resetKeys(); relayed.length = 0; answer = { K1: [429, 'Your prepayment credits are depleted.'], K2: [402, 'Payment required'], K3: [403, 'Billing account is disabled for this project.'] };
+    o = await gen({ ...kenv, AI_RELAY_SECRET: 'r', AI_PREFER: 'Gemini' });
+    check(o.ok && o.text === 'from relay' && relayed.length === 1, `AI_PREFER=gemini: every key out of credits, the relay answers (${o.ok ? o.text : o.error})`);
+    // …and when the relay fails too, the keys' reason is the answer
+    gw._resetKeys(); relayed.length = 0;
+    globalThis.fetch = async (url, init) => { if (String(url).includes('/api/ai-relay')) { relayed.push(url); return new Response('{}', { status: 500 }); } return withRelay(url, init); };
+    o = await gen({ ...kenv, AI_RELAY_SECRET: 'r', AI_PREFER: 'gemini' });
+    check(!o.ok && relayed.length === 1 && /out of credits or has billing off/.test(o.error), `AI_PREFER=gemini: keys and relay both failing says what to fix (${o.error})`);
     globalThis.fetch = realFetch;
 }
 

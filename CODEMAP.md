@@ -157,7 +157,7 @@ Simulator results and reviews, program progress, attendance, the AI gateway and 
 
 | File | Lines | What it is |
 |---|---|---|
-| `functions/_ai-gateway.js` | 265 | Shared AI gateway core: Gemini key pool with per-model resting, US relay, model fallback, live-token minting, and the D1 usage ledger/budget (admit/record/usageSummary/runAi/runLiveToken). |
+| `functions/_ai-gateway.js` | 292 | Shared AI gateway core: Gemini key pool with per-model resting, US relay (first, or the fallback with AI_PREFER=gemini), model fallback, live-token minting, and the D1 usage ledger/budget (admit/record/usageSummary/runAi/runLiveToken). |
 | `functions/_attendance.js` | 151 | Attendance shared logic: PROGRAMS/lesson lists, batch-key slug rules matching the course Workers, budgeted KV reader (makeKv), check-in reads, field validation and saveRows merge-write. |
 | `functions/_drive.js` | 89 | Google Drive service-account client for batch archives: JWT sign-in, folder/upload helpers, batchCsv and saveBatchToDrive. |
 | `functions/_email.js` | 20 | Email Replies shared bits: deliveryConfigured(env) and the email_practice D1 table DDL. |
@@ -194,7 +194,7 @@ The Checks suite (node + Playwright) and the Uptime monitor.
 | File | Lines | What it is |
 |---|---|---|
 | `.github/scripts/admin-approval.mjs` | 85 | functions/api/update-status.js + api/create-user.js: a trainer may set an Admin / Trainer account up but only the Master Account approves or rejects one; a trainer still approves a trainee, and the approval issues the Batch ID. |
-| `.github/scripts/ai-gateway.mjs` | 186 | functions/_ai-gateway.js + api/ai-gateway.js: one shared ledger across flows, minute/daily/per-user/module-share limits, key-pool failover and rest, relay fallback, live-token cost, abort deadlines, review reserve, endpoint auth. |
+| `.github/scripts/ai-gateway.mjs` | 223 | functions/_ai-gateway.js + api/ai-gateway.js: one shared ledger across flows, minute/daily/per-user/module-share limits, key-pool failover and rest, relay fallback, AI_PREFER=gemini order, live-token cost, abort deadlines, review reserve, endpoint auth. |
 | `.github/scripts/batch.mjs` | 42 | Batch IDs: nextBatchId (functions/_utils.js) mints B+MMDDYY; app.js batchLabel/batchCohort show and group older IDs. |
 | `.github/scripts/blueprint.cjs` | 143 | Orientation decks and PDFs: trainee vs admin tracks, PDF page-per-slide with deploy stamp, consistent numbering across page counter, PDF footers/headers and the engine's own deck. |
 | `.github/scripts/call-results.mjs` | 92 | functions/api/call-results.js: the gateway secret, Ring Channel's and the CMS's graded calls land in simulator_results and each course's KV store by lesson/line, EA/PA alias, admin listing; Client Messaging conversations on their own line, MD's under md:. |
