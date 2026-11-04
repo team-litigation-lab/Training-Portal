@@ -30,7 +30,7 @@
 // The ledger is three small tables created on first use: ai_usage_day (flow, day), ai_usage_user (person, day),
 // ai_usage_minute (the minute). Tokens are the ones Gemini reports (usageMetadata), else about 4 characters each.
 
-export const MODULES = ['standard', 'cms', 'reception', 'intake', 'calendaring', 'ea-pa', 'pd', 'medsum', 'portal'];
+export const MODULES = ['standard', 'cms', 'reception', 'intake', 'calendaring', 'ea-pa', 'pd', 'medsum', 'ringchannel', 'portal'];
 const clean = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
 export const normModule = (m) => { const k = clean(m, 24).toLowerCase(); return MODULES.includes(k) ? k : 'portal'; };
 

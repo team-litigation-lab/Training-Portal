@@ -44,7 +44,7 @@ check(calls.includes('KEY-A') && calls.includes('KEY-B') || calls.length >= 1, '
 r = await ask('cms', 'bo'); r = await ask('reception', 'cy'); r = await ask('intake', 'di'); r = await ask('calendaring', 'ed');
 const rows = sql.prepare(`SELECT module, calls, tokens FROM ai_usage_day ORDER BY module`).all();
 check(rows.map(x => x.module).join() === 'calendaring,cms,intake,reception,standard' && rows.every(x => x.calls === 1 && x.tokens === 321), 'Standard, CMS, Reception, Intake and Calendaring are all counted in the one ledger');
-check(gw.normModule('Reception') === 'reception' && gw.normModule('anything') === 'portal', 'an unknown flow is counted as the Portal, never as a new budget');
+check(gw.normModule('Reception') === 'reception' && gw.normModule('ringchannel') === 'ringchannel' && gw.normModule('anything') === 'portal', 'an unknown flow is counted as the Portal, never as a new budget; LSH Ring Channel has its own line');
 
 // a rate-limited key rests: the next calls skip it
 calls.length = 0;
