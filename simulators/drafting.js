@@ -28,7 +28,7 @@ const app = () => document.getElementById('app');
 // tab: a letter template's id, or 'prov' for the medical providers' letters, which are a letter
 // per provider (their own address block is part of their own file) in two kinds.
 // edit: the way the trainee last chose to edit it on their computer ('word' or 'pdf'), to show those steps first.
-const S = { tab: TEMPLATES[0].id, caseNo: 0, prov: 0, kind: 'medlor', answers: {}, savedAt: null, edit: null };
+const S = { tab: TEMPLATES[0].id, caseNo: 0, prov: 0, kind: 'medlor', answers: {}, savedAt: null, edit: null, packet: false };
 const LETTER_KIND = { medlor: 'Medical LOR + Unsworn Declaration', lienbv: 'Lien Balance Verification' };
 
 /* ---------- the trainee's own drafts, in their browser ---------- */
@@ -580,11 +580,17 @@ function guideHtml(t) {
         'E-mail subject: <i>Client name - Lien holder (provider) - Request for Lien Verification</i>.'])}</div>`;
 }
 
+// 📚 Demand packets & binders: grayed out outside CM and Medsum and Demand (Sim.packetAccess), and the course is passed along.
+function packetTabHtml() {
+    return S.packet
+        ? `<a class="dr-tab" data-packet href="/simulators/demand-packet.html${Sim.packetProgram() ? '?program=' + encodeURIComponent(Sim.packetProgram()) : ''}" title="The cover letter, index, demand letter, PIP log, bills and records as one PDF">📚 Demand packets &amp; binders →</a>`
+        : `<span class="dr-tab off" data-packet aria-disabled="true" title="Part of Case Management and Medsum and Demand training, not Standard Foundational Training">📚 Demand packets &amp; binders 🔒</span>`;
+}
 function tabsHtml() {
     return `<div class="dr-bar">
             ${TEMPLATES.map(x => `<button class="dr-tab ${x.id === S.tab ? 'on' : ''}" onclick="LSHDrafting.tab('${esc(x.id)}')">${esc(x.title)}</button>`).join('')}
             ${PROVIDERS.length ? `<button class="dr-tab ${S.tab === 'prov' ? 'on' : ''}" onclick="LSHDrafting.tab('prov')">Medical provider letters</button>` : ''}
-            <a class="dr-tab" href="/simulators/demand-packet.html" title="The cover letter, index, demand letter, PIP log, bills and records as one PDF">📚 Demand packets &amp; binders →</a>
+            ${packetTabHtml()}
         </div>
         ${S.tab === 'prov' ? providerBar() : ''}`;
 }
@@ -867,8 +873,6 @@ window.LSHDrafting = API;
 
 document.getElementById('topbar').innerHTML = Sim.topbar('drafting');
 Sim.label('Drafting');
-// A course can open a given letter: ?tab=lor1p | lor3p | prov, and for the providers' letters ?kind=medlor | lienbv
-// (Standard Foundational Training's Provider Communication days open the MedLOR + HIPAA packet this way).
 function fromLink() {
     const q = new URLSearchParams(location.search), tab = q.get('tab'), kind = q.get('kind');
     if (tab === 'prov' && PROVIDERS.length) S.tab = 'prov';
@@ -882,6 +886,8 @@ function fromLink() {
 Sim.restore().then(async () => {
     load(); await cloudState(); fromLink(); render();
     document.getElementById('topbar').innerHTML = Sim.topbar('drafting');
+    S.packet = await Sim.packetAccess();
+    const pt = document.querySelector('[data-packet]'); if (pt) pt.outerHTML = packetTabHtml();
 });
 load(); fromLink(); render();
 }());

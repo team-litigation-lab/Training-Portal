@@ -850,7 +850,9 @@ async function fileIt() {
 }
 
 function renderSide() { const el = document.getElementById('pk-side'); if (el) el.innerHTML = sideHtml(); }
+let ALLOWED = false;      // set once Sim.packetAccess() says this person may build packets (see the foot of this file)
 function render() {
+    if (!ALLOWED) return;
     const pk = P(), showPrev = S.preview && S.built && S.built.type === S.type;
     app().innerHTML = `
         <div class="pk-bar">${Object.keys(TYPES).map(k => `<button class="pk-tab ${k === S.type ? 'on' : ''}" type="button" onclick="LSHPacket.type('${k}')">${esc(TYPES[k].name)}</button>`).join('')}</div>
@@ -1061,9 +1063,22 @@ function fromLink() {
     if (t && TYPES[t]) S.type = t;
     if (c && !String(P().case.caseId || '').trim()) P().case.caseId = c;
 }
-load(); fromLink(); render(); markLost();
-Sim.restore().then(() => {
-    load(); fromLink(); render(); markLost();      // the signed-in trainee's own packets, now that we know who they are
+// The packets are for Case Management and Medsum and Demand only (Sim.packetAccess): nothing is drawn until that is known,
+// and anyone else (Standard Foundational Training) gets a locked notice instead of the builder.
+function lockedHtml() {
+    return `<div class="sim-card pk-locked" style="text-align:center;padding:36px 20px;">
+        <div style="font-size:34px;" aria-hidden="true">🔒</div>
+        <h2 style="margin:8px 0 6px;">Not part of your training</h2>
+        <p style="margin:0 auto 16px;max-width:520px;">Demand Packets &amp; Binders are practiced in <b>Case Management</b> and <b>Medsum and Demand</b> training. They are not part of Standard Foundational Training.</p>
+        <a class="sim-btn" href="/simulators/drafting.html${Sim.packetProgram() ? '?program=' + encodeURIComponent(Sim.packetProgram()) : ''}">← Back to Drafting</a>
+    </div>`;
+}
+app().innerHTML = '<div class="sim-card" style="text-align:center;color:#64748b;">Opening…</div>';
+Sim.packetAccess().then(async (ok) => {
+    await Sim.restore();
     document.getElementById('topbar').innerHTML = Sim.topbar('packet');
+    if (!ok) { app().innerHTML = lockedHtml(); return; }
+    ALLOWED = true;
+    load(); fromLink(); render(); markLost();      // the signed-in trainee's own packets, now that we know who they are
 });
 }());

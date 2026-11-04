@@ -34,6 +34,23 @@ const Sim = {
     // page has to remember; a page should still `await Sim.restore()` before its first render, to start the heartbeat at
     // once and paint the right name the first time.
     ready: null,
+    // 📚 Demand Packets & Binders belong to Case Management and Medsum and Demand, not Standard Foundational Training. Open when the
+    // course that opened the page (?program= / ?from=) is one of those two, or, with no course named, when the person is an administrator
+    // or a trainee with approved (or passed) access to one of them. Used by the packet page itself and by Drafting's tab to it.
+    PACKET_PROGRAMS: ['cm', 'cm training', 'case management', 'cms', 'md', 'medsum', 'medsum and demand'],
+    PACKET_TOPICS: ['CM TRAINING', 'REVISED CM TRAINING', 'MEDSUM AND DEMAND'],
+    packetProgram() { const q = new URLSearchParams(location.search); return (q.get('program') || q.get('from') || '').trim(); },
+    async packetAccess() {
+        const named = Sim.packetProgram().toLowerCase();
+        if (named) return Sim.PACKET_PROGRAMS.includes(named);
+        await Sim.restore();
+        if (Sim.isAdmin()) return true;
+        try {
+            const r = await Sim.fetchRetry('/api/topics', { credentials: 'include', cache: 'no-store' });
+            const d = await r.json();
+            return !!(d && d.success && (d.access || []).some(a => Sim.PACKET_TOPICS.includes(a.topic_key) && /^(Approved|Passed)$/i.test(a.status || '')));
+        } catch (e) { return false; }
+    },
     // The portal's own APIs refuse a session whose heartbeat is more than 90 s old (401, code SESSION_EXPIRED): a laptop that slept, a tab
     // the browser throttled. /api/me re-seeds it, so ask once and send the request again once. Returns the Response either way. (opts
     // are used twice: pass a string body, not a stream.)

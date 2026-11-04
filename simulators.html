@@ -23,6 +23,8 @@
     .hub-card .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
     .hub-card .uses { font-size: 11.5px; color: var(--slate); font-weight: 800; }
     .hub-card.soon { background: #fbfaf7; }
+    .hub-card.locked { background: #f1f5f9; opacity: .6; }
+    .hub-card.locked .icon { filter: grayscale(1); }
     /* the hub uses the window's whole width (a 24px gutter), not the simulators' centred 1280px column */
     .sim-wrap.hub-wrap { max-width: none; }
     .hub-wrap .sim-hero p { max-width: none; }
@@ -92,30 +94,34 @@
           desc: 'A medical records request platform on the John Doe file. Check the HIPAA authorization, request records and itemized bills from the right departments for the right dates, and move the calendar forward. Handle what comes back: rejections, invoices over the fee cap, silence, partial ledgers and providers hiding in the records. Scored against the attorney\'s objectives.' },
         { id: 'drafting', icon: '✍️', title: 'Drafting', status: 'live', href: '/simulators/drafting.html', uses: 'Standard Foundational · CM',
           desc: 'Draft the firm\'s letters in the firm\'s own templates: the 1P Letter of Representation to the client\'s carrier and the 3P letter with affidavit to the defendant\'s. The page shows the letter the way Word has it — the firm\'s wording is fixed, and the blanks it highlighted in yellow are yours to fill, from the case notes beside you. The download is that same Word file with your answers written into it, letterhead and logo included, named the way the trainers ask, ready to upload to SA.' },
-        { id: 'packet', icon: '📚', title: 'Demand Packets & Binders', status: 'live', href: '/simulators/demand-packet.html', uses: 'CM · Medsum and Demand · Litigation',
+        { id: 'packet', icon: '📚', title: 'Demand Packets & Binders', status: 'live', gated: true, href: '/simulators/demand-packet.html', uses: 'CM · Medsum and Demand · Litigation',
           desc: 'Put the full packet together as one PDF, the way the firm sends it: the cover letter, the index, the demand letter, the PIP log, the medical bills and the medical records — or a mediation or arbitration binder with numbered tabs. Add as many PDFs (and scans or photos) as each section needs; the page writes the cover letter and the PIP log from the case, numbers every page, stamps the Bates numbers, bookmarks every section and builds the index with each document\'s real page and Bates range. Check it the way the firm does before it leaves, and send it to your trainer.' },
         { id: 'drive', icon: '📂', title: 'Backup Drive', status: 'live', href: '/simulators/drive.html', uses: 'CM · all programs',
           desc: 'The firm\'s backup drive, on your own Google Drive: connect it once, then lay the firm\'s case-file folder structure out yourself — the client folder, intake and retainer, records apart from bills, liens, property damage, litigation, and the firm\'s own folders, named, nested and in order. It is graded automatically, folder by folder, with the rule behind every folder you miss, and the score is saved for your trainer. A layout that is right is built in your Drive; ↻ Check my drive and 🔁 Put the missing folders back keep it in order.' },
         { id: 'efiling', icon: '🏛', title: 'Court E-Filing', status: 'live', href: '/simulators/efiling.html', uses: 'CM · Litigation',
           desc: 'File like US courts require: a federal filing through electronic case filing (event, case, filer, linked entry, attachments, docket text) and state filings through an e-filing provider (filing code, parties, service contacts, fees). Fix the documents first: OCR, signatures, certificates of service, redaction, size limits, passwords. Then submit and see if the clerk accepts it.' }
     ];
+    // 📚 Demand Packets & Binders is for Case Management and Medsum and Demand only (Sim.packetAccess, the same rule the page
+    // itself and Drafting's tab use): grayed out until that is known, and for everyone else (Standard Foundational Training).
+    let PACKET_OK = false;
     const CHIP = { live: ['live', 'Live'], next: ['next', 'Coming next'], plan: ['plan', 'Planned'], input: ['input', 'Needs input'] };
 
     function renderHub() {
         document.getElementById('topbar').innerHTML = Sim.topbar('hub');
         Sim.label('Simulators');
         document.getElementById('hub-grid').innerHTML = SIMULATORS.map(s => `
-            <div class="sim-card hub-card ${s.status === 'live' ? '' : 'soon'}">
+            <div class="sim-card hub-card ${s.status === 'live' ? '' : 'soon'}${s.gated && !PACKET_OK ? ' locked' : ''}">
                 <div class="row" style="margin-top:0;"><span class="icon">${s.icon}</span><span class="sim-chip ${CHIP[s.status][0]}">${CHIP[s.status][1]}</span></div>
                 <h3>${Sim.esc(s.title)}</h3>
                 <p title="${Sim.esc(s.desc)}">${Sim.esc(s.desc)}</p>
                 <div class="row"><span class="uses">${Sim.esc(s.uses)}</span>
-                    ${s.href ? `<a class="sim-btn primary" href="${s.href}">Open →</a>` : `<button class="sim-btn ghost" disabled>Not yet</button>`}</div>
+                    ${s.gated && !PACKET_OK ? `<button class="sim-btn ghost" disabled title="Part of Case Management and Medsum and Demand training, not Standard Foundational Training">🔒 CM · Medsum only</button>`
+                        : s.href ? `<a class="sim-btn primary" href="${s.href}">Open →</a>` : `<button class="sim-btn ghost" disabled>Not yet</button>`}</div>
             </div>`).join('');
     }
 
     // A new tab has the signed cookie but no copy of who in its own storage: ask first, so an admin gets the admin hub, and the heartbeat runs.
-    document.addEventListener('DOMContentLoaded', async () => { await Sim.restore(); renderHub(); });
+    document.addEventListener('DOMContentLoaded', async () => { await Sim.restore(); renderHub(); PACKET_OK = await Sim.packetAccess(); if (PACKET_OK) renderHub(); });
 </script>
 </body>
 </html>
