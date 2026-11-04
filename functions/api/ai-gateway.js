@@ -4,7 +4,7 @@ import { runAi, runLiveToken, usageSummary, normModule } from '../_ai-gateway.js
 // The shared AI gateway for everything outside the Portal's own pages: the CMS and the programs' Workers.
 //
 //   POST /api/ai-gateway   header X-Gateway-Key: <AI_GATEWAY_SECRET>   (the same secret on every caller)
-//        { module: 'standard'|'cms'|'reception'|'intake'|'calendaring'|'ea-pa'|'pd'|'medsum', user, system,
+//        { module: 'standard'|'cms'|'reception'|'intake'|'calendaring'|'ea-pa'|'pd'|'medsum'|'ringchannel', user, system,
 //          messages: [{ role: 'user'|'model', text }], json, maxTokens, fast }   (fast: a live call's line, minimal thinking)
 //        → { success, text, model, tokens }  or  { success: false, error, scope } with 429 when a budget says wait
 //   POST /api/ai-gateway   { action: 'live-token', module, user, setup, model, maxMinutes }  → { success, token }   (a live voice call: counts as AI_LIVE_COST requests)
