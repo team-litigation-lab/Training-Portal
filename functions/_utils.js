@@ -446,10 +446,12 @@ export async function logActivity(db, actorUsername, actorBatch, action, details
  */
 export async function generateAiReview(env, { submissionId, activityTitle, questions, answers, notes }) {
     // Grading's own key first; if it's rate-limited (429) or rejected, the main key takes the request.
+    // Claude (ANTHROPIC_API_KEY, functions/_ai-gateway.js callClaude) reviews first; the Gemini keys below only when it can't.
     const keys = [env.GEMINI_API_KEY1, env.GEMINI_API_KEY].filter((k, i, a) => k && a.indexOf(k) === i);
-    if (!keys.length) {
-        console.error('generateAiReview: GEMINI_API_KEY is not configured — skipping.');
-        return { ok: false, error: 'AI review is not configured yet (missing GEMINI_API_KEY).' };
+    const claude = !!String(env.ANTHROPIC_API_KEY || '').trim();
+    if (!keys.length && !claude) {
+        console.error('generateAiReview: neither ANTHROPIC_API_KEY nor GEMINI_API_KEY is configured — skipping.');
+        return { ok: false, error: 'AI review is not configured yet (missing ANTHROPIC_API_KEY or GEMINI_API_KEY).' };
     }
     // Grading starts on the Flash models for quality (GEMINI_MODEL first if set), then Flash-Lite:
     // on the free tier each model has its own quota (Flash 20 a day, Flash-Lite about 500).
@@ -484,8 +486,18 @@ Respond ONLY with a JSON object matching this exact shape, with no other text be
 }
 "suggestedScore" must be a plain number from 0 to 100.`;
 
-        let res, errText = '', model = models[0];
-        keyLoop:
+        let rawText = '', claudeError = '';
+        if (claude) {
+            // (loaded here, not imported at the top: the checks load this file on its own)
+            const { callClaude } = await import('./_ai-gateway.js');
+            const c = await callClaude(env, { messages: [{ role: 'user', text: prompt }], json: true, maxTokens: 3000, grading: true });
+            if (c.ok) rawText = c.text;
+            else { claudeError = c.error; console.error('generateAiReview: Claude failed, Gemini takes over:', c.status, c.error); }
+        }
+        if (!rawText && !keys.length) return { ok: false, error: 'AI review failed (Claude: ' + claudeError + ').' };
+
+        let res = { ok: true }, errText = '', model = models[0];
+        if (!rawText) keyLoop:
         for (const apiKey of keys) {
             let limited = false, badKey = false;
             for (model of models) {
@@ -513,8 +525,8 @@ Respond ONLY with a JSON object matching this exact shape, with no other text be
                 : `Gemini API error (${res.status}). The configured model may need updating — see https://ai.google.dev/gemini-api/docs/models.` };
         }
 
-        const data = await res.json();
-        const rawText = data && data.candidates && data.candidates[0] && data.candidates[0].content &&
+        const data = rawText ? null : await res.json();
+        if (!rawText) rawText = data && data.candidates && data.candidates[0] && data.candidates[0].content &&
             data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
         if (!rawText) {
             console.error('generateAiReview: no usable content in Gemini response', JSON.stringify(data));

@@ -157,7 +157,7 @@ Simulator results and reviews, program progress, attendance, the AI gateway and 
 
 | File | Lines | What it is |
 |---|---|---|
-| `functions/_ai-gateway.js` | 292 | Shared AI gateway core: Gemini key pool with per-model resting, US relay (first, or the fallback with AI_PREFER=gemini), model fallback, live-token minting, and the D1 usage ledger/budget (admit/record/usageSummary/runAi/runLiveToken). |
+| `functions/_ai-gateway.js` | 368 | Shared AI gateway core: Claude first (ANTHROPIC_API_KEY, callClaude), then the Gemini key pool with per-model resting, US relay (first, or the fallback with AI_PREFER=gemini), model fallback, live-token minting, and the D1 usage ledger/budget (admit/record/usageSummary/runAi/runLiveToken). |
 | `functions/_attendance.js` | 151 | Attendance shared logic: PROGRAMS/lesson lists, batch-key slug rules matching the course Workers, budgeted KV reader (makeKv), check-in reads, field validation and saveRows merge-write. |
 | `functions/_drive.js` | 89 | Google Drive service-account client for batch archives: JWT sign-in, folder/upload helpers, batchCsv and saveBatchToDrive. |
 | `functions/_email.js` | 20 | Email Replies shared bits: deliveryConfigured(env) and the email_practice D1 table DDL. |
@@ -246,7 +246,7 @@ The Checks suite (node + Playwright) and the Uptime monitor.
 - **`functions/api/leaderboard.js`** re-implements `progress.js`'s submission aggregation; consolidating risks changing scores, so it stays, noted.
 - **`functions/_attendance.js makeKv`** and **`program-progress.js`'s KV reader** are drifted siblings (throw-on-budget vs skip-and-note); merging them changes failure behavior.
 - **Program-id → KV-prefix maps** exist in `_attendance.js`, `program-progress.js` and `call-results.js` with different shapes.
-- **`functions/_utils.js generateAiReview`** keeps its own Gemini key/model fallback outside `_ai-gateway.js`'s budgeted pool.
+- **`functions/_utils.js generateAiReview`** tries Claude first through `_ai-gateway.js callClaude` (loaded with a dynamic import), then keeps its own Gemini key/model fallback outside `_ai-gateway.js`'s budgeted pool.
 - **`wrangler.toml name`** is the CM course's project name, not this Pages project's; renaming could detach the deployment, so it is only noted.
 - **Test-harness duplication**: the D1-over-`node:sqlite` stub (6 node tests) and the static-server/Chromium boilerplate (10 browser tests) are copy-pasted with drift.
 - **Coverage gaps**: no test signs in through `/trainee-login.html`/`/registration.html` end to end, and the Docket/Records/eFiling/Email simulators plus attendance are load-only tested.

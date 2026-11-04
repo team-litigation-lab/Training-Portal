@@ -3,7 +3,8 @@
 // one flow can't take more than its share of the day (so none starves the others); a rate-limited key rests and the next
 // one answers; a key out of credits, with billing off, rejected or busy hands over to the next key, and only when every key
 // has failed does a request fail; the relay at its limit hands over to the keys; the reviews keep a share of the day;
-// tokens are the ones Gemini reports; the endpoint refuses a wrong gateway key and works with the right one.
+// tokens are the ones Gemini reports; the endpoint refuses a wrong gateway key and works with the right one; with ANTHROPIC_API_KEY
+// set Claude answers first (Haiku for chat, Sonnet for json and tier 'grading') and Gemini takes over when it can't.
 // Run: node --no-warnings .github/scripts/ai-gateway.mjs   (from the repository root)
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
@@ -215,6 +216,67 @@ check(noSecret.status === 501, 'with no gateway secret set the gateway says so')
     sent = []; refuse = true;
     for (let i = 0; i < 3; i++) await gw.generate(kenv, { system: 's', messages: [{ role: 'user', text: 'x' }], fast: true });
     check(sent.filter(Boolean).length === 1, `a model that refused the thinking setting was sent it ${sent.filter(Boolean).length} times in 3 calls (once, then never)`);
+    globalThis.fetch = realFetch;
+}
+
+// Claude is the primary provider when ANTHROPIC_API_KEY is set: Haiku for chat, Sonnet for json and tier 'grading', turns that
+// start and end with the user, JSON fences stripped; a rate limit, a rejected key, a refusal or no text hands over to Gemini.
+{
+    const realFetch = globalThis.fetch;
+    let mode = 'ok', sentBodies = [], sentHeaders = [], gem = 0;
+    globalThis.fetch = async (url, init) => {
+        if (String(url).startsWith('https://api.anthropic.com/')) {
+            sentBodies.push(JSON.parse(init.body)); sentHeaders.push(init.headers);
+            if (mode === '429') return new Response(JSON.stringify({ type: 'error', error: { type: 'rate_limit_error', message: 'Rate limited' } }), { status: 429, headers: { 'retry-after': '30' } });
+            if (mode === '401') return new Response(JSON.stringify({ type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } }), { status: 401 });
+            if (mode === 'refusal') return new Response(JSON.stringify({ content: [], stop_reason: 'refusal', usage: { input_tokens: 5, output_tokens: 0 } }), { status: 200 });
+            const text = mode === 'json' ? '```json\n{"score": 90}\n```' : 'Good morning, this is Claude.';
+            return new Response(JSON.stringify({ model: JSON.parse(init.body).model, content: [{ type: 'thinking', thinking: '' }, { type: 'text', text }], stop_reason: 'end_turn', usage: { input_tokens: 100, output_tokens: 20 } }), { status: 200 });
+        }
+        gem++;
+        return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Gemini here.' }] } }], usageMetadata: { totalTokenCount: 50 } }), { status: 200 });
+    };
+    const cenv = { ANTHROPIC_API_KEY: 'sk-test', GEMINI_API_KEY: 'G1' };
+    const reset = () => { gw._resetKeys(); gw._resetClaude(); sentBodies = []; sentHeaders = []; gem = 0; };
+
+    reset();
+    let x = await gw.generate(cenv, { system: 'Be a caller.', messages: [{ role: 'model', text: 'Hello?' }, { role: 'user', text: 'Hi' }, { role: 'user', text: 'there' }, { role: 'model', text: 'Yes' }] });
+    const b = sentBodies[0] || {};
+    check(x.ok && x.text === 'Good morning, this is Claude.' && x.via === 'claude' && x.tokens === 120 && gem === 0, 'with ANTHROPIC_API_KEY set, Claude answers first and Gemini is not called');
+    check(b.model === 'claude-haiku-5-5' && b.system === 'Be a caller.' && b.output_config.effort === 'low' && !('temperature' in b), `chat uses Haiku at low effort with no temperature (${b.model})`);
+    check(b.messages.map(m => m.role).join() === 'user,assistant,user,assistant,user' && b.messages[2].content === 'Hi\n\nthere', 'turns alternate, start and end with the user, and same-role lines are joined');
+    check(sentHeaders[0]['anthropic-version'] === '2026-10-21' && sentHeaders[0]['x-api-key'] === 'sk-test', 'the key and API version are sent');
+
+    reset(); mode = 'json';
+    x = await gw.generate(cenv, { system: 'Grade.', messages: [{ role: 'user', text: 'answer' }], json: true });
+    check(x.ok && x.text === '{"score": 90}' && sentBodies[0].model === 'claude-sonnet-5-5' && sentBodies[0].fallbacks === 'default' && sentHeaders[0]['anthropic-beta'] === 'server-side-fallback-2026-07-01', 'json requests use Sonnet with the server-side fallback, and code fences are stripped');
+    reset(); mode = 'ok';
+    await gw.generate(cenv, { system: 's', messages: [{ role: 'user', text: 'x' }], grading: true });
+    check(sentBodies[0].model === 'claude-sonnet-5-5', "tier 'grading' text requests use Sonnet too");
+    reset();
+    await gw.generate({ ...cenv, CLAUDE_CHAT_MODEL: 'claude-sonnet-5-5' }, { system: 's', messages: [{ role: 'user', text: 'x' }] });
+    check(sentBodies[0].model === 'claude-sonnet-5-5', 'CLAUDE_CHAT_MODEL changes the chat model');
+
+    reset(); mode = '429';
+    x = await gw.generate(cenv, { system: 's', messages: [{ role: 'user', text: 'x' }] });
+    check(x.ok && x.text === 'Gemini here.' && gem === 1, 'Claude at its rate limit hands over to Gemini');
+    x = await gw.generate(cenv, { system: 's', messages: [{ role: 'user', text: 'x' }] });
+    check(x.ok && sentBodies.length === 1, 'and Claude rests (retry-after) instead of being asked every request');
+
+    reset(); mode = '401';
+    x = await gw.generate(cenv, { system: 's', messages: [{ role: 'user', text: 'x' }] });
+    check(x.ok && x.text === 'Gemini here.', 'a rejected Claude key hands over to Gemini');
+    reset(); mode = 'refusal';
+    x = await gw.generate(cenv, { system: 's', messages: [{ role: 'user', text: 'x' }] });
+    check(x.ok && x.text === 'Gemini here.', 'a Claude refusal hands over to Gemini');
+    reset(); mode = '429';
+    x = await gw.generate({ ANTHROPIC_API_KEY: 'sk-test' }, { system: 's', messages: [{ role: 'user', text: 'x' }] });
+    check(!x.ok && x.status === 429, 'with no Gemini key, Claude at its limit is a 429 with a plain reason');
+
+    reset(); mode = 'ok';
+    const u = await gw.usageSummary(db, cenv);
+    check(u.primary === 'claude' && (await gw.usageSummary(db, env)).primary === 'gemini', 'the usage summary says which provider is primary');
+    gw._resetClaude();
     globalThis.fetch = realFetch;
 }
 

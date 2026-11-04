@@ -83,7 +83,12 @@ progress: Standard Training by lesson (Reception 4, Calendar Management 5, Intak
 - Gemini: `Sim.ai({ system, messages:[{role:'user'|'model', text}], json, maxTokens })`
   → `/api/sim-ai`. Calls go through `functions/_sim-guard.js` (a Portal session, same-origin only, `SIM_RATE_LIMIT`
   requests per connection per 10 minutes, default 400 — a whole class often shares one office connection).
-  No Anthropic keys.
+  - **Claude first (primary):** with the secret `ANTHROPIC_API_KEY` set on this Pages project, every text call
+    (simulators, the CMS and programs through `/api/ai-gateway`, AI reviews) goes to Claude first: chat on
+    `claude-haiku-5-5`, json requests (reviews, grading) and `tier: 'grading'` on `claude-sonnet-5-5`
+    (`CLAUDE_CHAT_MODEL` / `CLAUDE_GRADING_MODEL` change them). When Claude can't answer (a rate limit, no credits,
+    a rejected key, a region it isn't offered in, busy, too slow, a refusal) the relay and Gemini keys below take over.
+    Live voice calls stay on Gemini Live. See `callClaude` in `functions/_ai-gateway.js`.
   - **US relay (recommended):** Gemini refuses some regions ("User location is not supported", e.g. Hong Kong),
     and Pages Functions run in the data centre nearest the trainee. Set the secret `AI_RELAY_SECRET` on this
     Pages project **and** the same value on the `ea-pa-training` Worker: `/api/sim-ai` then sends every AI call

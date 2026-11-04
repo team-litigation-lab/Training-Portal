@@ -1,10 +1,12 @@
-// The Portal's AI gateway: ONE place that holds the Gemini keys and ONE shared budget for every call flow
+// The Portal's AI gateway: ONE place that holds the AI keys (Claude first, then the Gemini keys) and ONE shared budget for every call flow
 // (the Portal's own simulators, the CMS, the Standard program and the other programs). Not a routed endpoint
 // (the leading _ keeps Pages from mapping a URL to it).
 //
 //   callers   → functions/api/sim-ai.js        (Portal simulators, signed-in Portal session)
 //             → functions/api/ai-gateway.js    (the CMS and the programs' Workers, with AI_GATEWAY_SECRET)
 //   this file → keys + models + relay, the usage ledger (D1 TRAINING_DB), and the guardrails
+//
+// The primary provider is Claude (ANTHROPIC_API_KEY, see callClaude below); Gemini is the fallback and the live voice calls.
 //
 // Guardrails (every number can be changed with a Pages variable; the defaults suit the free Gemini tier):
 //   AI_MINUTE_CALLS   60      requests per minute across ALL flows (the keys' combined per-minute room)
@@ -112,7 +114,7 @@ export async function usageSummary(db, env) {
     const today = (await db.prepare(`SELECT module, calls, tokens, errors, refused FROM ai_usage_day WHERE day = ? ORDER BY calls DESC`).bind(d).all()).results || [];
     const week = (await db.prepare(`SELECT day, SUM(calls) AS calls, SUM(tokens) AS tokens FROM ai_usage_day WHERE day >= date(?, '-6 days') GROUP BY day ORDER BY day DESC`).bind(d).all()).results || [];
     const total = today.reduce((a, r) => ({ calls: a.calls + r.calls, tokens: a.tokens + r.tokens }), { calls: 0, tokens: 0 });
-    return { day: d, limits: L, total, today, week, keys: keyNames(env).length };
+    return { day: d, limits: L, total, today, week, keys: keyNames(env).length, primary: claudeOn(env) ? 'claude' : 'gemini' };
 }
 
 /* ---------------------------------------------------------------- the keys */
@@ -149,18 +151,92 @@ async function viaRelay(env, { system, messages, json, maxTokens, signal }) {
     return { ok: r.ok && !!text, status: r.status, text, model: data.model, tokens: (u.input_tokens || 0) + (u.output_tokens || 0), error: (data.error && (data.error.message || data.error)) || data.detail || '' };
 }
 
-// One model call through the shared keys: → { ok, text, model, tokens, status, error }
+/* ---------------------------------------------------------------- Claude (the primary provider) */
+// When ANTHROPIC_API_KEY is set, every text call tries Claude first. Gemini (the relay, then the keys above) answers only when
+// Claude can't: a rate limit, no credits, a rejected key, busy, too slow, a refusal or no text. Without the key nothing changes.
+// Live voice calls (runLiveToken) stay on Gemini Live: Claude has no live-audio API.
+//   CLAUDE_CHAT_MODEL     claude-haiku-5-5    practice chats and live-call lines
+//   CLAUDE_GRADING_MODEL  claude-sonnet-5-5   json requests (AI reviews, grading) and tier 'grading' (trainer tools)
+// A rejected key rests 10 minutes, no credits an hour, a rate limit its retry-after (else a minute): Gemini answers meanwhile.
+export const claudeOn = (env) => !!String((env && env.ANTHROPIC_API_KEY) || '').trim();
+export const claudeModel = (env, grading) => String((grading ? env.CLAUDE_GRADING_MODEL : env.CLAUDE_CHAT_MODEL) || '').trim() || (grading ? 'claude-sonnet-5-5' : 'claude-haiku-5-5');
+let claudeRest = 0;
+export const _resetClaude = () => { claudeRest = 0; };   // (the checks)
+
+// → { ok, text, model, tokens, via: 'claude' } or { ok: false, status, error, aborted }
+export async function callClaude(env, { system, messages, json, maxTokens, signal, grading }) {
+    if (!claudeOn(env)) return { ok: false, status: 500, error: 'No ANTHROPIC_API_KEY is set.' };
+    if (claudeRest > Date.now()) return { ok: false, status: 429, error: 'Claude is resting after an error.' };
+    grading = !!(grading || json);
+    // Claude takes alternating turns that start and end with the user: same-role lines are joined, and an opening line
+    // from the model (a simulator's greeting) gets a short user turn before it.
+    const turns = [];
+    for (const m of messages || []) {
+        const role = m.role === 'model' || m.role === 'assistant' ? 'assistant' : 'user', text = String(m.text || '').trim();
+        if (!text) continue;
+        const prev = turns[turns.length - 1];
+        if (prev && prev.role === role) prev.content += '\n\n' + text; else turns.push({ role, content: text });
+    }
+    if (!turns.length || turns[0].role !== 'user') turns.unshift({ role: 'user', content: '(Begin.)' });
+    if (turns[turns.length - 1].role !== 'user') turns.push({ role: 'user', content: '(Continue.)' });
+    const sys = String(system || '') + (json ? '\n\nReply with only the JSON object: no code fences and no text before or after it.' : '');
+    const model = claudeModel(env, grading), cap = Math.min(Math.max(Number(maxTokens) || 800, 128), 4096);
+    // max_tokens covers the model's thinking as well as its answer, so it has room above the caller's cap (only what's used is billed)
+    const body = { model, max_tokens: Math.max(cap * 2, grading ? 8192 : 2048), messages: turns, output_config: { effort: grading ? 'medium' : 'low' } };
+    if (sys.trim()) body.system = sys.trim();
+    const headers = { 'Content-Type': 'application/json', 'x-api-key': String(env.ANTHROPIC_API_KEY).trim(), 'anthropic-version': '2026-10-21' };
+    // Sonnet 5.5: a request its safety classifier declines is answered by a fallback model the server picks, instead of failing
+    if (model === 'claude-sonnet-5-5') { headers['anthropic-beta'] = 'server-side-fallback-2026-07-01'; body.fallbacks = 'default'; }
+
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), grading ? 45000 : 20000);
+    const onAbort = () => ctl.abort();
+    if (signal) { if (signal.aborted) ctl.abort(); else signal.addEventListener('abort', onAbort, { once: true }); }
+    const aborted = () => !!(signal && signal.aborted);
+    try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', signal: ctl.signal, headers, body: JSON.stringify(body) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            const msg = String((data.error && data.error.message) || `Claude error ${res.status}`);
+            if (res.status === 401 || res.status === 403) claudeRest = Date.now() + 600000;
+            else if (/credit balance|billing/i.test(msg)) claudeRest = Date.now() + 3600000;
+            else if (res.status === 429) claudeRest = Date.now() + Math.min(Math.max(Number(res.headers.get('retry-after')) || 60, 5), 600) * 1000;
+            return { ok: false, status: res.status, error: msg };
+        }
+        if (data.stop_reason === 'refusal') return { ok: false, status: 502, error: 'Claude declined this request.' };
+        let text = (data.content || []).filter(b => b && b.type === 'text').map(b => b.text || '').join('');
+        if (json) text = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+        if (!text.trim()) return { ok: false, status: 502, error: `Claude returned no text (${data.stop_reason || 'empty'}).` };
+        const u = data.usage || {};
+        return { ok: true, text, model: data.model || model, tokens: (u.input_tokens || 0) + (u.output_tokens || 0), via: 'claude' };
+    } catch (e) {
+        return { ok: false, status: aborted() ? 504 : 502, aborted: aborted(), error: ctl.signal.aborted && !aborted() ? 'Claude took too long to answer.' : 'Claude unreachable: ' + (e && e.message || e) };
+    } finally {
+        clearTimeout(timer);
+        if (signal) signal.removeEventListener('abort', onAbort);
+    }
+}
+
+// One model call: Claude first when ANTHROPIC_API_KEY is set, else (or when Claude can't answer) the shared Gemini keys.
+// → { ok, text, model, tokens, status, error }
 // `signal` (optional, an AbortSignal) is for a caller with a deadline, such as work that runs after the response is sent: when it
 // fires the relay and Gemini fetches stop and the answer is { ok: false, status: 504 } instead of walking on through the other keys and models.
 // fast: a live call's next line (1–3 sentences): as little thinking as the model allows, so the caller answers in about a second
 const noThinking = new Set();   // models that refused a thinking setting: not sent to them again (no second request every turn)
 // AI_PREFER=gemini: the Portal's own Gemini keys answer first and the relay is only the fallback (when every key has failed, say
 // out of credits or a region Gemini refuses). Unset (or "relay"), the relay goes first and the keys are the fallback, as before.
+// (Either way Claude, when ANTHROPIC_API_KEY is set, answers before both.)
 export const prefersKeys = (env) => /^gemini$/i.test(String((env && env.AI_PREFER) || '').trim());
-export async function generate(env, { system, messages, json, maxTokens, signal, fast }) {
+export async function generate(env, { system, messages, json, maxTokens, signal, fast, grading }) {
     const chars = String(system || '').length + messages.reduce((a, m) => a + String(m.text || '').length, 0);
     const names = keyNames(env);
     const slow = () => ({ ok: false, status: 504, error: 'The AI took too long to answer.', tokens: 0 });
+    if (claudeOn(env)) {
+        const c = await callClaude(env, { system, messages, json, maxTokens, signal, grading });
+        if (c.ok) return c;
+        if (c.aborted || (signal && signal.aborted)) return slow();
+        console.error('ai-gateway: Claude failed, Gemini takes over:', c.status, c.error);
+        if (!names.length && !env.AI_RELAY_SECRET) return { ok: false, status: c.status === 429 ? 429 : 502, tokens: 0, error: c.status === 429 ? 'AI generation limit reached. Try again in a minute.' : 'Claude: ' + c.error };
+    }
     const relay = async () => {
         try {
             const r = await viaRelay(env, { system, messages, json, maxTokens, signal });
@@ -250,14 +326,14 @@ async function viaKeys(env, names, { system, messages, json, maxTokens, signal, 
 }
 
 // The whole path for one request: budget → model → ledger. → { status, body }
-export async function runAi(db, env, { module, user, system, messages, json, maxTokens, signal, fast }) {
+export async function runAi(db, env, { module, user, system, messages, json, maxTokens, signal, fast, grading }) {
     module = normModule(module);
     const gate = await admit(db, env, { module, user, review: !!json });
     if (!gate.ok) {
         await record(db, { module, refused: true });
         return { status: 429, body: { success: false, error: gate.reason, scope: gate.scope } };
     }
-    const r = await generate(env, { system, messages, json, maxTokens, signal, fast: !!fast && !json });
+    const r = await generate(env, { system, messages, json, maxTokens, signal, fast: !!fast && !json, grading: !!grading });
     await record(db, { module, tokens: r.tokens || 0, error: !r.ok });
     return r.ok ? { status: 200, body: { success: true, text: r.text, model: r.model, tokens: r.tokens, module } } : { status: r.status || 502, body: { success: false, error: r.error } };
 }
