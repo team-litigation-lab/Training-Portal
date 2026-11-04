@@ -580,9 +580,10 @@ function guideHtml(t) {
         'E-mail subject: <i>Client name - Lien holder (provider) - Request for Lien Verification</i>.'])}</div>`;
 }
 
+// 📚 Demand packets & binders: grayed out outside CM and Medsum and Demand (Sim.packetAccess), and the course is passed along.
 function packetTabHtml() {
     return S.packet
-        ? `<a class="dr-tab" data-packet href="/simulators/demand-packet.html" title="The cover letter, index, demand letter, PIP log, bills and records as one PDF">📚 Demand packets &amp; binders →</a>`
+        ? `<a class="dr-tab" data-packet href="/simulators/demand-packet.html${Sim.packetProgram() ? '?program=' + encodeURIComponent(Sim.packetProgram()) : ''}" title="The cover letter, index, demand letter, PIP log, bills and records as one PDF">📚 Demand packets &amp; binders →</a>`
         : `<span class="dr-tab off" data-packet aria-disabled="true" title="Part of Case Management and Medsum and Demand training, not Standard Foundational Training">📚 Demand packets &amp; binders 🔒</span>`;
 }
 function tabsHtml() {
@@ -872,24 +873,6 @@ window.LSHDrafting = API;
 
 document.getElementById('topbar').innerHTML = Sim.topbar('drafting');
 Sim.label('Drafting');
-// 📚 Demand packets & binders belong to Case Management and Medsum and Demand, not Standard Foundational Training:
-// the tab is grayed out unless the course that opened this page (?program= / ?from=) is one of those two, or, with no
-// course named, the trainee has approved (or passed) access to one of them. Administrators always have it.
-const PACKET_PROGRAMS = ['cm', 'cm training', 'case management', 'cms', 'md', 'medsum', 'medsum and demand'];
-const PACKET_TOPICS = ['CM TRAINING', 'REVISED CM TRAINING', 'MEDSUM AND DEMAND'];
-async function packetAccess() {
-    const q = new URLSearchParams(location.search);
-    const named = (q.get('program') || q.get('from') || '').trim().toLowerCase();
-    if (named) return PACKET_PROGRAMS.includes(named);
-    if (Sim.isAdmin()) return true;
-    try {
-        const r = await fetch('/api/topics', { credentials: 'include', cache: 'no-store' });
-        const d = await r.json();
-        return !!(d && d.success && (d.access || []).some(a => PACKET_TOPICS.includes(a.topic_key) && /^(Approved|Passed)$/i.test(a.status || '')));
-    } catch (e) { return false; }
-}
-// A course can open a given letter: ?tab=lor1p | lor3p | prov, and for the providers' letters ?kind=medlor | lienbv
-// (Standard Foundational Training's Provider Communication days open the MedLOR + HIPAA packet this way).
 function fromLink() {
     const q = new URLSearchParams(location.search), tab = q.get('tab'), kind = q.get('kind');
     if (tab === 'prov' && PROVIDERS.length) S.tab = 'prov';
@@ -903,7 +886,7 @@ function fromLink() {
 Sim.restore().then(async () => {
     load(); await cloudState(); fromLink(); render();
     document.getElementById('topbar').innerHTML = Sim.topbar('drafting');
-    S.packet = await packetAccess();
+    S.packet = await Sim.packetAccess();
     const pt = document.querySelector('[data-packet]'); if (pt) pt.outerHTML = packetTabHtml();
 });
 load(); fromLink(); render();

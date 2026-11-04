@@ -16,6 +16,7 @@ const ROOT = process.cwd();
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.pdf': 'application/pdf' };
 const ANN = { username: 'ann', userType: 'Trainee', fullName: 'Ann Lee', batchId: 'B1' };
 const RESULTS = [];
+let TOPIC = 'CM TRAINING';
 const server = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
     const send = (o, st) => { res.writeHead(st || 200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
@@ -24,6 +25,8 @@ const server = http.createServer((req, res) => {
         let body = ''; req.on('data', c => { body += c; });
         return req.on('end', () => { RESULTS.push(JSON.parse(body || '{}')); send({ success: true }); });
     }
+    // Ann is a Case Management trainee: the packets are open to her (Standard Foundational Training's trainees get a locked page).
+    if (u.pathname === '/api/topics') return send({ success: true, access: [{ topic_key: TOPIC, status: 'Approved' }] });
     if (u.pathname.startsWith('/api/')) return send({ success: true });
     // The course, with the packet builder in its tool frame: it answers cms-doc-file the way the course relays the CMS's
     // answer (Case-Management-Training js/cm-doc-filing.js → the CMS's caseFileName), and keeps what it was sent.
@@ -276,6 +279,24 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await page.click('.pk-tab:has-text("Demand Packet")');
     await page.waitForTimeout(300);
     check('no sideways scroll at phone width', !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), 'scrolls');
+
+    // ---- who may build packets: Case Management and Medsum and Demand only ----
+    const gate = async (q, topic) => {
+        TOPIC = topic;
+        const p = await ctx.newPage();
+        await p.goto(base + '/simulators/demand-packet.html' + q);
+        await p.waitForFunction(() => document.querySelector('.pk-locked, .pk-sec'));
+        const locked = !!(await p.$('.pk-locked')), back = await p.getAttribute('.pk-locked a', 'href').catch(() => null);
+        await p.close();
+        return { locked, back };
+    };
+    let g = await gate('?program=FT', 'CM TRAINING');
+    check('a Standard Foundational Training link gets the locked page', g.locked && g.back === '/simulators/drafting.html?program=FT', JSON.stringify(g));
+    g = await gate('', 'STANDARD TRAINING');
+    check('a trainee with only Standard Foundational Training gets the locked page', g.locked, JSON.stringify(g));
+    g = await gate('?program=md', 'STANDARD TRAINING');
+    check('a Medsum and Demand link opens the builder', !g.locked, JSON.stringify(g));
+    TOPIC = 'CM TRAINING';
 
     check('no page errors', !errors.length, errors.join(' | '));
     await browser.close(); server.close();
