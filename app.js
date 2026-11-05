@@ -506,7 +506,7 @@ function renderUsersList() {
     // so it isn't listed here even when a users row exists for it.
     const visible = __usersCache.filter(u => (u.status === 'Approved' || u.status === 'Suspended') && u.username !== 'LSHADMIN123');
     if (visible.length === 0) {
-        container.innerHTML = `<p style="font-size:12px;color:#94a3b8;">No accounts yet.</p>`;
+        container.innerHTML = `<p class="pa-empty">No accounts yet.</p>`;
         return;
     }
 
@@ -523,12 +523,26 @@ function renderUsersList() {
     });
     const batches = [...groups.values()].sort((a, b) => b.sort.localeCompare(a.sort));
 
-    const search = `<input type="text" id="users-search" placeholder="Search name, username, email or batch" value="${escapeHtml(q)}" oninput="renderUsersList(); const i=document.getElementById('users-search'); i.focus(); i.setSelectionRange(i.value.length,i.value.length);" style="width:100%;max-width:380px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:12px;font-size:12px;">`;
-    const section = (title, count, rows) => `<div class="mc-section-title">${escapeHtml(title)} <span style="font-weight:600;color:#64748b;font-size:11px;">· ${count} ${count === 1 ? 'login' : 'logins'}</span></div>${rows.map(renderUserRow).join('')}`;
+    // Same layout as Program Access: one retractable table per batch (newest first, the newest open), the trainers
+    // in a section of their own; which sections are open is kept across re-renders, and a search opens every match.
+    const isOpen = (key, dflt) => q ? true : (__paOpen.has(key) ? __paOpen.get(key) : dflt);
+    const chip = (n, label, cls) => n ? `<span class="pa-chip ${cls}">${n} ${label}</span>` : '';
+    const section = (key, title, cls, users, isTrainer, dflt) => {
+        const sus = users.filter(u => u.status === 'Suspended').length;
+        return `<details class="pa-batch ${cls}" data-key="${escapeHtml(key)}" ontoggle="paToggle(this)"${isOpen(key, dflt) ? ' open' : ''}>
+            <summary><span class="pa-caret" aria-hidden="true">▶</span><span class="pa-title">${escapeHtml(title)}</span>
+                <span class="pa-chip">${users.length} ${users.length === 1 ? 'login' : 'logins'}</span>${chip(users.length - sus, 'active', 'ok')}${chip(sus, 'suspended', 'bad')}</summary>
+            <div class="mc-table-wrap pa-table-wrap"><table class="mc-table pa-table">
+                <thead><tr><th style="width:26%;">${isTrainer ? 'Trainer' : 'Trainee'}</th><th>Username</th><th>Email</th>${isTrainer ? '' : '<th>Batch ID</th>'}<th>Status</th><th style="text-align:right;">Actions</th></tr></thead>
+                <tbody>${users.map(u => renderUserRow(u, isTrainer)).join('')}</tbody></table></div></details>`;
+    };
+
+    const search = `<input type="text" id="users-search" placeholder="Search name, username, email or batch" value="${escapeHtml(q)}" oninput="renderUsersList(); const i=document.getElementById('users-search'); i.focus(); i.setSelectionRange(i.value.length,i.value.length);" style="width:100%;max-width:420px;padding:10px 12px;border:1.5px solid #94a3b8;border-radius:8px;margin-bottom:12px;font-size:14px;color:#0f172a;">`;
+    const toolbar = `<div class="pa-toolbar"><button class="btn-ghost" onclick="paExpandAll(true, 'users-list')">Expand all</button><button class="btn-ghost" onclick="paExpandAll(false, 'users-list')">Collapse all</button></div>`;
     container.innerHTML = search
-        + (admins.length ? section('Admin Accounts', admins.length, admins) : '')
-        + batches.map(g => section(g.key === 'No Batch' ? 'No Batch yet' : 'Batch ' + g.key, g.users.length, g.users.sort(byName))).join('')
-        + ((!admins.length && !batches.length) ? '<p style="font-size:12px;color:#94a3b8;">No accounts match.</p>' : '');
+        + ((!admins.length && !batches.length) ? '<p class="pa-empty">No accounts match.</p>' : toolbar
+            + (admins.length ? section('users:trainers', '🧑‍🏫 Trainers', 'pa-trainers', admins, true, false) : '')
+            + batches.map((g, i) => section('users:batch:' + g.key, '🎓 ' + (g.key === 'No Batch' ? 'No Batch yet' : 'Batch ' + g.key), '', g.users.sort(byName), false, i === 0)).join(''));
 }
 
 // =========================================================
@@ -634,34 +648,24 @@ async function loadMonitoringData() {
 // The grey line under a login's name: Batch · username · email. An Admin / Trainer belongs to no batch
 // (update-status.js gives them none), so their line shows no Batch ID at all, just username · email; a
 // trainee still waiting on a batch reads "No Batch yet". Empty parts are left out so no stray "·" trails the line.
-function userRowMeta(u) {
-    const hasBatch = u.batchId && u.batchId !== 'UNASSIGNED';
-    const first = u.userType === 'Admin' ? '' : (hasBatch ? batchLabel(u.batchId) : 'No Batch yet');
-    return [first, u.username, u.email].filter(v => String(v || '').trim()).map(v => escapeHtml(v)).join(' &middot; ');
-}
-function renderUserRow(u) {
+function renderUserRow(u, isTrainer) {
     const isSuspended = u.status === 'Suspended';
-    const statusColor = isSuspended ? 'var(--classified-red)' : '#059669';
     const safeName = escapeHtml(escapeJs(u.fullName));   // JS-escape first: escapeHtml turns ' into &#39;, which the attribute decodes back, so escaping after would be a no-op (O'Brien broke the onclick)
-    return `
-        <div class="admin-tile" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;text-align:left;">
-            <div>
-                <div style="font-weight:800;font-size:13px;color:var(--navy);">
-                    ${escapeHtml(u.fullName)}
-                    <span style="font-weight:700;font-size:10px;color:${statusColor};border:1px solid ${statusColor};border-radius:4px;padding:1px 6px;margin-left:6px;">${escapeHtml(u.status)}</span>
-                </div>
-                <div style="font-size:11px;color:#64748b;margin-top:2px;">${userRowMeta(u)}</div>
-            </div>
-            <div style="display:flex;gap:8px;flex-shrink:0;">
-                ${canEditUser(u) ? `<button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="openEditUser(${u.id})">Edit</button>` : ''}
-                ${isSuspended
-                    ? `<button class="btn-primary" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="reactivateUser(${u.id})" title="Restore the account: the user can sign in again">Restore</button>`
-                    : `<button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="suspendUser(${u.id})">Suspend</button>`
-                }
-                <button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;color:var(--classified-red);border-color:var(--classified-red);" onclick="revokeUser(${u.id}, '${safeName}')">Revoke</button>
-            </div>
-        </div>
-    `;
+    const hasBatch = u.batchId && u.batchId !== 'UNASSIGNED';
+    return `<tr>
+        <td class="pa-who"><div class="pa-name">${escapeHtml(u.fullName)}</div></td>
+        <td>${escapeHtml(u.username)}</td>
+        <td class="mc-sub">${escapeHtml(u.email || '')}</td>
+        ${isTrainer ? '' : `<td>${hasBatch ? escapeHtml(batchLabel(u.batchId)) : '<span class="pa-none">No Batch yet</span>'}</td>`}
+        <td><span class="mc-pill ${isSuspended ? 'denied' : 'approved'}">${escapeHtml(u.status === 'Approved' ? 'Active' : u.status)}</span></td>
+        <td class="mc-actions">
+            ${canEditUser(u) ? `<button class="btn-primary" onclick="openEditUser(${u.id})">Edit</button>` : ''}
+            ${isSuspended
+                ? `<button class="btn-primary" onclick="reactivateUser(${u.id})" title="Restore the account: the user can sign in again">▶ Restore</button>`
+                : `<button class="btn-ghost" onclick="suspendUser(${u.id})">⏸ Suspend</button>`}
+            <button class="btn-ghost btn-danger-ghost" onclick="revokeUser(${u.id}, '${safeName}')">Revoke</button>
+        </td>
+    </tr>`;
 }
 
 // Three dedicated endpoints, matching the backend's split: update-status.js
@@ -2953,7 +2957,7 @@ function renderAccessRequests() {
 // Which sections are open is kept across re-renders (a Grant / Revoke reloads the list).
 const __paOpen = new Map();
 function paToggle(el) { __paOpen.set(el.dataset.key, el.open); }
-function paExpandAll(open) { document.querySelectorAll('#program-access-list details.pa-batch').forEach(d => { d.open = open; __paOpen.set(d.dataset.key, open); }); }
+function paExpandAll(open, listId) { document.querySelectorAll('#' + (listId || 'program-access-list') + ' details.pa-batch').forEach(d => { d.open = open; __paOpen.set(d.dataset.key, open); }); }
 window.paToggle = paToggle; window.paExpandAll = paExpandAll;
 function renderProgramAccess() {
     renderAccessRequests();
