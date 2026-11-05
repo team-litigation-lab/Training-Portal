@@ -843,9 +843,13 @@
 
     <!-- ===== SERVER LOGS MODAL (Admin > Monitoring > Server Logs) ===== -->
     <div class="modal-overlay no-print" id="server-logs-modal" style="z-index:2960;">
-        <div class="modal-box wide" style="max-height:80vh; display:flex; flex-direction:column;">
+        <div class="modal-box wide" id="admin-dash-server-logs" style="width:min(1180px, 96vw); max-width:96vw; max-height:88vh; display:flex; flex-direction:column;">
             <h2 class="serif">Server Logs</h2>
-            <div class="sub mono">Log-ins, log-outs, pauses, pings, locks &amp; revocations — this page only</div>
+            <div class="sub mono">Log-ins, log-outs, pauses, pings, locks &amp; revocations — this page only, the latest 500 events</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
+                <input type="text" id="server-logs-search" placeholder="Search name, username, batch or event" oninput="renderServerLogs()" autocomplete="off" style="flex:1;min-width:220px;max-width:420px;margin:0;padding:10px 12px;border:1.5px solid #94a3b8;border-radius:8px;font-size:14px;color:#0f172a;font-family:inherit;">
+                <div class="pa-toolbar" style="margin:0;"><button class="btn-primary" onclick="loadServerLogs()">↻ Refresh</button><button class="btn-ghost" onclick="paExpandAll(true, 'server-logs-list')">Expand all</button><button class="btn-ghost" onclick="paExpandAll(false, 'server-logs-list')">Collapse all</button></div>
+            </div>
             <div id="server-logs-list" style="overflow-y:auto; flex:1;"></div>
             <div class="modal-btn-row">
                 <button class="btn-ghost" onclick="closeServerLogs()">Close</button>
