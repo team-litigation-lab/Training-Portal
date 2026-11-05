@@ -632,6 +632,23 @@ async function renderActivityLogs() {
 // aliasing, so fields are read as full_name/batch_id/user_type/
 // current_case, not fullName/batchId/userType.
 // =========================================================
+// Same layout as Users and Program Access: the trainers online in a section of their own, then one retractable
+// table per batch (newest first). Each row says what the person is viewing and when their page last checked in:
+// a heartbeat older than the server's grace window (HEARTBEAT_GRACE_SECONDS in functions/_utils.js, 90s) means the
+// tab was closed or went to sleep without logging out, so that row reads Away rather than Online.
+const MON_GRACE_SECONDS = 90;
+function monSecondsAgo(v) {
+    if (!v) return null;
+    const d = new Date(String(v).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(v)) ? '' : 'Z'));
+    return isNaN(d) ? null : Math.max(0, Math.round((Date.now() - d.getTime()) / 1000));
+}
+function monAgoText(s) {
+    if (s === null) return '—';
+    if (s < 60) return s + 's ago';
+    if (s < 3600) return Math.floor(s / 60) + ' min ago';
+    if (s < 86400) return Math.floor(s / 3600) + ' h ago';
+    return Math.floor(s / 86400) + ' d ago';
+}
 async function loadMonitoringData() {
     const container = document.getElementById('monitoring-online-list');
     if (!container) return;
@@ -640,38 +657,60 @@ async function loadMonitoringData() {
         const res = await fetch('/api/heartbeat', { credentials: 'include' });
         const rows = await res.json().catch(() => null);
         if (!Array.isArray(rows)) {
-            container.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Failed to load online users.</p>';
+            container.innerHTML = '<p class="pa-empty">Failed to load online users.</p>';
             return;
         }
-        if (rows.length === 0) {
-            container.innerHTML = '<p style="font-size:12px;color:#94a3b8;">No one is currently online.</p>';
-            return;
-        }
-
-        container.innerHTML = ['Admin', 'Trainee'].map(type => {
-            const group = rows
-                .filter(r => r.user_type === type)
-                .sort((a, b) => batchLabel(a.batch_id).localeCompare(batchLabel(b.batch_id)));
-            if (group.length === 0) return '';
-            return `
-                <div class="mc-section-title">${type}s Online</div>
-                ${group.map(r => `
-                    <div onclick="this.querySelector('.monitor-detail').classList.toggle('hidden')" style="padding:8px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;font-size:12.5px;">
-                        <span style="font-weight:700;color:var(--navy);">${escapeHtml(r.full_name || r.username)}</span>
-                        <span style="color:#94a3b8;"> &middot; ${escapeHtml(batchLabel(r.batch_id) || '—')}</span>
-                        <div class="monitor-detail hidden" style="font-size:11px;color:#64748b;margin-top:4px;">Currently Viewing: ${escapeHtml(r.current_case || 'N/A')}</div>
-                    </div>
-                `).join('')}
-            `;
-        }).join('');
+        renderMonitoring(rows);
     } catch (e) {
-        container.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Network error loading online users.</p>';
+        container.innerHTML = '<p class="pa-empty">Network error loading online users.</p>';
     }
 }
+function renderMonitoring(rows) {
+    const container = document.getElementById('monitoring-online-list');
+    if (!container) return;
+    const toolbar = `<div class="pa-toolbar"><button class="btn-primary" onclick="loadMonitoringData()">↻ Refresh</button><button class="btn-ghost" onclick="paExpandAll(true, 'monitoring-online-list')">Expand all</button><button class="btn-ghost" onclick="paExpandAll(false, 'monitoring-online-list')">Collapse all</button></div>`;
+    if (rows.length === 0) { container.innerHTML = toolbar + '<p class="pa-empty">No one is currently online.</p>'; return; }
 
-// The grey line under a login's name: Batch · username · email. An Admin / Trainer belongs to no batch
-// (update-status.js gives them none), so their line shows no Batch ID at all, just username · email; a
-// trainee still waiting on a batch reads "No Batch yet". Empty parts are left out so no stray "·" trails the line.
+    const isOpen = (key) => __paOpen.has(key) ? __paOpen.get(key) : true;
+    const byName = (a, b) => String(a.full_name || a.username).localeCompare(String(b.full_name || b.username));
+    const ago = r => monSecondsAgo(r.last_seen);
+    const live = r => { const s = ago(r); return s !== null && s <= MON_GRACE_SECONDS; };
+    const trainers = rows.filter(r => r.user_type === 'Admin').sort(byName);
+    const groups = new Map();
+    rows.filter(r => r.user_type !== 'Admin').forEach(r => {
+        const c = batchCohort(r.batch_id);
+        if (!groups.has(c.key)) groups.set(c.key, { key: c.key, sort: c.sort, rows: [] });
+        groups.get(c.key).rows.push(r);
+    });
+    const batches = [...groups.values()].sort((a, b) => b.sort.localeCompare(a.sort));
+
+    const row = (r, isTrainer) => {
+        const s = ago(r), on = live(r);
+        return `<tr>
+            <td class="pa-who"><div class="pa-name">${escapeHtml(r.full_name || r.username)}</div></td>
+            <td>${escapeHtml(r.username)}</td>
+            ${isTrainer ? '' : `<td>${r.batch_id ? escapeHtml(batchLabel(r.batch_id)) : '<span class="pa-none">No Batch yet</span>'}</td>`}
+            <td>${r.current_case ? `<span class="pa-prog">${escapeHtml(r.current_case)}</span>` : '<span class="pa-none">Nothing recorded</span>'}</td>
+            <td><span class="mc-pill ${on ? 'approved' : 'pending'}">${on ? '● Online' : 'Away'}</span></td>
+            <td class="mc-sub" title="${escapeHtml(r.last_seen || '')} UTC">${monAgoText(s)}</td>
+        </tr>`;
+    };
+    const section = (key, title, cls, list, isTrainer) => {
+        const on = list.filter(live).length, away = list.length - on;
+        return `<details class="pa-batch ${cls}" data-key="${escapeHtml(key)}" ontoggle="paToggle(this)"${isOpen(key) ? ' open' : ''}>
+            <summary><span class="pa-caret" aria-hidden="true">▶</span><span class="pa-title">${escapeHtml(title)}</span>
+                ${on ? `<span class="pa-chip ok">${on} online</span>` : ''}${away ? `<span class="pa-chip warn">${away} away</span>` : ''}</summary>
+            <div class="mc-table-wrap pa-table-wrap"><table class="mc-table pa-table">
+                <thead><tr><th style="width:24%;">${isTrainer ? 'Trainer' : 'Trainee'}</th><th>Username</th>${isTrainer ? '' : '<th>Batch ID</th>'}<th>Currently viewing</th><th>Status</th><th>Last seen</th></tr></thead>
+                <tbody>${list.map(r => row(r, isTrainer)).join('')}</tbody></table></div></details>`;
+    };
+    container.innerHTML = toolbar
+        + (trainers.length ? section('mon:trainers', '🧑‍🏫 Trainers', 'pa-trainers', trainers, true) : '')
+        + batches.map(g => section('mon:batch:' + g.key, '🎓 ' + (g.key === 'No Batch' ? 'No Batch yet' : 'Batch ' + g.key), '', g.rows.sort(byName), false)).join('');
+}
+
+// One row of the Users tab's tables. An Admin / Trainer belongs to no batch (update-status.js gives them none), so
+// their table has no Batch ID column; a trainee still waiting on a batch reads "No Batch yet".
 function renderUserRow(u, isTrainer) {
     const isSuspended = u.status === 'Suspended';
     const safeName = escapeHtml(escapeJs(u.fullName));   // JS-escape first: escapeHtml turns ' into &#39;, which the attribute decodes back, so escaping after would be a no-op (O'Brien broke the onclick)
