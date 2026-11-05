@@ -1,4 +1,4 @@
-import { json, getCookie, verifySessionToken, getSiteState, upsertSessionHeartbeat, buildFullName } from '../_utils.js';
+import { json, getCookie, verifySessionToken, getSiteState, upsertSessionHeartbeat, buildFullName, sessionGoogleOk, googleNeededMessage } from '../_utils.js';
 
 // Who is signed in on this browser? GET /api/me → { success: true, user: { username, fullName, userType, batchId } } or 401.
 // A page opened in a new tab (coming back from a program, or a bookmark) has the signed cookie but no copy of the person in the
@@ -7,6 +7,7 @@ import { json, getCookie, verifySessionToken, getSiteState, upsertSessionHeartbe
 export async function onRequestGet({ request, env }) {
     const session = await verifySessionToken(getCookie(request, 'lsh_session'), env.SESSION_SECRET);
     if (!session) return json({ success: false, code: 'NOT_AUTHENTICATED' }, 401, { 'Cache-Control': 'no-store' });
+    if (!sessionGoogleOk(env, session)) return json({ success: false, code: 'GOOGLE_REQUIRED', error: googleNeededMessage(env) }, 401, { 'Cache-Control': 'no-store' });
     if ((await getSiteState(env.DB)).locked) return json({ success: false, code: 'SITE_LOCKED' }, 423, { 'Cache-Control': 'no-store' });
     let fullName = session.fullName || session.username;
     if (session.username !== 'LSHADMIN123') {

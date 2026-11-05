@@ -165,6 +165,40 @@ export async function upsertSessionHeartbeat(db, { username, fullName, batchId, 
     ).bind(username, fullName || username, batchId || null, userType || null, currentCase).run();
 }
 
+/* 🔐 ONLY @legalsupporthelp.com GOOGLE ACCOUNTS. With GOOGLE_CLIENT_ID set (Pages → Settings → Variables and Secrets: the
+   Client ID of a Google OAuth "Web application" client whose Authorized JavaScript origins list this site), signing in on
+   the Portal takes a Google sign-in as well as the username and password, and only an account of GOOGLE_ALLOWED_DOMAIN
+   (legalsupporthelp.com when unset) gets through: the Google account a person's Chrome profile is signed in to is what the
+   page offers, so someone on a personal profile is told to switch to their @legalsupporthelp.com one. The verified address
+   rides in the session (gEmail), and every Portal page and API (requireSession, functions/_middleware.js, /api/me) refuses a
+   session without one, so every program and tool, which open only from the Portal's /api/launch, are behind it too.
+   Without GOOGLE_CLIENT_ID nothing changes (the sign-in is as before): set it once the Google client exists. */
+export const googleDomain = (env) => String((env && env.GOOGLE_ALLOWED_DOMAIN) || 'legalsupporthelp.com').trim().toLowerCase().replace(/^@/, '');
+export const googleRequired = (env) => !!String((env && env.GOOGLE_CLIENT_ID) || '').trim();
+export const emailInDomain = (env, email) => { const e = String(email || '').trim().toLowerCase(); return /^[^\s@]+@[^\s@]+$/.test(e) && e.endsWith('@' + googleDomain(env)); };
+// a session is good for this rule: the rule is off, or the session carries a verified address of the domain
+export const sessionGoogleOk = (env, session) => !googleRequired(env) || (!!session && emailInDomain(env, session.gEmail));
+export const googleWrongAccountMessage = (env, email) => `${email ? `You're signed in to Google as ${email}, which isn't` : "That isn't"} a @${googleDomain(env)} account. LSH training opens only from your @${googleDomain(env)} account: switch to your @${googleDomain(env)} Chrome profile (or sign in to Google with your @${googleDomain(env)} account) and try again.`;
+export const googleNeededMessage = (env) => `Sign in with your @${googleDomain(env)} Google account to continue. If this Chrome profile is a personal one, switch to your @${googleDomain(env)} profile first.`;
+// The Google ID token the sign-in page got (Google Identity Services), checked with Google: issued for this site's client,
+// not expired, its address verified and of the domain (its hd, the Workspace domain, too). { ok, email } or { ok: false, code, error }.
+export async function verifyGoogleCredential(env, credential) {
+    const clientId = String(env.GOOGLE_CLIENT_ID || '').trim(), tok = String(credential || '').trim();
+    if (!tok) return { ok: false, code: 'GOOGLE_REQUIRED', error: googleNeededMessage(env) };
+    let j;
+    try {
+        const r = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(tok));
+        if (!r.ok) return { ok: false, code: 'GOOGLE_INVALID', error: 'Your Google sign-in has expired or could not be read. Sign in with Google again.' };
+        j = await r.json();
+    } catch (e) { return { ok: false, code: 'GOOGLE_UNAVAILABLE', error: "Google didn't answer. Try again in a moment." }; }
+    const email = String(j.email || '').trim().toLowerCase();
+    if (j.aud !== clientId || !['accounts.google.com', 'https://accounts.google.com'].includes(j.iss) || !(Number(j.exp) * 1000 > Date.now()))
+        return { ok: false, code: 'GOOGLE_INVALID', error: 'Your Google sign-in has expired or could not be read. Sign in with Google again.' };
+    if (String(j.email_verified) !== 'true' || !emailInDomain(env, email) || String(j.hd || '').trim().toLowerCase() !== googleDomain(env))
+        return { ok: false, code: 'GOOGLE_WRONG_ACCOUNT', email, error: googleWrongAccountMessage(env, email) };
+    return { ok: true, email };
+}
+
 /**
  * Verifies the caller's session cookie. Use this at the top of any
  * endpoint that returns or mutates real data — never trust a
@@ -181,6 +215,10 @@ export async function requireSession(request, env, { adminOnly = false } = {}) {
     const payload = await verifySessionToken(token, env.SESSION_SECRET);
     if (!payload) {
         return { ok: false, response: json({ success: false, error: 'Not authenticated.', code: 'NOT_AUTHENTICATED' }, 401) };
+    }
+    // 🔐 only a session signed in with a @legalsupporthelp.com Google account (when the rule is on: GOOGLE_CLIENT_ID)
+    if (!sessionGoogleOk(env, payload)) {
+        return { ok: false, response: json({ success: false, error: googleNeededMessage(env), code: 'GOOGLE_REQUIRED' }, 401) };
     }
     // A site-wide Lock blocks all API access, even for an otherwise-valid
     // session — checked before the heartbeat check below so a heartbeat

@@ -98,6 +98,15 @@ function attemptLogin(switched) {
         // An empty password is sent anyway: an account still waiting for its first password (a new trainer's)
         // has none to type, and the server answers SET_PASSWORD. Anyone else is told to enter both.
         payload = { username: usernameInput, password: passwordInput, portalMode: currentPortalMode };
+        // 🔐 the @legalsupporthelp.com Google sign-in (google-gate.js), when the Portal asks for it
+        const G = window.LSHGoogle;
+        if (G && G.required) {
+            if (!G.credential) {
+                if (loginMsgDiv) { loginMsgDiv.innerText = `First sign in with your @${G.domain} Google account (Step 1 above).`; loginMsgDiv.className = "auth-msg error"; loginMsgDiv.style.display = ""; }
+                return;
+            }
+            payload.googleCredential = G.credential;
+        }
     }
 
     if (loginMsgDiv) { loginMsgDiv.innerText = "Verifying credentials..."; loginMsgDiv.className = "auth-msg info"; loginMsgDiv.style.display = ""; }
@@ -157,6 +166,11 @@ function attemptLogin(switched) {
             setTimeout(() => {
                 window.location.href = next;
             }, 900);
+        } else if (/^GOOGLE_/.test(data.code || '')) {
+            // 🔐 not a @legalsupporthelp.com Google account (or the sign-in expired): Step 1 again, with why
+            if (window.LSHGoogle) window.LSHGoogle.reset(data.error, data.email);
+            if (loginMsgDiv) { loginMsgDiv.className = "auth-msg error"; loginMsgDiv.innerText = data.error || "Sign in with your Google account first."; }
+            playSound('loginError');
         } else if (data.code === 'SET_PASSWORD') {
             showPasswordPanel('first', payload.username, data.error);
         } else if (data.code === 'WRONG_PORTAL' && switched !== true) {
