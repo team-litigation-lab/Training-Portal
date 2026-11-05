@@ -14,6 +14,8 @@
 // erasing it would erase the record that the revocation happened. The tombstone
 // (deleted_users) stays too: it is what stops the username being taken again.
 
+import { canonicalBatch } from './_utils.js';
+
 const PROGRAMS = [
     { id: 'ft', label: 'Standard Foundational Training', prefix: 'ft:' },
     { id: 'eapa', label: 'EA / PA Training', prefix: '' },
@@ -26,6 +28,18 @@ const PROGRAMS = [
 // uses) and, when the course record carries one, their batch.
 const nameKey = (s) => String(s || '').split(' · ')[0].trim().toLowerCase().replace(/\s+/g, ' ');
 const fullName = (u) => [u.first_name, u.mi, u.last_name, u.suffix].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+// A course record's name is the one the Portal's launch ticket gave it: first + last name only (the
+// middle initial and suffix, when kept, are in fullName). So a person is matched on every form of
+// their name, accents, dots and commas aside ("Mark Christian Lucban" and "Mark Christian D. Lucban, Jr."
+// are the same person), and on their batch in its one form (B103026 and B10302026 are the same batch).
+const looseKey = (s) => nameKey(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const nameForms = (u) => new Set([
+    [u.first_name, u.last_name], [u.first_name, u.mi, u.last_name], [u.first_name, u.last_name, u.suffix], [u.first_name, u.mi, u.last_name, u.suffix]
+].map(p => looseKey(p.filter(Boolean).join(' '))).filter(Boolean));
+const recNames = (rec) => [rec.name, rec.fullName, [rec.firstName, rec.lastName].filter(Boolean).join(' ')].map(looseKey).filter(Boolean);
+const batchForm = (b) => canonicalBatch(b) || String(b || '').trim().toUpperCase();
+const sameBatch = (rec, batch) => !batch || ![rec.batch, rec.batchFrom].some(Boolean)
+    || [rec.batch, rec.batchFrom].filter(Boolean).some(b => batchForm(b) === batchForm(batch));
 
 const KV_BUDGET = 900;          // Workers KV allows 1,000 operations per request
 
@@ -37,7 +51,7 @@ async function rows(db, sql, ...binds) {
 
 // Everything keyed to this person, read before anything is deleted.
 export async function collectUserRecords(env, user) {
-    const name = fullName(user), key = nameKey(name);
+    const name = fullName(user), key = nameKey(name), forms = nameForms(user);
     const t = env.TRAINING_DB, d = env.DB;
     const [submissions, simulatorResults, calsim, gcalDrafts, gcalReviews, topicAccess] = await Promise.all([
         rows(t, `SELECT * FROM submissions WHERE trainee_username = ?`, user.username),
@@ -67,8 +81,8 @@ export async function collectUserRecords(env, user) {
             for (const k of ids) {
                 if (ops++ >= KV_BUDGET) { skipped.push(p.label); break; }
                 const rec = await kv.get(k, 'json').catch(() => null);
-                if (!rec || nameKey(rec.name || [rec.firstName, rec.lastName].filter(Boolean).join(' ')) !== key) continue;
-                if (user.batch_id && rec.batch && String(rec.batch) !== String(user.batch_id)) continue;
+                if (!rec || !recNames(rec).some(n => forms.has(n))) continue;
+                if (!sameBatch(rec, user.batch_id)) continue;
                 const id = k.slice(`${p.prefix}trainee:`.length);
                 const entry = { program: p.id, label: p.label, keys: [{ key: k, value: rec }] };
                 const fb = await kv.get(`${p.prefix}feedback:${id}`, 'json').catch(() => null);
