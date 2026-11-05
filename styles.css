@@ -555,15 +555,15 @@
     }
 
 /* ===== Program Access: bigger, bolder tables; one retractable section per batch, trainers on their own ===== */
-#admin-dash-program-access .mc-table, #admin-dash-users .mc-table, #admin-dash-registrations .mc-table, #admin-dash-monitoring .mc-table, #admin-dash-server-logs .mc-table { font-size:14px; }
-#admin-dash-program-access .mc-table th, #admin-dash-users .mc-table th, #admin-dash-registrations .mc-table th, #admin-dash-monitoring .mc-table th, #admin-dash-server-logs .mc-table th { font-size:12px; color:#0f172a; background:#e2e8f0; border-bottom:2px solid #94a3b8; padding:11px 14px; }
-#admin-dash-program-access .mc-table td, #admin-dash-users .mc-table td, #admin-dash-registrations .mc-table td, #admin-dash-monitoring .mc-table td, #admin-dash-server-logs .mc-table td { padding:11px 14px; color:#0f172a; font-weight:500; }
-#admin-dash-program-access .mc-table .mc-sub, #admin-dash-users .mc-table .mc-sub, #admin-dash-registrations .mc-table .mc-sub, #admin-dash-monitoring .mc-table .mc-sub, #admin-dash-server-logs .mc-table .mc-sub { font-size:13px; color:#334155; }
-#admin-dash-program-access .mc-table .mc-actions button, #admin-dash-users .mc-table .mc-actions button, #admin-dash-registrations .mc-table .mc-actions button, #admin-dash-monitoring .mc-table .mc-actions button, #admin-dash-server-logs .mc-table .mc-actions button { font-size:12.5px; font-weight:800; padding:7px 13px; }
-#admin-dash-program-access .mc-pill, #admin-dash-users .mc-pill, #admin-dash-registrations .mc-pill, #admin-dash-monitoring .mc-pill, #admin-dash-server-logs .mc-pill { font-size:11.5px; padding:4px 10px; border:1px solid currentColor; }
-#admin-dash-program-access .btn-ghost, #admin-dash-users .btn-ghost, #admin-dash-registrations .btn-ghost, #admin-dash-monitoring .btn-ghost, #admin-dash-server-logs .btn-ghost { color:#0f172a; background:#e2e8f0; border:1px solid #94a3b8; }
-#admin-dash-program-access .btn-ghost.btn-danger-ghost, #admin-dash-users .btn-ghost.btn-danger-ghost, #admin-dash-registrations .btn-ghost.btn-danger-ghost, #admin-dash-monitoring .btn-ghost.btn-danger-ghost, #admin-dash-server-logs .btn-ghost.btn-danger-ghost { color:#991b1b; background:#fff; border:1.5px solid #b91c1c; }
-#admin-dash-program-access .mc-section-sub, #admin-dash-users .mc-section-sub, #admin-dash-registrations .mc-section-sub, #admin-dash-monitoring .mc-section-sub, #admin-dash-server-logs .mc-section-sub { font-size:13px; color:#0f172a; }
+#admin-dash-program-access .mc-table, #admin-dash-users .mc-table, #admin-dash-registrations .mc-table, #admin-dash-monitoring .mc-table, #admin-dash-server-logs .mc-table, #admin-dash-activity-logs .mc-table { font-size:14px; }
+#admin-dash-program-access .mc-table th, #admin-dash-users .mc-table th, #admin-dash-registrations .mc-table th, #admin-dash-monitoring .mc-table th, #admin-dash-server-logs .mc-table th, #admin-dash-activity-logs .mc-table th { font-size:12px; color:#0f172a; background:#e2e8f0; border-bottom:2px solid #94a3b8; padding:11px 14px; }
+#admin-dash-program-access .mc-table td, #admin-dash-users .mc-table td, #admin-dash-registrations .mc-table td, #admin-dash-monitoring .mc-table td, #admin-dash-server-logs .mc-table td, #admin-dash-activity-logs .mc-table td { padding:11px 14px; color:#0f172a; font-weight:500; }
+#admin-dash-program-access .mc-table .mc-sub, #admin-dash-users .mc-table .mc-sub, #admin-dash-registrations .mc-table .mc-sub, #admin-dash-monitoring .mc-table .mc-sub, #admin-dash-server-logs .mc-table .mc-sub, #admin-dash-activity-logs .mc-table .mc-sub { font-size:13px; color:#334155; }
+#admin-dash-program-access .mc-table .mc-actions button, #admin-dash-users .mc-table .mc-actions button, #admin-dash-registrations .mc-table .mc-actions button, #admin-dash-monitoring .mc-table .mc-actions button, #admin-dash-server-logs .mc-table .mc-actions button, #admin-dash-activity-logs .mc-table .mc-actions button { font-size:12.5px; font-weight:800; padding:7px 13px; }
+#admin-dash-program-access .mc-pill, #admin-dash-users .mc-pill, #admin-dash-registrations .mc-pill, #admin-dash-monitoring .mc-pill, #admin-dash-server-logs .mc-pill, #admin-dash-activity-logs .mc-pill { font-size:11.5px; padding:4px 10px; border:1px solid currentColor; }
+#admin-dash-program-access .btn-ghost, #admin-dash-users .btn-ghost, #admin-dash-registrations .btn-ghost, #admin-dash-monitoring .btn-ghost, #admin-dash-server-logs .btn-ghost, #admin-dash-activity-logs .btn-ghost { color:#0f172a; background:#e2e8f0; border:1px solid #94a3b8; }
+#admin-dash-program-access .btn-ghost.btn-danger-ghost, #admin-dash-users .btn-ghost.btn-danger-ghost, #admin-dash-registrations .btn-ghost.btn-danger-ghost, #admin-dash-monitoring .btn-ghost.btn-danger-ghost, #admin-dash-server-logs .btn-ghost.btn-danger-ghost, #admin-dash-activity-logs .btn-ghost.btn-danger-ghost { color:#991b1b; background:#fff; border:1.5px solid #b91c1c; }
+#admin-dash-program-access .mc-section-sub, #admin-dash-users .mc-section-sub, #admin-dash-registrations .mc-section-sub, #admin-dash-monitoring .mc-section-sub, #admin-dash-server-logs .mc-section-sub, #admin-dash-activity-logs .mc-section-sub { font-size:13px; color:#0f172a; }
 .pa-toolbar { display:flex; gap:8px; margin:0 0 10px; }
 .pa-toolbar button { padding:7px 14px; font-size:12.5px; font-weight:800; border-radius:8px; }
 .pa-empty { font-size:14px; color:#334155; }
@@ -594,11 +594,11 @@
 .pa-grant { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
 .pa-grant select { flex:1; min-width:150px; padding:7px 8px; border:1.5px solid #94a3b8; border-radius:8px; font-size:13px; color:#0f172a; background:#fff; }
 .pa-grant button { padding:7px 12px; font-size:12.5px; font-weight:800; border-radius:8px; }
-#admin-dash-users .pa-table td.pa-who, #admin-dash-registrations .pa-table td.pa-who, #admin-dash-monitoring .pa-table td.pa-who, #admin-dash-server-logs .pa-table td.pa-who { vertical-align:middle; }
+#admin-dash-users .pa-table td.pa-who, #admin-dash-registrations .pa-table td.pa-who, #admin-dash-monitoring .pa-table td.pa-who, #admin-dash-server-logs .pa-table td.pa-who, #admin-dash-activity-logs .pa-table td.pa-who { vertical-align:middle; }
 /* Server Logs: the event label, coloured by what happened; accounts no longer listed get a grey header */
 .sl-ev { font-weight:800; }
-#admin-dash-server-logs .pa-table { table-layout:fixed; }
-#admin-dash-server-logs .pa-table td { overflow-wrap:anywhere; }
+#admin-dash-server-logs .pa-table, #admin-dash-activity-logs .pa-table { table-layout:fixed; }
+#admin-dash-server-logs .pa-table td, #admin-dash-activity-logs .pa-table td { overflow-wrap:anywhere; }
 .sl-ev.sl-ok { color:#14532d; } .sl-ev.sl-bad { color:#991b1b; } .sl-ev.sl-warn { color:#92400e; }
 .sl-ev.sl-info { color:#1e3a8a; } .sl-ev.sl-muted { color:#334155; }
 .pa-batch.sl-gone > summary { background:#475569; }
