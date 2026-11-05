@@ -1,4 +1,5 @@
 import { json, requireSession, logActivity, getSiteState } from '../_utils.js';
+import { FT_TOPIC, ftBlock, ftUnblock, ftSweep } from '../_ft-block.js';
 
 // Topic access: a trainee only sees "Approved" for topics an
 // admin has explicitly granted them, and "Pending" for ones they've asked
@@ -10,6 +11,18 @@ import { json, requireSession, logActivity, getSiteState } from '../_utils.js';
 // Access rows are only ever made for trainings that exist.
 async function topicExists(db, key) {
     return !!(await db.prepare(`SELECT 1 AS ok FROM topics WHERE key = ?`).bind(String(key)).first());
+}
+
+// 🚫 Standard Foundational Training keeps its own trainee list (_ft-block.js): revoking or suspending that program here
+// puts the trainee on the course's block list, so they leave its sheets; granting or restoring it takes them off again.
+// It never stops the decision itself: a course that can't be reached is said in the answer (ft.error), nothing more.
+async function ftFollow(env, topicKey, traineeUsername, close, reason, by) {
+    if (topicKey !== FT_TOPIC || !env.COURSE_KV) return undefined;
+    try {
+        const user = await env.DB.prepare(`SELECT username, first_name, mi, last_name, suffix, batch_id FROM users WHERE username = ?`).bind(traineeUsername).first();
+        if (!user) return undefined;
+        return close ? await ftBlock(env, user, reason, by) : await ftUnblock(env, user);
+    } catch (e) { return { error: e.message }; }
 }
 
 export async function onRequestGet({ request, env }) {
@@ -102,7 +115,8 @@ export async function onRequestPost({ request, env }) {
                     status = excluded.status, decided_at = excluded.decided_at, decided_by = excluded.decided_by`
             ).bind(traineeUsername, topicKey, status, auth.session.username).run();
             await logActivity(db, auth.session.username, auth.session.batchId, 'TOPIC_ACCESS_' + status.toUpperCase(), { topicKey, traineeUsername });
-            return json({ success: true });
+            const ft = await ftFollow(env, topicKey, traineeUsername, action === 'DENY', 'program access revoked', auth.session.username);
+            return json({ success: true, ft });
         }
 
         // ⏸ Suspend / ▶ Restore: a pause on one trainee's access to one program, short of Revoke. A suspended program can't be
@@ -127,7 +141,8 @@ export async function onRequestPost({ request, env }) {
                 `UPDATE trainee_topic_access SET status = ?, decided_at = datetime('now'), decided_by = ? WHERE trainee_username = ? AND topic_key = ?`
             ).bind(next, auth.session.username, traineeUsername, topicKey).run();
             await logActivity(db, auth.session.username, auth.session.batchId, action === 'SUSPEND' ? 'TOPIC_ACCESS_SUSPENDED' : 'TOPIC_ACCESS_RESTORED', { topicKey, traineeUsername });
-            return json({ success: true, status: next });
+            const ft = await ftFollow(env, topicKey, traineeUsername, action === 'SUSPEND', 'program access suspended', auth.session.username);
+            return json({ success: true, status: next, ft });
         }
 
         // 🧹 A request left by an account that no longer exists (revoked, or a registration rejected) can't be approved or
@@ -160,7 +175,19 @@ export async function onRequestPost({ request, env }) {
             const unlockedNext = null;
 
             await logActivity(db, auth.session.username, auth.session.batchId, 'TOPIC_MARKED_PASSED', { topicKey, traineeUsername, unlockedNext });
-            return json({ success: true, unlockedNext });
+            const ft = await ftFollow(env, topicKey, traineeUsername, false);
+            return json({ success: true, unlockedNext, ft });
+        }
+
+        // 🧹 Standard Foundational Training: every trainee revoked here before the course was told (an account revoked
+        // while the purge couldn't find their course record, a program access revoked or suspended before this followed
+        // it) goes on the course's block list now, so they leave its sheets. Nothing is deleted.
+        if (action === 'FT_SWEEP') {
+            if (auth.session.userType !== 'Admin') return json({ success: false, error: 'Only admins can do this.' }, 403);
+            if (!env.COURSE_KV) return json({ success: false, error: 'Course data isn’t connected (COURSE_KV).' }, 500);
+            const r = await ftSweep(env, env.DB, db);
+            await logActivity(db, auth.session.username, auth.session.batchId, 'FT_REVOKED_SWEEP', { blocked: r.blocked });
+            return json({ success: true, blocked: r.blocked });
         }
 
         return json({ success: false, error: 'Unknown action.' }, 400);
