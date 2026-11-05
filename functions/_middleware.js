@@ -1,4 +1,4 @@
-import { requireSession, getCookie, verifySessionToken, getSiteState, upsertSessionHeartbeat } from './_utils.js';
+import { requireSession, getCookie, verifySessionToken, getSiteState, upsertSessionHeartbeat, sessionGoogleOk } from './_utils.js';
 import { ticketSession } from './api/ticket-login.js';
 
 // The Simulators are for signed-in LSH people only (the Knowledge Base is its own site, opened through /api/launch?tool=kb). A Portal session is checked BEFORE
@@ -26,6 +26,8 @@ const FRONT_DOORS = [/^\/trainee-login(\.html)?\/?$/i, /^\/admin-login(\.html)?\
 async function signedInPerson(request, env) {
     const session = await verifySessionToken(getCookie(request, 'lsh_session'), env.SESSION_SECRET);
     if (!session) return null;
+    // (🔐 a session from before the @legalsupporthelp.com Google rule, or without it: the sign-in page, to sign in with Google)
+    if (!sessionGoogleOk(env, session)) return null;
     if ((await getSiteState(env.DB)).locked) return null;
     if (session.username !== 'LSHADMIN123') {
         const u = await env.DB.prepare(`SELECT status FROM users WHERE username = ?`).bind(session.username).first();

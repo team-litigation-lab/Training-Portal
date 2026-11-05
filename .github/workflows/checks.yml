@@ -38,6 +38,8 @@ jobs:
         run: node --no-warnings .github/scripts/trainer-names.mjs
       - name: Front door (signed-in trainees and admins go straight to the Training Directory; only a signed-out browser sees a sign-in box)
         run: node --no-warnings .github/scripts/front-door.mjs
+      - name: Only @legalsupporthelp.com Google accounts (with GOOGLE_CLIENT_ID, a personal account is refused before the password and told to switch Chrome profile; every page and API needs it)
+        run: node --no-warnings .github/scripts/google-only.mjs
       - name: Master Control (a trainer's own admin account opens it; only the site lock is the master account's)
         run: node --no-warnings .github/scripts/master-control.mjs
       - name: Program access (Suspend / Restore keep Passed, a suspended program won't launch, orphaned requests can be cleared)

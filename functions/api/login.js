@@ -1,4 +1,4 @@
-import { json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME, verifyMasterCredentials, normalizePassword, loginBlocked, loginFailed, needsNewPassword } from '../_utils.js';
+import { googleRequired, verifyGoogleCredential, json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME, verifyMasterCredentials, normalizePassword, loginBlocked, loginFailed, needsNewPassword } from '../_utils.js';
 
 // An approved account made without a password (the trainers' accounts): whatever was typed in the password box,
 // the sign-in page asks them to choose their password (portal.js -> POST /api/set-password).
@@ -19,6 +19,14 @@ export async function onRequestPost({ request, env }) {
     const { portalMode } = body;
     if (portalMode !== 'Trainee' && portalMode !== 'Admin') {
         return json({ success: false, error: 'Invalid portal selection.' }, 400);
+    }
+    // 🔐 a @legalsupporthelp.com Google account first (the rule is on with GOOGLE_CLIENT_ID, _utils.js), before any password is
+    // looked at: someone on a personal Google account / Chrome profile is told to switch, whatever the username and password
+    let gEmail = '';
+    if (googleRequired(env)) {
+        const g = await verifyGoogleCredential(env, body.googleCredential);
+        if (!g.ok) return json({ success: false, code: g.code, error: g.error, email: g.email || '' }, 403);
+        gEmail = g.email;
     }
 
     let user;
@@ -114,7 +122,7 @@ export async function onRequestPost({ request, env }) {
         return json({ success: false, error: 'Your access has been revoked or suspended by an administrator.' }, 403);
     }
 
-    await logActivity(db, user.username, user.batch_id, 'login', null);
+    await logActivity(db, user.username, user.batch_id, 'login', gEmail ? 'google ' + gEmail : null);
     const fullNameOut = user.id === 'MASTER' ? 'System Administrator' : buildFullName(user);
 
     // Seed heartbeat so immediate subsequent requests pass the grace window
@@ -131,7 +139,8 @@ export async function onRequestPost({ request, env }) {
             username: user.username,
             batchId: user.batch_id,
             userType: dbUserType,
-            fullName: fullNameOut
+            fullName: fullNameOut,
+            ...(gEmail ? { gEmail } : {})
         },
         env.SESSION_SECRET
     );

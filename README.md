@@ -1,5 +1,16 @@
 # cm-training-activity
 
+## 🔐 Only @legalsupporthelp.com Google accounts
+
+Every program and tool opens only from the Portal (`/api/launch`, below), so the Portal's sign-in is where the rule is kept. With it on, signing in takes **Step 1 · Sign in with your @legalsupporthelp.com Google account** (Google's own button, which offers the account the Chrome profile is signed in to) and then the username and password as before.
+
+- **A personal account is refused, with what to do.** Signing in with any other Google account (a personal Chrome profile's Gmail, a look-alike domain, an address not in the legalsupporthelp.com Workspace) is refused before the password is looked at: the page names the account and tells the person to switch to their @legalsupporthelp.com Chrome profile (or sign in to Google with that account) and try again. The server checks the same thing again (`verifyGoogleCredential` in `functions/_utils.js`, against Google: this site's client, not expired, a verified address, the Workspace domain).
+- **Every session carries the account.** The verified address is in the session (`gEmail`), and `requireSession`, the page guard (`functions/_middleware.js`) and `/api/me` refuse a session without one: a session from before the rule was turned on is sent to sign in again, once. A course's ticket (`?ticket=` on a simulator) no longer signs anyone in to the Portal: they sign in here with Google and keep that session. The Master Account needs it too.
+- **Turning it on:** in Google Cloud (the legalsupporthelp.com Workspace's project) → APIs & Services → Credentials → **Create credentials → OAuth client ID → Web application**; under **Authorized JavaScript origins** add this site's address (e.g. `https://cm-training-activity.pages.dev`, and any custom domain). Copy its **Client ID** into the Portal's Pages → Settings → Variables and Secrets as `GOOGLE_CLIENT_ID`, and redeploy. (The OAuth consent screen can be **Internal**, so only Workspace accounts can use it at all.) `GOOGLE_ALLOWED_DOMAIN` changes the domain (default `legalsupporthelp.com`).
+- **Turning it off:** remove `GOOGLE_CLIENT_ID` and redeploy: the sign-in is as before. Without it nothing is asked.
+- **Programs signed in to directly:** the programs' own trainer password sign-in (each program's `MASTER_ADMIN_PASSWORD`) doesn't go through the Portal; this rule covers everything opened from the Portal.
+- Test: `google-only.mjs`.
+
 ## Trainee sign-in on the Main Portal (single sign-in)
 
 Trainees log in once, here, and open each training program from the Training Directory. They aren't asked to sign in again inside the program.

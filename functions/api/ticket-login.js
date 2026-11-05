@@ -1,4 +1,4 @@
-import { json, logActivity, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName } from '../_utils.js';
+import { json, logActivity, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, googleRequired, googleNeededMessage } from '../_utils.js';
 import { verifyTicket } from './verify-ticket.js';
 
 // POST /api/ticket-login { ticket }  → signs a trainee in to the Portal from a course's signed ticket, so a simulator a course
@@ -19,6 +19,9 @@ import { verifyTicket } from './verify-ticket.js';
 // simulator page opened with ?ticket= (it signs the trainee in before the page is sent, then drops the ticket from the address).
 export async function ticketSession(env, ticket) {
     const db = env.DB;
+    // 🔐 with the @legalsupporthelp.com Google rule on, a course's ticket doesn't sign anyone in to the Portal (it carries no
+    // Google account): they sign in on the Portal with Google, once, and keep that session
+    if (googleRequired(env)) return { status: 403, code: 'GOOGLE_REQUIRED', error: googleNeededMessage(env) };
     const t = await verifyTicket(String(env.PORTAL_SSO_SECRET || '').trim(), ticket);
     if (!t.ok) return { status: t.code === 'not-configured' ? 501 : 401, code: t.code, error: t.code === 'expired' ? 'This link has expired. Open it again from your training program.' : 'This sign-in link isn\'t valid.' };
     if (t.system) return { status: 403, code: 'admin-password', error: 'Administrators sign in with their password.' };
