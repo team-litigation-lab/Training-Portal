@@ -440,6 +440,15 @@ function canDecideRegistration(u) {
     const me = getSession();
     return !!me && me.username === 'LSHADMIN123';
 }
+// The batch a waiting trainee will join: their Batch ID if one was already set, otherwise the one approval gives
+// them — B + MMDDYY of the training start date (nextBatchId in functions/_utils.js, read in UTC the same way).
+function regBatchId(u) {
+    if (u.batchId && u.batchId !== 'UNASSIGNED') return u.batchId;
+    const d = u.trainingStartDate ? new Date(u.trainingStartDate) : null;
+    if (!d || isNaN(d)) return '';
+    const p = (n) => String(n).padStart(2, '0');
+    return `B${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}${String(d.getUTCFullYear()).slice(-2)}`;
+}
 function renderRegistrations() {
     const container = document.getElementById('registrations-list');
     if (!container) return;
@@ -449,32 +458,47 @@ function renderRegistrations() {
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
     if (pending.length === 0) {
-        container.innerHTML = `<p style="font-size:12px;color:#94a3b8;">No pending registrations.</p>`;
+        container.innerHTML = `<p class="pa-empty">No pending registrations.</p>`;
         return;
     }
 
-    // One row per login waiting for approval, as a table: who, the account type, their email, when they registered, the
-    // training start date, then Approve / Reject.
+    // Same layout as Users and Program Access: the trainers' registrations in a section of their own, then one
+    // retractable table per batch the trainees will join (newest first), each oldest registration first.
+    // Every section starts open (each row is waiting on a decision); a section stays the way it was left.
     const when = (v) => { if (!v) return ''; const d = new Date(String(v).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(v)) ? '' : 'Z')); return isNaN(d) ? escapeHtml(v) : d.toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); };
-    container.innerHTML = `
-        <div class="mc-table-wrap"><table class="mc-table">
-            <thead><tr><th>#</th><th>Name</th><th>Username</th><th>Type</th><th>Email</th><th>Registered</th><th>Training start</th><th style="text-align:right;">Decision</th></tr></thead>
-            <tbody>${pending.map((u, i) => `
-                <tr>
-                    <td class="mc-sub">${i + 1}</td>
-                    <td><b style="color:var(--navy);">${escapeHtml(u.fullName)}</b></td>
-                    <td>${escapeHtml(u.username)}</td>
-                    <td>${escapeHtml(u.userType === 'Admin' ? 'Admin / Trainer' : u.userType)}</td>
-                    <td class="mc-sub">${escapeHtml(u.email || '')}</td>
-                    <td class="mc-sub">${when(u.created_at)}</td>
-                    <td class="mc-sub">${escapeHtml(u.trainingStartDate || '')}</td>
-                    <td class="mc-actions">${canDecideRegistration(u) ? `
-                        <button class="btn-primary" onclick="approveRegistration(${u.id})">Approve</button>
-                        <button class="btn-ghost btn-danger-ghost" onclick="rejectRegistration(${u.id})">Reject</button>`
-                        : `<span class="mc-sub">The Master Account decides an Admin / Trainer registration.</span>`}</td>
-                </tr>`).join('')}
-            </tbody>
-        </table></div>`;
+    const isOpen = (key) => __paOpen.has(key) ? __paOpen.get(key) : true;
+    const trainers = pending.filter(u => u.userType === 'Admin');
+    const groups = new Map();
+    pending.filter(u => u.userType !== 'Admin').forEach(u => {
+        const id = regBatchId(u);
+        const c = id ? batchCohort(id) : { key: 'No Batch', sort: '0' };
+        if (!groups.has(c.key)) groups.set(c.key, { key: c.key, sort: c.sort, users: [] });
+        groups.get(c.key).users.push(u);
+    });
+    const batches = [...groups.values()].sort((a, b) => b.sort.localeCompare(a.sort));
+    const row = (u, i) => `<tr>
+        <td class="mc-sub">${i + 1}</td>
+        <td class="pa-who"><div class="pa-name">${escapeHtml(u.fullName)}</div></td>
+        <td>${escapeHtml(u.username)}</td>
+        <td class="mc-sub">${escapeHtml(u.email || '')}</td>
+        <td class="mc-sub">${when(u.created_at)}</td>
+        <td>${u.trainingStartDate ? escapeHtml(u.trainingStartDate) : (u.userType === 'Admin' ? '' : '<span class="pa-none">Not given</span>')}</td>
+        <td class="mc-actions">${canDecideRegistration(u) ? `
+            <button class="btn-primary" onclick="approveRegistration(${u.id})">Approve</button>
+            <button class="btn-ghost btn-danger-ghost" onclick="rejectRegistration(${u.id})">Reject</button>`
+            : `<span class="mc-sub">The Master Account decides an Admin / Trainer registration.</span>`}</td>
+    </tr>`;
+    const section = (key, title, cls, users, note) => `<details class="pa-batch ${cls}" data-key="${escapeHtml(key)}" ontoggle="paToggle(this)"${isOpen(key) ? ' open' : ''}>
+            <summary><span class="pa-caret" aria-hidden="true">▶</span><span class="pa-title">${escapeHtml(title)}</span>
+                <span class="pa-chip warn">${users.length} waiting</span>${note ? `<span class="pa-chip">${escapeHtml(note)}</span>` : ''}</summary>
+            <div class="mc-table-wrap pa-table-wrap"><table class="mc-table pa-table">
+                <thead><tr><th>#</th><th style="width:22%;">Name</th><th>Username</th><th>Email</th><th>Registered</th><th>Training start</th><th style="text-align:right;">Decision</th></tr></thead>
+                <tbody>${users.map(row).join('')}</tbody></table></div></details>`;
+    container.innerHTML = `<div class="pa-toolbar"><button class="btn-ghost" onclick="paExpandAll(true, 'registrations-list')">Expand all</button><button class="btn-ghost" onclick="paExpandAll(false, 'registrations-list')">Collapse all</button></div>`
+        + (trainers.length ? section('reg:trainers', '🧑‍🏫 Trainer registrations', 'pa-trainers', trainers, 'no batch: trainers belong to none') : '')
+        + batches.map(g => g.key === 'No Batch'
+            ? section('reg:batch:none', '🎓 No training start date', '', g.users, 'batch set from the approval date')
+            : section('reg:batch:' + g.key, '🎓 Batch ' + g.key, '', g.users, 'joins on approval')).join('');
 }
 
 // A Batch ID as it's shown: the batch only. Batch IDs given out before October 2026 carry a trainee number
