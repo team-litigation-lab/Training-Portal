@@ -571,57 +571,63 @@ function renderUsersList() {
 
 // =========================================================
 // ACTIVITY LOGS (Master Control: search + timestamped audit trail)
+// The same layout as Server Logs (logSectionsHtml): trainers' uploads and gradings in a section of their own,
+// trainees' submissions in one table per batch. The search runs on the server (it reaches past the latest 100):
+// it matches a username, a Batch ID or an activity title, and a name typed here is turned into the usernames of
+// the people it matches, so "trainee name" works too. Typing waits a moment before asking, and an answer that
+// arrives after a newer one is dropped.
 // =========================================================
+let __alSeq = 0, __alTimer = null;
+function activityLogsSearchSoon() { clearTimeout(__alTimer); __alTimer = setTimeout(renderActivityLogs, 250); }
+window.activityLogsSearchSoon = activityLogsSearchSoon;
+function activityLogEvent(row, d) {
+    const E = (icon, text, tone, extra) => ({ icon, text, tone, extra: extra || '' });
+    switch (row.action) {
+        case 'ACTIVITY_SUBMITTED': return E('📤', 'Submitted an activity', 'ok', d.activityTitle || '');
+        case 'GRADE_RELEASED': return E('🏅', 'Released a grade', 'info', [d.score != null ? 'Score ' + d.score : '', d.submissionId != null ? 'submission #' + d.submissionId : ''].filter(Boolean).join(' · '));
+        case 'ACTIVITY_ADDED': return E('➕', 'Added an activity', 'info', [d.title, d.dayLabel].filter(Boolean).join(' · '));
+        case 'LECTURE_ADDED': return E('📚', 'Added a lecture', 'info', d.title || '');
+    }
+    const words = String(row.action || 'Unknown').replace(/[_-]+/g, ' ').toLowerCase().replace(/^\w/, ch => ch.toUpperCase());
+    return E('ℹ️', words, 'muted', d.title || d.activityTitle || '');
+}
 async function renderActivityLogs() {
     const container = document.getElementById('activity-logs-list');
     if (!container) return;
     const searchEl = document.getElementById('activity-logs-search');
     const q = searchEl ? searchEl.value.trim() : '';
+    const seq = ++__alSeq;
 
     try {
-        const res = await fetch('/api/activity-logs' + (q ? ('?q=' + encodeURIComponent(q)) : ''), { credentials: 'include' });
+        if (!(__usersCache && __usersCache.length)) await loadUsersData();
+        const ql = q.toLowerCase();
+        const named = q ? (__usersCache || []).filter(u => String(u.fullName || '').toLowerCase().includes(ql)).slice(0, 25).map(u => u.username) : [];
+        const params = new URLSearchParams();
+        if (q) params.set('q', q);
+        named.forEach(n => params.append('u', n));
+        const res = await fetch('/api/activity-logs' + (params.toString() ? '?' + params : ''), { credentials: 'include' });
         const data = await res.json().catch(() => null);
+        if (seq !== __alSeq) return;   // a newer search is already on its way
         if (!data || !data.success) {
-            container.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Failed to load activity logs.</p>';
+            container.innerHTML = '<p class="pa-empty" style="color:#b91c1c;">Failed to load activity logs.</p>';
             return;
         }
         if (!data.logs || data.logs.length === 0) {
-            container.innerHTML = '<p style="font-size:12px;color:#94a3b8;">No activity logs found.</p>';
+            container.innerHTML = `<p class="pa-empty">${q ? 'No activity logs match.' : 'No activity logs found.'}</p>`;
             return;
         }
-
-        container.innerHTML = data.logs.map(row => {
-            let details = {};
-            try { details = row.details ? JSON.parse(row.details) : {}; } catch (e) { /* leave empty */ }
-
-            let label;
-            switch (row.action) {
-                case 'ACTIVITY_SUBMITTED':
-                    label = `submitted <strong>${escapeHtml(details.activityTitle || 'an activity')}</strong>`;
-                    break;
-                case 'GRADE_RELEASED':
-                    label = `released a grade of <strong>${escapeHtml(String(details.score))}</strong> for submission #${escapeHtml(String(details.submissionId))}`;
-                    break;
-                case 'ACTIVITY_ADDED':
-                    label = `added activity <strong>${escapeHtml(details.title || '')}</strong>${details.dayLabel ? ' (' + escapeHtml(details.dayLabel) + ')' : ''}`;
-                    break;
-                case 'LECTURE_ADDED':
-                    label = `added lecture <strong>${escapeHtml(details.title || '')}</strong>`;
-                    break;
-                default:
-                    label = escapeHtml(row.action);
-            }
-
-            // Matches the +'Z' convention already used in server-logs.js —
-            // datetime('now') is stored without a zone suffix (UTC).
-            const when = row.timestamp ? new Date(row.timestamp + 'Z').toLocaleString() : '';
-            return `<div style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:12.5px;">
-                <span style="font-weight:700;color:var(--navy);">${escapeHtml(row.actor_username || 'Unknown')}</span> ${label}
-                <div style="font-size:10.5px;color:#94a3b8;margin-top:2px;">${when}</div>
-            </div>`;
-        }).join('');
+        const placed = data.logs.map(row => {
+            let d = {};
+            try { d = row.details ? JSON.parse(row.details) : {}; } catch (e) { /* leave empty */ }
+            return logPlace(row, activityLogEvent(row, d && typeof d === 'object' ? d : {}));
+        });
+        container.innerHTML = logSectionsHtml('al:', placed, !!q, [
+            { label: 'submission', cls: 'ok', test: r => r.action === 'ACTIVITY_SUBMITTED' },
+            { label: 'grade', cls: 'sus', test: r => r.action === 'GRADE_RELEASED' },
+            { label: 'upload', cls: 'warn', test: r => r.action === 'ACTIVITY_ADDED' || r.action === 'LECTURE_ADDED' }
+        ]);
     } catch (e) {
-        container.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Network error loading activity logs.</p>';
+        if (seq === __alSeq) container.innerHTML = '<p class="pa-empty" style="color:#b91c1c;">Network error loading activity logs.</p>';
     }
 }
 
@@ -889,10 +895,51 @@ function formatLogTimestamp(ts) {
     }
 }
 
-// Server Logs, as the other Master Control tabs show people: the trainers' events in a section of their own,
-// then one retractable table per batch (newest batch first), then any account that's gone (revoked, or never
-// approved). Each section lists its events newest first. Whether someone is a trainer or a trainee, and their
-// name, come from the users list; for an account that's no longer there, the batch the log row recorded is used.
+// Server Logs and Activity Logs, as the other Master Control tabs show people: the trainers' events in a section
+// of their own, then one retractable table per batch (newest batch first), then any account that's gone (revoked,
+// or never approved). Each section lists its events newest first. Whether someone is a trainer or a trainee, and
+// their name, come from the users list; for an account that's no longer there, the batch the log row recorded is used.
+// logPlace() works out where one row goes; logSectionsHtml() draws the sections. `counts` puts a chip per kind of
+// event in each header ({ label, cls, test(row) }); `searching` opens every section, since each one holds a match.
+function logPlace(row, ev) {
+    const u = (__usersCache || []).find(x => x.username === row.actor_username);
+    const trainer = u ? u.userType === 'Admin' : (row.actor_username === 'LSHADMIN123' || row.actor_batch === 'MASTER-ADMIN');
+    const batch = u ? u.batchId : row.actor_batch;
+    const c = trainer ? null : batch ? batchCohort(batch) : null;
+    const group = trainer ? { key: 'trainers', sort: '9' }
+        : (u || (c && /^B\d{6}$/.test(c.key))) ? (c || { key: 'No Batch', sort: '0' })
+        : { key: 'gone', sort: '' };
+    const name = u ? u.fullName : (row.actor_username === 'LSHADMIN123' ? 'Master Account' : '');
+    return { row, ev, group, name };
+}
+function logSectionsHtml(prefix, placed, searching, counts) {
+    const groups = new Map();
+    placed.forEach(x => { if (!groups.has(x.group.key)) groups.set(x.group.key, { ...x.group, items: [] }); groups.get(x.group.key).items.push(x); });
+    const trainers = groups.get('trainers'), gone = groups.get('gone');
+    const batches = [...groups.values()].filter(g => g.key !== 'trainers' && g.key !== 'gone').sort((a, b) => b.sort.localeCompare(a.sort));
+
+    // the trainers' section and the newest batch start open, the rest closed; a section stays the way it was left
+    const isOpen = (key, dflt) => searching ? true : (__paOpen.has(key) ? __paOpen.get(key) : dflt);
+    const row = (x) => `<tr>
+        <td class="mc-sub" style="white-space:nowrap;">${formatLogTimestamp(x.row.timestamp)}</td>
+        <td class="pa-who">${x.name ? `<div class="pa-name">${escapeHtml(x.name)}</div>` : ''}<div class="pa-user">${escapeHtml(x.row.actor_username || 'Unknown')}</div></td>
+        <td><span class="sl-ev sl-${x.ev.tone}">${x.ev.icon} ${escapeHtml(x.ev.text)}</span></td>
+        <td class="mc-sub">${escapeHtml(x.ev.extra)}</td>
+    </tr>`;
+    const section = (key, title, cls, g, dflt) => {
+        const chips = (counts || []).map(c => { const n = g.items.filter(x => c.test(x.row)).length; return n ? `<span class="pa-chip ${c.cls}">${n} ${c.label}${n === 1 ? '' : 's'}</span>` : ''; }).join('');
+        return `<details class="pa-batch ${cls}" data-key="${escapeHtml(key)}" ontoggle="paToggle(this)"${isOpen(key, dflt) ? ' open' : ''}>
+            <summary><span class="pa-caret" aria-hidden="true">▶</span><span class="pa-title">${escapeHtml(title)}</span>
+                <span class="pa-chip">${g.items.length} ${g.items.length === 1 ? 'event' : 'events'}</span>${chips}<span class="pa-chip">latest ${formatLogTimestamp(g.items[0].row.timestamp)}</span></summary>
+            <div class="mc-table-wrap pa-table-wrap"><table class="mc-table pa-table sl-table">
+                <thead><tr><th style="width:18%;">When</th><th style="width:22%;">${cls === 'pa-trainers' ? 'Trainer' : 'Who'}</th><th style="width:26%;">Event</th><th>Details</th></tr></thead>
+                <tbody>${g.items.map(row).join('')}</tbody></table></div></details>`;
+    };
+    return (trainers ? section(prefix + 'trainers', '🧑‍🏫 Trainers', 'pa-trainers', trainers, true) : '')
+        + batches.map((g, i) => section(prefix + 'batch:' + g.key, '🎓 ' + (g.key === 'No Batch' ? 'No Batch yet' : 'Batch ' + g.key), '', g, i === 0)).join('')
+        + (gone ? section(prefix + 'gone', '🗂 Accounts no longer listed', 'sl-gone', gone, false) : '');
+}
+
 let __slLogs = [];
 function renderServerLogs(logs) {
     if (Array.isArray(logs)) __slLogs = logs;
@@ -905,46 +952,10 @@ function renderServerLogs(logs) {
     }
 
     const q = ((document.getElementById('server-logs-search') || {}).value || '').trim().toLowerCase();
-    const users = new Map((__usersCache || []).map(u => [u.username, u]));
-    const placed = __slLogs.map(row => {
-        const u = users.get(row.actor_username);
-        const ev = serverLogEvent(row);
-        const trainer = u ? u.userType === 'Admin' : (row.actor_username === 'LSHADMIN123' || row.actor_batch === 'MASTER-ADMIN');
-        const batch = u ? u.batchId : row.actor_batch;
-        const c = trainer ? null : batch ? batchCohort(batch) : null;
-        const group = trainer ? { key: 'trainers', sort: '9' }
-            : (u || (c && /^B\d{6}$/.test(c.key))) ? (c || { key: 'No Batch', sort: '0' })
-            : { key: 'gone', sort: '' };
-        const name = u ? u.fullName : (row.actor_username === 'LSHADMIN123' ? 'Master Account' : '');
-        return { row, ev, group, name };
-    }).filter(x => !q || [x.name, x.row.actor_username, x.row.actor_batch, x.ev.text, x.ev.extra, x.group.key].some(v => String(v || '').toLowerCase().includes(q)));
+    const placed = __slLogs.map(row => logPlace(row, serverLogEvent(row)))
+        .filter(x => !q || [x.name, x.row.actor_username, x.row.actor_batch, x.ev.text, x.ev.extra, x.group.key].some(v => String(v || '').toLowerCase().includes(q)));
     if (!placed.length) { container.innerHTML = '<p class="pa-empty">No events match.</p>'; return; }
-
-    const groups = new Map();
-    placed.forEach(x => { if (!groups.has(x.group.key)) groups.set(x.group.key, { ...x.group, items: [] }); groups.get(x.group.key).items.push(x); });
-    const trainers = groups.get('trainers'), gone = groups.get('gone');
-    const batches = [...groups.values()].filter(g => g.key !== 'trainers' && g.key !== 'gone').sort((a, b) => b.sort.localeCompare(a.sort));
-
-    // the trainers' section and the newest batch start open, the rest closed; a search opens every section with a match
-    const isOpen = (key, dflt) => q ? true : (__paOpen.has(key) ? __paOpen.get(key) : dflt);
-    const row = (x) => `<tr>
-        <td class="mc-sub" style="white-space:nowrap;">${formatLogTimestamp(x.row.timestamp)}</td>
-        <td class="pa-who">${x.name ? `<div class="pa-name">${escapeHtml(x.name)}</div>` : ''}<div class="pa-user">${escapeHtml(x.row.actor_username || 'Unknown')}</div></td>
-        <td><span class="sl-ev sl-${x.ev.tone}">${x.ev.icon} ${escapeHtml(x.ev.text)}</span></td>
-        <td class="mc-sub">${escapeHtml(x.ev.extra)}</td>
-    </tr>`;
-    const section = (key, title, cls, g, dflt) => {
-        const logins = g.items.filter(x => x.row.action === 'login').length;
-        return `<details class="pa-batch ${cls}" data-key="${escapeHtml(key)}" ontoggle="paToggle(this)"${isOpen(key, dflt) ? ' open' : ''}>
-            <summary><span class="pa-caret" aria-hidden="true">▶</span><span class="pa-title">${escapeHtml(title)}</span>
-                <span class="pa-chip">${g.items.length} ${g.items.length === 1 ? 'event' : 'events'}</span>${logins ? `<span class="pa-chip ok">${logins} log-in${logins === 1 ? '' : 's'}</span>` : ''}<span class="pa-chip">latest ${formatLogTimestamp(g.items[0].row.timestamp)}</span></summary>
-            <div class="mc-table-wrap pa-table-wrap"><table class="mc-table pa-table">
-                <thead><tr><th style="width:18%;">When</th><th style="width:22%;">${cls === 'pa-trainers' ? 'Trainer' : 'Who'}</th><th style="width:26%;">Event</th><th>Details</th></tr></thead>
-                <tbody>${g.items.map(row).join('')}</tbody></table></div></details>`;
-    };
-    container.innerHTML = (trainers ? section('sl:trainers', '🧑‍🏫 Trainers', 'pa-trainers', trainers, true) : '')
-        + batches.map((g, i) => section('sl:batch:' + g.key, '🎓 ' + (g.key === 'No Batch' ? 'No Batch yet' : 'Batch ' + g.key), '', g, i === 0)).join('')
-        + (gone ? section('sl:gone', '🗂 Accounts no longer listed', 'sl-gone', gone, false) : '');
+    container.innerHTML = logSectionsHtml('sl:', placed, !!q, [{ label: 'log-in', cls: 'ok', test: r => r.action === 'login' }]);
 }
 
 // What a log row says, as an icon, a short label, a colour (tone) and the detail line beside it.
