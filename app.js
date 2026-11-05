@@ -2934,7 +2934,7 @@ function renderAccessRequests() {
     const pending = __paAccess.filter(a => a.status === 'Pending').sort((a, b) => String(a.requested_at || '').localeCompare(String(b.requested_at || '')));
     updateAccessRequestBadge(pending.length);
     const head = `<div class="mc-section-sub">🙋 Access Requests <span class="admin-nav-badge">${pending.length || ''}</span></div>`;
-    if (!pending.length) { box.innerHTML = head + '<p style="font-size:12px;color:#94a3b8;margin:0 0 16px;">No requests waiting. A trainee asks from the Training Directory\'s <b>Request Access</b>; it shows up here.</p>'; return; }
+    if (!pending.length) { box.innerHTML = head + '<p style="font-size:13.5px;color:#334155;margin:0 0 16px;">No requests waiting. A trainee asks from the Training Directory\'s <b>Request Access</b>; it shows up here.</p>'; return; }
     box.innerHTML = head + `<div class="mc-table-wrap"><table class="mc-table">
         <thead><tr><th>Trainee</th><th>Username</th><th>Batch</th><th>Program / tool</th><th>Requested</th><th style="text-align:right;">Decision</th></tr></thead>
         <tbody>${pending.map(a => {
@@ -2948,35 +2948,78 @@ function renderAccessRequests() {
                 <td class="mc-sub">${paWhen(a.requested_at)}</td><td class="mc-actions">${actions}</td></tr>`;
         }).join('')}</tbody></table></div>`;
 }
+// Each trainee's programs, as tables: one retractable section per batch (newest batch first), and the trainers
+// (Admin / Trainer accounts) in a section of their own: a trainer opens every program, so theirs is read-only.
+// Which sections are open is kept across re-renders (a Grant / Revoke reloads the list).
+const __paOpen = new Map();
+function paToggle(el) { __paOpen.set(el.dataset.key, el.open); }
+function paExpandAll(open) { document.querySelectorAll('#program-access-list details.pa-batch').forEach(d => { d.open = open; __paOpen.set(d.dataset.key, open); }); }
+window.paToggle = paToggle; window.paExpandAll = paExpandAll;
 function renderProgramAccess() {
     renderAccessRequests();
     const box = document.getElementById('program-access-list');
     if (!box) return;
     const q = ((document.getElementById('pa-search') || {}).value || '').trim().toLowerCase();
+    const match = u => !q || [u.fullName, u.username, u.batchId, batchLabel(u.batchId)].some(v => String(v || '').toLowerCase().includes(q));
+    const byName = (a, b) => String(a.fullName).localeCompare(String(b.fullName));
     const topics = __paTopics.filter(t => !PA_HIDDEN.includes(t.key));
-    const trainees = (__usersCache || []).filter(u => u.userType === 'Trainee' && (u.status === 'Approved' || u.status === 'Suspended'))
-        .filter(u => !q || (u.fullName || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q));
-    if (!trainees.length) { box.innerHTML = '<p style="font-size:12px;color:#94a3b8;">No trainees match.</p>'; return; }
+    const active = (__usersCache || []).filter(u => (u.status === 'Approved' || u.status === 'Suspended') && u.username !== 'LSHADMIN123');
+    const trainers = active.filter(u => u.userType === 'Admin' && match(u)).sort(byName);
+    const groups = new Map();
+    active.filter(u => u.userType === 'Trainee' && match(u)).forEach(u => {
+        const c = batchCohort(u.batchId);
+        if (!groups.has(c.key)) groups.set(c.key, { key: c.key, sort: c.sort, users: [] });
+        groups.get(c.key).users.push(u);
+    });
+    const batches = [...groups.values()].sort((a, b) => b.sort.localeCompare(a.sort));
+    if (!trainers.length && !batches.length) { box.innerHTML = '<p class="pa-empty">No trainees or trainers match.</p>'; return; }
+
     const status = (u, key) => { const r = __paAccess.find(a => a.trainee_username === u.username && a.topic_key === key); return r ? r.status : ''; };
     const btn = (cls, label, u, key, action) => `<button class="${cls}" onclick="paSet('${escapeHtml(u.username)}','${escapeHtml(key)}','${action}')">${label}</button>`;
-    box.innerHTML = trainees.map(u => {
-        const rows = topics.map(t => {
-            const st = status(u, t.key);
-            if (!st) return '';
-            const actions = st === 'Approved' || st === 'Passed'
-                ? (st === 'Approved' ? btn('btn-primary', 'Mark Passed', u, t.key, 'MARK_PASSED') : '')
-                  + btn('btn-ghost', '⏸ Suspend', u, t.key, 'SUSPEND') + btn('btn-ghost btn-danger-ghost', 'Revoke', u, t.key, 'DENY')
-                : paIsSuspended(st)
-                ? btn('btn-primary', '▶ Restore', u, t.key, 'RESTORE') + btn('btn-ghost btn-danger-ghost', 'Revoke', u, t.key, 'DENY')
-                : st === 'Pending'
-                ? btn('btn-primary', 'Approve', u, t.key, 'APPROVE') + btn('btn-ghost btn-danger-ghost', 'Deny', u, t.key, 'DENY')
-                : btn('btn-primary', 'Grant', u, t.key, 'GRANT');
-            return `<tr><td>${escapeHtml(paName(t.key))}</td><td><span class="mc-pill ${paPillClass(st)}">${escapeHtml(paPillText(st))}</span></td><td class="mc-actions">${actions}</td></tr>`;
-        }).join('');
-        const grant = `<div style="display:flex;gap:6px;margin-top:8px;"><select id="pa-add-${u.id}" style="flex:1;padding:5px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;">${topics.filter(t => !['Approved', 'Passed'].includes(status(u, t.key))).map(t => `<option value="${escapeHtml(t.key)}">${escapeHtml(paName(t.key))}</option>`).join('')}</select><button class="btn-primary" style="padding:5px 10px;font-size:10.5px;border-radius:6px;" onclick="paSet('${escapeHtml(u.username)}', document.getElementById('pa-add-${u.id}').value, 'GRANT')">Grant access</button></div>`;
-        const table = rows ? `<div class="mc-table-wrap" style="margin:8px 0 0;"><table class="mc-table"><thead><tr><th>Program / tool</th><th>Status</th><th style="text-align:right;">Actions</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div style="font-size:11.5px;color:#94a3b8;margin-top:4px;">No program access yet.</div>';
-        return `<div class="admin-tile" style="text-align:left;margin-bottom:10px;"><div style="font-weight:800;font-size:13px;color:var(--navy);">${escapeHtml(u.fullName)} <span style="font-weight:600;color:#64748b;font-size:11px;">${escapeHtml(u.username)} · ${escapeHtml(batchLabel(u.batchId))}${u.status === 'Suspended' ? ' · ACCOUNT SUSPENDED' : ''}</span></div>${table}${grant}</div>`;
-    }).join('');
+    const actionsFor = (u, key, st) => st === 'Approved' || st === 'Passed'
+        ? (st === 'Approved' ? btn('btn-primary', 'Mark Passed', u, key, 'MARK_PASSED') : '')
+          + btn('btn-ghost', '⏸ Suspend', u, key, 'SUSPEND') + btn('btn-ghost btn-danger-ghost', 'Revoke', u, key, 'DENY')
+        : paIsSuspended(st)
+        ? btn('btn-primary', '▶ Restore', u, key, 'RESTORE') + btn('btn-ghost btn-danger-ghost', 'Revoke', u, key, 'DENY')
+        : st === 'Pending'
+        ? btn('btn-primary', 'Approve', u, key, 'APPROVE') + btn('btn-ghost btn-danger-ghost', 'Deny', u, key, 'DENY')
+        : btn('btn-primary', 'Grant', u, key, 'GRANT');
+    // a section opens the way it was left; with nothing recorded, the newest batch is open, the rest closed;
+    // while searching, every section with a match is open
+    const isOpen = (key, dflt) => q ? true : (__paOpen.has(key) ? __paOpen.get(key) : dflt);
+    const chip = (n, label, cls) => n ? `<span class="pa-chip ${cls}">${n} ${label}</span>` : '';
+
+    const traineeRows = (u) => {
+        const owned = topics.map(t => ({ t, st: status(u, t.key) })).filter(x => x.st);
+        const grantable = topics.filter(t => !['Approved', 'Passed'].includes(status(u, t.key)));
+        const grant = grantable.length
+            ? `<div class="pa-grant"><select id="pa-add-${u.id}" aria-label="Program to grant ${escapeHtml(u.fullName)}">${grantable.map(t => `<option value="${escapeHtml(t.key)}">${escapeHtml(paName(t.key))}</option>`).join('')}</select><button class="btn-primary" onclick="paSet('${escapeHtml(u.username)}', document.getElementById('pa-add-${u.id}').value, 'GRANT')">Grant access</button></div>`
+            : '';
+        const who = `<td class="pa-who" rowspan="${Math.max(owned.length, 1)}"><div class="pa-name">${escapeHtml(u.fullName)}</div><div class="pa-user">${escapeHtml(u.username)}${u.status === 'Suspended' ? ' <span class="mc-pill suspended">account suspended</span>' : ''}</div>${grant}</td>`;
+        if (!owned.length) return `<tr class="pa-first">${who}<td colspan="3" class="pa-none">No program access yet.</td></tr>`;
+        return owned.map((x, i) => `<tr class="${i === 0 ? 'pa-first' : ''}">${i === 0 ? who : ''}<td class="pa-prog">${escapeHtml(paName(x.t.key))}</td><td><span class="mc-pill ${paPillClass(x.st)}">${escapeHtml(paPillText(x.st))}</span></td><td class="mc-actions">${actionsFor(u, x.t.key, x.st)}</td></tr>`).join('');
+    };
+    const batchSection = (g, i) => {
+        const rows = g.users.flatMap(u => topics.map(t => status(u, t.key)).filter(Boolean));
+        const count = st => rows.filter(st).length;
+        const title = g.key === 'No Batch' ? 'No Batch yet' : 'Batch ' + g.key;
+        const key = 'batch:' + g.key;
+        return `<details class="pa-batch" data-key="${escapeHtml(key)}" ontoggle="paToggle(this)"${isOpen(key, i === 0) ? ' open' : ''}>
+            <summary><span class="pa-caret" aria-hidden="true">▶</span><span class="pa-title">🎓 ${escapeHtml(title)}</span>
+                <span class="pa-chip">${g.users.length} ${g.users.length === 1 ? 'trainee' : 'trainees'}</span>
+                ${chip(count(s => s === 'Approved'), 'in progress', 'ok')}${chip(count(s => s === 'Passed'), 'completed', 'ok')}${chip(count(s => s === 'Pending'), 'pending', 'warn')}${chip(count(paIsSuspended), 'suspended', 'sus')}${chip(count(s => s === 'Denied'), 'denied', 'bad')}</summary>
+            <div class="mc-table-wrap pa-table-wrap"><table class="mc-table pa-table">
+                <thead><tr><th style="width:30%;">Trainee</th><th>Program / tool</th><th>Status</th><th style="text-align:right;">Actions</th></tr></thead>
+                <tbody>${g.users.sort(byName).map(traineeRows).join('')}</tbody></table></div></details>`;
+    };
+    const trainerSection = trainers.length ? `<details class="pa-batch pa-trainers" data-key="trainers" ontoggle="paToggle(this)"${isOpen('trainers', false) ? ' open' : ''}>
+            <summary><span class="pa-caret" aria-hidden="true">▶</span><span class="pa-title">🧑‍🏫 Trainers</span>
+                <span class="pa-chip">${trainers.length} ${trainers.length === 1 ? 'trainer' : 'trainers'}</span><span class="pa-chip sus">every program, no grant needed</span></summary>
+            <div class="mc-table-wrap pa-table-wrap"><table class="mc-table pa-table">
+                <thead><tr><th style="width:30%;">Trainer</th><th>Username</th><th>Email</th><th>Program access</th></tr></thead>
+                <tbody>${trainers.map(u => `<tr><td class="pa-who"><div class="pa-name">${escapeHtml(u.fullName)}</div></td><td>${escapeHtml(u.username)}</td><td class="mc-sub">${escapeHtml(u.email || '')}</td><td>${u.status === 'Suspended' ? '<span class="mc-pill suspended">account suspended</span>' : '<span class="mc-pill approved">All programs</span>'}</td></tr>`).join('')}</tbody></table></div></details>` : '';
+    box.innerHTML = `<div class="pa-toolbar"><button class="btn-ghost" onclick="paExpandAll(true)">Expand all</button><button class="btn-ghost" onclick="paExpandAll(false)">Collapse all</button></div>`
+        + trainerSection + batches.map(batchSection).join('');
 }
 const PA_DONE = { APPROVE: 'Access approved.', DENY: 'Access revoked.', GRANT: 'Access granted.', MARK_PASSED: 'Marked as passed.', SUSPEND: 'Access suspended.', RESTORE: 'Access restored.', CLEAR: 'Request cleared.' };
 async function paSet(username, topicKey, action) {
