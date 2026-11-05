@@ -854,19 +854,19 @@ function closeServerLogs() {
 async function loadServerLogs() {
     const container = document.getElementById('server-logs-list');
     if (!container) return;
-    container.innerHTML = `<p style="font-size:12px;color:#94a3b8;">Loading...</p>`;
+    container.innerHTML = `<p class="pa-empty">Loading…</p>`;
 
     try {
-        const res = await fetch('/api/server-logs', { credentials: 'include' });
+        const [res] = await Promise.all([fetch('/api/server-logs', { credentials: 'include' }), (__usersCache && __usersCache.length) ? null : loadUsersData()]);
         const data = await res.json();
         if (!res.ok || !data.success) {
-            container.innerHTML = `<p style="font-size:12px;color:#f87171;">${escapeHtml((data && data.error) || 'Failed to load server logs.')}</p>`;
+            container.innerHTML = `<p class="pa-empty" style="color:#b91c1c;">${escapeHtml((data && data.error) || 'Failed to load server logs.')}</p>`;
             return;
         }
         renderServerLogs(data.logs || []);
     } catch (e) {
         console.error('loadServerLogs failed', e);
-        container.innerHTML = `<p style="font-size:12px;color:#f87171;">Network error while loading server logs.</p>`;
+        container.innerHTML = `<p class="pa-empty" style="color:#b91c1c;">Network error while loading server logs.</p>`;
     }
 }
 
@@ -889,57 +889,95 @@ function formatLogTimestamp(ts) {
     }
 }
 
+// Server Logs, as the other Master Control tabs show people: the trainers' events in a section of their own,
+// then one retractable table per batch (newest batch first), then any account that's gone (revoked, or never
+// approved). Each section lists its events newest first. Whether someone is a trainer or a trainee, and their
+// name, come from the users list; for an account that's no longer there, the batch the log row recorded is used.
+let __slLogs = [];
 function renderServerLogs(logs) {
+    if (Array.isArray(logs)) __slLogs = logs;
     const container = document.getElementById('server-logs-list');
     if (!container) return;
 
-    if (logs.length === 0) {
-        container.innerHTML = `<p style="font-size:12px;color:#94a3b8;">No server activity recorded yet.</p>`;
+    if (__slLogs.length === 0) {
+        container.innerHTML = `<p class="pa-empty">No server activity recorded yet.</p>`;
         return;
     }
 
-    container.innerHTML = logs.map(serverLogRowMarkup).join('');
+    const q = ((document.getElementById('server-logs-search') || {}).value || '').trim().toLowerCase();
+    const users = new Map((__usersCache || []).map(u => [u.username, u]));
+    const placed = __slLogs.map(row => {
+        const u = users.get(row.actor_username);
+        const ev = serverLogEvent(row);
+        const trainer = u ? u.userType === 'Admin' : (row.actor_username === 'LSHADMIN123' || row.actor_batch === 'MASTER-ADMIN');
+        const batch = u ? u.batchId : row.actor_batch;
+        const c = trainer ? null : batch ? batchCohort(batch) : null;
+        const group = trainer ? { key: 'trainers', sort: '9' }
+            : (u || (c && /^B\d{6}$/.test(c.key))) ? (c || { key: 'No Batch', sort: '0' })
+            : { key: 'gone', sort: '' };
+        const name = u ? u.fullName : (row.actor_username === 'LSHADMIN123' ? 'Master Account' : '');
+        return { row, ev, group, name };
+    }).filter(x => !q || [x.name, x.row.actor_username, x.row.actor_batch, x.ev.text, x.ev.extra, x.group.key].some(v => String(v || '').toLowerCase().includes(q)));
+    if (!placed.length) { container.innerHTML = '<p class="pa-empty">No events match.</p>'; return; }
+
+    const groups = new Map();
+    placed.forEach(x => { if (!groups.has(x.group.key)) groups.set(x.group.key, { ...x.group, items: [] }); groups.get(x.group.key).items.push(x); });
+    const trainers = groups.get('trainers'), gone = groups.get('gone');
+    const batches = [...groups.values()].filter(g => g.key !== 'trainers' && g.key !== 'gone').sort((a, b) => b.sort.localeCompare(a.sort));
+
+    // the trainers' section and the newest batch start open, the rest closed; a search opens every section with a match
+    const isOpen = (key, dflt) => q ? true : (__paOpen.has(key) ? __paOpen.get(key) : dflt);
+    const row = (x) => `<tr>
+        <td class="mc-sub" style="white-space:nowrap;">${formatLogTimestamp(x.row.timestamp)}</td>
+        <td class="pa-who">${x.name ? `<div class="pa-name">${escapeHtml(x.name)}</div>` : ''}<div class="pa-user">${escapeHtml(x.row.actor_username || 'Unknown')}</div></td>
+        <td><span class="sl-ev sl-${x.ev.tone}">${x.ev.icon} ${escapeHtml(x.ev.text)}</span></td>
+        <td class="mc-sub">${escapeHtml(x.ev.extra)}</td>
+    </tr>`;
+    const section = (key, title, cls, g, dflt) => {
+        const logins = g.items.filter(x => x.row.action === 'login').length;
+        return `<details class="pa-batch ${cls}" data-key="${escapeHtml(key)}" ontoggle="paToggle(this)"${isOpen(key, dflt) ? ' open' : ''}>
+            <summary><span class="pa-caret" aria-hidden="true">▶</span><span class="pa-title">${escapeHtml(title)}</span>
+                <span class="pa-chip">${g.items.length} ${g.items.length === 1 ? 'event' : 'events'}</span>${logins ? `<span class="pa-chip ok">${logins} log-in${logins === 1 ? '' : 's'}</span>` : ''}<span class="pa-chip">latest ${formatLogTimestamp(g.items[0].row.timestamp)}</span></summary>
+            <div class="mc-table-wrap pa-table-wrap"><table class="mc-table pa-table">
+                <thead><tr><th style="width:18%;">When</th><th style="width:22%;">${cls === 'pa-trainers' ? 'Trainer' : 'Who'}</th><th style="width:26%;">Event</th><th>Details</th></tr></thead>
+                <tbody>${g.items.map(row).join('')}</tbody></table></div></details>`;
+    };
+    container.innerHTML = (trainers ? section('sl:trainers', '🧑‍🏫 Trainers', 'pa-trainers', trainers, true) : '')
+        + batches.map((g, i) => section('sl:batch:' + g.key, '🎓 ' + (g.key === 'No Batch' ? 'No Batch yet' : 'Batch ' + g.key), '', g, i === 0)).join('')
+        + (gone ? section('sl:gone', '🗂 Accounts no longer listed', 'sl-gone', gone, false) : '');
 }
 
-function serverLogRowMarkup(row) {
-    const details = row.details && typeof row.details === 'object' ? row.details : {};
-    const who = escapeHtml(row.actor_username);
-    let icon = '\u2139\uFE0F';
-    let label = `${who} \u2014 ${escapeHtml(row.action)}`;
-    let extra = '';
-
+// What a log row says, as an icon, a short label, a colour (tone) and the detail line beside it.
+function serverLogEvent(row) {
+    const d = row.details && typeof row.details === 'object' ? row.details : {};
+    const byId = d.userId != null ? (__usersCache || []).find(u => u.id === d.userId) : null;   // update-status logs only the id
+    const target = d.username || d.traineeUsername || (byId ? byId.username : d.userId != null ? 'user #' + d.userId : '');
+    const by = typeof row.details === 'string' ? 'via ' + row.details : '';
+    const E = (icon, text, tone, extra) => ({ icon, text, tone, extra: extra || '' });
     switch (row.action) {
-        case 'login':
-            icon = '\uD83D\uDD13';
-            label = `${who} logged in`;
-            break;
-        case 'logout':
-            icon = '\uD83D\uDD12';
-            label = `${who} logged out`;
-            if (row.sessionDurationSeconds !== null && row.sessionDurationSeconds !== undefined) {
-                extra = `Session length: ${formatDuration(row.sessionDurationSeconds)}`;
-            }
-            break;
-        case 'revoke-user':
-            icon = '\u26D4';
-            label = `${who} revoked ${escapeHtml(details.username || ('user #' + details.userId))}`;
-            break;
-        case 'update-access':
-            icon = details.newStatus === 'Suspended' ? '\u23F8\uFE0F' : '\u25B6\uFE0F';
-            label = `${who} ${details.newStatus === 'Suspended' ? 'suspended' : 'reactivated'} ${escapeHtml(details.username || ('user #' + details.userId))}`;
-            break;
+        case 'login': return E('🔓', 'Logged in', 'ok', by);
+        case 'logout': return E('🔒', 'Logged out', 'muted', row.sessionDurationSeconds != null ? 'Session length: ' + formatDuration(row.sessionDurationSeconds) : '');
+        case 'register': return E('📝', 'Registered', 'info', d.userType === 'Admin' ? 'as Admin / Trainer' : d.userType ? 'as ' + d.userType : '');
+        case 'create-user': return E('➕', 'Created an account', 'info', [target, d.userType === 'Admin' ? 'Admin / Trainer' : d.userType].filter(Boolean).join(' · '));
+        case 'update-status': return E(d.newStatus === 'Approved' ? '✅' : '✖️', d.newStatus === 'Approved' ? 'Approved a registration' : 'Rejected a registration', d.newStatus === 'Approved' ? 'ok' : 'bad', [target, d.batchId ? 'Batch ' + batchLabel(d.batchId) : ''].filter(Boolean).join(' · '));
+        case 'update-user': return E('✏️', 'Edited an account', 'info', [target, Array.isArray(d.changed) && d.changed.length ? 'changed ' + d.changed.join(', ') : ''].filter(Boolean).join(' · '));
+        case 'update-access': return E(d.newStatus === 'Suspended' ? '⏸️' : '▶️', d.newStatus === 'Suspended' ? 'Suspended an account' : 'Restored an account', d.newStatus === 'Suspended' ? 'warn' : 'ok', target);
+        case 'revoke-user': return E('⛔', 'Revoked an account', 'bad', target);
+        case 'set-first-password': return E('🔑', 'Set their first password', 'info');
+        case 'forgot-password-reset': return E('🔑', 'Reset their password', 'info');
+        case 'send-ping': return E('📣', 'Sent a ping', 'info', [d.mode === 'all' ? 'to everyone' : Array.isArray(d.usernames) && d.usernames.length ? 'to ' + d.usernames.join(', ') : '', d.message ? '“' + d.message + '”' : ''].filter(Boolean).join(' · '));
+        case 'alert-set': return E('🚨', 'Set an alert', 'warn', d.text ? '“' + d.text + '”' : '');
+        case 'alert-stop': return E('🔕', 'Stopped the alert', 'muted');
+        case 'site-lock': return E('🔒', 'Locked the site', 'bad');
+        case 'site-unlock': return E('🔓', 'Unlocked the site', 'ok');
+        case 'site-pause': return E('⏸️', 'Paused the site', 'warn', d.message ? '“' + d.message + '”' : '');
+        case 'site-resume': return E('▶️', 'Resumed the site', 'ok');
+        case 'ANNOUNCEMENT_SET': return E('📢', 'Set the announcement', 'info', d.text ? '“' + d.text + '”' : '');
+        case 'ANNOUNCEMENT_CLEARED': return E('📢', 'Cleared the announcement', 'muted');
     }
-
-    return `
-        <div class="admin-tile" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;text-align:left;">
-            <div style="font-size:16px;flex-shrink:0;">${icon}</div>
-            <div style="flex:1;">
-                <div style="font-weight:700;font-size:12px;color:var(--navy);">${label}</div>
-                <div style="font-size:11px;color:#64748b;margin-top:2px;">${formatLogTimestamp(row.timestamp)}${row.actor_batch ? ' &middot; ' + escapeHtml(row.actor_batch) : ''}</div>
-                ${extra ? `<div style="font-size:11px;color:#64748b;">${extra}</div>` : ''}
-            </div>
-        </div>
-    `;
+    // anything else: its action name in words, and what it was about
+    const words = String(row.action || 'Unknown').replace(/[_-]+/g, ' ').toLowerCase().replace(/^\w/, ch => ch.toUpperCase());
+    return E('ℹ️', words, 'muted', [target, d.title, d.topicKey].filter(Boolean).join(' · '));
 }
 
 // =========================================================

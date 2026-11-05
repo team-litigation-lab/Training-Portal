@@ -1,7 +1,7 @@
 import { json, requireSession } from '../_utils.js';
 
 // GET /api/server-logs — Admin only. Master Control > Monitoring > Server Logs
-// (app.js loadServerLogs / serverLogRowMarkup): the accounts DB's activity_log,
+// (app.js loadServerLogs / renderServerLogs / serverLogEvent): the accounts DB's activity_log,
 // newest first. login.js, logout.js, register.js, revoke-user.js, update-access.js,
 // pings.js, alert.js and site-state.js write it through logActivity().
 //
