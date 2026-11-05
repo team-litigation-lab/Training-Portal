@@ -16,7 +16,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rv-'));
 const put = (name, text) => { const p = path.join(tmp, name); fs.writeFileSync(p, text); return pathToFileURL(p).href; };
 const utilsUrl = put('_utils.mjs', fs.readFileSync('functions/_utils.js', 'utf8'));
 const driveUrl = put('_drive.mjs', fs.readFileSync('functions/_drive.js', 'utf8'));
-const purgeUrl = put('_purge.mjs', fs.readFileSync('functions/_purge.js', 'utf8'));
+const purgeUrl = put('_purge.mjs', fs.readFileSync('functions/_purge.js', 'utf8').replace("'./_utils.js'", `'${utilsUrl}'`));
 const revoke = await import(put('revoke-user.mjs', fs.readFileSync('functions/api/revoke-user.js', 'utf8')
     .replace("'../_utils.js'", `'${utilsUrl}'`).replace("'../_drive.js'", `'${driveUrl}'`).replace("'../_purge.js'", `'${purgeUrl}'`)));
 const u = await import(utilsUrl);
@@ -118,6 +118,20 @@ check(count(`SELECT COUNT(*) n FROM deleted_users WHERE username = 'ana'`) === 1
 check(!!one(`SELECT id FROM users WHERE username = 'ben'`), "the other trainee's account is untouched");
 check(count(`SELECT COUNT(*) n FROM submissions WHERE trainee_username = 'ben'`) === 1, 'and his work');
 check(kvData.has('cm:trainee:t-ben'), 'and his course progress');
+
+// 6. A course record keeps the name the launch ticket gave it (first + last only) and the batch in its one form, so a
+//    trainee registered with a middle initial and a long-form Batch ID is still found there and taken out. Someone with
+//    the same name in another batch stays.
+sql.exec(`INSERT INTO users (username, first_name, mi, last_name, email, status, user_type, batch_id) VALUES
+ ('mark','Mark Christian','D.','Lucban','mk@x','Approved','Trainee','B10302026')`);
+kvData.set('ft:trainee:mark-christian-lucban--b103026', { id: 'mark-christian-lucban--b103026', name: 'Mark Christian Lucban', fullName: 'Mark Christian D. Lucban', batch: 'B103026' });
+kvData.set('ft:feedback:mark-christian-lucban--b103026', { days: {} });
+kvData.set('ft:trainee:mark-christian-lucban--b010125', { id: 'mark-christian-lucban--b010125', name: 'Mark Christian Lucban', batch: 'B010125' });
+r = await read(await revoke.onRequestPost({ request: req(trainer, { userId: idOf('mark'), backupSaved: true }), env }));
+check(r.status === 200 && r.body.success, `revoking a trainee with a middle initial: ${r.status} ${r.body.error || ''}`);
+check(!kvData.has('ft:trainee:mark-christian-lucban--b103026') && !kvData.has('ft:feedback:mark-christian-lucban--b103026'),
+    "his Foundational Training record (first + last name, the short Batch ID) is gone, so he leaves its Scorecard");
+check(kvData.has('ft:trainee:mark-christian-lucban--b010125'), 'the same name in another batch is left alone');
 
 if (failures.length) { console.log(`\n${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
 console.log('\nRevoke test passed (the records are filed before anything is deleted, then nothing of theirs is left, scores included; the audit trail and the tombstone stay; the rest of the batch is untouched).');
