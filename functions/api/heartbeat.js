@@ -1,4 +1,4 @@
-import { json, getCookie, verifySessionToken, requireSession, upsertSessionHeartbeat, HEARTBEAT_GRACE_SECONDS, MASTER_USERNAME } from '../_utils.js';
+import { json, getCookie, verifySessionToken, requireSession, upsertSessionHeartbeat, HEARTBEAT_GRACE_SECONDS, MASTER_USERNAME, sessionGoogleOk, googleNeededMessage } from '../_utils.js';
 
 export async function onRequestGet({ request, env }) {
     // Who's currently online, their real name, and which case they're
@@ -31,6 +31,9 @@ export async function onRequestPost({ request, env }) {
     const session = await verifySessionToken(token, env.SESSION_SECRET);
     if (!session) {
         return json({ success: false, error: 'Not authenticated.', code: 'NOT_AUTHENTICATED' }, 401);
+    }
+    if (!sessionGoogleOk(env, session)) {
+        return json({ success: false, error: googleNeededMessage(env), code: 'GOOGLE_REQUIRED' }, 401);
     }
 
     // The Master Account has no users row by design (login.js): skip the
