@@ -44,6 +44,8 @@ jobs:
         run: node --no-warnings .github/scripts/master-control.mjs
       - name: Program access (Suspend / Restore keep Passed, a suspended program won't launch, orphaned requests can be cleared)
         run: node --no-warnings .github/scripts/program-access.mjs
+      - name: Standard Foundational Training's block list follows the Portal (a revoked / suspended program, a revoked account; only the Portal's own entries come off)
+        run: node --no-warnings .github/scripts/ft-block.mjs
       - name: Admin registrations (a trainer sets an admin account up; only the master account approves it)
         run: node --no-warnings .github/scripts/admin-approval.mjs
       - name: New-registration popup's list (trainers only; an Admin / Trainer registration only for the master account; on /api/live only when asked)

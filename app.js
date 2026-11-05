@@ -3138,13 +3138,27 @@ function renderProgramAccess() {
         + trainerSection + batches.map(batchSection).join('');
 }
 const PA_DONE = { APPROVE: 'Access approved.', DENY: 'Access revoked.', GRANT: 'Access granted.', MARK_PASSED: 'Marked as passed.', SUSPEND: 'Access suspended.', RESTORE: 'Access restored.', CLEAR: 'Request cleared.' };
+// 🧹 Standard Foundational Training: everyone revoked here before the course was told goes on its block list (topics.js FT_SWEEP)
+async function paFtSweep() {
+    if (!confirm('Take every revoked trainee off the Standard Foundational Training sheets?\n\nThat is anyone whose account was revoked, or whose Standard Foundational Training access was revoked or suspended, who still has a course record there. Nothing is deleted: the course\'s ▶ Restore brings someone back.')) return;
+    const btn = document.getElementById('pa-ft-sweep-btn'); if (btn) btn.disabled = true;
+    try {
+        const r = await postJson('/api/topics', { action: 'FT_SWEEP' });
+        const list = r.blocked || [];
+        showToast(list.length ? `Taken off the Standard Foundational Training sheets: ${list.map(x => x.name + (x.batch ? ' (' + batchLabel(x.batch) + ')' : '')).join(', ')}.` : 'Nobody to take off: every revoked trainee is already off the Standard Foundational Training sheets.', 'success');
+    } catch (e) { showToast(e.message, 'error'); }
+    if (btn) btn.disabled = false;
+}
+window.paFtSweep = paFtSweep;
 async function paSet(username, topicKey, action) {
     const name = paName(topicKey);
     if (action === 'DENY' && !confirm(`Revoke or deny ${username}'s access to ${name}?\n\nThey can request it again from the Training Directory.`)) return;
     if (action === 'SUSPEND' && !confirm(`Suspend ${username}'s access to ${name}?\n\nThey can't open it (or ask for it again) until you restore it. Nothing of theirs is removed.`)) return;
     try {
-        await postJson('/api/topics', { action, topicKey, traineeUsername: username });
-        showToast(PA_DONE[action] || 'Saved.', 'success');
+        const r = await postJson('/api/topics', { action, topicKey, traineeUsername: username });
+        const ft = r && r.ft;
+        showToast((PA_DONE[action] || 'Saved.') + (ft && ft.blocked && ft.blocked.length ? ' They are off the Standard Foundational Training sheets.' : ft && ft.unblocked && ft.unblocked.length ? ' They are back on the Standard Foundational Training sheets.' : ''), 'success');
+        if (ft && ft.error) showToast('Standard Foundational Training wasn’t told: ' + ft.error, 'error');
         loadProgramAccess();
     } catch (e) { showToast(e.message, 'error'); }
 }
