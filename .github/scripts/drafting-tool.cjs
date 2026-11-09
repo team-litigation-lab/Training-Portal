@@ -188,6 +188,19 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     const sw = await phone.evaluate(() => document.scrollingElement.scrollWidth);
     check('phone width: no sideways scroll', sw <= 391, String(sw));
 
+    // 7. a case the trainee's trainer assigned (the course's link, ?case=N): that case alone, no other to pick, and still
+    // that case when the page is opened again without the link
+    await page.goto(base + '/simulators/drafting.html?tab=lor1p&case=5', { waitUntil: 'load' });
+    await page.waitForSelector('section.docx > article', { timeout: 30000 });
+    await page.waitForTimeout(800);
+    const as1 = await page.evaluate(() => ({ sel: document.querySelectorAll('select[onchange*="pickCase"]').length, txt: (document.body.innerText.match(/Your assigned case: Case \d+/) || [''])[0] }));
+    check('an assigned case is the only one shown', as1.sel === 0 && as1.txt === 'Your assigned case: Case 5', JSON.stringify(as1));
+    await page.goto(base + '/simulators/drafting.html?tab=lor1p', { waitUntil: 'load' });
+    await page.waitForSelector('section.docx > article', { timeout: 30000 });
+    await page.waitForTimeout(800);
+    const as2 = await page.evaluate(() => ({ sel: document.querySelectorAll('select[onchange*="pickCase"]').length, txt: (document.body.innerText.match(/Your assigned case: Case \d+/) || [''])[0] }));
+    check('the assigned case stays without the link', as2.sel === 0 && as2.txt === 'Your assigned case: Case 5', JSON.stringify(as2));
+
     check('no page errors', !errors.length, errors.join(' | '));
     await browser.close(); server.close();
     oks.forEach(o => console.log('  ✓ ' + o));
