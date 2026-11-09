@@ -661,8 +661,8 @@
             <!-- REGISTRATIONS -->
             <div class="mc-pane" id="admin-dash-registrations">
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;">
-                    <p style="font-size:13.5px;line-height:1.55;color:#0f172a;margin:0;">Log-in approvals: every registration waiting, 🧑‍🏫 trainers on their own, then trainees by the batch they will join (oldest registration first in each), whether someone signed up on the login screen or a trainer set the account up here. <b>Approve</b> moves the account into the <b>Users</b> tab and issues its Batch ID.</p>
-                    <button class="btn-primary" style="padding:9px 16px;font-size:13px;font-weight:800;border-radius:8px;flex-shrink:0;" onclick="openCreateUser()">+ Create account</button>
+                    <p style="font-size:16px;font-weight:600;line-height:1.6;color:#0f172a;margin:0;">Log-in approvals: every registration waiting, 🧑‍🏫 trainers on their own, then trainees by the batch they will join (oldest registration first in each), whether someone signed up on the login screen or a trainer set the account up here. <b>Approve</b> moves the account into the <b>Users</b> tab and issues its Batch ID.</p>
+                    <button class="btn-primary" style="padding:10px 18px;font-size:15px;font-weight:900;border-radius:8px;flex-shrink:0;" onclick="openCreateUser()">+ Create account</button>
                 </div>
                 <div id="registrations-list"></div>
             </div>
@@ -676,14 +676,14 @@
             <!-- MONITORING -->
             <div class="mc-pane" id="admin-dash-monitoring">
                 <div class="mc-section-title">🟢 Users Online</div>
-                <p style="font-size:13.5px;line-height:1.55;color:#0f172a;margin-bottom:14px;">Who is signed in to this page: 🧑‍🏫 trainers on their own, then one table per batch (newest first; click a batch to open or close it). Each row shows what they are viewing and when their page last checked in. <b>Away</b> means no check-in for over 90 seconds: the tab was closed or went to sleep without logging out. <b>↻ Refresh</b> reloads the list.</p>
+                <p style="font-size:16px;font-weight:600;line-height:1.6;color:#0f172a;margin-bottom:16px;">Who is signed in to this page: 🧑‍🏫 trainers on their own, then one table per batch (newest first; click a batch to open or close it). Each row shows what they are viewing and when their page last checked in. <b>Away</b> means no check-in for over 90 seconds: the tab was closed or went to sleep without logging out. <b>↻ Refresh</b> reloads the list.</p>
                 <div id="monitoring-online-list"></div>
 
                 <div class="mc-section-title">🗄 Server Logs</div>
-                <p style="font-size:13.5px;line-height:1.55;color:#0f172a;margin-bottom:14px;">Timestamped log of log-ins, log-outs, and the functions used by Admins and Trainees on this page.</p>
+                <p style="font-size:16px;font-weight:600;line-height:1.6;color:#0f172a;margin-bottom:16px;">Timestamped log of log-ins, log-outs, and the functions used by Admins and Trainees on this page.</p>
                 <div class="admin-tile" style="cursor:pointer;" onclick="openServerLogs()" onkeydown="if(event.key==='Enter')openServerLogs()" tabindex="0" role="button">
                     <h4>Server Logs</h4>
-                    <p style="font-size:12px;color:var(--navy);font-weight:700;margin:0;">Click to view the full activity record &rarr;</p>
+                    <p style="font-size:15px;color:var(--navy);font-weight:800;margin:0;">Click to view the full activity record &rarr;</p>
                 </div>
             </div>
 
