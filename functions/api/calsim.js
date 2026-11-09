@@ -21,7 +21,7 @@ export const SCORECARD_TITLE = 'CALENDAR MANAGEMENT MOCK CALL';
 export const SCORECARD_METRICS = ['Professional Introduction & Call Control', 'Client Comprehension & Flow Control', 'Information Verification & Accuracy',
     'Slot Identification & Scheduling Rule Compliance', 'Alternative Time Offering', 'Calendar Creation & Attorney Reminder Setup', 'Notes, Recap & Call Closing'];
 const SCORECARD_TRACKS = ['standard', 'cm', 'ea'];
-async function ensure(db) {
+export async function ensure(db) {
     await db.prepare(`CREATE TABLE IF NOT EXISTS calsim_records (username TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL)`).run();
 }
 const parse = (t) => { try { const d = JSON.parse(t); return d && typeof d === 'object' ? d : null; } catch (e) { return null; } };

@@ -56,6 +56,8 @@ jobs:
         run: node --no-warnings .github/scripts/sso-frame.mjs
       - name: Calendaring Simulators' saved work (trainee saves, admin-only feedback)
         run: node --no-warnings .github/scripts/calsim.mjs
+      - name: Calendar Management Mock Call scorecard shared with the Foundational Training
+        run: node --no-warnings .github/scripts/calsim-scorecard.mjs
       - name: Calendar evaluations (submit, AI review, the trainer's live review and final report; trainees see it only once final)
         run: node --no-warnings .github/scripts/gcal-reviews.mjs
       - name: Drafting letters saved to the trainee's account (saved and back, an older copy never over a newer one, only their own, Start over)
