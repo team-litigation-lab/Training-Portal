@@ -892,8 +892,24 @@ function fromLink() {
         S.kind = kind;
     }
 }
+// 📄 the case the trainer assigned in the Foundational Training (📄 Assign LORs), read from the course whatever link opened
+// the page: the tool shows it alone, and a case the trainer took off again is no longer held (a ?case=N link still wins)
+async function courseAssignment() {
+    if (Number(new URLSearchParams(location.search).get('case')) >= 1) return;
+    try {
+        const r = await fetch('/api/drafting-drafts?assigned=1', { credentials: 'include', cache: 'no-store' });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (!d || !d.success || !d.found) return;
+        const n = Number(d.case), was = S.assigned;
+        if (Number.isInteger(n) && n >= 1 && n <= CASES.length) { S.assigned = n - 1; S.caseNo = n - 1; }
+        else S.assigned = null;
+        if (was !== S.assigned) { save(); render(); }
+    } catch (e) { /* signed out or offline: the saved choice stays */ }
+}
 Sim.restore().then(async () => {
     load(); await cloudState(); fromLink(); render();
+    await courseAssignment();
     document.getElementById('topbar').innerHTML = Sim.topbar('drafting');
     S.packet = await Sim.packetAccess();
     const pt = document.querySelector('[data-packet]'); if (pt) pt.outerHTML = packetTabHtml();

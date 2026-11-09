@@ -19,7 +19,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '
 // The trainee is signed in; their account keeps letters and files the way functions/api/drafting-drafts.js does, and
 // their scores reach /api/sim-results as Sim.saveResult sends them.
 const ANN = { username: 'ann', userType: 'Trainee', fullName: 'Ann Lee', batchId: 'B1' };
-let ACCOUNT = {}, RESULTS = [];
+let ACCOUNT = {}, RESULTS = [], ASSIGNED = { success: true, case: null, found: false };
 const server = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
     const send = (o, st) => { res.writeHead(st || 200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
@@ -27,6 +27,8 @@ const server = http.createServer((req, res) => {
     if (u.pathname === '/api/me') return send({ success: true, user: ANN });
     if (u.pathname === '/api/heartbeat') return send({ success: true });
     if (u.pathname === '/api/sim-results' && req.method === 'POST') return body().then(b => { RESULTS.push(b); send({ success: true }); });
+    // (📄 the case the trainer assigned in the course, as /api/drafting-drafts?assigned=1 reads it: step 8 sets it)
+    if (u.pathname === '/api/drafting-drafts' && u.searchParams.get('assigned') != null) return send(ASSIGNED);
     if (u.pathname === '/api/drafting-drafts') {
         if (req.method === 'GET') {
             const l = u.searchParams.get('letter'), r = ACCOUNT[l];
@@ -200,6 +202,19 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await page.waitForTimeout(800);
     const as2 = await page.evaluate(() => ({ sel: document.querySelectorAll('select[onchange*="pickCase"]').length, txt: (document.body.innerText.match(/Your assigned case: Case \d+/) || [''])[0] }));
     check('the assigned case stays without the link', as2.sel === 0 && as2.txt === 'Your assigned case: Case 5', JSON.stringify(as2));
+
+    // 8. the case assigned in the course (📄 Assign LORs) reaches the tool however it is opened (the Simulators hub, a bookmark):
+    // read from the course, it is the only one shown; taken off there, the trainee picks again; a ?case=N link still wins
+    const shown = async (q) => { await page.goto(base + '/simulators/drafting.html?tab=lor1p' + (q || ''), { waitUntil: 'load' }); await page.waitForSelector('section.docx > article', { timeout: 30000 });
+        await page.waitForTimeout(1000); return page.evaluate(() => ({ sel: document.querySelectorAll('select[onchange*="pickCase"]').length, txt: (document.body.innerText.match(/Your assigned case: Case \d+/) || [''])[0] })); };
+    ASSIGNED = { success: true, case: 2, found: true };
+    const as3 = await shown();
+    check('the course\'s assignment is shown without the link', as3.sel === 0 && as3.txt === 'Your assigned case: Case 2', JSON.stringify(as3));
+    const as4 = await shown('&case=7');
+    check('a ?case=N link still wins', as4.txt === 'Your assigned case: Case 7', JSON.stringify(as4));
+    ASSIGNED = { success: true, case: null, found: true };
+    const as5 = await shown();
+    check('taken off in the course: the trainee picks the case again', as5.sel > 0 && as5.txt === '', JSON.stringify(as5));
 
     check('no page errors', !errors.length, errors.join(' | '));
     await browser.close(); server.close();
