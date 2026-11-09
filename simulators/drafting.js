@@ -28,7 +28,9 @@ const app = () => document.getElementById('app');
 // tab: a letter template's id, or 'prov' for the medical providers' letters, which are a letter
 // per provider (their own address block is part of their own file) in two kinds.
 // edit: the way the trainee last chose to edit it on their computer ('word' or 'pdf'), to show those steps first.
-const S = { tab: TEMPLATES[0].id, caseNo: 0, prov: 0, kind: 'medlor', answers: {}, savedAt: null, edit: null, packet: false };
+// assigned: the case a trainer assigned this trainee (0-based), from the course's link (?case=N, the Foundational Training's
+// lorassign:<id>): only that case is shown, kept with the drafts so it stays when the page is opened without the link.
+const S = { tab: TEMPLATES[0].id, caseNo: 0, prov: 0, kind: 'medlor', answers: {}, savedAt: null, edit: null, packet: false, assigned: null };
 const LETTER_KIND = { medlor: 'Medical LOR + Unsworn Declaration', lienbv: 'Lien Balance Verification' };
 
 /* ---------- the trainee's own drafts, in their browser ---------- */
@@ -38,6 +40,7 @@ function load() {
         const all = JSON.parse(localStorage.getItem(KEY) || '{}'), mine = all[slot()];
         if (mine) {
             S.answers = mine.answers || {}; S.caseNo = mine.caseNo || 0; S.savedAt = mine.savedAt || null;
+            if (Number.isInteger(mine.assigned)) { S.assigned = mine.assigned; S.caseNo = mine.assigned; }
             if (mine.prov != null) S.prov = mine.prov;
             if (mine.kind) S.kind = mine.kind;
         }
@@ -45,7 +48,7 @@ function load() {
 }
 function save() {
     S.savedAt = new Date().toISOString();
-    const mine = { answers: S.answers, caseNo: S.caseNo, prov: S.prov, kind: S.kind, savedAt: S.savedAt };
+    const mine = { answers: S.answers, caseNo: S.caseNo, prov: S.prov, kind: S.kind, savedAt: S.savedAt, assigned: S.assigned };
     try {
         const all = JSON.parse(localStorage.getItem(KEY) || '{}');
         all[slot()] = mine;
@@ -105,12 +108,14 @@ async function cloudState() {
     const c = await cloudGet('_state');
     if (c && c.savedAt && (!S.savedAt || c.savedAt > S.savedAt)) {
         S.answers = c.answers || {}; S.caseNo = c.caseNo || 0; S.savedAt = c.savedAt;
+        if (Number.isInteger(c.assigned)) S.assigned = c.assigned;
+        if (S.assigned != null) S.caseNo = S.assigned;
         if (c.prov != null) S.prov = c.prov;
         if (c.kind) S.kind = c.kind;
         try { const all = JSON.parse(localStorage.getItem(KEY) || '{}'); all[slot()] = c; localStorage.setItem(KEY, JSON.stringify(all)); } catch (e) { /* none */ }
         return true;
     }
-    if (S.savedAt && (!c || !c.savedAt || S.savedAt > c.savedAt)) cloudQueue('_state', JSON.stringify({ answers: S.answers, caseNo: S.caseNo, prov: S.prov, kind: S.kind, savedAt: S.savedAt }));
+    if (S.savedAt && (!c || !c.savedAt || S.savedAt > c.savedAt)) cloudQueue('_state', JSON.stringify({ answers: S.answers, caseNo: S.caseNo, prov: S.prov, kind: S.kind, savedAt: S.savedAt, assigned: S.assigned }));
     return false;
 }
 
@@ -389,9 +394,10 @@ function caseHtml() {
     const rows = Object.keys(side || {}).map(k => `<dt>${esc(k)}</dt><dd>${esc(side[k])}</dd>`).join('');
     return `<div class="dr-note">
         <h3>Case notes · ${S.tab === 'lor3p' ? '3P' : '1P'}</h3>
-        <select onchange="LSHDrafting.pickCase(this.value)" style="width:100%;padding:6px;border:1px solid #e2e8f0;border-radius:6px;font:inherit;font-size:12px;margin-bottom:10px;">
+        ${S.assigned != null ? `<p style="margin:0 0 10px;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;background:#f8fafc;"><b>Your assigned case: Case ${S.assigned + 1}${c.p1 && c.p1['Client Name'] ? ' · ' + esc(c.p1['Client Name']) : ''}</b></p>`
+        : `<select onchange="LSHDrafting.pickCase(this.value)" style="width:100%;padding:6px;border:1px solid #e2e8f0;border-radius:6px;font:inherit;font-size:12px;margin-bottom:10px;">
             ${CASES.map((x, i) => `<option value="${i}" ${i === S.caseNo ? 'selected' : ''}>Case ${i + 1}${x.p1 && x.p1['Client Name'] ? ' · ' + esc(x.p1['Client Name']) : ''}</option>`).join('')}
-        </select>
+        </select>`}
         ${rows ? `<dl>${rows}</dl>` : '<p style="margin:0;color:#64748b;">This case has no notes for this side.</p>'}
     </div>`;
 }
@@ -826,7 +832,7 @@ const API = {
             setTimeout(() => URL.revokeObjectURL(a.href), 4000);
         } catch (e) { alert('It could not be downloaded: ' + e.message); }
     },
-    pickCase(i) { S.caseNo = Number(i) || 0; save(); render(); },
+    pickCase(i) { if (S.assigned != null) return; S.caseNo = Number(i) || 0; save(); render(); },
     pickProvider(i) {
         S.prov = Number(i) || 0;
         const p = provider();
@@ -875,6 +881,9 @@ document.getElementById('topbar').innerHTML = Sim.topbar('drafting');
 Sim.label('Drafting');
 function fromLink() {
     const q = new URLSearchParams(location.search), tab = q.get('tab'), kind = q.get('kind');
+    // (the case the trainee's trainer assigned, from the course's link: that case alone)
+    const cn = Number(q.get('case'));
+    if (Number.isInteger(cn) && cn >= 1 && cn <= CASES.length) { const was = S.assigned; S.assigned = cn - 1; S.caseNo = cn - 1; if (was !== S.assigned) save(); }
     if (tab === 'prov' && PROVIDERS.length) S.tab = 'prov';
     else if (tab && TEMPLATES.some(x => x.id === tab)) S.tab = tab;
     if (S.tab === 'prov' && kind && LETTER_KIND[kind]) {
