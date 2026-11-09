@@ -147,6 +147,10 @@ const server = http.createServer((req, res) => {
     if (!evs.some(x => /Maria Santos/.test(x))) fail('the trainee\'s booking isn\'t on the calendar: ' + JSON.stringify(evs.slice(0, 5)));
     const metrics = await page.$$eval('.csc-form tbody tr', trs => trs.map(tr => tr.cells[0].textContent));
     if (metrics.length !== 8 || metrics[0] !== 'Professional Introduction & Call Control' || metrics[6] !== 'Notes, Recap & Call Closing' || metrics[7] !== 'WEIGHTED AVERAGE') fail('the scorecard isn\'t the CALENDAR MANAGEMENT MOCK CALL sheet: ' + JSON.stringify(metrics));
+    // the calendar check sits beside the trainer's scores on the same metrics; 🤖 Fill puts its scores in the blank metrics the calendar shows
+    if (process.env.SHOTS) await (await page.$('#tv-card')).screenshot({ path: process.env.SHOTS + '/one-scorecard-trainer.png' });
+    { const filled = await page.evaluate(() => { const n = CalScorecard.fillFromCheck(); const v = [...document.querySelectorAll('select[data-csc]')].map(x => x.value); document.querySelectorAll('select[data-csc]').forEach(x => { x.value = ''; }); CalScorecard.liveAvg(); return { n, v }; });
+        if (!(await page.locator('#tv-card [data-csc-fill]').count()) || filled.n < 3 || filled.v[0] !== '' || filled.v[4] !== '' || filled.v[6] !== '' || filled.v[5] === '') fail('🤖 Fill from the calendar check should fill the calendar\'s metrics only: ' + JSON.stringify(filled)); }
     for (let i = 0; i < 6; i++) await page.selectOption(`select[data-csc="${i}"]`, String([5, 4, 4, 3, 4, 5][i]));
     await page.click('[data-a="tv-save"]'); await page.waitForTimeout(300);
     if (posted.length) fail('a scorecard with a metric unscored was saved');
@@ -192,7 +196,8 @@ const server = http.createServer((req, res) => {
     if (await page.$('.cs-ttable, #cs-root a[href="/simulators/gcal-review.html"]')) fail('a trainee sees the trainees\' calendars list or the way to Trainee Evaluations');
     await page.close();
     page = await open('/simulators/gcal.html');
-    if (!/Your trainer’s scorecard · 4\.1\/5 \(83%\)/.test(await scoresText(page)) || /scorecard/i.test(await panelText(page)) || !(await inSide(page))) fail('the trainee doesn\'t see the scorecard in the scores in the sidebar: ' + (await scoresText(page)).slice(0, 300));
+    if (process.env.SHOTS) { await page.click('#gc-scores [data-a="check"]'); await page.waitForTimeout(500); await (await page.$('#gc-scores')).screenshot({ path: process.env.SHOTS + '/one-scorecard-side.png' }); }
+    if (!/Calendar Management Mock Call[\s\S]*Your trainer 4\.1\/5 \(83%\)/.test(await scoresText(page)) || !(await page.locator('#gc-scores .csc-one').count()) || /scorecard/i.test(await panelText(page)) || !(await inSide(page))) fail('the trainee doesn\'t see the scorecard in the scores in the sidebar: ' + (await scoresText(page)).slice(0, 300));
     await page.close();
     // a trainee can't open someone's calendar
     page = await open('/simulators/gcal.html?trainee=zed');
