@@ -167,18 +167,27 @@ const rx = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // All events from `from` to `to` for a calendar state { events, ex, sx }: the attorney's week (with its changes),
 // the trainee's events (and their repeats), and the holidays.
+/* 🔒 The existing schedule (the attorney's / executive's week) is the trainer's: a trainer edits it for everyone (Settings → Edit the
+   weekly schedule), and it is locked for trainees: they can open an appointment and read it, not move, change or delete it. The one
+   exception is the appointment a dealt caller's request asks to move or cancel (Litigation Week, Executive Week: that week's instance
+   of it only). A trainer looking at a trainee's calendar sees it the same way, so changes a trainee made before the lock don't show. */
+const seedsLocked = () => !G.admin && (!!RV || !Sim.isAdmin());
+const reqTarget = (st, row, d) => (st.reqs || []).some(q => q && q.row === row && q.orig === d);
+const seedLockedAt = (st, row, d) => seedsLocked() && !reqTarget(st, row, d);
 function instancesOf(st, from, to, rows) {
-    const lo = addDays(from, -10), hi = addDays(to, 10), out = [];
+    const lo = addDays(from, -10), hi = addDays(to, 10), out = [], locked = seedsLocked();
     for (let d = lo; d <= hi; d = addDays(d, 1)) {
         const w = wd(d);
         (rows || ROWS).forEach(r => {
             if (r.wd !== w) return;
-            const sx = st.sx[r.id]; if (sx && sx.del) return;
-            const iid = `s:${r.id}@${d}`, x = st.ex[iid]; if (x && x.del) return;
+            const iid = `s:${r.id}@${d}`, lock = locked && !reqTarget(st, r.id, d);
+            const sx = locked ? null : st.sx[r.id]; if (sx && sx.del) return;
+            const x = lock ? null : st.ex[iid]; if (x && x.del) return;
             const e = { iid, sid: 's:' + r.id, row: r.id, seed: true, cal: 'attorney', title: r.title, type: r.type, date: d, start: r.start, end: r.end, allDay: false,
                 color: seedColor(r), location: r.location || '', meet: '', desc: textToHtml(r.notes || ''), guests: [], notifs: [], tz: ET, repeat: 'weekly', busy: true, vis: 'default', origDate: d };
             if (sx) Object.assign(e, sx);
             if (x) Object.assign(e, x);
+            if (lock) e.readOnly = e.locked = true;
             out.push(e);
         });
     }
@@ -385,8 +394,8 @@ function checkOpen(st, today) {
     const mine = all.filter(e => !e.seed && e.cal !== 'holidays').sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
     const out = mine.map(e => Object.assign({ id: e.iid, date: e.date, head: e.title || '(No title)', when: `${shortDate(e.date)} · ${e.allDay ? 'all day' : span(mins(e.start), mins(e.end))}` }, gradeOpenEvent(e, all, today)));
     const changed = [];
-    Object.keys(st.ex).forEach(k => { const m = /^s:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(k); const r = m && rowById(m[1]); if (r) changed.push(st.ex[k].del ? `${r.title} on ${shortDate(m[2])}: cancelled` : `${r.title} on ${shortDate(m[2])}: moved to ${shortDate(st.ex[k].date || m[2])} ${tl(mins(st.ex[k].start || r.start))}`); });
-    Object.keys(st.sx).forEach(id => { const r = rowById(id); if (r) changed.push(`${r.title}: changed for every week`); });
+    Object.keys(st.ex).forEach(k => { const m = /^s:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(k); const r = m && !seedLockedAt(st, m[1], m[2]) && rowById(m[1]); if (r) changed.push(st.ex[k].del ? `${r.title} on ${shortDate(m[2])}: cancelled` : `${r.title} on ${shortDate(m[2])}: moved to ${shortDate(st.ex[k].date || m[2])} ${tl(mins(st.ex[k].start || r.start))}`); });
+    Object.keys(st.sx).forEach(id => { const r = !seedsLocked() && rowById(id); if (r) changed.push(`${r.title}: changed for every week`); });
     const got = out.reduce((a, r) => a + r.pts, 0), max = out.reduce((a, r) => a + r.max, 0);
     return { score: max ? Math.min(100, Math.round(got / max * 100)) : 0, results: out, extra: [], changed, penalty: 0, right: out.filter(r => r.pts >= r.max - 0.01).length, open: true };
 }
@@ -405,7 +414,7 @@ function checkAct(st) {
         anchor: r.anchor, span: r.span, key: r.key, batchAnchor: r.batchAnchor };
 }
 function checkPlan(st, reqs, today) {
-    const all = instancesOf(st, addDays(today, -7), addDays(today, 42));
+    const all = instancesOf(Object.assign({}, st, { reqs }), addDays(today, -7), addDays(today, 42));   // (the requests' own appointments are the trainee's to move or cancel)
     const handled = new Set();
     const out = reqs.map(q => {
         const R = reqDef(q.id), row = q.row != null ? rowById(q.row) : null;
@@ -547,6 +556,7 @@ const FIELDS = ['cal', 'title', 'date', 'start', 'end', 'allDay', 'tz', 'color',
 function applyChange(inst, fields, scope) {
     snapshot();
     if (G.admin && inst.seed) { adminRowChange(inst.row, fields); putRows(); return; }
+    if (inst.seed && seedsLocked() && (scope === 'all' || inst.locked)) return;   // 🔒 the existing schedule is the trainer's
     if (inst.seed) {
         if (scope === 'all') { const f = Object.assign({}, fields); delete f.date; delete f.repeat; S.sx[inst.row] = Object.assign({}, S.sx[inst.row], f); }
         else { const f = Object.assign({}, fields); delete f.repeat; S.ex[inst.iid] = Object.assign({}, S.ex[inst.iid], f); }
@@ -563,6 +573,7 @@ function applyChange(inst, fields, scope) {
 function removeInst(inst, scope) {
     snapshot();
     if (G.admin && inst.seed) { ROWS = ROWS.filter(r => r.id !== inst.row); putRows(); return; }
+    if (inst.seed && seedsLocked() && (scope === 'all' || inst.locked)) return;   // 🔒
     if (inst.seed) { if (scope === 'all') S.sx[inst.row] = { del: true }; else S.ex[inst.iid] = { del: true }; }
     else {
         const ev = S.events.find(x => x.id === inst.sid);
@@ -576,6 +587,7 @@ const repeating = (inst) => inst.seed || ((inst.repeat || 'none') !== 'none');
 // "This event / All events" for a repeating event (the attorney's appointments repeat every week)
 function askScope(inst, verb, then) {
     if (!repeating(inst) || (G.admin && inst.seed)) return then(G.admin && inst.seed ? 'all' : 'one');
+    if (inst.seed && seedsLocked()) return then('one');   // (a caller's appointment a trainee may move: this week's only)
     dialog(`${verb === 'delete' ? 'Delete' : 'Edit'} recurring event`, `<label><input type="radio" name="sc" value="one" checked> This event</label><label><input type="radio" name="sc" value="all"> All events</label>`,
         (box) => then(box.querySelector('input[name=sc]:checked').value));
 }
@@ -918,7 +930,7 @@ function openDetail(iid, rect) {
         ${(e.guests || []).length ? `<div class="row">${ic('people')}<div class="sub">${e.guests.length} guest${e.guests.length === 1 ? '' : 's'}<br>${e.guests.map(esc).join('<br>')}</div></div>` : ''}
         ${e.desc ? `<div class="row">${ic('notes')}<div class="desc">${sanitize(e.desc)}</div></div>` : ''}
         ${notif.length ? `<div class="row">${ic('bell')}<div class="sub">${notif.map(esc).join('<br>')}</div></div>` : ''}
-        <div class="row">${ic('cal')}<div class="sub">${esc(c.name)}${e.seed ? `<br><span style="font-size:12.5px">${WW('The attorney’s standing appointment (every week)')}</span>` : ''}</div></div>
+        <div class="row">${ic('cal')}<div class="sub">${esc(c.name)}${e.seed ? `<br><span style="font-size:12.5px">${WW('The attorney’s standing appointment (every week)')}</span>` : ''}${e.locked && !RV ? `<br><span style="font-size:12.5px" class="gc-locked">🔒 ${WW('Part of the attorney’s existing schedule: only your trainer can change it.')}</span>` : ''}</div></div>
         ${(e.tz || ET) !== ET ? `<div class="row">${ic('clock')}<div class="sub">Time zone: ${esc((TZS.find(z => z[0] === e.tz) || [0, e.tz])[1])}</div></div>` : ''}
         <div style="height:12px"></div>`;
     gc().appendChild(el); place(el, rect); G.pop = el; G.popIid = iid;
