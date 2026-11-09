@@ -1279,20 +1279,55 @@ async function liveStart(again) {
         if (again) snack('Their calendar is up to date');
     } catch (e) { $('#app').innerHTML = `<div class="sim-card" style="margin:20px"><p>${esc(e.message)}</p></div>`; }
 }
+const cardWhen = (t) => t ? new Date(String(t).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(t)) ? '' : 'Z')).toLocaleString() : '';
+// 📋 Every saved scorecard in a dropdown, newest first: choosing one shows its scores (a trainer: in the sheet to fill in; a trainee: their trainer's sheet).
+function cardPickHTML(cards, pick, id) {
+    if (!cards || cards.length < 2) return '';
+    return `<label style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px;font-weight:600;color:#0b1633">📋 Scorecards <select id="${id}" aria-label="Choose a saved scorecard" style="font:inherit;font-weight:500;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;max-width:100%">
+        ${cards.map((x, i) => [x, i]).reverse().map(([x, i]) => `<option value="${i}" ${i === pick ? 'selected' : ''}>${i === cards.length - 1 ? 'Latest · ' : ''}${esc(cardWhen(x.at))}${x.by ? ' · ' + esc(x.by) : ''} · ${esc(x.average)}/5 (${esc(x.pct)}%)</option>`).join('')}</select></label>`;
+}
+/* 👥 A trainer, on the simulator itself: a dropdown of their trainees (everyone with a calendar saved here or a scorecard on this
+   track), the latest scorecard beside each name. Choosing one opens that trainee's calendar with the scorecard (?trainee=). */
+const TRAINEES = { list: null, busy: false, err: '' };
+const isTrainer = () => Sim.isAdmin() || !!(MINE.me && MINE.me.admin) || !!(RV && RV.live && RV.name);   // (the Portal's session, or the server's answer)
+async function loadTrainees() {
+    if (TRAINEES.list || TRAINEES.busy || !isTrainer()) return;
+    TRAINEES.busy = true;
+    try {
+        const [a, b] = await Promise.all([Sim.fetchRetry(EV_API + '?drafts=1', { credentials: 'include' }).then(r => r.json()), Sim.fetchRetry('/api/calsim?all=1', { credentials: 'include' }).then(r => r.json())]);
+        const people = {}, add = (u, name, batch) => (people[u] = people[u] || { username: u, name: name || u, batch: batch || '', card: null });
+        ((a && a.success && a.drafts) || []).filter(d => d.track === (GCAL_TRACK || 'standard')).forEach(d => add(d.username, d.name, d.batch));
+        ((b && b.success && b.rows) || []).forEach(r => { const list = ((r.data && r.data.scorecards) || {})[GT]; if (Array.isArray(list) && list.length) add(r.username, r.name, r.batch).card = list[list.length - 1]; });
+        TRAINEES.list = Object.values(people).sort((x, y) => String(x.batch).localeCompare(String(y.batch)) || x.name.localeCompare(y.name));
+        TRAINEES.err = '';
+    } catch (e) { TRAINEES.err = 'Your trainees couldn’t be loaded.'; }
+    TRAINEES.busy = false; renderScores();
+}
+function traineePickHTML(cur) {
+    if (!isTrainer() || BLANK && !RV) return '';
+    if (!TRAINEES.list) { loadTrainees(); return `<p class="lead" style="margin:0 0 10px">👥 ${TRAINEES.err ? esc(TRAINEES.err) : 'Loading your trainees…'}</p>`; }
+    return `<label style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px;font-weight:600;color:#0b1633">👥 Trainee <select id="tv-trainee" aria-label="Choose a trainee to score" style="font:inherit;font-weight:500;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;max-width:100%">
+        <option value="">${RV ? '← Back to the simulator' : 'Choose a trainee to score…'}</option>
+        ${TRAINEES.list.map(p => `<option value="${esc(p.username)}" ${p.username === cur ? 'selected' : ''}>${esc(p.name)}${p.batch ? ' · ' + esc(p.batch) : ''}${p.card ? ` · 📋 ${esc(p.card.average)}/5 (${esc(p.card.pct)}%)` : ' · not scored'}</option>`).join('')}</select></label>`;
+}
+function openTrainee(u) {
+    const q = new URLSearchParams(); if (TRK) q.set('track', TRK); if (u) q.set('trainee', u);
+    location.href = location.pathname + (String(q) ? '?' + q : '');
+}
 // A trainer's view of a trainee's calendar (?trainee=): their scorecard to fill in and the automated check, below the calendar.
 function liveScoresHTML() {
-    if (BLANK) return `<h2>📝 ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>
+    if (BLANK) return `<h2>📝 ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>${traineePickHTML(RV.user)}
         <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on the Calendaring Activity yet.' : `Their activity calendar as they last saved it${RV.savedAt ? ', ' + esc(new Date(String(RV.savedAt).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(RV.savedAt) ? '' : 'Z')).toLocaleString()) : ''}. It’s above, read only. `}
             <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>${S.result && !RV.empty ? checkSection(S.result, false, 'Their calendar, checked (automated): every entry against the activity') : ''}`;
-    const C = window.CalScorecard, last = RV.cards[RV.cards.length - 1], when = (t) => t ? new Date(t.replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(t) ? '' : 'Z')).toLocaleString() : '';
-    return `<h2>📊 Scores · ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>
+    const C = window.CalScorecard, pick = RV.pick != null && RV.cards[RV.pick] ? RV.pick : RV.cards.length - 1, last = RV.cards[pick], when = cardWhen;
+    return `<h2>📊 Scores · ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>${traineePickHTML(RV.user)}
         <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on this simulator yet.' : `Their calendar as they last saved it${RV.savedAt ? ', ' + esc(when(RV.savedAt)) : ''}. It’s above, read only.`}
             <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>
         <div class="sc-grid wide"><div class="res-r" id="tv-card"><h5><span>📋 Your scorecard</span><span>${last ? `${esc(last.average)}/5 · ${esc(last.pct)}%` : 'to score'}</span></h5>
-            ${last ? `<p style="margin:0 0 6px;color:#70757a">Last saved ${esc(when(last.at))}${last.by ? ' by ' + esc(last.by) : ''}${RV.cards.length > 1 ? ` · ${RV.cards.length} scorecards` : ''}. Saving again keeps the earlier ones.</p>` : '<p style="margin:0 0 6px;color:#70757a">Score each metric 0 to 5 and add your feedback; the weighted average works itself out.</p>'}
+            ${last ? `${cardPickHTML(RV.cards, pick, 'tv-pick')}<p style="margin:0 0 6px;color:#70757a">${pick === RV.cards.length - 1 ? 'Last saved' : 'Saved'} ${esc(when(last.at))}${last.by ? ' by ' + esc(last.by) : ''}${RV.cards.length > 1 ? ` · ${RV.cards.length} scorecards` : ''}. Saving again adds a new one and keeps the earlier ones.</p>` : '<p style="margin:0 0 6px;color:#70757a">Score each metric 0 to 5 and add your feedback; the weighted average works itself out.</p>'}
             ${C ? C.formHTML(last) : '<p>The scorecard didn’t load. Refresh the page.</p>'}
             <div style="margin-top:8px"><button class="blue" data-a="tv-save">💾 Save scorecard</button></div>
-            ${RV.cards.length > 1 ? `<div style="margin-top:10px"><b>Earlier scorecards</b><ul>${RV.cards.slice(0, -1).reverse().map(x => `<li><span>${esc(when(x.at))} · ${esc(x.by || '')} · ${esc(x.average)}/5 (${esc(x.pct)}%)</span></li>`).join('')}</ul></div>` : ''}</div>
+</div>
         <div>${S.result ? liveCheckHTML() : ''}</div></div>`;
 }
 // The trainer's view of the automated check: without the appointments they took out of the review (a sample or test appointment that isn't a caller's
@@ -1324,7 +1359,8 @@ function renderScores() {
     const btn = `<div style="margin:2px 0 10px"><button class="blue" data-a="check">Check my calendar</button></div>`;
     const check = S.result ? checkSection(S.result)
         : BLANK ? '<div id="gc-check"></div>' : `<div id="gc-check"><p class="lead">Click <b>Check my calendar</b> to check ${OPEN ? 'your appointments' : 'what the callers asked for'} against the ${WW('attorney’s')} rules. Your score shows here.</p></div>`;
-    box.innerHTML = `<h2>📊 Your scores</h2>${btn}<div class="sc-grid${side ? '' : ' one'}"><div>${check}</div>${side ? `<div>${side}</div>` : ''}</div>`;
+    const pickT = isTrainer() && !BLANK ? `<div class="res-r" id="tv-choose"><h5><span>📋 Score a trainee · Calendar Management Mock Call</span><span></span></h5>${traineePickHTML('')}</div>` : '';
+    box.innerHTML = `${pickT}<h2>📊 Your scores</h2>${btn}<div class="sc-grid${side ? '' : ' one'}"><div>${check}</div>${side ? `<div>${side}</div>` : ''}</div>`;
 }
 async function saveScorecard() {
     const C = window.CalScorecard; if (!C) return;
@@ -1332,18 +1368,19 @@ async function saveScorecard() {
     if (got.error) { snack(got.error); return; }
     try {
         const out = await recPost({ scorecard: { user: RV.user, track: GT, rows: got.rows, calendarAt: RV.savedAt || '' } });
-        RV.cards = out.scorecards || RV.cards.concat([out.scorecard]);
+        RV.cards = out.scorecards || RV.cards.concat([out.scorecard]); RV.pick = null;
+        const tp = TRAINEES.list && TRAINEES.list.find(x => x.username === RV.user); if (tp) tp.card = RV.cards[RV.cards.length - 1];   // (the trainee dropdown shows the new one)
         snack('Scorecard saved: ' + out.scorecard.average + '/5 (' + out.scorecard.pct + '%)'); renderScores();
     } catch (e) { snack(e.message); }
 }
 // A trainee's own: their trainer's latest scorecard on this simulator.
 function myScorecardBox() {
-    const list = MINE.data && MINE.data.scorecards && Array.isArray(MINE.data.scorecards[GT]) ? MINE.data.scorecards[GT] : [], last = list[list.length - 1];
+    const list = MINE.data && MINE.data.scorecards && Array.isArray(MINE.data.scorecards[GT]) ? MINE.data.scorecards[GT] : [], pick = MINE.pick != null && list[MINE.pick] ? MINE.pick : list.length - 1, last = list[pick];
     if (!last || !window.CalScorecard) return '';
-    return `<div class="rq" id="my-scorecard">${window.CalScorecard.sheetHTML(last, `👤 Your trainer’s scorecard · ${esc(last.average)}/5 (${esc(last.pct)}%)${last.by ? ' · ' + esc(last.by) : ''} · ${esc(new Date(last.at).toLocaleDateString())}`)}</div>`;
+    return `<div class="rq" id="my-scorecard">${cardPickHTML(list, pick, 'my-pick')}${window.CalScorecard.sheetHTML(last, `👤 Your trainer’s scorecard · ${esc(last.average)}/5 (${esc(last.pct)}%)${last.by ? ' · ' + esc(last.by) : ''} · ${esc(new Date(last.at).toLocaleDateString())}`)}</div>`;
 }
 async function mineStart() {   // a signed-in trainee's submissions and the trainer's feedback (a guest has none)
-    try { const j = await recFetch(); MINE.me = j.me; MINE.data = Object.assign(blankRec(), j.data || {}); if (S) renderPanel(); } catch (e) { /* not signed in on the Portal */ }
+    try { const j = await recFetch(); MINE.me = j.me; MINE.data = Object.assign(blankRec(), j.data || {}); if (S) { renderPanel(); if (j.me && j.me.admin) renderScores(); } } catch (e) { /* not signed in on the Portal */ }
 }
 
 /* ---------- 📤 Submit for evaluation (functions/api/gcal-reviews.js) ----------
@@ -1536,6 +1573,13 @@ function bind() {
     };
     root.addEventListener('click', onClick);
     if (scores) scores.addEventListener('click', onClick);   // (the scores, wherever they sit: Save, Refresh)
+    // the dropdowns of the scores (wherever the scores sit): a saved scorecard, a trainee
+    document.addEventListener('change', (ev) => {
+        const t = ev.target;
+        if (t.id === 'tv-pick') { RV.pick = Number(t.value); renderScores(); }
+        else if (t.id === 'my-pick') { MINE.pick = Number(t.value); renderScores(); renderPanel(); }
+        else if (t.id === 'tv-trainee') openTrainee(t.value);
+    });
     root.addEventListener('change', (ev) => {
         const t = ev.target;
         if (t.dataset.set === 'tz') { setZone(t.value); return; }
