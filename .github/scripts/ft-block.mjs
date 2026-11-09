@@ -59,6 +59,8 @@ const kvData = new Map(Object.entries({
     'ft:trainee:john-luna--b102326': { id: 'john-luna--b102326', name: 'John Luna', batch: 'B102326', approved: true },
     // an open account of the same name in this batch: a revoked namesake elsewhere never blocks it
     'ft:trainee:lei-abut--b103026': { id: 'lei-abut--b103026', name: 'Lei Abut', batch: 'B103026', approved: true },
+    // kept by the course under a name the Portal can't match ("JT Luna"), but under the id his name and batch give
+    'ft:trainee:john-thomas-luna--b103026': { id: 'john-thomas-luna--b103026', name: 'JT Luna', batch: 'B103026', approved: true },
     'ft:access:blocked': { ids: { 'zed-off--b101026': { why: 'offboarded', name: 'Zed Off', batch: 'B101026', at: 'x' } } },
     'cm:trainee:dee-tan--b101026': { id: 'dee-tan--b101026', name: 'Dee Tan', batch: 'B101026' }
 }).map(([k, v]) => [k, JSON.stringify(v)]));
@@ -100,13 +102,14 @@ r = await post({ action: 'FT_SWEEP' });
 const ids = (r.body.blocked || []).map(x => x.id).sort();
 check(r.status === 200 && ids.includes('mark-christian-lucban--b103026'), 'the sweep blocks an account revoked before the course was told (middle initial, long-form Batch ID)', r.body);
 check(ids.includes('cy-lim--b101026'), 'the sweep blocks a program access revoked before this followed it', ids);
+check(ids.includes('john-thomas-luna--b103026'), 'the sweep finds a revoked account\'s record by its id, whatever name the course shows', ids);
 check(ids.includes('john-luna--b102326'), 'the sweep blocks a revoked account kept in the course under another form of the name and another batch', ids);
 check(!ids.includes('lei-abut--b103026'), 'the sweep never blocks a record an open account of the same name could own', ids);
 check(!ids.includes('eva-ong--b101026'), 'the sweep leaves a revoked person who has an account again (same name, same batch)', ids);
 check(!ids.includes('ana-reyes--b101026') && !ids.includes('dee-tan--b101026'), 'the sweep leaves everyone with open access', ids);
 r = await post({ action: 'FT_SWEEP' });
 check(r.status === 200 && (r.body.blocked || []).length === 0, 'a second sweep finds nothing new', r.body);
-check([...kvData.keys()].filter(k => k.includes('trainee:')).length === 10, 'nothing is deleted');
+check([...kvData.keys()].filter(k => k.includes('trainee:')).length === 11, 'nothing is deleted');
 
 // 🧹 by itself: an admin opening Program Access (GET /api/topics) runs the sweep, at most every 15 minutes
 { const l = JSON.parse(kvData.get('ft:access:blocked')); delete l.ids['john-luna--b102326']; kvData.set('ft:access:blocked', JSON.stringify(l)); }
