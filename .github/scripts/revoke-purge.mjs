@@ -17,8 +17,9 @@ const put = (name, text) => { const p = path.join(tmp, name); fs.writeFileSync(p
 const utilsUrl = put('_utils.mjs', fs.readFileSync('functions/_utils.js', 'utf8'));
 const driveUrl = put('_drive.mjs', fs.readFileSync('functions/_drive.js', 'utf8'));
 const purgeUrl = put('_purge.mjs', fs.readFileSync('functions/_purge.js', 'utf8').replace("'./_utils.js'", `'${utilsUrl}'`));
+const ftBlockUrl = put('_ft-block.mjs', fs.readFileSync('functions/_ft-block.js', 'utf8').replace("'./_utils.js'", `'${utilsUrl}'`));
 const revoke = await import(put('revoke-user.mjs', fs.readFileSync('functions/api/revoke-user.js', 'utf8')
-    .replace("'../_utils.js'", `'${utilsUrl}'`).replace("'../_drive.js'", `'${driveUrl}'`).replace("'../_purge.js'", `'${purgeUrl}'`)));
+    .replace("'../_utils.js'", `'${utilsUrl}'`).replace("'../_drive.js'", `'${driveUrl}'`).replace("'../_purge.js'", `'${purgeUrl}'`).replace("'../_ft-block.js'", `'${ftBlockUrl}'`)));
 const u = await import(utilsUrl);
 
 const sql = new DatabaseSync(':memory:');

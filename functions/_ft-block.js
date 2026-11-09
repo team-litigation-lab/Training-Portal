@@ -32,6 +32,10 @@ const recNames = (rec) => [rec.name, rec.fullName, [rec.firstName, rec.lastName]
 const sameBatch = (rec, batch) => !batch || ![rec.batch, rec.batchFrom].some(Boolean)
     || [rec.batch, rec.batchFrom].filter(Boolean).some(b => batchForm(b) === batchForm(batch));
 const userName = (u) => u.full_name || [u.first_name, u.mi, u.last_name, u.suffix].filter(Boolean).join(' ');
+// a name's first and last word only ("Mark Christian G Lucban" and "Mark Lucban" → "mark lucban"): how a revoked person is
+// still found when the course keeps their name in another form (a middle name dropped or added)
+const nameEnds = (s) => { const w = nameCore(s).split(' ').filter(Boolean); return w.length > 1 ? w[0] + ' ' + w[w.length - 1] : w.join(' '); };
+const recEnds = (rec) => recNames(rec).map(nameEnds).filter(Boolean);
 
 async function courseTrainees(kv) {
     const out = [];
@@ -52,6 +56,30 @@ const matches = (all, people) => all.filter(({ rec }) => people.some(p => {
     const n = nameCore(p.name);
     return n && recNames(rec).includes(n) && sameBatch(rec, p.batch);
 }));
+// 🚫 a revoked person's course records, found the loose way too: the exact match above, or the same first and last name in
+// the same batch, or (when nobody with an open Portal account has that first and last name at all) in any batch: a record
+// whose batch the Portal never knew (moved, typed differently) still goes on the list. A record a live account could own
+// (same first and last name, same batch) is never blocked. Blocking is undone by ▶ Restore, so the looser match is safe here;
+// the purge (_purge.js), which deletes, keeps the exact one.
+// live = [{e: first + last name, b: batch form}] of every open Portal account
+const revokedMatches = (all, p, live) => {
+    const e = nameEnds(p.name); if (!e) return [];
+    const anyBatch = !live.some(x => x.e === e);
+    return all.filter(({ rec }) => {
+        const exact = matches([{ rec }], [p]).length > 0;
+        if (!exact && !(recEnds(rec).includes(e) && (anyBatch || sameBatch(rec, p.batch)))) return false;
+        const rb = [rec.batch, rec.batchFrom].filter(Boolean).map(batchForm);
+        return !live.some(x => recEnds(rec).includes(x.e) && (!x.b || !rb.length || rb.includes(x.b)));
+    });
+};
+const LIVE = ['Approved', 'Suspended', 'Pending'];
+async function liveAccounts(db) {
+    if (!db) return [];
+    try {
+        const r = (await db.prepare(`SELECT username, first_name, mi, last_name, suffix, batch_id, status FROM users`).all()).results || [];
+        return r.filter(u => LIVE.includes(u.status)).map(u => ({ username: u.username, e: nameEnds(userName(u)), b: batchForm(u.batch_id) }));
+    } catch (e) { return []; }
+}
 async function readList(kv) {
     const v = await kv.get(BLOCK_KEY, 'json').catch(() => null);
     return (v && v.ids && typeof v.ids === 'object') ? v.ids : {};
@@ -67,6 +95,21 @@ export async function ftBlock(env, user, reason, by) {
     found.forEach(({ id, rec }) => { if (!ids[id]) ids[id] = { why: 'offboarded', name: rec.name || '', batch: rec.batch || '', at, by: 'portal', reason, portalUser: user.username || '', decidedBy: by || '' }; });
     await writeList(kv, ids);
     return { blocked: found.map(x => x.id) };
+}
+// 🗑 an account revoked (Revoke & delete, revoke-user.js): every course record that is theirs goes on the block list, found
+// the loose way (revokedMatches), so they leave every sheet even when the purge found nothing of theirs to delete.
+// user = the deleted account (username, first_name, mi, last_name, suffix, batch_id, or full_name); db = the Portal's DB
+export async function ftBlockRevoked(env, db, user, by) {
+    const kv = env.COURSE_KV;
+    if (!kv || !user) return { blocked: [] };
+    const live = (await liveAccounts(db)).filter(x => x.username !== user.username);
+    const found = revokedMatches(await courseTrainees(kv), { name: userName(user), batch: user.batch_id }, live)
+        .filter(({ rec }) => !rec.purgedAt);
+    if (!found.length) return { blocked: [] };
+    const ids = await readList(kv), at = new Date().toISOString(), blocked = [];
+    found.forEach(({ id, rec }) => { if (!ids[id]) { ids[id] = { why: 'offboarded', name: rec.name || '', batch: rec.batch || '', at, by: 'portal', reason: 'account revoked', portalUser: user.username || '', decidedBy: by || '' }; blocked.push(id); } });
+    if (blocked.length) await writeList(kv, ids);
+    return { blocked };
 }
 export async function ftUnblock(env, user) {
     const kv = env.COURSE_KV;
@@ -98,12 +141,13 @@ export async function ftSweep(env, db, tdb) {
     const people = [];
     revoked.forEach(r => {
         const n = nameCore(r.full_name), b = batchForm(r.batch_id);
-        if (n && !byUser.has(r.username) && !live.some(x => x.n === n && (!b || !x.b || x.b === b))) people.push({ name: r.full_name, batch: r.batch_id, username: r.username, reason: 'account revoked' });
+        if (n && !byUser.has(r.username) && !live.some(x => x.n === n && (!b || !x.b || x.b === b))) people.push({ name: r.full_name, batch: r.batch_id, username: r.username, reason: 'account revoked', loose: true });
     });
+    const liveEnds = active.filter(u => LIVE.includes(u.status)).map(u => ({ username: u.username, e: nameEnds(userName(u)), b: batchForm(u.batch_id) }));
     closed.forEach(c => { const u = byUser.get(c.trainee_username); if (u) people.push({ name: userName(u), batch: u.batch_id, username: u.username, reason: c.status === 'Denied' ? 'program access revoked' : 'program access suspended' }); });
     if (!people.length) return { connected: true, blocked: [] };
     const all = await courseTrainees(kv), ids = await readList(kv), at = new Date().toISOString(), blocked = [];
-    people.forEach(p => matches(all, [p]).forEach(({ id, rec }) => {
+    people.forEach(p => (p.loose ? revokedMatches(all, p, liveEnds) : matches(all, [p])).forEach(({ id, rec }) => {
         if (ids[id] || rec.archived || rec.rejected || rec.purgedAt || rec.offboarded) return;
         ids[id] = { why: 'offboarded', name: rec.name || '', batch: rec.batch || '', at, by: 'portal', reason: p.reason, portalUser: p.username || '' };
         blocked.push({ id, name: rec.name || p.name, batch: rec.batch || p.batch || '', reason: p.reason });

@@ -34,11 +34,14 @@ INSERT INTO users (username, first_name, mi, last_name, suffix, status, user_typ
  ('ben','Ben',NULL,'Cruz','Jr.','Approved','Trainee','B101026'),
  ('cy','Cy',NULL,'Lim',NULL,'Approved','Trainee','B101026'),
  ('dee','Dee',NULL,'Tan',NULL,'Approved','Trainee','B101026'),
- ('eva2','Eva',NULL,'Ong',NULL,'Approved','Trainee','B101026');
+ ('eva2','Eva',NULL,'Ong',NULL,'Approved','Trainee','B101026'),
+ ('leilee','Lei',NULL,'Abut',NULL,'Approved','Trainee','B103026');
 INSERT INTO trainee_topic_access VALUES ('ana','STANDARD TRAINING','Approved',NULL,NULL,NULL),('ben','STANDARD TRAINING','Approved',NULL,NULL,NULL),
  ('cy','STANDARD TRAINING','Denied',NULL,NULL,NULL),('dee','CM TRAINING','Approved',NULL,NULL,NULL);
 INSERT INTO deleted_users VALUES ('mark','Trainee','B10302026-LSHTRAINEE-004','m@x','Mark Christian D. Lucban','matt',datetime('now')),
- ('eva','Trainee','B101026','e@x','Eva Ong','matt',datetime('now'));`);
+ ('eva','Trainee','B101026','e@x','Eva Ong','matt',datetime('now')),
+ ('jluna','Trainee','B103026','j@x','John Thomas E Luna','matt',datetime('now')),
+ ('leiold','Trainee','B17092026-LSHTRAINEE-023','l@x','Lei Abut','matt',datetime('now'));`);
 const stmt = (q) => { let a = []; const o = { bind: (...x) => { a = x; return o; },
     run: async () => { const r = sql.prepare(q).run(...a); return { meta: { changes: Number(r.changes || 0) } }; },
     first: async () => sql.prepare(q).get(...a) || null, all: async () => ({ results: sql.prepare(q).all(...a) }) }; return o; };
@@ -52,6 +55,10 @@ const kvData = new Map(Object.entries({
     'ft:trainee:dee-tan--b101026': { id: 'dee-tan--b101026', name: 'Dee Tan', batch: 'B101026', approved: true },
     'ft:trainee:mark-christian-lucban--b103026': { id: 'mark-christian-lucban--b103026', name: 'Mark Christian Lucban', batch: 'B103026', approved: true },
     'ft:trainee:eva-ong--b101026': { id: 'eva-ong--b101026', name: 'Eva Ong', batch: 'B101026', approved: true },
+    // kept by the course in another form: the middle name dropped, and under a batch the Portal never had for him
+    'ft:trainee:john-luna--b102326': { id: 'john-luna--b102326', name: 'John Luna', batch: 'B102326', approved: true },
+    // an open account of the same name in this batch: a revoked namesake elsewhere never blocks it
+    'ft:trainee:lei-abut--b103026': { id: 'lei-abut--b103026', name: 'Lei Abut', batch: 'B103026', approved: true },
     'ft:access:blocked': { ids: { 'zed-off--b101026': { why: 'offboarded', name: 'Zed Off', batch: 'B101026', at: 'x' } } },
     'cm:trainee:dee-tan--b101026': { id: 'dee-tan--b101026', name: 'Dee Tan', batch: 'B101026' }
 }).map(([k, v]) => [k, JSON.stringify(v)]));
@@ -93,11 +100,21 @@ r = await post({ action: 'FT_SWEEP' });
 const ids = (r.body.blocked || []).map(x => x.id).sort();
 check(r.status === 200 && ids.includes('mark-christian-lucban--b103026'), 'the sweep blocks an account revoked before the course was told (middle initial, long-form Batch ID)', r.body);
 check(ids.includes('cy-lim--b101026'), 'the sweep blocks a program access revoked before this followed it', ids);
+check(ids.includes('john-luna--b102326'), 'the sweep blocks a revoked account kept in the course under another form of the name and another batch', ids);
+check(!ids.includes('lei-abut--b103026'), 'the sweep never blocks a record an open account of the same name could own', ids);
 check(!ids.includes('eva-ong--b101026'), 'the sweep leaves a revoked person who has an account again (same name, same batch)', ids);
 check(!ids.includes('ana-reyes--b101026') && !ids.includes('dee-tan--b101026'), 'the sweep leaves everyone with open access', ids);
 r = await post({ action: 'FT_SWEEP' });
 check(r.status === 200 && (r.body.blocked || []).length === 0, 'a second sweep finds nothing new', r.body);
-check([...kvData.keys()].filter(k => k.includes('trainee:')).length === 8, 'nothing is deleted');
+check([...kvData.keys()].filter(k => k.includes('trainee:')).length === 10, 'nothing is deleted');
+
+// 🗑 Revoke & delete tells the course at once (revoke-user.js → ftBlockRevoked), the same loose way
+const fb = await import(ftBlockUrl);
+{ const l = JSON.parse(kvData.get('ft:access:blocked')); delete l.ids['john-luna--b102326']; kvData.set('ft:access:blocked', JSON.stringify(l)); }
+const rv = await fb.ftBlockRevoked(env, env.DB, { username: 'jluna', full_name: 'John Thomas E Luna', batch_id: 'B103026' }, 'matt');
+check(rv.blocked.includes('john-luna--b102326') && blocked().includes('john-luna--b102326'), 'a revoked account goes on the block list at once, the name in another form', rv);
+const rv2 = await fb.ftBlockRevoked(env, env.DB, { username: 'leiold', full_name: 'Lei Abut', batch_id: 'B17092026-LSHTRAINEE-023' }, 'matt');
+check(!rv2.blocked.length && !blocked().includes('lei-abut--b103026'), 'revoking an old namesake leaves the open account of the same name', rv2);
 
 const noKv = Object.assign({}, env, { COURSE_KV: undefined });
 const r2 = await topics.onRequestPost({ request: new Request('https://p/api/topics', { method: 'POST', headers: { cookie, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'DENY', topicKey: 'STANDARD TRAINING', traineeUsername: 'ana' }) }), env: noKv });
