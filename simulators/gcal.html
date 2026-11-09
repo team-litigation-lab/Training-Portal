@@ -161,7 +161,19 @@
     .gc-scores h2 { margin: 0 0 12px; font-size: 18px; font-weight: 500; color: var(--ink); }
     .gc-scores .sc-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
     .gc-scores .sc-grid.one { grid-template-columns: minmax(0, 1fr); }
-    .gc-scores .sc-grid.wide { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+    .gc-scores .sc-grid.wide { grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr); }
+    /* 📋 the trainer's scorecard (liveScoresHTML, #tv-card): wide, large and easy to read and type in */
+    .gc-scores #tv-card { padding: 16px 18px; font-size: 14px; border: 2px solid #63a537; box-shadow: 0 2px 10px rgba(63,111,34,.15); }
+    .gc-scores #tv-card h5 { font-size: 17px; margin-bottom: 8px; }
+    .gc-scores #tv-card .csc { font-size: 15px; }
+    .gc-scores #tv-card .csc th { padding: 10px 12px; font-size: 15px; }
+    .gc-scores #tv-card .csc th:nth-child(1) { width: 30%; }
+    .gc-scores #tv-card .csc th:nth-child(2), .gc-scores #tv-card .csc td.n { width: 84px; }
+    .gc-scores #tv-card .csc td { padding: 10px 12px; }
+    .gc-scores #tv-card .csc td.fb, .gc-scores #tv-card .csc textarea { font-size: 14.5px; line-height: 1.45; }
+    .gc-scores #tv-card .csc textarea { min-height: 88px; padding: 8px 10px; }
+    .gc-scores #tv-card .csc select { width: 64px; height: 36px; font-size: 16px; }
+    .gc-scores #tv-card .blue { height: 42px; font-size: 15px; }
     .gc-scores .lead { font-size: 13px; color: var(--ink2); line-height: 1.5; margin: 0 0 10px; }
     .gc-scores #gc-check { margin-top: 0 !important; padding-top: 0 !important; border-top: 0 !important; }
     .gc-scores button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
