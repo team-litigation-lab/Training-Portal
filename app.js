@@ -3050,7 +3050,7 @@ function renderAccessRequests() {
     const pending = __paAccess.filter(a => a.status === 'Pending').sort((a, b) => String(a.requested_at || '').localeCompare(String(b.requested_at || '')));
     updateAccessRequestBadge(pending.length);
     const head = `<div class="mc-section-sub">🙋 Access Requests <span class="admin-nav-badge">${pending.length || ''}</span></div>`;
-    if (!pending.length) { box.innerHTML = head + '<p style="font-size:13.5px;color:#334155;margin:0 0 16px;">No requests waiting. A trainee asks from the Training Directory\'s <b>Request Access</b>; it shows up here.</p>'; return; }
+    if (!pending.length) { box.innerHTML = head + '<p style="font-size:16px;font-weight:600;color:#334155;margin:0 0 16px;">No requests waiting. A trainee asks from the Training Directory\'s <b>Request Access</b>; it shows up here.</p>'; return; }
     box.innerHTML = head + `<div class="mc-table-wrap"><table class="mc-table">
         <thead><tr><th>Trainee</th><th>Username</th><th>Batch</th><th>Program / tool</th><th>Requested</th><th style="text-align:right;">Decision</th></tr></thead>
         <tbody>${pending.map(a => {

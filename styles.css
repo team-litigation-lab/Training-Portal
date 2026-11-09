@@ -565,6 +565,9 @@
 #admin-dash-program-access .btn-ghost.btn-danger-ghost, #admin-dash-users .btn-ghost.btn-danger-ghost, #admin-dash-registrations .btn-ghost.btn-danger-ghost, #admin-dash-monitoring .btn-ghost.btn-danger-ghost, #admin-dash-server-logs .btn-ghost.btn-danger-ghost, #admin-dash-activity-logs .btn-ghost.btn-danger-ghost { color:#991b1b; background:#fff; border:1.5px solid #b91c1c; }
 #admin-dash-program-access .mc-section-sub, #admin-dash-users .mc-section-sub, #admin-dash-registrations .mc-section-sub, #admin-dash-monitoring .mc-section-sub, #admin-dash-server-logs .mc-section-sub, #admin-dash-activity-logs .mc-section-sub { font-size:13px; color:#0f172a; }
 .pa-toolbar { display:flex; gap:8px; margin:0 0 10px; }
+#admin-dash-program-access .mc-section-sub { font-size:16px; font-weight:900; }
+#admin-dash-program-access .mc-section-title { font-size:17px; font-weight:900; }
+#admin-dash-program-access .pa-toolbar button { padding:9px 18px; font-size:15px; font-weight:900; }
 .pa-toolbar button { padding:7px 14px; font-size:12.5px; font-weight:800; border-radius:8px; }
 .pa-empty { font-size:14px; color:#334155; }
 .pa-batch { border:1.5px solid #cbd5e1; border-radius:12px; margin-bottom:12px; background:#fff; overflow:hidden; }
