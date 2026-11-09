@@ -60,6 +60,7 @@ const PortalNav = {
         ['/core.html#master', '🛡 Master Control', "Users & revoke access, program access, who's online, activity logs and broadcasts: all on one screen"],
         ['/core.html#registrations', '📝 Log-in Approvals <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Approve new trainee registrations'],
         ['/core.html#access-requests', '🙋 Access Requests <b class="pn-reg-badge" id="idx-access-badge"></b>', 'Trainees asking to open a program or tool: approve or deny, suspend or restore'],
+        ['/core.html#announce', '📢 Announcement', 'The scrolling announcement on the Training Directory and every program, and the full-screen alert (Broadcast & Ping)'],
         ['/simulators.html', '🛠 Simulators', ''],
         ['/api/admin-password-check', '🔑 Admin Password Check', 'Does every platform accept the admin password?'],
         ['/api/ai-usage', '🤖 AI Usage', "Today's use of the shared AI budget, flow by flow"]

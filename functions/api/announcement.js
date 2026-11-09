@@ -1,4 +1,16 @@
-import { json, requireSession, logActivity } from '../_utils.js';
+import { json, requireSession, logActivity, sameSecret } from '../_utils.js';
+
+// Who may change it: a signed-in admin, or — server to server, with the shared AI_GATEWAY_SECRET in X-Gateway-Key — the
+// Foundational Training platform's trainers, from its Admin → 📢 Announcements (their name comes in the body as `by`).
+async function who(request, env) {
+    const key = String(request.headers.get('X-Gateway-Key') || '').trim();
+    if (key) {
+        const want = String(env.AI_GATEWAY_SECRET || '').trim();
+        if (!want || !sameSecret(key, want)) return { ok: false, response: json({ success: false, error: 'Not allowed.' }, 401) };
+        return { ok: true, gateway: true, session: { username: 'foundational', batchId: null } };
+    }
+    return requireSession(request, env, { adminOnly: true });
+}
 
 // Bug fix: GET previously queried env.TRAINING_TRAINING_DB (a typo — no such
 // binding exists), so it always threw, was caught by the try/catch below,
@@ -24,11 +36,12 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-    const auth = await requireSession(request, env, { adminOnly: true });
+    const auth = await who(request, env);
     if (!auth.ok) return auth.response;
 
     try {
-        const { text } = await request.json();
+        const { text, by } = await request.json();
+        if (auth.gateway) auth.session.username = ('foundational:' + String(by || 'trainer')).slice(0, 80);
         const clean = String(text || '').trim().slice(0, 500);
         if (!clean) return json({ success: false, error: 'Announcement text is required.' }, 400);
 
@@ -47,7 +60,7 @@ export async function onRequestPost({ request, env }) {
 }
 
 export async function onRequestDelete({ request, env }) {
-    const auth = await requireSession(request, env, { adminOnly: true });
+    const auth = await who(request, env);
     if (!auth.ok) return auth.response;
 
     try {

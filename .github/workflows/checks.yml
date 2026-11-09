@@ -58,6 +58,8 @@ jobs:
         run: node --no-warnings .github/scripts/calsim.mjs
       - name: Calendar Management Mock Call scorecard shared with the Foundational Training
         run: node --no-warnings .github/scripts/calsim-scorecard.mjs
+      - name: The announcement, changed by the Foundational Training with the shared secret
+        run: node --no-warnings .github/scripts/announcement-gateway.mjs
       - name: Calendar evaluations (submit, AI review, the trainer's live review and final report; trainees see it only once final)
         run: node --no-warnings .github/scripts/gcal-reviews.mjs
       - name: Drafting letters saved to the trainee's account (saved and back, an older copy never over a newer one, only their own, Start over)
