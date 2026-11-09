@@ -57,6 +57,13 @@ const TraineesCalendars = (function () {
         }
         S.box.innerHTML = card(head + '<p style="margin:6px 0 0;color:#64748b">Loading…</p>');
         await fetchPeople(); paint();
+        // 📋 Scorecards saved since (on the Foundational Training's 🧑‍🏫 Graders, or on the simulator) show on their own: read again
+        // every 60 seconds while the page is in view and when it comes back into view; the rows are redrawn, the search kept.
+        if (!S.timer) {
+            const again = async () => { if (document.hidden || S.busy || !S.box) return; S.busy = true; const was = JSON.stringify(S.people); try { await fetchPeople(); } finally { S.busy = false; } if (JSON.stringify(S.people) !== was) repaint(); };
+            S.timer = setInterval(again, 60000);
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) again(); });
+        }
     }
     // draw the rows again (the box keeps the search and the cursor in it)
     function repaint() { if (!S.box) return; const tb = S.box.querySelector('.cs-ttable tbody'); if (!tb) { paint(); return; } tb.innerHTML = rows(); filter(); }

@@ -153,9 +153,23 @@ async function gsList(only) {
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:14px">
         ${TRACKS.map(t => `<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:10px">${kicker(t.where)}
             <h3 style="margin:0;color:#0b1633;font-size:19px">${t.icon} ${Sim.esc(t.title)}</h3><p style="margin:0;color:#475569;font-size:14px;flex:1">${Sim.esc(t.desc)}</p>
-            ${reviewHTML(t.id)}
+            <div id="cs-rv-${t.id}">${reviewHTML(t.id)}</div>
             <div><a class="sim-btn orange" style="text-decoration:none" href="${Sim.esc(go(t.id))}">📅 Open →</a></div></div>`).join('')}</div>
         ${me.admin ? '<p style="margin:14px 0 0;color:#334155;font-size:13.5px">Your trainees’ calendars, to view and score, are under <a id="cs-evals" href="/simulators/gcal-review.html" title="Trainee Evaluations: what trainees submit for evaluation, with the AI review and your feedback, and your trainees’ calendars.">📋 Trainee Evaluations</a>.</p>' : ''}</div>`;
+    // 📋 A scorecard saved later (on the Foundational Training's 🧑‍🏫 Graders, or in the simulator) shows on its card without
+    // reloading: the record is read again every 30 seconds while the page is in view, and at once when the tab comes back.
+    if (!me.admin) {
+        const sig = (d) => JSON.stringify(((d && d.scorecards) || {}));
+        let busy = false;
+        const look = async () => {
+            if (document.hidden || busy) return; busy = true;
+            try { const d = await (await fetch('/api/calsim', { credentials: 'include' })).json();
+                if (d && d.success && sig(d.data) !== sig(rec)) { rec = d.data || null; TRACKS.forEach(t => { const box = document.getElementById('cs-rv-' + t.id); if (box) box.innerHTML = reviewHTML(t.id); }); }
+            } catch (e) { /* offline: the next look tries again */ } finally { busy = false; }
+        };
+        setInterval(look, 30000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) look(); });
+    }
 })();
 </script>
 </body>

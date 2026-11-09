@@ -198,6 +198,32 @@ const server = http.createServer((req, res) => {
     page = await open('/simulators/gcal.html');
     if (process.env.SHOTS) { await page.click('#gc-scores [data-a="check"]'); await page.waitForTimeout(500); await (await page.$('#gc-scores')).screenshot({ path: process.env.SHOTS + '/one-scorecard-side.png' }); }
     if (!/Calendar Management Mock Call[\s\S]*Your trainer 4\.1\/5 \(83%\)/.test(await scoresText(page)) || !(await page.locator('#gc-scores .csc-one').count()) || /scorecard/i.test(await panelText(page)) || !(await inSide(page))) fail('the trainee doesn\'t see the scorecard in the scores in the sidebar: ' + (await scoresText(page)).slice(0, 300));
+    // 📋 a scorecard a trainer saves on the Foundational Training's Graders (it reaches the record through /api/calsim-scorecard)
+    // shows in the open simulator without a reload: the trainee's one sheet, then the trainer's view of the trainee's calendar
+    const graders = (scores) => { const rows = SHEET.METRICS.map((m, i) => ({ metric: m.name, weight: 1, score: scores[i], feedback: i === 0 ? 'Graders: warm, confident opening.' : '' })), avg = rows.reduce((a, r) => a + r.score, 0) / rows.length;
+        rec.scorecards.standard = rec.scorecards.standard.concat([{ title: 'CALENDAR MANAGEMENT MOCK CALL', rows, average: Math.round(avg * 10) / 10, pct: Math.round(avg / 5 * 100), by: 'Coach Grader', at: new Date().toISOString(), calendarAt: null, source: 'foundational' }]); };
+    graders([5, 5, 5, 5, 5, 5, 4]);
+    await page.evaluate(() => window.dispatchEvent(new Event('focus'))); await page.waitForTimeout(800);
+    { const t = await scoresText(page);
+        if (!/Your trainer 4\.9\/5 \(97%\) · Coach Grader · in Graders/.test(t) || !/Graders: warm, confident opening\./.test(t)) fail('a scorecard saved in Graders doesn\'t show in the open simulator: ' + t.slice(0, 300));
+        if (!/New scorecard from your trainer: 4\.9\/5/.test(await page.textContent('body'))) fail('the trainee isn\'t told a new scorecard came in'); }
+    await page.close();
+    role = 'admin';
+    page = await open('/simulators/gcal.html?trainee=ci'); await page.waitForSelector('#tv-card');
+    graders([4, 4, 4, 4, 4, 4, 4]);
+    await page.evaluate(() => window.dispatchEvent(new Event('focus'))); await page.waitForTimeout(800);
+    if (!/4\/5 · 80%/.test(await page.textContent('#tv-card h5')) || !/in Graders/.test(await page.textContent('#tv-card')) || await page.inputValue('select[data-csc="0"]') !== '4') fail('the trainer\'s view doesn\'t take the scorecard saved in Graders: ' + await page.textContent('#tv-card h5'));
+    // in the middle of filling in the sheet, a new one doesn't wipe it: a note says it came in
+    await page.selectOption('select[data-csc="1"]', '2');
+    graders([3, 3, 3, 3, 3, 3, 3]);
+    await page.evaluate(() => window.dispatchEvent(new Event('focus'))); await page.waitForTimeout(800);
+    if (await page.inputValue('select[data-csc="1"]') !== '2' || !/new scorecard was saved in Graders[\s\S]*Refresh/.test(await page.textContent('body'))) fail('a scorecard from Graders wiped the trainer\'s sheet in progress, or wasn\'t announced');
+    await page.close();
+    role = 'trainee';
+    page = await open('/simulators/calsim.html');
+    graders([5, 5, 5, 5, 5, 5, 5]);
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); await page.waitForTimeout(800);
+    if (!/Trainer’s scorecard: 5\/5 \(100%\)/.test(await page.innerText('#cs-rv-standard'))) fail('the Calendaring Simulators card doesn\'t take a scorecard saved in Graders: ' + await page.innerText('#cs-rv-standard'));
     await page.close();
     // a trainee can't open someone's calendar
     page = await open('/simulators/gcal.html?trainee=zed');

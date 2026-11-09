@@ -1287,7 +1287,7 @@ async function liveStart(again) {
         if (OPEN) S.reqs = []; else if (!Array.isArray(S.reqs)) S.reqs = [];
         S.result = Object.assign(checkNow(), { at: new Date().toISOString() });
         if (!again) { S.anchor = S.today; S.mini = S.today.slice(0, 7); }
-        closeAll(); render();
+        closeAll(); render(); watchScorecards();
         if (again) snack('Their calendar is up to date');
     } catch (e) { $('#app').innerHTML = `<div class="sim-card" style="margin:20px"><p>${esc(e.message)}</p></div>`; }
 }
@@ -1296,7 +1296,7 @@ const cardWhen = (t) => t ? new Date(String(t).replace(' ', 'T') + (/[zZ]|[+-]\d
 function cardPickHTML(cards, pick, id) {
     if (!cards || cards.length < 2) return '';
     return `<label style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px;font-weight:600;color:#0b1633">📋 Scorecards <select id="${id}" aria-label="Choose a saved scorecard" style="font:inherit;font-weight:500;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;max-width:100%">
-        ${cards.map((x, i) => [x, i]).reverse().map(([x, i]) => `<option value="${i}" ${i === pick ? 'selected' : ''}>${i === cards.length - 1 ? 'Latest · ' : ''}${esc(cardWhen(x.at))}${x.by ? ' · ' + esc(x.by) : ''} · ${esc(x.average)}/5 (${esc(x.pct)}%)</option>`).join('')}</select></label>`;
+        ${cards.map((x, i) => [x, i]).reverse().map(([x, i]) => `<option value="${i}" ${i === pick ? 'selected' : ''}>${i === cards.length - 1 ? 'Latest · ' : ''}${esc(cardWhen(x.at))}${x.by ? ' · ' + esc(x.by) : ''}${x.source === 'foundational' ? ' · Graders' : ''} · ${esc(x.average)}/5 (${esc(x.pct)}%)</option>`).join('')}</select></label>`;
 }
 /* 👥 A trainer, on the simulator itself: a dropdown of their trainees (everyone with a calendar saved here or a scorecard on this
    track), the latest scorecard beside each name. Choosing one opens that trainee's calendar with the scorecard (?trainee=). */
@@ -1336,7 +1336,7 @@ function liveScoresHTML() {
         <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on this simulator yet.' : `Their calendar as they last saved it${RV.savedAt ? ', ' + esc(when(RV.savedAt)) : ''}. It’s above, read only.`}
             <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>
         <div class="sc-grid wide"><div class="res-r" id="tv-card"><h5><span>📋 Your scorecard</span><span>${last ? `${esc(last.average)}/5 · ${esc(last.pct)}%` : 'to score'}</span></h5>
-            ${last ? `${cardPickHTML(RV.cards, pick, 'tv-pick')}<p style="margin:0 0 6px;color:#70757a">${pick === RV.cards.length - 1 ? 'Last saved' : 'Saved'} ${esc(when(last.at))}${last.by ? ' by ' + esc(last.by) : ''}${RV.cards.length > 1 ? ` · ${RV.cards.length} scorecards` : ''}. Saving again adds a new one and keeps the earlier ones.</p>` : '<p style="margin:0 0 6px;color:#70757a">Score each metric 0 to 5 and add your feedback; the weighted average works itself out.</p>'}
+            ${last ? `${cardPickHTML(RV.cards, pick, 'tv-pick')}<p style="margin:0 0 6px;color:#70757a">${pick === RV.cards.length - 1 ? 'Last saved' : 'Saved'} ${esc(when(last.at))}${last.by ? ' by ' + esc(last.by) : ''}${last.source === 'foundational' ? ' in Graders' : ''}${RV.cards.length > 1 ? ` · ${RV.cards.length} scorecards` : ''}. Saving again adds a new one and keeps the earlier ones.</p>` : '<p style="margin:0 0 6px;color:#70757a">Score each metric 0 to 5 and add your feedback; the weighted average works itself out.</p>'}
             ${C ? C.formHTML(last, autoRows(liveResult())) : '<p>The scorecard didn’t load. Refresh the page.</p>'}
             <div style="margin-top:8px"><button class="blue" data-a="tv-save">💾 Save scorecard</button></div>
 </div>
@@ -1400,7 +1400,7 @@ function oneScorecardHTML(r, hint) {
     if (!C || (!auto && !card)) return r ? checkSection(r) : `<div id="gc-check">${hint}</div>`;
     const c = C.combined(card, auto), col = c.pct >= 85 ? '#188038' : c.pct >= 70 ? '#e37400' : '#d93025';
     const parts = [r && !r.results.length ? '🤖 Calendar check: no appointments to check yet' : r ? `🤖 Calendar check ${r.score}% · ${r.right} of ${r.results.length} ${OPEN ? 'appointments' : 'requests'} fully right` : '🤖 Calendar check: not run yet',
-        card ? `👤 Your trainer ${esc(card.average)}/5 (${esc(card.pct)}%)${card.by ? ' · ' + esc(card.by) : ''} · ${esc(new Date(card.at).toLocaleDateString())}` : '👤 Your trainer hasn’t scored the mock call yet'];
+        card ? `👤 Your trainer ${esc(card.average)}/5 (${esc(card.pct)}%)${card.by ? ' · ' + esc(card.by) : ''}${card.source === 'foundational' ? ' · in Graders' : ''} · ${esc(new Date(card.at).toLocaleDateString())}` : '👤 Your trainer hasn’t scored the mock call yet'];
     return `<div id="gc-check" style="margin-top:14px;padding-top:12px;border-top:1px solid #dadce0"><div id="my-scorecard">
         <div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}" title="Calendar Management: the average of the metrics scored so far">${c.pct}%</div>
             <div class="lead" style="margin:0"><b>Calendar Management Mock Call</b> · ${esc(c.average)}/5<br>${parts.join('<br>')}</div></div>
@@ -1415,7 +1415,54 @@ function myScorecardBox() {
     return `<div class="rq" id="my-scorecard">${cardPickHTML(list, pick, 'my-pick')}${window.CalScorecard.sheetHTML(last, `👤 Your trainer’s scorecard · ${esc(last.average)}/5 (${esc(last.pct)}%)${last.by ? ' · ' + esc(last.by) : ''} · ${esc(new Date(last.at).toLocaleDateString())}`)}</div>`;
 }
 async function mineStart() {   // a signed-in trainee's submissions and the trainer's feedback (a guest has none)
-    try { const j = await recFetch(); MINE.me = j.me; MINE.data = Object.assign(blankRec(), j.data || {}); if (S) { renderPanel(); if (j.me && j.me.admin) renderScores(); } } catch (e) { /* not signed in on the Portal */ }
+    try { const j = await recFetch(); MINE.me = j.me; MINE.data = Object.assign(blankRec(), j.data || {}); if (S) { renderPanel(); renderScores(); } watchScorecards(); } catch (e) { /* not signed in on the Portal */ }
+}
+/* 📋 Scorecards follow on their own: one a trainer fills in on the Foundational Training's 🧑‍🏫 Graders (it reaches the trainee's
+   record through /api/calsim-scorecard) or on another screen shows here without reloading the page. While the page is in view the
+   record is read again every 30 seconds, and at once when the tab comes back into view. A trainee's 📊 Your scores is drawn again
+   with it; a trainer's view of a trainee's calendar too, unless they are in the middle of filling in the sheet (then a note says
+   a new one came in, with 🔄 Refresh). */
+const SC_POLL = 30000;
+const cardsOf = (data) => (data && data.scorecards && Array.isArray(data.scorecards[GT]) ? data.scorecards[GT] : []);
+const cardsSig = (list) => JSON.stringify((list || []).map(c => [c.at, c.average, c.by]));
+// The trainer's sheet differs from the scorecard it opened with (a score picked or feedback typed).
+function scFormDirty() {
+    const C = window.CalScorecard; if (!C || !RV || !RV.live) return false;
+    const pick = RV.pick != null && RV.cards[RV.pick] ? RV.pick : RV.cards.length - 1, card = RV.cards[pick];
+    return C.METRICS.some((m, i) => {
+        const sel = document.querySelector(`select[data-csc="${i}"]`), fb = document.querySelector(`textarea[data-csf="${i}"]`), r = card && card.rows && card.rows[i];
+        const want = r && r.score != null ? String(r.score) : '';
+        return (sel && sel.value !== want) || (fb && String(fb.value || '').trim() !== String((r && r.feedback) || '').trim());
+    });
+}
+async function pollScorecards() {
+    if (document.hidden || SC_POLL_BUSY) return;
+    SC_POLL_BUSY = true;
+    try {
+        if (RV && RV.live && !BLANK) {
+            const j = await recFetch(RV.user), list = cardsOf(j.data);
+            if (cardsSig(list) === cardsSig(RV.cards)) return;
+            const newest = list[list.length - 1];
+            if (scFormDirty()) { RV.pendingCards = list; snack(`📋 A new scorecard was saved${newest && newest.source === 'foundational' ? ' in Graders' : ''}${newest && newest.by ? ' by ' + newest.by : ''}. Click 🔄 Refresh to see it.`); return; }
+            RV.cards = list; RV.pick = null; renderScores();
+            snack(`📋 Scorecard updated${newest && newest.source === 'foundational' ? ' from Graders' : ''}${newest ? ': ' + newest.average + '/5 (' + newest.pct + '%)' : ''}`);
+        } else if (!RV && MINE.me) {
+            const j = await recFetch(), was = cardsOf(MINE.data);
+            MINE.me = j.me; const data = Object.assign(blankRec(), j.data || {});
+            const changed = cardsSig(cardsOf(data)) !== cardsSig(was);
+            MINE.data = data;
+            if (changed) { MINE.pick = null; renderScores(); renderPanel(); const n = cardsOf(data)[cardsOf(data).length - 1];
+                if (n && !(MINE.me && MINE.me.admin)) snack(`📋 New scorecard from your trainer: ${n.average}/5 (${n.pct}%)`); }
+        }
+    } catch (e) { /* offline or signed out: the next look tries again */ }
+    finally { SC_POLL_BUSY = false; }
+}
+let SC_POLL_BUSY = false, SC_TIMER = null;
+function watchScorecards() {
+    if (SC_TIMER || BLANK) return;
+    SC_TIMER = setInterval(pollScorecards, SC_POLL);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) pollScorecards(); });
+    window.addEventListener('focus', pollScorecards);
 }
 
 /* ---------- 📤 Submit for evaluation (functions/api/gcal-reviews.js) ----------
