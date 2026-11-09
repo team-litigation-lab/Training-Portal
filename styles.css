@@ -617,6 +617,14 @@
 #admin-dash-users .pa-empty, #admin-dash-registrations .pa-empty, #admin-dash-monitoring .pa-empty, #admin-dash-activity-logs .pa-empty, #admin-dash-server-logs .pa-empty { font-size:16px; font-weight:600; }
 #admin-dash-registrations .mc-section-title, #admin-dash-monitoring .mc-section-title, #admin-dash-activity-logs .mc-section-title { font-size:17px; font-weight:900; }
 #admin-dash-monitoring .admin-tile h4 { font-size:17px; font-weight:900; }
+/* Master Control Overview: bigger, bolder tiles */
+#admin-dash-overview .admin-tile h4 { font-size:14px; font-weight:900; color:#0f172a; }
+#admin-dash-overview .admin-stat { font-size:30px; font-weight:900; }
+#admin-dash-overview .admin-stat-label { font-size:13px; font-weight:800; color:#334155; }
+#admin-dash-overview .mc-section-title { font-size:17px; font-weight:900; }
+.mc-header h2 { font-size:24px; font-weight:900; }
+.mc-header .sub { font-size:13.5px; font-weight:800; }
+.mc-tab { font-size:13px; font-weight:900; }
 #admin-dash-server-logs h2 { font-size:24px; font-weight:900; }
 #admin-dash-server-logs .sub { font-size:14px; font-weight:800; }
 #admin-dash-server-logs .modal-btn-row button { font-size:15px; font-weight:900; }
