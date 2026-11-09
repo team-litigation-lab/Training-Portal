@@ -11,7 +11,7 @@
 //     week, and changing an appointment nobody asked about too;
 //   - the page: quick create, the event page (Google Meet, location, description, an email reminder a day
 //     before, the Attorney's Calendar), the event card and the mock Google Meet, drag to move, delete and undo,
-//     moving one week of the attorney's appointment ("This event"), Month / Schedule / search, Check my calendar
+//     the attorney's existing schedule locked for a trainee (no edit / delete / drag; an old change doesn't show; on the clones the caller's move/cancel appointment stays editable), Month / Schedule / search, Check my calendar
 //     (saved as 'Google Calendar'), the rules in the blue card (no rules button); no sideways scroll on a phone;
 //   - an Admin edits the weekly schedule for everyone (saved through /api/gcal-schedule; a trainee then sees
 //     it), and restores it; a trainee can't change it (the API refuses).
@@ -128,6 +128,9 @@ const server = http.createServer(async (req, res) => {
         const og = GCAL.checkOpen(st, today), ob = GCAL.checkOpen(bad, today);
         out.open = { score: og.score, n: og.results.length, changed: og.changed.length, missed: og.results.flatMap(r => r.items.filter(i => !i.ok).map(i => r.head + ': ' + i.t)),
             bad: ob.results.find(r => r.id.startsWith(b0.id)).items.filter(i => !i.ok).map(i => i.t) };
+        // one scorecard: the check on the CALENDAR MANAGEMENT MOCK CALL's 8 metrics (the Foundational Training's) (cal-scorecard.js fromCheck), the calendar's four scored, the call's three left to the trainer
+        out.metrics = { good: CalScorecard.fromCheck(og).map(x => x.score), bad: CalScorecard.fromCheck(ob).map(x => x.score), plan: CalScorecard.fromCheck(GCAL.checkPlan(st, reqs, today)).map(x => x.score),
+            same: CalScorecard.METRICS.length === 8 && CalScorecard.METRICS[7].name === 'Tools Utilization', one: CalScorecard.sheetHTML({ rows: CalScorecard.METRICS.map(() => ({ score: 3, feedback: 'x' })), average: 3, pct: 60 }, '', CalScorecard.fromCheck(og)) };
         // one half-point mistake (the color, or the reminder) is never free on Standard Training: the max matches what the checks add up to
         const noColor = JSON.parse(JSON.stringify(st)); noColor.events[0].color = '';
         const noRem = JSON.parse(JSON.stringify(st)); noRem.events[0].notifs = [];
@@ -150,7 +153,11 @@ const server = http.createServer(async (req, res) => {
         if (!re.test(miss)) fail(`a booking with mistakes should be marked for ${re}: ${miss}`);
     if (grading.bad.pts > 1.5) fail(`a booking with every mistake should score almost nothing (${grading.bad.pts})`);
     const om = grading.open.bad.join(' | ');
-    if (grading.open.score !== 100 || grading.open.n !== 5 || grading.open.changed !== 2) fail(`Standard Training's check: the right bookings should score 100 (5 appointments, the move and cancel listed): ${JSON.stringify(grading.open).slice(0, 500)}`);
+    if (grading.open.score !== 100 || grading.open.n !== 5 || grading.open.changed !== 0) fail(`Standard Training's check: the right bookings should score 100 (5 appointments; the attorney's week is locked, so no changes to it are listed): ${JSON.stringify(grading.open).slice(0, 500)}`);
+    { const M = grading.metrics, calls = [0, 4, 6, 7], cal = [1, 2, 3, 5];
+        if (!M.same || calls.concat([1]).some(i => M.good[i] !== null) || [2, 3, 5].some(i => M.good[i] !== 5) || cal.some(i => M.plan[i] !== 5)) fail(`the calendar check should score the scorecard's calendar metrics 5/5 on a right calendar, and leave the call's to the trainer: ${JSON.stringify(M.good)} ${JSON.stringify(M.plan)}`);
+        if (!(M.bad[5] < 5) || !(M.bad[2] < 5) || !(M.bad[3] < 5)) fail(`a booking with mistakes should cost the calendar entry, verification and slot metrics: ${JSON.stringify(M.bad)}`);
+        if (!/csc-one/.test(M.one) || !/🤖<span class="csc-lbl"> Calendar/.test(M.one) || !/👤<span class="csc-lbl"> Trainer/.test(M.one) || (M.one.match(/<tr>/g) || []).length < 9 || !/Passed|Failed/.test(M.one)) fail('the one sheet should show the calendar check and the trainer side by side on the 7 metrics'); }
     for (const [re, what] of [[/not the Attorney’s Calendar/, 'calendar'], [/title should start with the request type/, 'title'], [/time zone/, 'time zone'], [/is colored/, 'color'], [/description is missing/, 'description'], [/email notification 1 day before/, 'reminder']])
         if (!re.test(om)) fail(`Standard Training's check should flag the ${what}: ${om}`);
     // the color rule is pinned to its colors, and a half-point mistake is never free (the max is what the checks add up to)
@@ -238,18 +245,20 @@ const server = http.createServer(async (req, res) => {
     if ((await S()).events.some(e => e.title === 'Practice: quick event')) fail('🗑 Delete should delete the event');
     await page.click('.gc-snack [data-a="undo"]'); await page.waitForTimeout(200);
     if (!(await S()).events.some(e => e.title === 'Practice: quick event')) fail('Undo should bring a deleted event back');
-    // one week of the attorney's appointment: Rupaul Charles from Friday 1 PM to Thursday 1:30 PM ("This event")
+    // 🔒 the attorney's existing schedule is locked for a trainee: the card has no edit / delete, says only the trainer can change it,
+    // dragging it moves nothing, and a change made before the lock (kept in an old calendar) doesn't show
     const rup = await page.evaluate((f) => `s:fri-charles@${f}`, fri);
-    await page.click(`#gc-main .ev[data-iid="${rup}"]`); await page.click('.gc-pop [data-a="d-edit"]'); await page.waitForSelector('#ed-title');
-    await page.fill('#ed-date', thu); await page.dispatchEvent('#ed-date', 'change');
-    await page.selectOption('#ed-start', '13:30'); await page.dispatchEvent('#ed-start', 'change');
-    await page.click('[data-a="ed-save"]'); await page.waitForSelector('.gc-dlg');
-    if (!/This event/.test(await page.textContent('.gc-dlg'))) fail('changing the attorney\'s appointment should ask This event / All events');
-    await page.click('.gc-dlg [data-ok]'); await page.waitForTimeout(300);
+    await page.click(`#gc-main .ev[data-iid="${rup}"]`); await page.waitForSelector('.gc-pop');
+    if (await page.locator('.gc-pop [data-a="d-edit"], .gc-pop [data-a="d-del"]').count()) fail('a trainee should not get Edit / Delete on the attorney\'s existing schedule');
+    if (!/only your trainer can change it/.test(await page.textContent('.gc-pop'))) fail('the attorney\'s appointment should say it is locked for the trainee');
+    await page.click('.gc-pop [data-a="pop-x"]');
+    if (await page.locator(`#gc-main .ev[data-iid="${rup}"] .rs`).count()) fail('a locked appointment should have no resize handle');
+    const rb = await page.locator(`#gc-main .ev[data-iid="${rup}"]`).boundingBox();
+    await page.mouse.move(rb.x + rb.width / 2, rb.y + 4); await page.mouse.down();
+    await page.mouse.move(rb.x + rb.width / 2, rb.y + 4 + 2 * 48, { steps: 8 }); await page.mouse.up(); await page.waitForTimeout(300);
     st = await S();
-    if (!st.ex[rup] || st.ex[rup].date !== thu || st.ex[rup].start !== '13:30' || st.ex[rup].end !== '14:00' || Object.keys(st.sx).length) fail(`"This event" should move this week's only: ${JSON.stringify(st.ex[rup])}`);
-    const nextFri = await page.evaluate((f) => GCAL.addDays(f, 7), fri);
-    if (!(await page.evaluate((d) => GCAL.instancesOf(JSON.parse(localStorage.getItem('lsh_gcal:ci trainee')), d, d).some(e => e.title.includes('Rupaul') && e.start === '13:00'), nextFri))) fail('next week\'s Rupaul Charles call should still be Friday at 1');
+    if (st.ex[rup] || Object.keys(st.sx).length) fail(`dragging the attorney's appointment should change nothing for a trainee: ${JSON.stringify(st.ex[rup])}`);
+    if (!(await page.evaluate((d) => GCAL.instancesOf({ events: [], ex: { [`s:fri-charles@${d}`]: { date: d, start: '15:00', end: '15:30' } }, sx: { 'tue-henderson': { del: true } } }, d, d).some(e => e.title.includes('Rupaul') && e.start === '13:00' && e.readOnly), fri))) fail('an old change to the attorney\'s week should not show for a trainee (the schedule is the trainer\'s)');
     // other views and search
     await page.click('[data-a="views"]'); await page.click('[data-a="view"][data-v="month"]'); await page.waitForSelector('.mo');
     await shot(page, 'gcal-4-month');
@@ -263,6 +272,7 @@ const server = http.createServer(async (req, res) => {
     if (/attorney’s rules|attorney's rules|Check my calendar/i.test(railTxt)) fail('the bar under the calendar still has rules / check buttons: ' + railTxt);
     await page.click('#gc-scores [data-a="check"]'); await page.waitForSelector('.res-ring');
     await shot(page, 'gcal-5-checked');
+    if (process.env.SHOTS) { await (await page.$('#gc-scores')).screenshot({ path: path.join(process.env.SHOTS, 'gcal-5b-one-scorecard.png') }); await page.evaluate(() => { document.getElementById('gc-side').scrollTop = 0; }); }
     // the score is in 📊 Your scores, not in the side panel (which stays closed): a card in the calendar's left sidebar, under
     // Other calendars, not in the blue card. Nothing of the sidebar goes: Create, the month calendar and the calendars stay on top,
     // and Check my calendar does not scroll the sidebar away from them.
@@ -415,6 +425,11 @@ const server = http.createServer(async (req, res) => {
                     color: GCAL.lengthColor(GCAL.mins(e.end) - GCAL.mins(e.start)),   // the attorney's color rule: 30 min Tangerine, 45 Blueberry, 1 hour Tomato
                     location: R.meeting === 'office' ? GCAL_OFFICE : R.meeting === 'phone' ? 'Phone' : '', meet: R.meeting === 'video' ? 'abc-defg-hij' : '',
                     desc: `Name: ${R.name}<br>CB Number: ${R.cb}${R.dob ? `<br>DOB: ${R.dob}` : ''}${R.dol ? `<br>DOL: ${R.dol}` : ''}${R.org ? `<br>Company: ${R.org}` : ''}<br>Notes: ${R.notesNeed.map(g => g[0]).join(', ')}`, guests: [], notifs: [{ m: 'email', v: 1, u: 'days' }], busy: true }); });
+            // 🔒 the week is locked for a trainee, all but the appointment a caller's request asks to move or cancel (that week's only)
+            const mvq = reqs.find(q => GCAL_REQUESTS.find(x => x.id === q.id).kind === 'move'), insts = GCAL.instancesOf({ events: [], ex: {}, sx: {}, reqs }, today, GCAL.addDays(today, 27));
+            const tgt = insts.filter(e => e.seed && e.row === mvq.row);
+            if (!tgt.some(e => e.origDate === mvq.orig && !e.readOnly)) probs.push('the appointment a caller asks to move should stay editable');
+            if (tgt.some(e => e.origDate !== mvq.orig && !e.readOnly) || insts.some(e => e.seed && e.row !== mvq.row && !reqs.some(q => q.row === e.row) && !e.readOnly)) probs.push('the rest of the attorney\'s week should be locked for a trainee');
             const good = GCAL.checkPlan(st, reqs, today);
             const wrong = JSON.parse(JSON.stringify(st)); wrong.events[0].cal = 'lsh';           // on the wrong calendar
             const noRem = JSON.parse(JSON.stringify(st)); noRem.events[1].notifs = [];            // no email reminder

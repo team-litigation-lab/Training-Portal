@@ -1,5 +1,5 @@
 import { json, sameSecret } from '../_utils.js';
-import { ensure, SCORECARD_METRICS, SCORECARD_TITLE } from './calsim.js';
+import { ensure, SCORECARD_TITLE, scorecardRows, scorecardResult } from './calsim.js';
 
 // The CALENDAR MANAGEMENT MOCK CALL scorecard shared with the Foundational Training (its 🧑‍🏫 Graders: Mock Calls & Demos):
 // one scorecard, whichever side the trainer fills it in on. The Foundational Training's Worker calls this, server to server,
@@ -7,7 +7,8 @@ import { ensure, SCORECARD_METRICS, SCORECARD_TITLE } from './calsim.js';
 //
 //   GET  /api/calsim-scorecard?name=<full name>&batch=<Batch ID>   → { success, username, cards }  (the trainee's Google
 //        Calendar Simulator scorecards on the Standard Training track, newest last; username '' when no Portal account matches)
-//   POST /api/calsim-scorecard { name, batch, rows: [{ score 0-5, feedback }], by }  → { success, card }  (a scorecard saved on
+//   POST /api/calsim-scorecard { name, batch, rows: [{ score 0-5 in half points, feedback }] (the seven call metrics, and Tools Utilization
+//        when sent: the Foundational Training's eighth), by }  → { success, card }  (a scorecard saved on
 //        the Foundational Training: kept with the Portal's own under scorecards.standard, so the trainee and the trainers see it
 //        on the Google Calendar Simulator too)
 //
@@ -51,16 +52,11 @@ export async function onRequestPost({ request, env }) {
     try { body = await request.json(); } catch (e) { return json({ success: false, error: 'Invalid request body.' }, 400); }
     const db = env.TRAINING_DB, username = await findUser(env, body.name, body.batch);
     if (!username) return json({ success: false, error: 'No Portal account for that trainee in that batch.' }, 404);
-    if (!Array.isArray(body.rows) || body.rows.length !== SCORECARD_METRICS.length) return json({ success: false, error: `All ${SCORECARD_METRICS.length} scores are required.` }, 400);
-    const rows = [];
-    for (let i = 0; i < SCORECARD_METRICS.length; i++) {
-        const x = body.rows[i] || {}, v = Number(x.score);
-        if (x.score === '' || x.score == null || !Number.isFinite(v) || v < 0 || v > 5) return json({ success: false, error: `Give "${SCORECARD_METRICS[i]}" a score from 0 to 5.` }, 400);
-        rows.push({ metric: SCORECARD_METRICS[i], weight: 1, score: Math.round(v), feedback: clean(x.feedback, 600) });
-    }
-    const avg = rows.reduce((a, r) => a + r.weight * r.score, 0) / rows.reduce((a, r) => a + r.weight, 0);
-    const card = { title: SCORECARD_TITLE, rows, average: Math.round(avg * 10) / 10, pct: Math.round(avg / 5 * 100), by: clean(body.by, 80) || 'Trainer',
-        at: new Date().toISOString(), calendarAt: null, source: 'foundational' };
+    // (the seven call metrics at least; Tools Utilization too when Graders sends it, as the Foundational Training scores it)
+    const got = scorecardRows(body.rows, 7); if (got.error) return json({ success: false, error: got.error }, 400);
+    const rows = got.rows;
+    const card = Object.assign({ title: SCORECARD_TITLE, rows }, scorecardResult(rows), { by: clean(body.by, 80) || 'Trainer',
+        at: new Date().toISOString(), calendarAt: null, source: 'foundational' });
     await ensure(db);
     const row = await db.prepare(`SELECT data FROM calsim_records WHERE username = ?`).bind(username).first();
     const d = (row && parse(row.data)) || { v: 2, drafts: {}, autos: [], submissions: [], reviews: {}, external: [] };

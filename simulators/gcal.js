@@ -167,18 +167,27 @@ const rx = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // All events from `from` to `to` for a calendar state { events, ex, sx }: the attorney's week (with its changes),
 // the trainee's events (and their repeats), and the holidays.
+/* 🔒 The existing schedule (the attorney's / executive's week) is the trainer's: a trainer edits it for everyone (Settings → Edit the
+   weekly schedule), and it is locked for trainees: they can open an appointment and read it, not move, change or delete it. The one
+   exception is the appointment a dealt caller's request asks to move or cancel (Litigation Week, Executive Week: that week's instance
+   of it only). A trainer looking at a trainee's calendar sees it the same way, so changes a trainee made before the lock don't show. */
+const seedsLocked = () => !G.admin && (!!RV || !Sim.isAdmin());
+const reqTarget = (st, row, d) => (st.reqs || []).some(q => q && q.row === row && q.orig === d);
+const seedLockedAt = (st, row, d) => seedsLocked() && !reqTarget(st, row, d);
 function instancesOf(st, from, to, rows) {
-    const lo = addDays(from, -10), hi = addDays(to, 10), out = [];
+    const lo = addDays(from, -10), hi = addDays(to, 10), out = [], locked = seedsLocked();
     for (let d = lo; d <= hi; d = addDays(d, 1)) {
         const w = wd(d);
         (rows || ROWS).forEach(r => {
             if (r.wd !== w) return;
-            const sx = st.sx[r.id]; if (sx && sx.del) return;
-            const iid = `s:${r.id}@${d}`, x = st.ex[iid]; if (x && x.del) return;
+            const iid = `s:${r.id}@${d}`, lock = locked && !reqTarget(st, r.id, d);
+            const sx = locked ? null : st.sx[r.id]; if (sx && sx.del) return;
+            const x = lock ? null : st.ex[iid]; if (x && x.del) return;
             const e = { iid, sid: 's:' + r.id, row: r.id, seed: true, cal: 'attorney', title: r.title, type: r.type, date: d, start: r.start, end: r.end, allDay: false,
                 color: seedColor(r), location: r.location || '', meet: '', desc: textToHtml(r.notes || ''), guests: [], notifs: [], tz: ET, repeat: 'weekly', busy: true, vis: 'default', origDate: d };
             if (sx) Object.assign(e, sx);
             if (x) Object.assign(e, x);
+            if (lock) e.readOnly = e.locked = true;
             out.push(e);
         });
     }
@@ -299,37 +308,37 @@ function dealRequests(today) {
 /* ---------- Check my calendar ---------- */
 function gradeBookEvent(e, q, R, all, today) {
     const items = []; let pts = 0;
-    const add = (ok, t, w) => { items.push({ ok, t }); if (ok) pts += w; };
+    const add = (ok, t, w, m) => { items.push({ ok, t, m, w, got: ok ? w : 0 }); if (ok) pts += w; };   // m: its CALENDAR MANAGEMENT MOCK CALL metric (cal-scorecard.js)
     const T = GCAL_TYPES[R.type] || { max: 30 };
-    add(e.cal === 'attorney', e.cal === 'attorney' ? WW('On the Attorney’s Calendar.') : WW(`It’s on the ${calOf(e.cal).name}, not the Attorney’s Calendar.`), 1);
+    add(e.cal === 'attorney', e.cal === 'attorney' ? WW('On the Attorney’s Calendar.') : WW(`It’s on the ${calOf(e.cal).name}, not the Attorney’s Calendar.`), 1, 5);
     const okTitle = alnum(e.title) === alnum(R.type + R.name);
-    add(okTitle, okTitle ? `Title: the request type and the ${CFG.who ? 'person' : 'client'}’s name.` : `The title should be “${R.type} – ${R.name}” (it’s “${e.title}”).`, 1.5);
-    add((e.tz || ET) === ET, (e.tz || ET) === ET ? 'Time zone: Eastern.' : `The event’s time zone is ${(TZS.find(z => z[0] === e.tz) || [0, e.tz])[1]}; the calendar should be in Eastern (EST).`, 0.5);
+    add(okTitle, okTitle ? `Title: the request type and the ${CFG.who ? 'person' : 'client'}’s name.` : `The title should be “${R.type} – ${R.name}” (it’s “${e.title}”).`, 1.5, 5);
+    add((e.tz || ET) === ET, (e.tz || ET) === ET ? 'Time zone: Eastern.' : `The event’s time zone is ${(TZS.find(z => z[0] === e.tz) || [0, e.tz])[1]}; the calendar should be in Eastern (EST).`, 0.5, 2);
     const probs = slotProblems(e, all, T);
     if (R.sameDay && e.date === today && !/approv/i.test(plain(e.desc))) probs.push(WW('Same-day bookings need the attorney’s approval: book the next business day, or write in the description that it’s pending the attorney’s approval.'));
-    add(!probs.length, probs.length ? probs.join(' ') : WW('The slot follows the attorney’s rules (free, 15-minute buffers, hours).'), 3);
+    add(!probs.length, probs.length ? probs.join(' ') : WW('The slot follows the attorney’s rules (free, 15-minute buffers, hours).'), 3, 3);
     const okDates = R.sameDay ? [today].concat(q.alt || []) : (q.dates || []);
     const inWin = okDates.includes(e.date) && (R.sameDay || (mins(e.start) >= mins(R.from) && mins(e.end) <= mins(R.to)));
-    add(inWin, inWin ? 'A time the caller can do.' : `It isn’t a time the caller can do (${R.sameDay ? 'today or the next business day' : availText(q, R)}).`, 1);
+    add(inWin, inWin ? 'A time the caller can do.' : `It isn’t a time the caller can do (${R.sameDay ? 'today or the next business day' : availText(q, R)}).`, 1, 1);
     const dur = mins(e.end) - mins(e.start);
-    add(!e.allDay && dur >= 15 && dur <= T.max, `Length: ${e.allDay ? 'all day' : dur + ' minutes'} (at most ${T.max} for a ${R.type}).`, 1);
+    add(!e.allDay && dur >= 15 && dur <= T.max, `Length: ${e.allDay ? 'all day' : dur + ' minutes'} (at most ${T.max} for a ${R.type}).`, 1, 3);
     const wantC = lengthColor(dur) || lengthColor(T.max);
-    add((e.color || '') === wantC, (e.color || '') === wantC ? `Color: ${colorName(wantC)}, right for its length.` : `A ${lengthColor(dur) ? dur + '-minute' : T.max + '-minute'} appointment is colored ${colorName(wantC)} (30 minutes Tangerine, 45 Blueberry, 1 hour Tomato)${e.color ? `; it’s ${colorName(e.color)}` : ''}.`, 0.5);
+    add((e.color || '') === wantC, (e.color || '') === wantC ? `Color: ${colorName(wantC)}, right for its length.` : `A ${lengthColor(dur) ? dur + '-minute' : T.max + '-minute'} appointment is colored ${colorName(wantC)} (30 minutes Tangerine, 45 Blueberry, 1 hour Tomato)${e.color ? `; it’s ${colorName(e.color)}` : ''}.`, 0.5, 5);
     const where = `${e.location || ''} ${plain(e.desc)}`;
     let mt = '';
     if (R.meeting === 'video') mt = e.meet ? '' : 'It’s a video call: add Google Meet video conferencing.';
     else if (R.meeting === 'phone') mt = e.meet ? (T.consult ? 'Consultations are phone only: remove the Google Meet link.' : 'The caller wants a phone call: remove the Google Meet link.') : (/phone|call/i.test(where) ? '' : WW('Say it’s a phone call (Location: Phone) and the number the attorney will call.'));
     else mt = e.meet ? 'It’s in person: remove the Google Meet link.' : (new RegExp(rx(GCAL_OFFICE.split(/[,\s]+/).slice(0, 2).join(' ')) + '|office', 'i').test(e.location || '') ? '' : `It’s in person: put the office in Location (${GCAL_OFFICE}).`);
-    add(!mt, mt || ({ video: 'Video call: Google Meet added.', phone: 'Phone call.', office: 'In person, at the office.' })[R.meeting], 1);
+    add(!mt, mt || ({ video: 'Video call: Google Meet added.', phone: 'Phone call.', office: 'In person, at the office.' })[R.meeting], 1, 5);
     const tx = plain(e.desc);
     const need = [[CFG.who ? 'the person’s name' : 'the client’s name', hasName(tx, R.name)], ['the callback number', digits(tx).includes(digits(R.cb))]]
         .concat(CFG.fields.includes('dob') ? [['the DOB', hasDate(tx, R.dob)]] : [], CFG.fields.includes('dol') ? [['the DOL', hasDate(tx, R.dol)]] : [])
         .concat((R.notesNeed || []).map(g => [`what it’s about (e.g. ${g[0]})`, g.some(k => tx.toLowerCase().includes(k.toLowerCase()))]));
     const got = need.filter(n => n[1]).length;
     pts += 1.5 * got / need.length;
-    items.push({ ok: got === need.length, t: got === need.length ? `Description: ${['name', 'callback number'].concat(CFG.fields.includes('dob') ? ['DOB'] : [], CFG.fields.includes('dol') ? ['DOL'] : []).join(', ')} and the reason.` : `The description is missing ${need.filter(n => !n[1]).map(n => n[0]).join(', ')}.` });
+    items.push({ m: 2, w: 1.5, got: 1.5 * got / need.length, ok: got === need.length, t: got === need.length ? `Description: ${['name', 'callback number'].concat(CFG.fields.includes('dob') ? ['DOB'] : [], CFG.fields.includes('dol') ? ['DOL'] : []).join(', ')} and the reason.` : `The description is missing ${need.filter(n => !n[1]).map(n => n[0]).join(', ')}.` });
     const rem = (e.notifs || []).some(n => n.m === 'email' && nmins(n) === 1440);
-    add(rem, rem ? 'Email reminder a day before.' : 'Add an email notification 1 day before.', 0.5);
+    add(rem, rem ? 'Email reminder a day before.' : 'Add an email notification 1 day before.', 0.5, 5);
     return { pts, max: BOOK_MAX, items, ev: e };
 }
 /* Standard Training has no calendar requests: the trainee takes a Calendar Management mock call and books what the caller asks
@@ -346,26 +355,26 @@ function typeOf(title) {
 }
 function gradeOpenEvent(e, all, today) {
     const items = []; let pts = 0;
-    const add = (ok, t, w) => { items.push({ ok, t }); if (ok) pts += w; };
+    const add = (ok, t, w, m) => { items.push({ ok, t, m, w, got: ok ? w : 0 }); if (ok) pts += w; };   // m: its CALENDAR MANAGEMENT MOCK CALL metric (cal-scorecard.js)
     const type = typeOf(e.title), T = GCAL_TYPES[type] || { max: 30 };
     // the client's name: what's left of the title after the type (its letters and digits, whatever the punctuation)
     let name = '';
     if (type) { const title = String(e.title || ''), want = alnum(type).length; let k = 0, n = 0; while (k < title.length && n < want) { if (/[a-z0-9]/i.test(title[k])) n++; k++; } name = title.slice(k).replace(/^[\s:–—-]+/, '').trim(); }
-    add(e.cal === 'attorney', e.cal === 'attorney' ? 'On the Attorney’s Calendar.' : `It’s on the ${calOf(e.cal).name}, not the Attorney’s Calendar.`, 1);
+    add(e.cal === 'attorney', e.cal === 'attorney' ? 'On the Attorney’s Calendar.' : `It’s on the ${calOf(e.cal).name}, not the Attorney’s Calendar.`, 1, 5);
     const okTitle = !!type && name.length > 1;
-    add(okTitle, okTitle ? 'Title: the request type and the client’s name.' : !type ? `The title should start with the request type, then the client’s name (${GCAL_RULES.title.replace(/^Use the request type and the client’s name, /, '')})` : 'Add the client’s name after the request type in the title.', 1.5);
-    add((e.tz || ET) === ET, (e.tz || ET) === ET ? 'Time zone: Eastern.' : `The event’s time zone is ${(TZS.find(z => z[0] === e.tz) || [0, e.tz])[1]}; the calendar should be in Eastern (EST).`, 0.5);
+    add(okTitle, okTitle ? 'Title: the request type and the client’s name.' : !type ? `The title should start with the request type, then the client’s name (${GCAL_RULES.title.replace(/^Use the request type and the client’s name, /, '')})` : 'Add the client’s name after the request type in the title.', 1.5, 5);
+    add((e.tz || ET) === ET, (e.tz || ET) === ET ? 'Time zone: Eastern.' : `The event’s time zone is ${(TZS.find(z => z[0] === e.tz) || [0, e.tz])[1]}; the calendar should be in Eastern (EST).`, 0.5, 2);
     const probs = slotProblems(e, all, T);
     if (e.date === today && !/approv/i.test(plain(e.desc))) probs.push('Same-day bookings need the attorney’s approval: book the next business day, or write in the description that it’s pending the attorney’s approval.');
-    add(!probs.length, probs.length ? probs.join(' ') : 'The slot follows the attorney’s rules (free, 15-minute buffers, hours).', 3);
+    add(!probs.length, probs.length ? probs.join(' ') : 'The slot follows the attorney’s rules (free, 15-minute buffers, hours).', 3, 3);
     const dur = mins(e.end) - mins(e.start);
-    add(!e.allDay && dur >= 15 && dur <= T.max, `Length: ${e.allDay ? 'all day' : dur + ' minutes'} (at most ${T.max}${type ? ' for a ' + type : ''}).`, 1);
+    add(!e.allDay && dur >= 15 && dur <= T.max, `Length: ${e.allDay ? 'all day' : dur + ' minutes'} (at most ${T.max}${type ? ' for a ' + type : ''}).`, 1, 3);
     const wantC = lengthColor(dur) || lengthColor(T.max);
-    add((e.color || '') === wantC, (e.color || '') === wantC ? `Color: ${colorName(wantC)}, right for its length.` : `A ${lengthColor(dur) ? dur + '-minute' : T.max + '-minute'} appointment is colored ${colorName(wantC)} (30 minutes Tangerine, 45 Blueberry, 1 hour Tomato)${e.color ? `; it’s ${colorName(e.color)}` : ''}.`, 0.5);
+    add((e.color || '') === wantC, (e.color || '') === wantC ? `Color: ${colorName(wantC)}, right for its length.` : `A ${lengthColor(dur) ? dur + '-minute' : T.max + '-minute'} appointment is colored ${colorName(wantC)} (30 minutes Tangerine, 45 Blueberry, 1 hour Tomato)${e.color ? `; it’s ${colorName(e.color)}` : ''}.`, 0.5, 5);
     const where = `${e.location || ''} ${plain(e.desc)}`, office = new RegExp(rx(GCAL_OFFICE.split(/[,\s]+/).slice(0, 2).join(' ')) + '|office', 'i').test(e.location || '');
     const mt = T.consult ? (e.meet ? 'Consultations are phone only: remove the Google Meet link.' : (/phone|call/i.test(where) ? '' : 'Consultations are phone consults: say it’s a phone call (Location: Phone call) and that the attorney will call the client.'))
         : (e.meet || /phone|call/i.test(where) || office ? '' : `Clarify the meeting type: Google Meet for a video call, “Phone call” in Location, or the office (${GCAL_OFFICE}) for in person.`);
-    add(!mt, mt || (e.meet ? 'Meeting type: video call, Google Meet added.' : office ? 'Meeting type: in person, at the office.' : 'Meeting type: phone call.'), 1);
+    add(!mt, mt || (e.meet ? 'Meeting type: video call, Google Meet added.' : office ? 'Meeting type: in person, at the office.' : 'Meeting type: phone call.'), 1, 5);
     const tx = plain(e.desc);
     const dated = (re) => { const m = re.exec(tx); return !!m && datesIn(tx.slice(m.index, m.index + 60)).length > 0; };
     const rest = tx.replace(/\b(name|cb|callback|call ?back|number|phone|dob|dol|date of (birth|loss))\b[^\n]*/gi, ' ').replace(/[\d()/.:+-]+/g, ' ');
@@ -375,9 +384,9 @@ function gradeOpenEvent(e, all, today) {
             return rest.toLowerCase().split(/[^a-z]+/).filter(w => w.length > 2 && !skip.has(w)).length >= 1; })()]];
     const got = need.filter(n => n[1]).length;
     pts += 1.5 * got / need.length;
-    items.push({ ok: got === need.length, t: got === need.length ? 'Description: name, callback number, DOB, DOL and the reason.' : `The description is missing ${need.filter(n => !n[1]).map(n => n[0]).join(', ')}.` });
+    items.push({ m: 2, w: 1.5, got: 1.5 * got / need.length, ok: got === need.length, t: got === need.length ? 'Description: name, callback number, DOB, DOL and the reason.' : `The description is missing ${need.filter(n => !n[1]).map(n => n[0]).join(', ')}.` });
     const rem = (e.notifs || []).some(n => n.m === 'email' && nmins(n) === 1440);
-    add(rem, rem ? 'Email reminder a day before.' : 'Add an email notification 1 day before.', 0.5);
+    add(rem, rem ? 'Email reminder a day before.' : 'Add an email notification 1 day before.', 0.5, 5);
     return { pts, max: BOOK_MAX, items };
 }
 function checkOpen(st, today) {
@@ -385,8 +394,8 @@ function checkOpen(st, today) {
     const mine = all.filter(e => !e.seed && e.cal !== 'holidays').sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
     const out = mine.map(e => Object.assign({ id: e.iid, date: e.date, head: e.title || '(No title)', when: `${shortDate(e.date)} · ${e.allDay ? 'all day' : span(mins(e.start), mins(e.end))}` }, gradeOpenEvent(e, all, today)));
     const changed = [];
-    Object.keys(st.ex).forEach(k => { const m = /^s:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(k); const r = m && rowById(m[1]); if (r) changed.push(st.ex[k].del ? `${r.title} on ${shortDate(m[2])}: cancelled` : `${r.title} on ${shortDate(m[2])}: moved to ${shortDate(st.ex[k].date || m[2])} ${tl(mins(st.ex[k].start || r.start))}`); });
-    Object.keys(st.sx).forEach(id => { const r = rowById(id); if (r) changed.push(`${r.title}: changed for every week`); });
+    Object.keys(st.ex).forEach(k => { const m = /^s:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(k); const r = m && !seedLockedAt(st, m[1], m[2]) && rowById(m[1]); if (r) changed.push(st.ex[k].del ? `${r.title} on ${shortDate(m[2])}: cancelled` : `${r.title} on ${shortDate(m[2])}: moved to ${shortDate(st.ex[k].date || m[2])} ${tl(mins(st.ex[k].start || r.start))}`); });
+    Object.keys(st.sx).forEach(id => { const r = !seedsLocked() && rowById(id); if (r) changed.push(`${r.title}: changed for every week`); });
     const got = out.reduce((a, r) => a + r.pts, 0), max = out.reduce((a, r) => a + r.max, 0);
     return { score: max ? Math.min(100, Math.round(got / max * 100)) : 0, results: out, extra: [], changed, penalty: 0, right: out.filter(r => r.pts >= r.max - 0.01).length, open: true };
 }
@@ -405,7 +414,7 @@ function checkAct(st) {
         anchor: r.anchor, span: r.span, key: r.key, batchAnchor: r.batchAnchor };
 }
 function checkPlan(st, reqs, today) {
-    const all = instancesOf(st, addDays(today, -7), addDays(today, 42));
+    const all = instancesOf(Object.assign({}, st, { reqs }), addDays(today, -7), addDays(today, 42));   // (the requests' own appointments are the trainee's to move or cancel)
     const handled = new Set();
     const out = reqs.map(q => {
         const R = reqDef(q.id), row = q.row != null ? rowById(q.row) : null;
@@ -413,7 +422,7 @@ function checkPlan(st, reqs, today) {
         if (R.kind !== 'book' && !row) return { id: q.id, head, pts: 0, max: 0, items: [{ ok: true, t: 'No longer on the schedule (an Admin changed it).' }] };
         if (R.kind === 'book') {
             const cands = all.filter(e => !e.seed && e.cal !== 'holidays' && hasName(e.title, R.name));
-            if (!cands.length) return { id: q.id, head, pts: 0, max: BOOK_MAX, items: [{ ok: false, t: 'It isn’t on the calendar.' }] };
+            if (!cands.length) return { id: q.id, head, pts: 0, max: BOOK_MAX, items: [{ ok: false, t: 'It isn’t on the calendar.', spread: true }] };
             const best = cands.map(e => gradeBookEvent(e, q, R, all, today)).sort((a, b) => b.pts - a.pts)[0];
             return { id: q.id, head, pts: best.pts, max: BOOK_MAX, items: best.items, when: `${shortDate(best.ev.date)} · ${best.ev.allDay ? 'all day' : span(mins(best.ev.start), mins(best.ev.end))}` };
         }
@@ -421,24 +430,24 @@ function checkPlan(st, reqs, today) {
         const inst = all.find(e => e.seed && e.row === q.row && e.origDate === q.orig);
         const every = st.sx[q.row];
         if (R.kind === 'cancel') {
-            if (every && every.del) return { id: q.id, head, pts: 5, max: 10, items: [{ ok: false, t: 'You deleted it from every week; only this one was cancelled.' }] };
-            if (!inst) return { id: q.id, head, pts: 10, max: 10, items: [{ ok: true, t: `Cancelled: ${shortDate(q.orig)}, ${span(mins(row.start), mins(row.end))}.` }] };
-            return { id: q.id, head, pts: 0, max: 10, items: [{ ok: false, t: inst.date !== q.orig || inst.start !== row.start ? 'It was moved, not cancelled.' : `It’s still on ${shortDate(q.orig)}.` }] };
+            if (every && every.del) return { id: q.id, head, pts: 5, max: 10, items: [{ ok: false, t: 'You deleted it from every week; only this one was cancelled.', m: 5, w: 10, got: 5 }] };
+            if (!inst) return { id: q.id, head, pts: 10, max: 10, items: [{ ok: true, t: `Cancelled: ${shortDate(q.orig)}, ${span(mins(row.start), mins(row.end))}.`, m: 5, w: 10, got: 10 }] };
+            return { id: q.id, head, pts: 0, max: 10, items: [{ ok: false, t: inst.date !== q.orig || inst.start !== row.start ? 'It was moved, not cancelled.' : `It’s still on ${shortDate(q.orig)}.`, m: 5, w: 10, got: 0 }] };
         }
         const items = []; let pts = 0;
         const still = inst && inst.date === q.orig && inst.start === row.start;
         const target = (inst && !still) ? inst : all.find(e => !e.seed && hasName(e.title, R.name) && (q.dates || []).includes(e.date));
-        if (every) items.push({ ok: false, t: 'You changed it for every week; only this week’s was to move.' });
-        items.push({ ok: !still, t: still ? `It’s still on ${shortDate(q.orig)} at ${tl(mins(row.start))}.` : `Off ${shortDate(q.orig)}, ${tl(mins(row.start))}.` }); if (!still) pts += 3;
-        if (!target) items.push({ ok: false, t: `It isn’t on the new day (${availText(q, R)}).` });
+        if (every) items.push({ ok: false, t: 'You changed it for every week; only this week’s was to move.', m: 5, w: 0, got: -3 });
+        items.push({ ok: !still, t: still ? `It’s still on ${shortDate(q.orig)} at ${tl(mins(row.start))}.` : `Off ${shortDate(q.orig)}, ${tl(mins(row.start))}.`, m: 5, w: 3, got: still ? 0 : 3 }); if (!still) pts += 3;
+        if (!target) items.push({ ok: false, t: `It isn’t on the new day (${availText(q, R)}).`, m: 3, w: 7, got: 0 });
         else {
             const T = GCAL_TYPES[R.type] || { max: 30 };
             const inWin = (q.dates || []).includes(target.date) && mins(target.start) >= mins(R.from) && mins(target.end) <= mins(R.to);
-            items.push({ ok: inWin, t: inWin ? `Moved to ${shortDate(target.date)}, ${span(mins(target.start), mins(target.end))}: a time the caller can do.` : `Moved to ${shortDate(target.date)}, ${span(mins(target.start), mins(target.end))}; the caller asked for ${availText(q, R)}.` }); if (inWin) pts += 2;
+            items.push({ ok: inWin, t: inWin ? `Moved to ${shortDate(target.date)}, ${span(mins(target.start), mins(target.end))}: a time the caller can do.` : `Moved to ${shortDate(target.date)}, ${span(mins(target.start), mins(target.end))}; the caller asked for ${availText(q, R)}.`, m: 1, w: 2, got: inWin ? 2 : 0 }); if (inWin) pts += 2;
             const probs = slotProblems(target, all, T);
-            items.push({ ok: !probs.length, t: probs.length ? probs.join(' ') : WW('The new slot follows the attorney’s rules.') }); if (!probs.length) pts += 4;
+            items.push({ ok: !probs.length, t: probs.length ? probs.join(' ') : WW('The new slot follows the attorney’s rules.'), m: 3, w: 4, got: probs.length ? 0 : 4 }); if (!probs.length) pts += 4;
             const dur = mins(target.end) - mins(target.start);
-            items.push({ ok: dur >= 15 && dur <= T.max, t: `Length: ${dur} minutes (at most ${T.max}).` }); if (dur >= 15 && dur <= T.max) pts += 1;
+            items.push({ ok: dur >= 15 && dur <= T.max, t: `Length: ${dur} minutes (at most ${T.max}).`, m: 3, w: 1, got: dur >= 15 && dur <= T.max ? 1 : 0 }); if (dur >= 15 && dur <= T.max) pts += 1;
         }
         if (every) pts = Math.max(0, pts - 3);
         return { id: q.id, head, pts, max: 10, items };
@@ -547,6 +556,7 @@ const FIELDS = ['cal', 'title', 'date', 'start', 'end', 'allDay', 'tz', 'color',
 function applyChange(inst, fields, scope) {
     snapshot();
     if (G.admin && inst.seed) { adminRowChange(inst.row, fields); putRows(); return; }
+    if (inst.seed && seedsLocked() && (scope === 'all' || inst.locked)) return;   // 🔒 the existing schedule is the trainer's
     if (inst.seed) {
         if (scope === 'all') { const f = Object.assign({}, fields); delete f.date; delete f.repeat; S.sx[inst.row] = Object.assign({}, S.sx[inst.row], f); }
         else { const f = Object.assign({}, fields); delete f.repeat; S.ex[inst.iid] = Object.assign({}, S.ex[inst.iid], f); }
@@ -563,6 +573,7 @@ function applyChange(inst, fields, scope) {
 function removeInst(inst, scope) {
     snapshot();
     if (G.admin && inst.seed) { ROWS = ROWS.filter(r => r.id !== inst.row); putRows(); return; }
+    if (inst.seed && seedsLocked() && (scope === 'all' || inst.locked)) return;   // 🔒
     if (inst.seed) { if (scope === 'all') S.sx[inst.row] = { del: true }; else S.ex[inst.iid] = { del: true }; }
     else {
         const ev = S.events.find(x => x.id === inst.sid);
@@ -576,6 +587,7 @@ const repeating = (inst) => inst.seed || ((inst.repeat || 'none') !== 'none');
 // "This event / All events" for a repeating event (the attorney's appointments repeat every week)
 function askScope(inst, verb, then) {
     if (!repeating(inst) || (G.admin && inst.seed)) return then(G.admin && inst.seed ? 'all' : 'one');
+    if (inst.seed && seedsLocked()) return then('one');   // (a caller's appointment a trainee may move: this week's only)
     dialog(`${verb === 'delete' ? 'Delete' : 'Edit'} recurring event`, `<label><input type="radio" name="sc" value="one" checked> This event</label><label><input type="radio" name="sc" value="all"> All events</label>`,
         (box) => then(box.querySelector('input[name=sc]:checked').value));
 }
@@ -918,7 +930,7 @@ function openDetail(iid, rect) {
         ${(e.guests || []).length ? `<div class="row">${ic('people')}<div class="sub">${e.guests.length} guest${e.guests.length === 1 ? '' : 's'}<br>${e.guests.map(esc).join('<br>')}</div></div>` : ''}
         ${e.desc ? `<div class="row">${ic('notes')}<div class="desc">${sanitize(e.desc)}</div></div>` : ''}
         ${notif.length ? `<div class="row">${ic('bell')}<div class="sub">${notif.map(esc).join('<br>')}</div></div>` : ''}
-        <div class="row">${ic('cal')}<div class="sub">${esc(c.name)}${e.seed ? `<br><span style="font-size:12.5px">${WW('The attorney’s standing appointment (every week)')}</span>` : ''}</div></div>
+        <div class="row">${ic('cal')}<div class="sub">${esc(c.name)}${e.seed ? `<br><span style="font-size:12.5px">${WW('The attorney’s standing appointment (every week)')}</span>` : ''}${e.locked && !RV ? `<br><span style="font-size:12.5px" class="gc-locked">🔒 ${WW('Part of the attorney’s existing schedule: only your trainer can change it.')}</span>` : ''}</div></div>
         ${(e.tz || ET) !== ET ? `<div class="row">${ic('clock')}<div class="sub">Time zone: ${esc((TZS.find(z => z[0] === e.tz) || [0, e.tz])[1])}</div></div>` : ''}
         <div style="height:12px"></div>`;
     gc().appendChild(el); place(el, rect); G.pop = el; G.popIid = iid;
@@ -1275,7 +1287,7 @@ async function liveStart(again) {
         if (OPEN) S.reqs = []; else if (!Array.isArray(S.reqs)) S.reqs = [];
         S.result = Object.assign(checkNow(), { at: new Date().toISOString() });
         if (!again) { S.anchor = S.today; S.mini = S.today.slice(0, 7); }
-        closeAll(); render();
+        closeAll(); render(); watchScorecards();
         if (again) snack('Their calendar is up to date');
     } catch (e) { $('#app').innerHTML = `<div class="sim-card" style="margin:20px"><p>${esc(e.message)}</p></div>`; }
 }
@@ -1284,7 +1296,7 @@ const cardWhen = (t) => t ? new Date(String(t).replace(' ', 'T') + (/[zZ]|[+-]\d
 function cardPickHTML(cards, pick, id) {
     if (!cards || cards.length < 2) return '';
     return `<label style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px;font-weight:600;color:#0b1633">📋 Scorecards <select id="${id}" aria-label="Choose a saved scorecard" style="font:inherit;font-weight:500;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;max-width:100%">
-        ${cards.map((x, i) => [x, i]).reverse().map(([x, i]) => `<option value="${i}" ${i === pick ? 'selected' : ''}>${i === cards.length - 1 ? 'Latest · ' : ''}${esc(cardWhen(x.at))}${x.by ? ' · ' + esc(x.by) : ''} · ${esc(x.average)}/5 (${esc(x.pct)}%)</option>`).join('')}</select></label>`;
+        ${cards.map((x, i) => [x, i]).reverse().map(([x, i]) => `<option value="${i}" ${i === pick ? 'selected' : ''}>${i === cards.length - 1 ? 'Latest · ' : ''}${esc(cardWhen(x.at))}${x.by ? ' · ' + esc(x.by) : ''}${x.source === 'foundational' ? ' · Graders' : ''} · ${esc(x.average)}/5 (${esc(x.pct)}%)</option>`).join('')}</select></label>`;
 }
 /* 👥 A trainer, on the simulator itself: a dropdown of their trainees (everyone with a calendar saved here or a scorecard on this
    track), the latest scorecard beside each name. Choosing one opens that trainee's calendar with the scorecard (?trainee=). */
@@ -1323,20 +1335,26 @@ function liveScoresHTML() {
     return `<h2>📊 Scores · ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>${traineePickHTML(RV.user)}
         <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on this simulator yet.' : `Their calendar as they last saved it${RV.savedAt ? ', ' + esc(when(RV.savedAt)) : ''}. It’s above, read only.`}
             <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>
-        <div class="sc-grid wide"><div class="res-r" id="tv-card"><h5><span>📋 Your scorecard</span><span>${last ? `${esc(last.average)}/5 · ${esc(last.pct)}%` : 'to score'}</span></h5>
-            ${last ? `${cardPickHTML(RV.cards, pick, 'tv-pick')}<p style="margin:0 0 6px;color:#70757a">${pick === RV.cards.length - 1 ? 'Last saved' : 'Saved'} ${esc(when(last.at))}${last.by ? ' by ' + esc(last.by) : ''}${RV.cards.length > 1 ? ` · ${RV.cards.length} scorecards` : ''}. Saving again adds a new one and keeps the earlier ones.</p>` : '<p style="margin:0 0 6px;color:#70757a">Score each metric 0 to 5 and add your feedback; the weighted average works itself out.</p>'}
-            ${C ? C.formHTML(last) : '<p>The scorecard didn’t load. Refresh the page.</p>'}
+        <div class="sc-grid wide"><div class="res-r" id="tv-card"><h5><span>📋 Your scorecard</span><span>${last ? `${esc(last.average)}/5 · ${esc(last.pct)}%${C && C.verdict ? ' · ' + esc(C.verdict(Number(last.pct) || 0)) : ''}` : 'to score'}</span></h5>
+            ${last ? `${cardPickHTML(RV.cards, pick, 'tv-pick')}<p style="margin:0 0 6px;color:#70757a">${pick === RV.cards.length - 1 ? 'Last saved' : 'Saved'} ${esc(when(last.at))}${last.by ? ' by ' + esc(last.by) : ''}${last.source === 'foundational' ? ' in Graders' : ''}${RV.cards.length > 1 ? ` · ${RV.cards.length} scorecards` : ''}. Saving again adds a new one and keeps the earlier ones.</p>` : '<p style="margin:0 0 6px;color:#70757a">Score each metric 0 to 5 and add your feedback; the weighted average works itself out.</p>'}
+            ${C ? C.formHTML(last, autoRows(liveResult())) : '<p>The scorecard didn’t load. Refresh the page.</p>'}
             <div style="margin-top:8px"><button class="blue" data-a="tv-save">💾 Save scorecard</button></div>
 </div>
         <div>${S.result ? liveCheckHTML() : ''}</div></div>`;
 }
 // The trainer's view of the automated check: without the appointments they took out of the review (a sample or test appointment that isn't a caller's
 // request), the score worked out again from the rest; each removed one can be put back. Kept in the trainee's record (excluded[track]), never changed by their saves.
-function liveCheckHTML() {
-    const r0 = S.result, skip = RV.skip || new Set(), kept = r0.results.filter(x => !skip.has(x.id)), gone = r0.results.filter(x => skip.has(x.id));
+function liveResult() {
+    const r0 = S.result; if (!r0) return null;
+    const skip = RV.skip || new Set(), kept = r0.results.filter(x => !skip.has(x.id));
     const got = kept.reduce((a, x) => a + x.pts, 0), max = kept.reduce((a, x) => a + x.max, 0);
-    const r = Object.assign({}, r0, { results: kept, right: kept.filter(x => x.pts >= x.max - 0.01).length,
+    return Object.assign({}, r0, { results: kept, right: kept.filter(x => x.pts >= x.max - 0.01).length,
         score: r0.open ? (max ? Math.min(100, Math.round(got / max * 100)) : 0) : Math.max(0, Math.min(100, Math.round((max ? got / max * 100 : 100) - (r0.penalty || 0)))) });
+}
+// The automated check as the scorecard's metrics (cal-scorecard.js fromCheck): the calendar's four; the call's three and Tools Utilization left to the trainer.
+const autoRows = (r) => window.CalScorecard && window.CalScorecard.fromCheck && r && r.results && r.results.length ? window.CalScorecard.fromCheck(r) : null;
+function liveCheckHTML() {
+    const r0 = S.result, skip = RV.skip || new Set(), gone = r0.results.filter(x => skip.has(x.id)), r = liveResult();
     return checkSection(r, true, 'Their calendar, checked (automated)')
         + (gone.length ? `<div class="res-r" id="tv-removed"><h5><span>Removed from this review (${gone.length})</span><span></span></h5><ul>${gone.map(x => `<li><span>${esc(x.head)}</span> <button class="txt" data-a="tv-unskip" data-id="${esc(x.id)}">↩ Put back</button></li>`).join('')}</ul></div>` : '');
 }
@@ -1355,10 +1373,10 @@ function renderScores() {
     if (RV && RV.sub) { box.innerHTML = reviewScoresHTML(); return; }
     if (RV && RV.live) { box.innerHTML = liveScoresHTML(); return; }
     if (RV) { box.innerHTML = ''; return; }   // (a review still loading)
-    const side = myScorecardBox() + mySubBox();
+    const side = (BLANK ? myScorecardBox() : '') + mySubBox();
     const btn = `<div style="margin:2px 0 10px"><button class="blue" data-a="check">Check my calendar</button></div>`;
-    const check = S.result ? checkSection(S.result)
-        : BLANK ? '<div id="gc-check"></div>' : `<div id="gc-check"><p class="lead">Click <b>Check my calendar</b> to check ${OPEN ? 'your appointments' : 'what the callers asked for'} against the ${WW('attorney’s')} rules. Your score shows here.</p></div>`;
+    const hint = `<p class="lead">Click <b>Check my calendar</b> to check ${OPEN ? 'your appointments' : 'what the callers asked for'} against the ${WW('attorney’s')} rules. Your score shows here.</p>`;
+    const check = BLANK ? (S.result ? checkSection(S.result) : '<div id="gc-check"></div>') : oneScorecardHTML(S.result, hint);
     const pickT = isTrainer() && !BLANK ? `<div class="res-r" id="tv-choose"><h5><span>📋 Score a trainee · Calendar Management Mock Call</span><span></span></h5>${traineePickHTML('')}</div>` : '';
     box.innerHTML = `${pickT}<h2>📊 Your scores</h2>${btn}<div class="sc-grid${side ? '' : ' one'}"><div>${check}</div>${side ? `<div>${side}</div>` : ''}</div>`;
 }
@@ -1373,6 +1391,23 @@ async function saveScorecard() {
         snack('Scorecard saved: ' + out.scorecard.average + '/5 (' + out.scorecard.pct + '%)'); renderScores();
     } catch (e) { snack(e.message); }
 }
+// 📊 One CALENDAR MANAGEMENT MOCK CALL sheet for a trainee: the automated check of their calendar and their trainer's scorecard on
+// the same metrics (cal-scorecard.js sheetHTML with fromCheck; the Foundational Training's 8): 🤖 the calendar's four, 👤 the trainer's, the score that counts
+// (the trainer's where they gave one) and the average. Each appointment's own marks fold away under it.
+function oneScorecardHTML(r, hint) {
+    const C = window.CalScorecard, list = MINE.data && MINE.data.scorecards && Array.isArray(MINE.data.scorecards[GT]) ? MINE.data.scorecards[GT] : [];
+    const pick = MINE.pick != null && list[MINE.pick] ? MINE.pick : list.length - 1, card = list[pick] || null, auto = autoRows(r);
+    if (!C || (!auto && !card)) return r ? checkSection(r) : `<div id="gc-check">${hint}</div>`;
+    const c = C.combined(card, auto), col = c.pct >= 85 ? '#188038' : c.pct >= 70 ? '#e37400' : '#d93025';
+    const parts = [r && !r.results.length ? '🤖 Calendar check: no appointments to check yet' : r ? `🤖 Calendar check ${r.score}% · ${r.right} of ${r.results.length} ${OPEN ? 'appointments' : 'requests'} fully right` : '🤖 Calendar check: not run yet',
+        card ? `👤 Your trainer ${esc(card.average)}/5 (${esc(card.pct)}%)${card.by ? ' · ' + esc(card.by) : ''}${card.source === 'foundational' ? ' · in Graders' : ''} · ${esc(new Date(card.at).toLocaleDateString())}` : '👤 Your trainer hasn’t scored the mock call yet'];
+    return `<div id="gc-check" style="margin-top:14px;padding-top:12px;border-top:1px solid #dadce0"><div id="my-scorecard">
+        <div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}" title="Calendar Management: the average of the metrics scored so far">${c.pct}%</div>
+            <div class="lead" style="margin:0"><b>Calendar Management Mock Call</b> · ${esc(c.average)}/5 · <b style="color:${c.pct >= (C.PASS_PCT || 60) ? '#188038' : '#d93025'}">${esc(C.verdict ? C.verdict(c.pct) : '')}</b><br>${parts.join('<br>')}</div></div>
+        ${list.length ? cardPickHTML(list, pick, 'my-pick') : ''}${C.sheetHTML(card, '', auto || C.METRICS.map(() => ({ score: null, feedback: '' })))}
+        ${r ? '' : hint}
+        ${r && r.results.length ? `<details style="margin-top:8px"><summary style="cursor:pointer;color:#1a73e8">Each ${OPEN ? 'appointment' : 'request'}, checked</summary>${resRows(r)}</details>` : ''}</div></div>`;
+}
 // A trainee's own: their trainer's latest scorecard on this simulator.
 function myScorecardBox() {
     const list = MINE.data && MINE.data.scorecards && Array.isArray(MINE.data.scorecards[GT]) ? MINE.data.scorecards[GT] : [], pick = MINE.pick != null && list[MINE.pick] ? MINE.pick : list.length - 1, last = list[pick];
@@ -1380,7 +1415,54 @@ function myScorecardBox() {
     return `<div class="rq" id="my-scorecard">${cardPickHTML(list, pick, 'my-pick')}${window.CalScorecard.sheetHTML(last, `👤 Your trainer’s scorecard · ${esc(last.average)}/5 (${esc(last.pct)}%)${last.by ? ' · ' + esc(last.by) : ''} · ${esc(new Date(last.at).toLocaleDateString())}`)}</div>`;
 }
 async function mineStart() {   // a signed-in trainee's submissions and the trainer's feedback (a guest has none)
-    try { const j = await recFetch(); MINE.me = j.me; MINE.data = Object.assign(blankRec(), j.data || {}); if (S) { renderPanel(); if (j.me && j.me.admin) renderScores(); } } catch (e) { /* not signed in on the Portal */ }
+    try { const j = await recFetch(); MINE.me = j.me; MINE.data = Object.assign(blankRec(), j.data || {}); if (S) { renderPanel(); renderScores(); } watchScorecards(); } catch (e) { /* not signed in on the Portal */ }
+}
+/* 📋 Scorecards follow on their own: one a trainer fills in on the Foundational Training's 🧑‍🏫 Graders (it reaches the trainee's
+   record through /api/calsim-scorecard) or on another screen shows here without reloading the page. While the page is in view the
+   record is read again every 30 seconds, and at once when the tab comes back into view. A trainee's 📊 Your scores is drawn again
+   with it; a trainer's view of a trainee's calendar too, unless they are in the middle of filling in the sheet (then a note says
+   a new one came in, with 🔄 Refresh). */
+const SC_POLL = 30000;
+const cardsOf = (data) => (data && data.scorecards && Array.isArray(data.scorecards[GT]) ? data.scorecards[GT] : []);
+const cardsSig = (list) => JSON.stringify((list || []).map(c => [c.at, c.average, c.by]));
+// The trainer's sheet differs from the scorecard it opened with (a score picked or feedback typed).
+function scFormDirty() {
+    const C = window.CalScorecard; if (!C || !RV || !RV.live) return false;
+    const pick = RV.pick != null && RV.cards[RV.pick] ? RV.pick : RV.cards.length - 1, card = RV.cards[pick];
+    return C.METRICS.some((m, i) => {
+        const sel = document.querySelector(`select[data-csc="${i}"]`), fb = document.querySelector(`textarea[data-csf="${i}"]`), r = card && card.rows && card.rows[i];
+        const want = r && r.score != null ? String(r.score) : '';
+        return (sel && sel.value !== want) || (fb && String(fb.value || '').trim() !== String((r && r.feedback) || '').trim());
+    });
+}
+async function pollScorecards() {
+    if (document.hidden || SC_POLL_BUSY) return;
+    SC_POLL_BUSY = true;
+    try {
+        if (RV && RV.live && !BLANK) {
+            const j = await recFetch(RV.user), list = cardsOf(j.data);
+            if (cardsSig(list) === cardsSig(RV.cards)) return;
+            const newest = list[list.length - 1];
+            if (scFormDirty()) { RV.pendingCards = list; snack(`📋 A new scorecard was saved${newest && newest.source === 'foundational' ? ' in Graders' : ''}${newest && newest.by ? ' by ' + newest.by : ''}. Click 🔄 Refresh to see it.`); return; }
+            RV.cards = list; RV.pick = null; renderScores();
+            snack(`📋 Scorecard updated${newest && newest.source === 'foundational' ? ' from Graders' : ''}${newest ? ': ' + newest.average + '/5 (' + newest.pct + '%)' : ''}`);
+        } else if (!RV && MINE.me) {
+            const j = await recFetch(), was = cardsOf(MINE.data);
+            MINE.me = j.me; const data = Object.assign(blankRec(), j.data || {});
+            const changed = cardsSig(cardsOf(data)) !== cardsSig(was);
+            MINE.data = data;
+            if (changed) { MINE.pick = null; renderScores(); renderPanel(); const n = cardsOf(data)[cardsOf(data).length - 1];
+                if (n && !(MINE.me && MINE.me.admin)) snack(`📋 New scorecard from your trainer: ${n.average}/5 (${n.pct}%)`); }
+        }
+    } catch (e) { /* offline or signed out: the next look tries again */ }
+    finally { SC_POLL_BUSY = false; }
+}
+let SC_POLL_BUSY = false, SC_TIMER = null;
+function watchScorecards() {
+    if (SC_TIMER || BLANK) return;
+    SC_TIMER = setInterval(pollScorecards, SC_POLL);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) pollScorecards(); });
+    window.addEventListener('focus', pollScorecards);
 }
 
 /* ---------- 📤 Submit for evaluation (functions/api/gcal-reviews.js) ----------

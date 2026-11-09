@@ -138,7 +138,9 @@ async function gsList(only) {
         const ev = evalLine(track); if (ev) lines.push(ev);
         if (last) lines.push(`📤 Submitted${subs.length > 1 ? ` ${subs.length} times` : ''}${last.result && last.result.score != null ? ` · its review ${Sim.esc(last.result.score)}%` : ''}${fb && fb.score != null ? ` · 👤 trainer <b>${Sim.esc(fb.score)}/100</b>` : ''}`);
         const cards = rec && rec.scorecards && Array.isArray(rec.scorecards[track]) ? rec.scorecards[track] : [], sc = cards[cards.length - 1];
-        const scLine = sc && window.CalScorecard ? `<details class="cs-scorecard" style="margin-top:4px"><summary style="cursor:pointer">📋 Trainer’s scorecard: <b>${Sim.esc(sc.average)}/5 (${Sim.esc(sc.pct)}%)</b> · ${Sim.esc(String(sc.at).slice(0, 10))}</summary><div style="margin-top:6px">${CalScorecard.sheetHTML(sc)}</div></details>` : '';
+        // 📋 One CALENDAR MANAGEMENT MOCK CALL sheet: the trainer's scorecard and the last calendar check on the same metrics as the Foundational Training's (cal-scorecard.js)
+        const C = window.CalScorecard, auto = C && C.fromCheck && track !== 'activity' && a && Array.isArray(a.results) && a.results.length ? C.fromCheck(a) : null, one = C && (sc || auto) ? C.combined(sc || null, auto) : null;
+        const scLine = one ? `<details class="cs-scorecard" style="margin-top:4px"><summary style="cursor:pointer">📋 ${sc ? `Trainer’s scorecard: <b>${Sim.esc(sc.average)}/5 (${Sim.esc(sc.pct)}%)</b> · ${Sim.esc(String(sc.at).slice(0, 10))}` : 'Calendar Management Mock Call'}${auto ? ` · with the calendar check: <b>${Sim.esc(one.average)}/5 (${Sim.esc(one.pct)}%)</b>` : ''}</summary><div style="margin-top:6px">${C.sheetHTML(sc || null, '', auto)}</div></details>` : '';
         return `<div class="cs-review" style="font-size:13px;line-height:1.5;color:#334155;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px">${lines.length ? lines.join('<br>')
             : track === 'activity' ? '🤖 No automated review yet.' : '🤖 No automated review yet: open it, book what the callers ask, then click <b>Check my calendar</b> to review it against the rules.'}${scLine}</div>`;
     };
@@ -151,9 +153,23 @@ async function gsList(only) {
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:14px">
         ${TRACKS.map(t => `<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:10px">${kicker(t.where)}
             <h3 style="margin:0;color:#0b1633;font-size:19px">${t.icon} ${Sim.esc(t.title)}</h3><p style="margin:0;color:#475569;font-size:14px;flex:1">${Sim.esc(t.desc)}</p>
-            ${reviewHTML(t.id)}
+            <div id="cs-rv-${t.id}">${reviewHTML(t.id)}</div>
             <div><a class="sim-btn orange" style="text-decoration:none" href="${Sim.esc(go(t.id))}">📅 Open →</a></div></div>`).join('')}</div>
         ${me.admin ? '<p style="margin:14px 0 0;color:#334155;font-size:13.5px">Your trainees’ calendars, to view and score, are under <a id="cs-evals" href="/simulators/gcal-review.html" title="Trainee Evaluations: what trainees submit for evaluation, with the AI review and your feedback, and your trainees’ calendars.">📋 Trainee Evaluations</a>.</p>' : ''}</div>`;
+    // 📋 A scorecard saved later (on the Foundational Training's 🧑‍🏫 Graders, or in the simulator) shows on its card without
+    // reloading: the record is read again every 30 seconds while the page is in view, and at once when the tab comes back.
+    if (!me.admin) {
+        const sig = (d) => JSON.stringify(((d && d.scorecards) || {}));
+        let busy = false;
+        const look = async () => {
+            if (document.hidden || busy) return; busy = true;
+            try { const d = await (await fetch('/api/calsim', { credentials: 'include' })).json();
+                if (d && d.success && sig(d.data) !== sig(rec)) { rec = d.data || null; TRACKS.forEach(t => { const box = document.getElementById('cs-rv-' + t.id); if (box) box.innerHTML = reviewHTML(t.id); }); }
+            } catch (e) { /* offline: the next look tries again */ } finally { busy = false; }
+        };
+        setInterval(look, 30000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) look(); });
+    }
 })();
 </script>
 </body>
