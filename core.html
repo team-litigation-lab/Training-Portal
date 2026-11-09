@@ -690,9 +690,9 @@
             <!-- ACTIVITY LOGS -->
             <div class="mc-pane" id="admin-dash-activity-logs">
                 <div class="mc-section-title">🗂 Activity Logs</div>
-                <p style="font-size:13.5px;line-height:1.55;color:#0f172a;margin-bottom:14px;">Audit trail of activity and lecture uploads and gradings (by trainers) and submissions (by trainees), each timestamped as it happens: 🧑‍🏫 trainers on their own, then one table per batch (newest first; click a section to open or close it). Shows the latest 100; a search looks through all of them.</p>
+                <p style="font-size:16px;font-weight:600;line-height:1.6;color:#0f172a;margin-bottom:16px;">Audit trail of activity and lecture uploads and gradings (by trainers) and submissions (by trainees), each timestamped as it happens: 🧑‍🏫 trainers on their own, then one table per batch (newest first; click a section to open or close it). Shows the latest 100; a search looks through all of them.</p>
                 <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;">
-                    <input type="text" id="activity-logs-search" oninput="activityLogsSearchSoon()" placeholder="Search name, username, batch or activity title" autocomplete="off" style="flex:1;min-width:220px;max-width:420px;padding:10px 12px;border:1.5px solid #94a3b8;border-radius:8px;font-size:14px;color:#0f172a;outline:none;">
+                    <input type="text" id="activity-logs-search" oninput="activityLogsSearchSoon()" placeholder="Search name, username, batch or activity title" autocomplete="off" style="flex:1;min-width:220px;max-width:460px;padding:12px 14px;border:1.5px solid #94a3b8;border-radius:8px;font-size:16px;font-weight:600;color:#0f172a;outline:none;">
                     <div class="pa-toolbar" style="margin:0;"><button class="btn-primary" onclick="renderActivityLogs()">↻ Refresh</button><button class="btn-ghost" onclick="paExpandAll(true, 'activity-logs-list')">Expand all</button><button class="btn-ghost" onclick="paExpandAll(false, 'activity-logs-list')">Collapse all</button></div>
                 </div>
                 <div id="activity-logs-list">
