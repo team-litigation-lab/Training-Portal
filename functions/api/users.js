@@ -1,5 +1,5 @@
 import { json, requireSession, buildFullName } from '../_utils.js';
-import { autoSweep } from './topics.js';
+import { autoSweep } from '../_ft-block.js';
 
 export async function onRequestGet({ request, env, waitUntil }) {
     // Requires an authenticated Admin session

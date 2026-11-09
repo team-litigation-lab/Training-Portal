@@ -18,7 +18,7 @@
 // A trainee is found in the course the way the purge finds them (_purge.js): every form of their name, accents and
 // punctuation aside, and their batch in its one form; someone of the same name in another batch is left alone.
 // Nothing is deleted: a block is undone by the course's ▶ Restore, or here by granting the access again.
-import { canonicalBatch } from './_utils.js';
+import { canonicalBatch, logActivity } from './_utils.js';
 
 export const FT_TOPIC = 'STANDARD TRAINING';
 const PREFIX = 'ft:', BLOCK_KEY = PREFIX + 'access:blocked';
@@ -191,4 +191,21 @@ export async function ftSweep(env, db, tdb) {
     }));
     if (blocked.length) await writeList(kv, ids);
     return { connected: true, blocked };
+}
+
+// 🧹 the sweep, by itself: an admin opening Program Access (topics.js GET) or Admin Master Control (users.js GET) runs it in the background, at most every 15 minutes,
+// so a trainee revoked here leaves Standard Foundational Training's sheets without anyone pressing 🧹 (an account revoked
+// before Revoke & delete told the course, a program access revoked before this followed it). It never slows the page or
+// fails it: the answer goes out first, and an error is only logged.
+const SWEEP_KEY = 'portal:ftsweep:at', SWEEP_EVERY_MS = 15 * 60 * 1000;
+export async function autoSweep(env, db, session, waitUntil) {
+    const kv = env.COURSE_KV;
+    if (!kv) return;
+    const last = await kv.get(SWEEP_KEY).catch(() => null);
+    if (last && Date.now() - Date.parse(last) < SWEEP_EVERY_MS) return;
+    await kv.put(SWEEP_KEY, new Date().toISOString()).catch(() => {});
+    const run = ftSweep(env, env.DB, db).then(async (r) => {
+        if (r && r.blocked && r.blocked.length) await logActivity(db, session.username, session.batchId, 'FT_REVOKED_SWEEP', { blocked: r.blocked, auto: true });
+    }).catch((e) => console.error('FT auto sweep:', e && e.message));
+    if (typeof waitUntil === 'function') waitUntil(run); else await run;
 }
