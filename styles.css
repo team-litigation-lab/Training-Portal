@@ -565,6 +565,9 @@
 #admin-dash-program-access .btn-ghost.btn-danger-ghost, #admin-dash-users .btn-ghost.btn-danger-ghost, #admin-dash-registrations .btn-ghost.btn-danger-ghost, #admin-dash-monitoring .btn-ghost.btn-danger-ghost, #admin-dash-server-logs .btn-ghost.btn-danger-ghost, #admin-dash-activity-logs .btn-ghost.btn-danger-ghost { color:#991b1b; background:#fff; border:1.5px solid #b91c1c; }
 #admin-dash-program-access .mc-section-sub, #admin-dash-users .mc-section-sub, #admin-dash-registrations .mc-section-sub, #admin-dash-monitoring .mc-section-sub, #admin-dash-server-logs .mc-section-sub, #admin-dash-activity-logs .mc-section-sub { font-size:13px; color:#0f172a; }
 .pa-toolbar { display:flex; gap:8px; margin:0 0 10px; }
+#admin-dash-program-access .mc-section-sub { font-size:16px; font-weight:900; }
+#admin-dash-program-access .mc-section-title { font-size:17px; font-weight:900; }
+#admin-dash-program-access .pa-toolbar button { padding:9px 18px; font-size:15px; font-weight:900; }
 .pa-toolbar button { padding:7px 14px; font-size:12.5px; font-weight:800; border-radius:8px; }
 .pa-empty { font-size:14px; color:#334155; }
 .pa-batch { border:1.5px solid #cbd5e1; border-radius:12px; margin-bottom:12px; background:#fff; overflow:hidden; }
@@ -594,6 +597,24 @@
 .pa-grant { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
 .pa-grant select { flex:1; min-width:150px; padding:7px 8px; border:1.5px solid #94a3b8; border-radius:8px; font-size:13px; color:#0f172a; background:#fff; }
 .pa-grant button { padding:7px 12px; font-size:12.5px; font-weight:800; border-radius:8px; }
+/* Program Access + Users: bigger, bolder rows */
+#admin-dash-program-access .pa-table, #admin-dash-users .pa-table { font-size:16px; }
+#admin-dash-program-access .pa-table th, #admin-dash-users .pa-table th { font-size:14px; font-weight:900; padding:13px 16px; }
+#admin-dash-program-access .pa-table td, #admin-dash-users .pa-table td { font-size:16px; font-weight:600; padding:13px 16px; }
+#admin-dash-program-access .pa-table .mc-sub, #admin-dash-users .pa-table .mc-sub { font-size:15px; }
+#admin-dash-program-access .pa-name, #admin-dash-users .pa-name { font-size:18px; font-weight:900; }
+#admin-dash-program-access .pa-user, #admin-dash-users .pa-user { font-size:15px; font-weight:700; }
+#admin-dash-program-access .pa-prog, #admin-dash-users .pa-prog { font-weight:800; }
+#admin-dash-program-access .pa-none, #admin-dash-users .pa-none { font-size:16px; }
+#admin-dash-program-access .pa-table .mc-pill, #admin-dash-users .pa-table .mc-pill { font-size:14px; font-weight:800; padding:5px 12px; }
+#admin-dash-program-access .pa-table .mc-actions button, #admin-dash-users .pa-table .mc-actions button { font-size:15px; font-weight:900; padding:9px 16px; }
+#admin-dash-program-access .pa-grant select, #admin-dash-users .pa-grant select { font-size:15px; font-weight:600; padding:9px 10px; }
+#admin-dash-program-access .pa-grant button, #admin-dash-users .pa-grant button { font-size:15px; font-weight:900; padding:9px 16px; }
+#admin-dash-program-access .pa-title, #admin-dash-users .pa-title { font-size:19px; }
+#admin-dash-program-access .pa-chip, #admin-dash-users .pa-chip { font-size:14px; padding:4px 12px; }
+#admin-dash-program-access .pa-caret, #admin-dash-users .pa-caret { font-size:14px; }
+#admin-dash-users .pa-toolbar button { padding:9px 18px; font-size:15px; font-weight:900; }
+#admin-dash-users .pa-empty { font-size:16px; font-weight:600; }
 #admin-dash-users .pa-table td.pa-who, #admin-dash-registrations .pa-table td.pa-who, #admin-dash-monitoring .pa-table td.pa-who, #admin-dash-server-logs .pa-table td.pa-who, #admin-dash-activity-logs .pa-table td.pa-who { vertical-align:middle; }
 /* Server Logs: the event label, coloured by what happened; accounts no longer listed get a grey header */
 .sl-ev { font-weight:800; }

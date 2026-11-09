@@ -561,7 +561,7 @@ function renderUsersList() {
                 <tbody>${users.map(u => renderUserRow(u, isTrainer)).join('')}</tbody></table></div></details>`;
     };
 
-    const search = `<input type="text" id="users-search" placeholder="Search name, username, email or batch" value="${escapeHtml(q)}" oninput="renderUsersList(); const i=document.getElementById('users-search'); i.focus(); i.setSelectionRange(i.value.length,i.value.length);" style="width:100%;max-width:420px;padding:10px 12px;border:1.5px solid #94a3b8;border-radius:8px;margin-bottom:12px;font-size:14px;color:#0f172a;">`;
+    const search = `<input type="text" id="users-search" placeholder="Search name, username, email or batch" value="${escapeHtml(q)}" oninput="renderUsersList(); const i=document.getElementById('users-search'); i.focus(); i.setSelectionRange(i.value.length,i.value.length);" style="width:100%;max-width:460px;padding:12px 14px;border:1.5px solid #94a3b8;border-radius:8px;margin-bottom:12px;font-size:16px;font-weight:600;color:#0f172a;">`;
     const toolbar = `<div class="pa-toolbar"><button class="btn-ghost" onclick="paExpandAll(true, 'users-list')">Expand all</button><button class="btn-ghost" onclick="paExpandAll(false, 'users-list')">Collapse all</button></div>`;
     container.innerHTML = search
         + ((!admins.length && !batches.length) ? '<p class="pa-empty">No accounts match.</p>' : toolbar
@@ -3050,7 +3050,7 @@ function renderAccessRequests() {
     const pending = __paAccess.filter(a => a.status === 'Pending').sort((a, b) => String(a.requested_at || '').localeCompare(String(b.requested_at || '')));
     updateAccessRequestBadge(pending.length);
     const head = `<div class="mc-section-sub">🙋 Access Requests <span class="admin-nav-badge">${pending.length || ''}</span></div>`;
-    if (!pending.length) { box.innerHTML = head + '<p style="font-size:13.5px;color:#334155;margin:0 0 16px;">No requests waiting. A trainee asks from the Training Directory\'s <b>Request Access</b>; it shows up here.</p>'; return; }
+    if (!pending.length) { box.innerHTML = head + '<p style="font-size:16px;font-weight:600;color:#334155;margin:0 0 16px;">No requests waiting. A trainee asks from the Training Directory\'s <b>Request Access</b>; it shows up here.</p>'; return; }
     box.innerHTML = head + `<div class="mc-table-wrap"><table class="mc-table">
         <thead><tr><th>Trainee</th><th>Username</th><th>Batch</th><th>Program / tool</th><th>Requested</th><th style="text-align:right;">Decision</th></tr></thead>
         <tbody>${pending.map(a => {
