@@ -5,6 +5,8 @@
    read only). The trainee sees it there and on the Calendaring Simulators page (calsim.html). The server keeps it in the
    trainee's /api/calsim record (scorecards: { <track>: [card, …] }) and checks the metrics against its own list
    (functions/api/calsim.js SCORECARD_METRICS, which the checks keep the same as this one).
+   The sheet is set up as the Foundational Training's (js/ft-rubrics.js): the seven call metrics and 🛠 Tools Utilization, 0 to 5
+   in half points, the weighted average of the metrics scored, Passed at 3/5 (60%).
    One scorecard, two scorers: the simulator's automated check (Check my calendar, gcal.js) marks each of its items under one of
    these metrics (item.m), so fromCheck() turns a check into the same 7 rows. The calendar shows four of them (AUTO); the other
    three are heard on the call and only the trainer scores them. sheetHTML / formHTML show both side by side in one sheet:
@@ -19,8 +21,14 @@
         { name: 'Slot Identification & Scheduling Rule Compliance', weight: 1, about: 'Finds only real open slots and follows the attorney’s scheduling rules: no double-booking, the buffers, office hours, Eastern time; never moves a court date or deposition on their own.' },
         { name: 'Alternative Time Offering', weight: 1, about: 'When the requested time doesn’t work, offers specific real alternatives (day, date, time and time zone) and checks them against the caller’s limits.' },
         { name: 'Calendar Creation & Attorney Reminder Setup', weight: 1, about: 'The calendar entry: the right calendar, a specific title, the day, date, time, time zone, place or video link, who attends, the description, and the reminder for the attorney.' },
-        { name: 'Notes, Recap & Call Closing', weight: 1, about: 'Reads the booking back and gets the caller’s OK; closes politely with what happens next; the notes are accurate and complete.' }
+        { name: 'Notes, Recap & Call Closing', weight: 1, about: 'Reads the booking back and gets the caller’s OK; closes politely with what happens next; the notes are accurate and complete.' },
+        // 🛠 ends every scorecard on the Foundational Training (js/ft-rubrics.js WRITING): how the trainee used the systems and tools
+        { name: 'Tools Utilization', weight: 1, about: 'How the trainee used the systems and tools for the call: the phone’s keys on Ring Channel, 🔎 Case lookup and the CMS, and the Google Calendar Simulator.' }
     ];
+    // As on the Foundational Training: Passed at 3/5 (60%) or more, Failed below.
+    const PASS_PCT = 60;
+    const verdict = (pct) => pct >= PASS_PCT ? 'Passed' : 'Failed';
+    const verdictHTML = (pct) => `<b style="color:${pct >= PASS_PCT ? '#188038' : '#d93025'}">${verdict(pct)}</b>`;
     // The metrics the calendar itself shows (the automated check scores them): comprehension of the caller's limits, verification
     // (time zone, the description's details), the slot and the attorney's rules, the calendar entry and its reminder.
     const AUTO = [1, 2, 3, 5];
@@ -28,9 +36,11 @@
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const clamp = (v) => Math.max(0, Math.min(5, Math.round((Number(v) || 0) * 2) / 2));   // 0 to 5 in half points, as on the Foundational Training's Graders
     // { average (out of 5, one decimal), pct } from rows of { score, weight }
+    // (as Graders works it out: the weighted average of the metrics scored; one left blank doesn't count as 0)
     function average(rows) {
-        const w = rows.reduce((a, r, i) => a + (Number((METRICS[i] || {}).weight) || Number(r.weight) || 1), 0);
-        const avg = w ? rows.reduce((a, r, i) => a + (Number((METRICS[i] || {}).weight) || Number(r.weight) || 1) * clamp(r.score), 0) / w : 0;
+        const on = rows.map((r, i) => [r, i]).filter(([r]) => r && r.score != null && r.score !== '');
+        const w = on.reduce((a, [r, i]) => a + (Number((METRICS[i] || {}).weight) || Number(r.weight) || 1), 0);
+        const avg = w ? on.reduce((a, [r, i]) => a + (Number((METRICS[i] || {}).weight) || Number(r.weight) || 1) * clamp(r.score), 0) / w : 0;
         return { average: Math.round(avg * 10) / 10, pct: Math.round(avg / 5 * 100) };
     }
     const n1 = (v) => String(Math.round((Number(v) || 0) * 10) / 10);
@@ -84,15 +94,15 @@
         if (!hasCard && !hasAuto) return '';
         style();
         if (!hasAuto) return `<div class="csc-wrap">${caption ? `<div class="csc-cap">${caption}</div>` : ''}<table class="csc"><thead><tr><th>${esc(card.title || TITLE)}</th><th>Score</th><th>FEEDBACK</th></tr></thead><tbody>
-            ${card.rows.map((r, i) => `<tr><td>${esc(r.metric || (METRICS[i] || {}).name || '')}</td><td class="n">${clamp(r.score)}</td><td class="fb">${esc(r.feedback || '')}</td></tr>`).join('')}
-            <tr class="avg"><td>WEIGHTED AVERAGE</td><td class="n">${n1(card.average)}</td><td class="fb">out of 5 · ${Math.round(Number(card.pct) || 0)}%</td></tr></tbody></table></div>`;
+            ${METRICS.map((m, i) => { const r = card.rows[i] || {}; return `<tr><td>${esc(r.metric || m.name)}</td><td class="n">${r.score != null && r.score !== '' ? clamp(r.score) : '–'}</td><td class="fb">${esc(r.feedback || '')}</td></tr>`; }).join('')}
+            <tr class="avg"><td>WEIGHTED AVERAGE</td><td class="n">${n1(card.average)}</td><td class="fb">out of 5 · ${Math.round(Number(card.pct) || 0)}% · ${verdictHTML(Math.round(Number(card.pct) || 0))}</td></tr></tbody></table></div>`;
         const c = combined(hasCard ? card : null, auto) || { rows: METRICS.map(() => null), average: 0, pct: 0, scored: 0 }, autoAvg = combined(null, auto);
         return `<div class="csc-wrap">${caption ? `<div class="csc-cap">${caption}</div>` : ''}<table class="csc csc-one"><thead><tr><th>${esc((hasCard && card.title) || TITLE)}</th><th title="The automated check of the calendar (Check my calendar)">🤖<span class="csc-lbl"> Calendar</span></th><th title="The trainer's score on the mock call">👤<span class="csc-lbl"> Trainer</span></th><th>Score</th><th>FEEDBACK</th></tr></thead><tbody>
             ${METRICS.map((m, i) => { const r = hasCard ? card.rows[i] || {} : {}, t = hasCard && r.score != null && r.score !== '';
                 const fb = `${t && r.feedback ? esc(r.feedback) : ''}${auto[i] && auto[i].score != null ? `<div class="csc-auto">${t && r.feedback ? '🤖 ' : ''}${esc(auto[i].feedback)}</div>` : !t ? '<div class="csc-auto">Scored by your trainer on the mock call.</div>' : ''}`;
                 return `<tr><td title="${esc(m.about)}">${esc(r.metric || m.name)}</td><td class="n">${autoCell(auto[i])}</td><td class="n">${t ? clamp(r.score) : '–'}</td><td class="n">${c.rows[i] != null ? n1(c.rows[i]) : '–'}</td>
                 <td class="fb">${fb}</td></tr>`; }).join('')}
-            <tr class="avg"><td>WEIGHTED AVERAGE</td><td class="n">${autoAvg ? n1(autoAvg.average) : '–'}</td><td class="n">${hasCard ? n1(card.average) : '–'}</td><td class="n">${n1(c.average)}</td><td class="fb">out of 5 · ${c.pct}%${c.scored < METRICS.length ? ` · ${c.scored} of ${METRICS.length} metrics scored so far` : ''}</td></tr></tbody></table></div>`;
+            <tr class="avg"><td>WEIGHTED AVERAGE</td><td class="n">${autoAvg ? n1(autoAvg.average) : '–'}</td><td class="n">${hasCard ? n1(card.average) : '–'}</td><td class="n">${n1(c.average)}</td><td class="fb">out of 5 · ${c.pct}% · ${verdictHTML(c.pct)}${c.scored < METRICS.length ? ` · ${c.scored} of ${METRICS.length} metrics scored so far` : ''}</td></tr></tbody></table></div>`;
     }
     // The sheet to fill in (a trainer), starting from `card` (their last one) if there is one. read() gives the rows back.
     // With `auto` (fromCheck of the calendar check), the 🤖 column sits beside the trainer's score, its findings under the feedback,
@@ -105,7 +115,7 @@
         return `<div class="csc-wrap">${A ? `<div style="margin:0 0 6px"><button type="button" class="pill" data-csc-fill onclick="CalScorecard.fillFromCheck()" title="Put the calendar check's score in each metric you haven't scored yet">🤖 Fill from the calendar check</button></div>` : ''}<table class="csc csc-form${A ? ' csc-has-auto' : ''}"><thead><tr><th>${esc(TITLE)}</th>${A ? '<th title="The automated check of the calendar">🤖 Calendar</th>' : ''}<th>Score</th><th>FEEDBACK</th></tr></thead><tbody>
             ${METRICS.map((m, i) => `<tr><td title="${esc(m.about)}">${esc(m.name)}</td>${A ? `<td class="n">${autoCell(A[i])}</td>` : ''}<td class="n"><select data-csc="${i}" aria-label="${esc(m.name)}: score" onchange="CalScorecard.liveAvg()"><option value="">–</option>${STEPS.map(x => `<option value="${x}" ${rows[i].score !== '' && rows[i].score != null && Number(rows[i].score) === x ? 'selected' : ''}>${x}</option>`).join('')}</select></td>
                 <td class="fb"><textarea data-csf="${i}" maxlength="600" rows="2" aria-label="${esc(m.name)}: feedback" placeholder="${esc(m.about)}">${esc(rows[i].feedback || '')}</textarea>${A && A[i].score != null ? `<div class="csc-auto">🤖 ${esc(A[i].feedback)}</div>` : ''}</td></tr>`).join('')}
-            <tr class="avg"><td>WEIGHTED AVERAGE</td>${A ? `<td class="n">${(() => { const c = combined(null, A); return c ? n1(c.average) : '–'; })()}</td>` : ''}<td class="n" id="csc-avg">${avg ? n1(avg.average) : '–'}</td><td class="fb" id="csc-pct">${avg ? `out of 5 · ${Math.round(Number(avg.pct) || 0)}%` : 'out of 5'}</td></tr></tbody></table></div>`;
+            <tr class="avg"><td>WEIGHTED AVERAGE</td>${A ? `<td class="n">${(() => { const c = combined(null, A); return c ? n1(c.average) : '–'; })()}</td>` : ''}<td class="n" id="csc-avg">${avg ? n1(avg.average) : '–'}</td><td class="fb" id="csc-pct">${avg ? `out of 5 · ${Math.round(Number(avg.pct) || 0)}% · ${verdictHTML(Math.round(Number(avg.pct) || 0))}` : 'out of 5'}</td></tr></tbody></table></div>`;
     }
     // The rows filled in: [{ score, feedback }], or an error naming the first metric without a score.
     function read() {
@@ -121,7 +131,7 @@
         const a = document.getElementById('csc-avg'), p = document.getElementById('csc-pct');
         if (set.length < METRICS.length) { if (a) a.textContent = '–'; if (p) p.textContent = `out of 5 · ${set.length} of ${METRICS.length} scored`; return; }
         const r = average(sel.map(s => ({ score: s.value })));
-        if (a) a.textContent = n1(r.average); if (p) p.textContent = `out of 5 · ${r.pct}%`;
+        if (a) a.textContent = n1(r.average); if (p) p.innerHTML = `out of 5 · ${r.pct}% · ${verdictHTML(r.pct)}`;
     }
     let FORM_AUTO = null;
     function fillFromCheck() {
@@ -131,7 +141,7 @@
         liveAvg();
         return n;
     }
-    const API = { TITLE, METRICS, AUTO, average, fromCheck, combined, sheetHTML, formHTML, read, liveAvg, fillFromCheck, esc };
+    const API = { TITLE, METRICS, AUTO, PASS_PCT, verdict, average, fromCheck, combined, sheetHTML, formHTML, read, liveAvg, fillFromCheck, esc };
     if (typeof window !== 'undefined') window.CalScorecard = API;
     if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })();

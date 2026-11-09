@@ -138,7 +138,7 @@ async function gsList(only) {
         const ev = evalLine(track); if (ev) lines.push(ev);
         if (last) lines.push(`📤 Submitted${subs.length > 1 ? ` ${subs.length} times` : ''}${last.result && last.result.score != null ? ` · its review ${Sim.esc(last.result.score)}%` : ''}${fb && fb.score != null ? ` · 👤 trainer <b>${Sim.esc(fb.score)}/100</b>` : ''}`);
         const cards = rec && rec.scorecards && Array.isArray(rec.scorecards[track]) ? rec.scorecards[track] : [], sc = cards[cards.length - 1];
-        // 📋 One CALENDAR MANAGEMENT MOCK CALL sheet: the trainer's scorecard and the last calendar check on the same 7 metrics (cal-scorecard.js)
+        // 📋 One CALENDAR MANAGEMENT MOCK CALL sheet: the trainer's scorecard and the last calendar check on the same metrics as the Foundational Training's (cal-scorecard.js)
         const C = window.CalScorecard, auto = C && C.fromCheck && track !== 'activity' && a && Array.isArray(a.results) && a.results.length ? C.fromCheck(a) : null, one = C && (sc || auto) ? C.combined(sc || null, auto) : null;
         const scLine = one ? `<details class="cs-scorecard" style="margin-top:4px"><summary style="cursor:pointer">📋 ${sc ? `Trainer’s scorecard: <b>${Sim.esc(sc.average)}/5 (${Sim.esc(sc.pct)}%)</b> · ${Sim.esc(String(sc.at).slice(0, 10))}` : 'Calendar Management Mock Call'}${auto ? ` · with the calendar check: <b>${Sim.esc(one.average)}/5 (${Sim.esc(one.pct)}%)</b>` : ''}</summary><div style="margin-top:6px">${C.sheetHTML(sc || null, '', auto)}</div></details>` : '';
         return `<div class="cs-review" style="font-size:13px;line-height:1.5;color:#334155;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px">${lines.length ? lines.join('<br>')

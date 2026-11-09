@@ -1335,7 +1335,7 @@ function liveScoresHTML() {
     return `<h2>📊 Scores · ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>${traineePickHTML(RV.user)}
         <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on this simulator yet.' : `Their calendar as they last saved it${RV.savedAt ? ', ' + esc(when(RV.savedAt)) : ''}. It’s above, read only.`}
             <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>
-        <div class="sc-grid wide"><div class="res-r" id="tv-card"><h5><span>📋 Your scorecard</span><span>${last ? `${esc(last.average)}/5 · ${esc(last.pct)}%` : 'to score'}</span></h5>
+        <div class="sc-grid wide"><div class="res-r" id="tv-card"><h5><span>📋 Your scorecard</span><span>${last ? `${esc(last.average)}/5 · ${esc(last.pct)}%${C && C.verdict ? ' · ' + esc(C.verdict(Number(last.pct) || 0)) : ''}` : 'to score'}</span></h5>
             ${last ? `${cardPickHTML(RV.cards, pick, 'tv-pick')}<p style="margin:0 0 6px;color:#70757a">${pick === RV.cards.length - 1 ? 'Last saved' : 'Saved'} ${esc(when(last.at))}${last.by ? ' by ' + esc(last.by) : ''}${last.source === 'foundational' ? ' in Graders' : ''}${RV.cards.length > 1 ? ` · ${RV.cards.length} scorecards` : ''}. Saving again adds a new one and keeps the earlier ones.</p>` : '<p style="margin:0 0 6px;color:#70757a">Score each metric 0 to 5 and add your feedback; the weighted average works itself out.</p>'}
             ${C ? C.formHTML(last, autoRows(liveResult())) : '<p>The scorecard didn’t load. Refresh the page.</p>'}
             <div style="margin-top:8px"><button class="blue" data-a="tv-save">💾 Save scorecard</button></div>
@@ -1351,7 +1351,7 @@ function liveResult() {
     return Object.assign({}, r0, { results: kept, right: kept.filter(x => x.pts >= x.max - 0.01).length,
         score: r0.open ? (max ? Math.min(100, Math.round(got / max * 100)) : 0) : Math.max(0, Math.min(100, Math.round((max ? got / max * 100 : 100) - (r0.penalty || 0)))) });
 }
-// The automated check as the scorecard's 7 metrics (cal-scorecard.js fromCheck): the calendar's four, the call's three left to the trainer.
+// The automated check as the scorecard's metrics (cal-scorecard.js fromCheck): the calendar's four; the call's three and Tools Utilization left to the trainer.
 const autoRows = (r) => window.CalScorecard && window.CalScorecard.fromCheck && r && r.results && r.results.length ? window.CalScorecard.fromCheck(r) : null;
 function liveCheckHTML() {
     const r0 = S.result, skip = RV.skip || new Set(), gone = r0.results.filter(x => skip.has(x.id)), r = liveResult();
@@ -1392,7 +1392,7 @@ async function saveScorecard() {
     } catch (e) { snack(e.message); }
 }
 // 📊 One CALENDAR MANAGEMENT MOCK CALL sheet for a trainee: the automated check of their calendar and their trainer's scorecard on
-// the same 7 metrics (cal-scorecard.js sheetHTML with fromCheck): 🤖 the calendar's four, 👤 the trainer's, the score that counts
+// the same metrics (cal-scorecard.js sheetHTML with fromCheck; the Foundational Training's 8): 🤖 the calendar's four, 👤 the trainer's, the score that counts
 // (the trainer's where they gave one) and the average. Each appointment's own marks fold away under it.
 function oneScorecardHTML(r, hint) {
     const C = window.CalScorecard, list = MINE.data && MINE.data.scorecards && Array.isArray(MINE.data.scorecards[GT]) ? MINE.data.scorecards[GT] : [];
@@ -1403,7 +1403,7 @@ function oneScorecardHTML(r, hint) {
         card ? `👤 Your trainer ${esc(card.average)}/5 (${esc(card.pct)}%)${card.by ? ' · ' + esc(card.by) : ''}${card.source === 'foundational' ? ' · in Graders' : ''} · ${esc(new Date(card.at).toLocaleDateString())}` : '👤 Your trainer hasn’t scored the mock call yet'];
     return `<div id="gc-check" style="margin-top:14px;padding-top:12px;border-top:1px solid #dadce0"><div id="my-scorecard">
         <div class="res-top"><div class="res-ring" style="border-color:${col};color:${col}" title="Calendar Management: the average of the metrics scored so far">${c.pct}%</div>
-            <div class="lead" style="margin:0"><b>Calendar Management Mock Call</b> · ${esc(c.average)}/5<br>${parts.join('<br>')}</div></div>
+            <div class="lead" style="margin:0"><b>Calendar Management Mock Call</b> · ${esc(c.average)}/5 · <b style="color:${c.pct >= (C.PASS_PCT || 60) ? '#188038' : '#d93025'}">${esc(C.verdict ? C.verdict(c.pct) : '')}</b><br>${parts.join('<br>')}</div></div>
         ${list.length ? cardPickHTML(list, pick, 'my-pick') : ''}${C.sheetHTML(card, '', auto || C.METRICS.map(() => ({ score: null, feedback: '' })))}
         ${r ? '' : hint}
         ${r && r.results.length ? `<details style="margin-top:8px"><summary style="cursor:pointer;color:#1a73e8">Each ${OPEN ? 'appointment' : 'request'}, checked</summary>${resRows(r)}</details>` : ''}</div></div>`;

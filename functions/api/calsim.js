@@ -21,8 +21,30 @@ const MAX_BYTES = 400000;
 export const halfPoint = (v) => Math.max(0, Math.min(5, Math.round(Number(v) * 2) / 2));
 // The scorecard's metrics, in the sheet's order (simulators/cal-scorecard.js has the same list; the checks keep them equal).
 export const SCORECARD_TITLE = 'CALENDAR MANAGEMENT MOCK CALL';
+// As the Foundational Training sets it up (its js/ft-rubrics.js, 🧑‍🏫 Graders): the seven call metrics and 🛠 Tools Utilization,
+// which ends every scorecard there; each weighs 1; the weighted average is of the metrics scored; Passed at 3/5 (60%).
 export const SCORECARD_METRICS = ['Professional Introduction & Call Control', 'Client Comprehension & Flow Control', 'Information Verification & Accuracy',
-    'Slot Identification & Scheduling Rule Compliance', 'Alternative Time Offering', 'Calendar Creation & Attorney Reminder Setup', 'Notes, Recap & Call Closing'];
+    'Slot Identification & Scheduling Rule Compliance', 'Alternative Time Offering', 'Calendar Creation & Attorney Reminder Setup', 'Notes, Recap & Call Closing',
+    'Tools Utilization'];
+export const SCORECARD_PASS_PCT = 60;
+// The rows of a scorecard as kept, or { error }. `need`: how many metrics must come (every one from the Portal's sheet; the first
+// seven at least from the Foundational Training, whose older Worker sends those only: Tools Utilization is then left unscored).
+export function scorecardRows(input, need) {
+    if (!Array.isArray(input) || input.length < need || input.length > SCORECARD_METRICS.length) return { error: `All ${need === SCORECARD_METRICS.length ? SCORECARD_METRICS.length : need + ' to ' + SCORECARD_METRICS.length} scores are required.` };
+    const rows = [];
+    for (let i = 0; i < SCORECARD_METRICS.length; i++) {
+        if (i >= input.length) { rows.push({ metric: SCORECARD_METRICS[i], weight: 1, score: null, feedback: '' }); continue; }
+        const x = input[i] || {}, v = Number(x.score);
+        if (x.score === '' || x.score == null || !Number.isFinite(v) || v < 0 || v > 5) return { error: `Give "${SCORECARD_METRICS[i]}" a score from 0 to 5.` };
+        rows.push({ metric: SCORECARD_METRICS[i], weight: 1, score: halfPoint(v), feedback: clean(x.feedback, 600) });
+    }
+    return { rows };
+}
+// The card's result from its rows: the weighted average of the metrics scored (as Graders works it out), as a %, and Passed / Failed.
+export function scorecardResult(rows) {
+    const on = rows.filter(r => r.score != null), w = on.reduce((a, r) => a + r.weight, 0), avg = w ? on.reduce((a, r) => a + r.weight * r.score, 0) / w : 0, pct = Math.round(avg / 5 * 100);
+    return { average: Math.round(avg * 10) / 10, pct, status: pct >= SCORECARD_PASS_PCT ? 'Passed' : 'Failed' };
+}
 const SCORECARD_TRACKS = ['standard', 'cm', 'ea'];
 // The Foundational Training's Worker, where a Standard Training scorecard is mirrored (server to server, the shared
 // AI_GATEWAY_SECRET); FT_URL overrides it. Never throws: a scorecard is saved here whatever the other side answers.
@@ -98,15 +120,10 @@ export async function onRequestPost({ request, env }) {
         if (!admin) return json({ success: false, error: 'Admin access required.' }, 403);
         const c = body.scorecard, user = clean(c.user, 80), track = SCORECARD_TRACKS.includes(c.track) ? c.track : '';
         if (!user || !track || !Array.isArray(c.rows) || c.rows.length !== SCORECARD_METRICS.length) return json({ success: false, error: `A trainee, a simulator and all ${SCORECARD_METRICS.length} scores are required.` }, 400);
-        const rows = [];
-        for (let i = 0; i < SCORECARD_METRICS.length; i++) {
-            const x = c.rows[i] || {}, v = Number(x.score);
-            if (x.score === '' || x.score == null || !Number.isFinite(v) || v < 0 || v > 5) return json({ success: false, error: `Give "${SCORECARD_METRICS[i]}" a score from 0 to 5.` }, 400);
-            rows.push({ metric: SCORECARD_METRICS[i], weight: 1, score: halfPoint(v), feedback: clean(x.feedback, 600) });
-        }
-        const avg = rows.reduce((a, r) => a + r.weight * r.score, 0) / rows.reduce((a, r) => a + r.weight, 0);
-        const card = { title: SCORECARD_TITLE, rows, average: Math.round(avg * 10) / 10, pct: Math.round(avg / 5 * 100), by: s.fullName || 'Trainer', at: new Date().toISOString(),
-            calendarAt: clean(c.calendarAt, 40) || null };
+        const got = scorecardRows(c.rows, SCORECARD_METRICS.length); if (got.error) return json({ success: false, error: got.error }, 400);
+        const rows = got.rows;
+        const card = Object.assign({ title: SCORECARD_TITLE, rows }, scorecardResult(rows), { by: s.fullName || 'Trainer', at: new Date().toISOString(),
+            calendarAt: clean(c.calendarAt, 40) || null });
         const row = await db.prepare(`SELECT data FROM calsim_records WHERE username = ?`).bind(user).first();
         const d = (row && parse(row.data)) || { v: 2, drafts: {}, autos: [], submissions: [], reviews: {}, external: [] };
         d.scorecards = d.scorecards && typeof d.scorecards === 'object' ? d.scorecards : {};

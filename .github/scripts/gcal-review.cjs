@@ -146,7 +146,7 @@ const server = http.createServer((req, res) => {
     const evs = await page.evaluate(() => [...document.querySelectorAll('.ev')].map(e => e.textContent));
     if (!evs.some(x => /Maria Santos/.test(x))) fail('the trainee\'s booking isn\'t on the calendar: ' + JSON.stringify(evs.slice(0, 5)));
     const metrics = await page.$$eval('.csc-form tbody tr', trs => trs.map(tr => tr.cells[0].textContent));
-    if (metrics.length !== 8 || metrics[0] !== 'Professional Introduction & Call Control' || metrics[6] !== 'Notes, Recap & Call Closing' || metrics[7] !== 'WEIGHTED AVERAGE') fail('the scorecard isn\'t the CALENDAR MANAGEMENT MOCK CALL sheet: ' + JSON.stringify(metrics));
+    if (metrics.length !== 9 || metrics[0] !== 'Professional Introduction & Call Control' || metrics[6] !== 'Notes, Recap & Call Closing' || metrics[7] !== 'Tools Utilization' || metrics[8] !== 'WEIGHTED AVERAGE') fail('the scorecard isn\'t the CALENDAR MANAGEMENT MOCK CALL sheet: ' + JSON.stringify(metrics));
     // the calendar check sits beside the trainer's scores on the same metrics; 🤖 Fill puts its scores in the blank metrics the calendar shows
     if (process.env.SHOTS) await (await page.$('#tv-card')).screenshot({ path: process.env.SHOTS + '/one-scorecard-trainer.png' });
     { const filled = await page.evaluate(() => { const n = CalScorecard.fillFromCheck(); const v = [...document.querySelectorAll('select[data-csc]')].map(x => x.value); document.querySelectorAll('select[data-csc]').forEach(x => { x.value = ''; }); CalScorecard.liveAvg(); return { n, v }; });
@@ -154,21 +154,21 @@ const server = http.createServer((req, res) => {
     for (let i = 0; i < 6; i++) await page.selectOption(`select[data-csc="${i}"]`, String([5, 4, 4, 3, 4, 5][i]));
     await page.click('[data-a="tv-save"]'); await page.waitForTimeout(300);
     if (posted.length) fail('a scorecard with a metric unscored was saved');
-    await page.selectOption('select[data-csc="6"]', '4'); await page.fill('textarea[data-csf="5"]', 'Meet link and the reminder are on: add the DOB.');
+    await page.selectOption('select[data-csc="6"]', '4'); await page.selectOption('select[data-csc="7"]', '4'); await page.fill('textarea[data-csf="5"]', 'Meet link and the reminder are on: add the DOB.');
     if (await page.textContent('#csc-avg') !== '4.1' || !/83%/.test(await page.textContent('#csc-pct'))) fail('the weighted average doesn\'t work itself out: ' + await page.textContent('#csc-avg'));
     await page.click('[data-a="tv-save"]'); await page.waitForTimeout(600);
     const sc = posted[0];
-    if (!sc || sc.user !== 'ci' || sc.track !== 'standard' || sc.rows.map(r => r.score).join() !== '5,4,4,3,4,5,4' || !/add the DOB/.test(sc.rows[5].feedback)) fail('the scorecard wasn\'t saved for the trainee: ' + JSON.stringify(sc));
+    if (!sc || sc.user !== 'ci' || sc.track !== 'standard' || sc.rows.map(r => r.score).join() !== '5,4,4,3,4,5,4,4' || !/add the DOB/.test(sc.rows[5].feedback)) fail('the scorecard wasn\'t saved for the trainee: ' + JSON.stringify(sc));
     if (!/4\.1\/5 · 83%/.test(await scoresText(page))) fail('the saved scorecard isn\'t shown: ' + (await scoresText(page)).slice(0, 300));
     // 📋 every saved scorecard in a dropdown: a second one saved, the first chosen again shows its own scores in the sheet
     await page.selectOption('select[data-csc="0"]', '3'); await page.click('[data-a="tv-save"]'); await page.waitForTimeout(600);
     const opts = await page.$$eval('#tv-pick option', os => os.map(o => o.textContent.trim()));
-    if (opts.length !== 2 || !/^Latest · .*3\.9\/5 \(77%\)/.test(opts[0]) || !/4\.1\/5 \(83%\)/.test(opts[1])) fail('the scorecards aren\'t in a dropdown, newest first: ' + JSON.stringify(opts));
+    if (opts.length !== 2 || !/^Latest · .*3\.9\/5 \(78%\)/.test(opts[0]) || !/4\.1\/5 \(83%\)/.test(opts[1])) fail('the scorecards aren\'t in a dropdown, newest first: ' + JSON.stringify(opts));
     await page.selectOption('#tv-pick', '0'); await page.waitForTimeout(200);
     if (await page.inputValue('select[data-csc="0"]') !== '5' || !/4\.1\/5 · 83%/.test(await page.textContent('#tv-card h5'))) fail('choosing the earlier scorecard doesn\'t show its scores: ' + await page.textContent('#tv-card h5'));
     // 👥 the trainee dropdown, on the trainee's page: this track's trainees with their latest scorecard
     const ppl = await page.$$eval('#tv-trainee option', os => os.map(o => o.value + '=' + o.textContent.trim()));
-    if (ppl.length !== 2 || !/^ci=Ci Trainee · B1 · 📋 3\.9\/5 \(77%\)/.test(ppl[1]) || ppl.some(x => /zed/.test(x))) fail('the trainee dropdown isn\'t this track\'s trainees with their scores: ' + JSON.stringify(ppl));
+    if (ppl.length !== 2 || !/^ci=Ci Trainee · B1 · 📋 3\.9\/5 \(78%\)/.test(ppl[1]) || ppl.some(x => /zed/.test(x))) fail('the trainee dropdown isn\'t this track\'s trainees with their scores: ' + JSON.stringify(ppl));
     posted.length = 0; rec.scorecards.standard.pop();
     // the trainer on the simulator itself picks a trainee from the dropdown and gets their calendar with the scorecard
     {
@@ -200,7 +200,7 @@ const server = http.createServer((req, res) => {
     if (!/Calendar Management Mock Call[\s\S]*Your trainer 4\.1\/5 \(83%\)/.test(await scoresText(page)) || !(await page.locator('#gc-scores .csc-one').count()) || /scorecard/i.test(await panelText(page)) || !(await inSide(page))) fail('the trainee doesn\'t see the scorecard in the scores in the sidebar: ' + (await scoresText(page)).slice(0, 300));
     // 📋 a scorecard a trainer saves on the Foundational Training's Graders (it reaches the record through /api/calsim-scorecard)
     // shows in the open simulator without a reload: the trainee's one sheet, then the trainer's view of the trainee's calendar
-    const graders = (scores) => { const rows = SHEET.METRICS.map((m, i) => ({ metric: m.name, weight: 1, score: scores[i], feedback: i === 0 ? 'Graders: warm, confident opening.' : '' })), avg = rows.reduce((a, r) => a + r.score, 0) / rows.length;
+    const graders = (scores) => { const rows = SHEET.METRICS.map((m, i) => ({ metric: m.name, weight: 1, score: scores[i] == null ? null : scores[i], feedback: i === 0 ? 'Graders: warm, confident opening.' : '' })), on = rows.filter(r => r.score != null), avg = on.reduce((a, r) => a + r.score, 0) / on.length;   // (seven scores: Tools Utilization unscored, as an older Graders sends)
         rec.scorecards.standard = rec.scorecards.standard.concat([{ title: 'CALENDAR MANAGEMENT MOCK CALL', rows, average: Math.round(avg * 10) / 10, pct: Math.round(avg / 5 * 100), by: 'Coach Grader', at: new Date().toISOString(), calendarAt: null, source: 'foundational' }]); };
     graders([5, 5, 5, 5, 5, 5, 4]);
     await page.evaluate(() => window.dispatchEvent(new Event('focus'))); await page.waitForTimeout(800);

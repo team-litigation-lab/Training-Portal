@@ -1,6 +1,6 @@
 // The CALENDAR MANAGEMENT MOCK CALL scorecard shared with the Foundational Training (functions/api/calsim-scorecard.js), on SQLite:
 // only a caller with the shared gateway secret; the trainee found by batch and full name (any case and spacing); a card saved there
-// is kept with the Portal's own scorecards (and read back), all 7 metrics 0-5 required; no account: an empty list, or 404 on a save.
+// is kept with the Portal's own scorecards (and read back), the seven call metrics at least (Tools Utilization too when sent), 0-5 in half points; no account: an empty list, or 404 on a save.
 // Run: node --no-warnings .github/scripts/calsim-scorecard.mjs   (from the repository root)
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'fs';
@@ -33,9 +33,13 @@ r = await call('POST', { name: 'Nobody', batch: 'B103026', rows }); ck(r.st === 
 r = await call('POST', { name: 'Abesh Dawn Jamon', batch: 'B103026', rows, by: 'Coach Tess' });
 ck(r.st === 200 && r.j.card.average === 4.1 && r.j.card.pct === 83 && r.j.card.by === 'Coach Tess' && r.j.card.source === 'foundational' && r.j.card.rows[5].feedback === 'Add the reminder', 'a card from the Foundational Training is saved with its average');
 r = await call('GET', null, '?name=Abesh+Dawn+Jamon&batch=B103026'); ck(r.j.cards.length === 1 && r.j.cards[0].pct === 83, 'and read back, on the trainee\'s Standard Training track');
+// Graders with Tools Utilization (the Foundational Training's eighth metric): kept, and the average is of all eight; a low one fails
+r = await call('POST', { name: 'Abesh Dawn Jamon', batch: 'B103026', rows: [3, 3, 3, 2, 2, 3, 2, 1].map(v => ({ score: v })) });
+ck(r.st === 200 && r.j.card.rows[7].score === 1 && r.j.card.average === 2.4 && r.j.card.pct === 48 && r.j.card.status === 'Failed', 'Tools Utilization from Graders counts in the average, and below 60% is Failed');
+r = await call('POST', { name: 'Abesh Dawn Jamon', batch: 'B103026', rows: [3, 3, 3, 3, 3, 3, 3, 3, 3].map(v => ({ score: v })) }); ck(r.st === 400, 'more metrics than the scorecard has are refused');
 // Graders scores in half points (step 0.5): a 4.5 there stays a 4.5 here, and the average is the same on both sides
 r = await call('POST', { name: 'Abesh Dawn Jamon', batch: 'B103026', rows: [4.5, 4.5, 4, 3.5, 4, 5, 4.5].map(v => ({ score: v })), by: 'Coach Tess' });
-ck(r.st === 200 && r.j.card.rows.map(x => x.score).join() === '4.5,4.5,4,3.5,4,5,4.5' && r.j.card.average === 4.3 && r.j.card.pct === 86, 'half points from Graders are kept as they are: ' + JSON.stringify(r.j.card && r.j.card.rows.map(x => x.score)));
+ck(r.st === 200 && r.j.card.rows.map(x => x.score).join() === '4.5,4.5,4,3.5,4,5,4.5,' && r.j.card.rows[7].metric === 'Tools Utilization' && r.j.card.status === 'Passed' && r.j.card.average === 4.3 && r.j.card.pct === 86, 'half points from Graders are kept as they are: ' + JSON.stringify(r.j.card && r.j.card.rows.map(x => x.score)));
 r = await call('POST', { name: 'Abesh Dawn Jamon', batch: 'B103026', rows: [4.3, 4, 4, 4, 4, 4, 4].map(v => ({ score: v })) }); ck(r.st === 200 && r.j.card.rows[0].score === 4.5, 'any other fraction goes to the nearest half point');
 const other = JSON.parse((sql.prepare(`SELECT data FROM calsim_records WHERE username = 'other'`).get() || { data: 'null' }).data);
 ck(!other, 'the same name in another batch is left alone');

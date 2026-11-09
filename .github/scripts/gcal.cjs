@@ -128,9 +128,9 @@ const server = http.createServer(async (req, res) => {
         const og = GCAL.checkOpen(st, today), ob = GCAL.checkOpen(bad, today);
         out.open = { score: og.score, n: og.results.length, changed: og.changed.length, missed: og.results.flatMap(r => r.items.filter(i => !i.ok).map(i => r.head + ': ' + i.t)),
             bad: ob.results.find(r => r.id.startsWith(b0.id)).items.filter(i => !i.ok).map(i => i.t) };
-        // one scorecard: the check on the CALENDAR MANAGEMENT MOCK CALL's 7 metrics (cal-scorecard.js fromCheck), the calendar's four scored, the call's three left to the trainer
+        // one scorecard: the check on the CALENDAR MANAGEMENT MOCK CALL's 8 metrics (the Foundational Training's) (cal-scorecard.js fromCheck), the calendar's four scored, the call's three left to the trainer
         out.metrics = { good: CalScorecard.fromCheck(og).map(x => x.score), bad: CalScorecard.fromCheck(ob).map(x => x.score), plan: CalScorecard.fromCheck(GCAL.checkPlan(st, reqs, today)).map(x => x.score),
-            same: CalScorecard.METRICS.length === 7, one: CalScorecard.sheetHTML({ rows: CalScorecard.METRICS.map(() => ({ score: 3, feedback: 'x' })), average: 3, pct: 60 }, '', CalScorecard.fromCheck(og)) };
+            same: CalScorecard.METRICS.length === 8 && CalScorecard.METRICS[7].name === 'Tools Utilization', one: CalScorecard.sheetHTML({ rows: CalScorecard.METRICS.map(() => ({ score: 3, feedback: 'x' })), average: 3, pct: 60 }, '', CalScorecard.fromCheck(og)) };
         // one half-point mistake (the color, or the reminder) is never free on Standard Training: the max matches what the checks add up to
         const noColor = JSON.parse(JSON.stringify(st)); noColor.events[0].color = '';
         const noRem = JSON.parse(JSON.stringify(st)); noRem.events[0].notifs = [];
@@ -154,10 +154,10 @@ const server = http.createServer(async (req, res) => {
     if (grading.bad.pts > 1.5) fail(`a booking with every mistake should score almost nothing (${grading.bad.pts})`);
     const om = grading.open.bad.join(' | ');
     if (grading.open.score !== 100 || grading.open.n !== 5 || grading.open.changed !== 0) fail(`Standard Training's check: the right bookings should score 100 (5 appointments; the attorney's week is locked, so no changes to it are listed): ${JSON.stringify(grading.open).slice(0, 500)}`);
-    { const M = grading.metrics, calls = [0, 4, 6], cal = [1, 2, 3, 5];
+    { const M = grading.metrics, calls = [0, 4, 6, 7], cal = [1, 2, 3, 5];
         if (!M.same || calls.concat([1]).some(i => M.good[i] !== null) || [2, 3, 5].some(i => M.good[i] !== 5) || cal.some(i => M.plan[i] !== 5)) fail(`the calendar check should score the scorecard's calendar metrics 5/5 on a right calendar, and leave the call's to the trainer: ${JSON.stringify(M.good)} ${JSON.stringify(M.plan)}`);
         if (!(M.bad[5] < 5) || !(M.bad[2] < 5) || !(M.bad[3] < 5)) fail(`a booking with mistakes should cost the calendar entry, verification and slot metrics: ${JSON.stringify(M.bad)}`);
-        if (!/csc-one/.test(M.one) || !/🤖<span class="csc-lbl"> Calendar/.test(M.one) || !/👤<span class="csc-lbl"> Trainer/.test(M.one) || (M.one.match(/<tr>/g) || []).length < 8) fail('the one sheet should show the calendar check and the trainer side by side on the 7 metrics'); }
+        if (!/csc-one/.test(M.one) || !/🤖<span class="csc-lbl"> Calendar/.test(M.one) || !/👤<span class="csc-lbl"> Trainer/.test(M.one) || (M.one.match(/<tr>/g) || []).length < 9 || !/Passed|Failed/.test(M.one)) fail('the one sheet should show the calendar check and the trainer side by side on the 7 metrics'); }
     for (const [re, what] of [[/not the Attorney’s Calendar/, 'calendar'], [/title should start with the request type/, 'title'], [/time zone/, 'time zone'], [/is colored/, 'color'], [/description is missing/, 'description'], [/email notification 1 day before/, 'reminder']])
         if (!re.test(om)) fail(`Standard Training's check should flag the ${what}: ${om}`);
     // the color rule is pinned to its colors, and a half-point mistake is never free (the max is what the checks add up to)
