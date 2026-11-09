@@ -13,6 +13,7 @@ INSERT INTO topics (key, name, sort_order) VALUES
 ('IMMIGRATION LAW', 'Immigration Law', 11),
 ('INTELLECTUAL PROPERTY LAW', 'Intellectual Property Law', 12),
 ('LIEN VERIFICATION', 'Lien Verification', 13),
+('LIEN NEGOTIATION', 'Lien Negotiator Training', 13),
 ('LITIGATION', 'Litigation', 14),
 ('MASS TORT', 'Mass Tort', 15),
 ('MEDSUM AND DEMAND', 'Medsum & Demand Training', 16),

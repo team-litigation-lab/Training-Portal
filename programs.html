@@ -87,7 +87,7 @@
     .queue-wrap { overflow-x: auto; }
 
     /* Four across is the default, but a group's last row should not be a stub:
-       Personal Injury Law has six, which is 4 + 2 on a four-column grid and a
+       a group of six is 4 + 2 on a four-column grid and a
        balanced 3 + 3 on a three-column one. groupedTopicsHtml() picks the count
        that divides the group evenly (see cols-3) rather than this being a
        one-off for that one section. */
@@ -365,7 +365,8 @@
     // Not in TOPIC_SEQUENCE: free programs aren't gated behind progression.
     // Give it a BUILT_PROGRAMS link once it has its own site.
     const EXTRA_PROGRAMS = [
-        { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Programs', sort_order: 0 }
+        { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Programs', sort_order: 0 },
+        { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Training', sort_order: 13 }
     ];
     // Shown first on the index, ahead of the progression, with a "Free" badge.
     const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
@@ -379,7 +380,7 @@
         'STANDARD TRAINING', 'LITIGATION', 'MEDSUM AND DEMAND', 'CM TRAINING',
         'EA  PA TRAINING-OUTSOURCED MANP', 'REVISED EA PA TRAINING', 'REVISED CM TRAINING',
         'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW',
-        'HEALTH SUBRO', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'LIEN VERIFICATION',
+        'HEALTH SUBRO', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'LIEN VERIFICATION', 'LIEN NEGOTIATION',
         'MASS TORT', 'PROPERTY DAMAGE', 'REAL ESTATE LAW'
     ];
 
@@ -583,7 +584,7 @@
     // The cards are grouped by practice area: everything personal injury is in one place.
     const TOPIC_GROUPS = [
         { title: 'Personal Injury Law', note: '',
-          keys: ['STANDARD TRAINING', 'MEDSUM AND DEMAND', 'CM TRAINING', 'PROPERTY DAMAGE', 'HEALTH SUBRO', 'LIEN VERIFICATION'] },
+          keys: ['STANDARD TRAINING', 'MEDSUM AND DEMAND', 'CM TRAINING', 'PROPERTY DAMAGE', 'HEALTH SUBRO', 'LIEN VERIFICATION', 'LIEN NEGOTIATION'] },
         { title: 'Other Practice Areas', note: '',
           keys: ['LITIGATION', 'MASS TORT', 'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'REAL ESTATE LAW'] },
         { title: 'Support & Upskill', note: '',
@@ -591,8 +592,8 @@
     ];
     // How many across, so a group's last row is not a stub. Four is the default
     // and the widest the cards look right at; three when the count divides by
-    // three and not by four, which is what makes Personal Injury Law's six read
-    // as 3 + 3 rather than 4 + 2. Other Practice Areas' eight stays 4 + 4.
+    // three and not by four. Personal Injury Law's seven reads 4 + 3;
+    // Other Practice Areas' eight stays 4 + 4.
     const columnsFor = (n) => (n % 4 === 0 ? 4 : n % 3 === 0 ? 3 : 4);
 
     function groupedTopicsHtml(cardFor) {
