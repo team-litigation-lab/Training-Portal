@@ -21,6 +21,21 @@ export const SCORECARD_TITLE = 'CALENDAR MANAGEMENT MOCK CALL';
 export const SCORECARD_METRICS = ['Professional Introduction & Call Control', 'Client Comprehension & Flow Control', 'Information Verification & Accuracy',
     'Slot Identification & Scheduling Rule Compliance', 'Alternative Time Offering', 'Calendar Creation & Attorney Reminder Setup', 'Notes, Recap & Call Closing'];
 const SCORECARD_TRACKS = ['standard', 'cm', 'ea'];
+// The Foundational Training's Worker, where a Standard Training scorecard is mirrored (server to server, the shared
+// AI_GATEWAY_SECRET); FT_URL overrides it. Never throws: a scorecard is saved here whatever the other side answers.
+const FT_DEFAULT = 'https://foundational-training.legalsupporthelp.workers.dev';
+export async function mirrorToFt(env, user, card) {
+    const key = String(env.AI_GATEWAY_SECRET || '').trim(); if (!key) return { ok: false, off: true };
+    try {
+        const u = await env.DB.prepare(`SELECT first_name, last_name, batch_id FROM users WHERE username = ?`).bind(user).first();
+        const name = u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : '';
+        if (!name) return { ok: false, error: 'no name' };
+        const r = await fetch(String(env.FT_URL || FT_DEFAULT).replace(/\/+$/, '') + '/api/calsim-card-in', { method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Gateway-Key': key }, body: JSON.stringify({ name, batch: u.batch_id || '', card }) });
+        const j = await r.json().catch(() => ({}));
+        return j && j.ok ? { ok: true } : { ok: false, error: (j && (j.error || j.skipped)) || ('HTTP ' + r.status) };
+    } catch (e) { return { ok: false, error: 'unreachable' }; }
+}
 export async function ensure(db) {
     await db.prepare(`CREATE TABLE IF NOT EXISTS calsim_records (username TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL)`).run();
 }
@@ -95,7 +110,10 @@ export async function onRequestPost({ request, env }) {
         d.scorecards[track] = (Array.isArray(d.scorecards[track]) ? d.scorecards[track] : []).concat([card]).slice(-20);
         await db.prepare(`INSERT INTO calsim_records (username, data, updated_at) VALUES (?, ?, ?) ON CONFLICT(username) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`)
             .bind(user, JSON.stringify(d), new Date().toISOString()).run();
-        return json({ success: true, scorecard: card, scorecards: d.scorecards[track] });
+        // 🗓 the Standard Training track's scorecard mirrored to the Foundational Training (its Calendar Management Mock Call with
+        // the trainer, worker.js /api/calsim-card-in), so 🧑‍🏫 Graders shows it filled and its scorecards count it
+        const mirrored = track === 'standard' ? await mirrorToFt(env, user, card) : null;
+        return json({ success: true, scorecard: card, scorecards: d.scorecards[track], mirrored });
     }
 
     if (body.exclude) {

@@ -35,6 +35,14 @@ ck(r.st === 200 && r.j.card.average === 4.1 && r.j.card.pct === 83 && r.j.card.b
 r = await call('GET', null, '?name=Abesh+Dawn+Jamon&batch=B103026'); ck(r.j.cards.length === 1 && r.j.cards[0].pct === 83, 'and read back, on the trainee\'s Standard Training track');
 const other = JSON.parse((sql.prepare(`SELECT data FROM calsim_records WHERE username = 'other'`).get() || { data: 'null' }).data);
 ck(!other, 'the same name in another batch is left alone');
+// a trainer's scorecard saved here is mirrored to the Foundational Training (functions/api/calsim.js mirrorToFt): its name, batch and card
+{ const cs = await import(pathToFileURL(path.join(tmp, 'calsim.js')).href), sent = [], realFetch = globalThis.fetch;
+  globalThis.fetch = async (u, init) => { sent.push({ u: String(u), key: init.headers['X-Gateway-Key'], body: JSON.parse(init.body) }); return new Response(JSON.stringify({ ok: true })); };
+  const res = await cs.mirrorToFt(Object.assign({}, env, { FT_URL: 'https://ft.test/' }), 'abesh', { rows: [], pct: 80 });
+  globalThis.fetch = realFetch;
+  ck(res.ok && sent.length === 1 && sent[0].u === 'https://ft.test/api/calsim-card-in' && sent[0].key === 'gw-secret' && sent[0].body.name === 'Abesh Dawn Jamon' && sent[0].body.batch === 'B103026' && sent[0].body.card.pct === 80,
+    'a trainer\'s scorecard is mirrored to the Foundational Training (name, batch, card, the secret)');
+  const off = await cs.mirrorToFt(Object.assign({}, env, { AI_GATEWAY_SECRET: '' }), 'abesh', {}); ck(off.off === true, 'without the secret nothing is mirrored'); }
 delete env.AI_GATEWAY_SECRET; r = await call('GET', null, '?name=Abesh+Dawn+Jamon&batch=B103026'); ck(r.st === 501, 'without the secret on the Portal: 501');
 if (fails.length) { console.log(`\n${fails.length} failed`); process.exit(1); }
 console.log('\nCalendar scorecard (shared) test passed.');

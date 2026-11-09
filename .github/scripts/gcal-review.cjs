@@ -156,6 +156,24 @@ const server = http.createServer((req, res) => {
     const sc = posted[0];
     if (!sc || sc.user !== 'ci' || sc.track !== 'standard' || sc.rows.map(r => r.score).join() !== '5,4,4,3,4,5,4' || !/add the DOB/.test(sc.rows[5].feedback)) fail('the scorecard wasn\'t saved for the trainee: ' + JSON.stringify(sc));
     if (!/4\.1\/5 · 83%/.test(await scoresText(page))) fail('the saved scorecard isn\'t shown: ' + (await scoresText(page)).slice(0, 300));
+    // 📋 every saved scorecard in a dropdown: a second one saved, the first chosen again shows its own scores in the sheet
+    await page.selectOption('select[data-csc="0"]', '3'); await page.click('[data-a="tv-save"]'); await page.waitForTimeout(600);
+    const opts = await page.$$eval('#tv-pick option', os => os.map(o => o.textContent.trim()));
+    if (opts.length !== 2 || !/^Latest · .*3\.9\/5 \(77%\)/.test(opts[0]) || !/4\.1\/5 \(83%\)/.test(opts[1])) fail('the scorecards aren\'t in a dropdown, newest first: ' + JSON.stringify(opts));
+    await page.selectOption('#tv-pick', '0'); await page.waitForTimeout(200);
+    if (await page.inputValue('select[data-csc="0"]') !== '5' || !/4\.1\/5 · 83%/.test(await page.textContent('#tv-card h5'))) fail('choosing the earlier scorecard doesn\'t show its scores: ' + await page.textContent('#tv-card h5'));
+    // 👥 the trainee dropdown, on the trainee's page: this track's trainees with their latest scorecard
+    const ppl = await page.$$eval('#tv-trainee option', os => os.map(o => o.value + '=' + o.textContent.trim()));
+    if (ppl.length !== 2 || !/^ci=Ci Trainee · B1 · 📋 3\.9\/5 \(77%\)/.test(ppl[1]) || ppl.some(x => /zed/.test(x))) fail('the trainee dropdown isn\'t this track\'s trainees with their scores: ' + JSON.stringify(ppl));
+    posted.length = 0; rec.scorecards.standard.pop();
+    // the trainer on the simulator itself picks a trainee from the dropdown and gets their calendar with the scorecard
+    {
+        const p2 = await open('/simulators/gcal.html');
+        await p2.waitForSelector('#tv-trainee', { timeout: 6000 }).catch(() => fail('the trainer\'s simulator has no trainee dropdown to score from'));
+        await Promise.all([p2.waitForURL(/trainee=ci/, { timeout: 6000 }).catch(() => fail('choosing a trainee didn\'t open their calendar')), p2.selectOption('#tv-trainee', 'ci')]);
+        await p2.waitForSelector('#tv-card', { timeout: 6000 }).catch(() => fail('the chosen trainee\'s scorecard didn\'t open'));
+        await p2.close();
+    }
     // a trainer takes an appointment out of the review (a sample or test appointment), the score is worked out again, and it can be put back
     await page.click('#gc-scores [data-a="tv-skip"]'); await page.waitForTimeout(500);
     let st = await scoresText(page);
