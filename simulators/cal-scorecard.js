@@ -1,5 +1,5 @@
 /* The firm's CALENDAR MANAGEMENT MOCK CALL scorecard: the sheet on the Foundational Training's Day 6, the same one the CMS
-   Call Simulator grades the Calendar Management Mock Calls on. Each metric is rated 0 to 5 with the trainer's feedback; the
+   Call Simulator grades the Calendar Management Mock Calls on. Each metric is rated 0 to 5 (in half points, as Graders gives them) with the trainer's feedback; the
    weighted average is out of 5, and as a percentage.
    A trainer scores a trainee's calendar with it in the Google Calendar Simulator (gcal.js, ?trainee=<username>: their calendar,
    read only). The trainee sees it there and on the Calendaring Simulators page (calsim.html). The server keeps it in the
@@ -24,8 +24,9 @@
     // The metrics the calendar itself shows (the automated check scores them): comprehension of the caller's limits, verification
     // (time zone, the description's details), the slot and the attorney's rules, the calendar entry and its reminder.
     const AUTO = [1, 2, 3, 5];
+    const STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];   // the scores a metric can have (Graders' step 0.5)
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const clamp = (v) => Math.max(0, Math.min(5, Math.round(Number(v) || 0)));
+    const clamp = (v) => Math.max(0, Math.min(5, Math.round((Number(v) || 0) * 2) / 2));   // 0 to 5 in half points, as on the Foundational Training's Graders
     // { average (out of 5, one decimal), pct } from rows of { score, weight }
     function average(rows) {
         const w = rows.reduce((a, r, i) => a + (Number((METRICS[i] || {}).weight) || Number(r.weight) || 1), 0);
@@ -70,7 +71,7 @@
         .csc td{padding:6px 8px;border:1px solid #9cb98a;vertical-align:top;line-height:1.35}.csc tbody tr:nth-child(odd){background:#eaf4d7}.csc tbody tr:nth-child(even){background:#fff}
         .csc td.n{color:#1f2d10}.csc td.fb{font-family:inherit;font-weight:500;font-size:12.5px;color:#334155;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
         .csc tr.avg td{background:#eaf4d7;border-top:2px solid #63a537}
-        .csc select{width:48px;font:inherit;font-weight:800;padding:2px;border:1px solid #9cb98a;border-radius:4px;background:#fff;color:#1f2d10}
+        .csc select{width:58px;font:inherit;font-weight:800;padding:2px;border:1px solid #9cb98a;border-radius:4px;background:#fff;color:#1f2d10}
         .csc textarea::placeholder{color:#a3aab5;font-style:italic}.csc textarea{width:100%;box-sizing:border-box;font:500 12.5px/1.35 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#334155;border:1px solid #cbd5e1;border-radius:4px;padding:4px 6px;resize:vertical;min-height:36px}
         .csc .csc-auto{margin-top:3px;font:500 12px/1.35 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#5f6368}.csc-one th:nth-child(1){width:30%}.csc-one th:nth-child(3),.csc-one th:nth-child(4){text-align:center;width:58px}.csc-has-auto th:nth-child(3){text-align:center;width:58px}
         .csc-cap{font-size:12px;font-weight:700;color:#0b1633;margin:0 0 6px}.csc-wrap{overflow-x:auto}`;
@@ -102,7 +103,7 @@
         const avg = card ? card : null, A = Array.isArray(auto) && auto.length === METRICS.length ? auto : null;
         FORM_AUTO = A;
         return `<div class="csc-wrap">${A ? `<div style="margin:0 0 6px"><button type="button" class="pill" data-csc-fill onclick="CalScorecard.fillFromCheck()" title="Put the calendar check's score in each metric you haven't scored yet">🤖 Fill from the calendar check</button></div>` : ''}<table class="csc csc-form${A ? ' csc-has-auto' : ''}"><thead><tr><th>${esc(TITLE)}</th>${A ? '<th title="The automated check of the calendar">🤖 Calendar</th>' : ''}<th>Score</th><th>FEEDBACK</th></tr></thead><tbody>
-            ${METRICS.map((m, i) => `<tr><td title="${esc(m.about)}">${esc(m.name)}</td>${A ? `<td class="n">${autoCell(A[i])}</td>` : ''}<td class="n"><select data-csc="${i}" aria-label="${esc(m.name)}: score" onchange="CalScorecard.liveAvg()"><option value="">–</option>${[0, 1, 2, 3, 4, 5].map(x => `<option value="${x}" ${rows[i].score !== '' && rows[i].score != null && Number(rows[i].score) === x ? 'selected' : ''}>${x}</option>`).join('')}</select></td>
+            ${METRICS.map((m, i) => `<tr><td title="${esc(m.about)}">${esc(m.name)}</td>${A ? `<td class="n">${autoCell(A[i])}</td>` : ''}<td class="n"><select data-csc="${i}" aria-label="${esc(m.name)}: score" onchange="CalScorecard.liveAvg()"><option value="">–</option>${STEPS.map(x => `<option value="${x}" ${rows[i].score !== '' && rows[i].score != null && Number(rows[i].score) === x ? 'selected' : ''}>${x}</option>`).join('')}</select></td>
                 <td class="fb"><textarea data-csf="${i}" maxlength="600" rows="2" aria-label="${esc(m.name)}: feedback" placeholder="${esc(m.about)}">${esc(rows[i].feedback || '')}</textarea>${A && A[i].score != null ? `<div class="csc-auto">🤖 ${esc(A[i].feedback)}</div>` : ''}</td></tr>`).join('')}
             <tr class="avg"><td>WEIGHTED AVERAGE</td>${A ? `<td class="n">${(() => { const c = combined(null, A); return c ? n1(c.average) : '–'; })()}</td>` : ''}<td class="n" id="csc-avg">${avg ? n1(avg.average) : '–'}</td><td class="fb" id="csc-pct">${avg ? `out of 5 · ${Math.round(Number(avg.pct) || 0)}%` : 'out of 5'}</td></tr></tbody></table></div>`;
     }

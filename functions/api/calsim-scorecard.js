@@ -1,5 +1,5 @@
 import { json, sameSecret } from '../_utils.js';
-import { ensure, SCORECARD_METRICS, SCORECARD_TITLE } from './calsim.js';
+import { ensure, SCORECARD_METRICS, SCORECARD_TITLE, halfPoint } from './calsim.js';
 
 // The CALENDAR MANAGEMENT MOCK CALL scorecard shared with the Foundational Training (its 🧑‍🏫 Graders: Mock Calls & Demos):
 // one scorecard, whichever side the trainer fills it in on. The Foundational Training's Worker calls this, server to server,
@@ -56,7 +56,7 @@ export async function onRequestPost({ request, env }) {
     for (let i = 0; i < SCORECARD_METRICS.length; i++) {
         const x = body.rows[i] || {}, v = Number(x.score);
         if (x.score === '' || x.score == null || !Number.isFinite(v) || v < 0 || v > 5) return json({ success: false, error: `Give "${SCORECARD_METRICS[i]}" a score from 0 to 5.` }, 400);
-        rows.push({ metric: SCORECARD_METRICS[i], weight: 1, score: Math.round(v), feedback: clean(x.feedback, 600) });
+        rows.push({ metric: SCORECARD_METRICS[i], weight: 1, score: halfPoint(v), feedback: clean(x.feedback, 600) });   // (half points, as Graders gives them)
     }
     const avg = rows.reduce((a, r) => a + r.weight * r.score, 0) / rows.reduce((a, r) => a + r.weight, 0);
     const card = { title: SCORECARD_TITLE, rows, average: Math.round(avg * 10) / 10, pct: Math.round(avg / 5 * 100), by: clean(body.by, 80) || 'Trainer',

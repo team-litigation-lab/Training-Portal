@@ -16,6 +16,9 @@ import { json, requireSession } from '../_utils.js';
 //   POST /api/calsim { exclude: { user, track, ids: [appointment ids] } }   (admins) appointments the trainer took out of this trainee's review and score
 //        on a simulator (a sample or test appointment that isn't a caller's request), kept under excluded[track]; the trainee's saves never change them.
 const MAX_BYTES = 400000;
+// A metric's score: 0 to 5 in half points, the same scale as the Foundational Training's 🧑‍🏫 Graders (step 0.5), so a
+// scorecard reads the same on both sides (a 4.5 there is a 4.5 here, not a 5).
+export const halfPoint = (v) => Math.max(0, Math.min(5, Math.round(Number(v) * 2) / 2));
 // The scorecard's metrics, in the sheet's order (simulators/cal-scorecard.js has the same list; the checks keep them equal).
 export const SCORECARD_TITLE = 'CALENDAR MANAGEMENT MOCK CALL';
 export const SCORECARD_METRICS = ['Professional Introduction & Call Control', 'Client Comprehension & Flow Control', 'Information Verification & Accuracy',
@@ -99,7 +102,7 @@ export async function onRequestPost({ request, env }) {
         for (let i = 0; i < SCORECARD_METRICS.length; i++) {
             const x = c.rows[i] || {}, v = Number(x.score);
             if (x.score === '' || x.score == null || !Number.isFinite(v) || v < 0 || v > 5) return json({ success: false, error: `Give "${SCORECARD_METRICS[i]}" a score from 0 to 5.` }, 400);
-            rows.push({ metric: SCORECARD_METRICS[i], weight: 1, score: Math.round(v), feedback: clean(x.feedback, 600) });
+            rows.push({ metric: SCORECARD_METRICS[i], weight: 1, score: halfPoint(v), feedback: clean(x.feedback, 600) });
         }
         const avg = rows.reduce((a, r) => a + r.weight * r.score, 0) / rows.reduce((a, r) => a + r.weight, 0);
         const card = { title: SCORECARD_TITLE, rows, average: Math.round(avg * 10) / 10, pct: Math.round(avg / 5 * 100), by: s.fullName || 'Trainer', at: new Date().toISOString(),

@@ -33,6 +33,10 @@ r = await call('POST', { name: 'Nobody', batch: 'B103026', rows }); ck(r.st === 
 r = await call('POST', { name: 'Abesh Dawn Jamon', batch: 'B103026', rows, by: 'Coach Tess' });
 ck(r.st === 200 && r.j.card.average === 4.1 && r.j.card.pct === 83 && r.j.card.by === 'Coach Tess' && r.j.card.source === 'foundational' && r.j.card.rows[5].feedback === 'Add the reminder', 'a card from the Foundational Training is saved with its average');
 r = await call('GET', null, '?name=Abesh+Dawn+Jamon&batch=B103026'); ck(r.j.cards.length === 1 && r.j.cards[0].pct === 83, 'and read back, on the trainee\'s Standard Training track');
+// Graders scores in half points (step 0.5): a 4.5 there stays a 4.5 here, and the average is the same on both sides
+r = await call('POST', { name: 'Abesh Dawn Jamon', batch: 'B103026', rows: [4.5, 4.5, 4, 3.5, 4, 5, 4.5].map(v => ({ score: v })), by: 'Coach Tess' });
+ck(r.st === 200 && r.j.card.rows.map(x => x.score).join() === '4.5,4.5,4,3.5,4,5,4.5' && r.j.card.average === 4.3 && r.j.card.pct === 86, 'half points from Graders are kept as they are: ' + JSON.stringify(r.j.card && r.j.card.rows.map(x => x.score)));
+r = await call('POST', { name: 'Abesh Dawn Jamon', batch: 'B103026', rows: [4.3, 4, 4, 4, 4, 4, 4].map(v => ({ score: v })) }); ck(r.st === 200 && r.j.card.rows[0].score === 4.5, 'any other fraction goes to the nearest half point');
 const other = JSON.parse((sql.prepare(`SELECT data FROM calsim_records WHERE username = 'other'`).get() || { data: 'null' }).data);
 ck(!other, 'the same name in another batch is left alone');
 // a trainer's scorecard saved here is mirrored to the Foundational Training (functions/api/calsim.js mirrorToFt): its name, batch and card
