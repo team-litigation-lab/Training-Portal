@@ -108,6 +108,14 @@ r = await post({ action: 'FT_SWEEP' });
 check(r.status === 200 && (r.body.blocked || []).length === 0, 'a second sweep finds nothing new', r.body);
 check([...kvData.keys()].filter(k => k.includes('trainee:')).length === 10, 'nothing is deleted');
 
+// 🧹 by itself: an admin opening Program Access (GET /api/topics) runs the sweep, at most every 15 minutes
+{ const l = JSON.parse(kvData.get('ft:access:blocked')); delete l.ids['john-luna--b102326']; kvData.set('ft:access:blocked', JSON.stringify(l)); }
+const getTopics = async () => { const r = await topics.onRequestGet({ request: new Request('https://p/api/topics', { headers: { cookie } }), env }); return r.status; };
+check(await getTopics() === 200 && blocked().includes('john-luna--b102326'), 'opening Program Access runs the sweep by itself', blocked());
+{ const l = JSON.parse(kvData.get('ft:access:blocked')); delete l.ids['john-luna--b102326']; kvData.set('ft:access:blocked', JSON.stringify(l)); }
+check(await getTopics() === 200 && !blocked().includes('john-luna--b102326'), 'and not again within 15 minutes', blocked());
+kvData.delete('portal:ftsweep:at');
+
 // 🗑 Revoke & delete tells the course at once (revoke-user.js → ftBlockRevoked), the same loose way
 const fb = await import(ftBlockUrl);
 { const l = JSON.parse(kvData.get('ft:access:blocked')); delete l.ids['john-luna--b102326']; kvData.set('ft:access:blocked', JSON.stringify(l)); }

@@ -25,7 +25,24 @@ async function ftFollow(env, topicKey, traineeUsername, close, reason, by) {
     } catch (e) { return { error: e.message }; }
 }
 
-export async function onRequestGet({ request, env }) {
+// 🧹 the sweep, by itself: an admin opening Program Access (this GET) runs it in the background, at most every 15 minutes,
+// so a trainee revoked here leaves Standard Foundational Training's sheets without anyone pressing 🧹 (an account revoked
+// before Revoke & delete told the course, a program access revoked before this followed it). It never slows the page or
+// fails it: the answer goes out first, and an error is only logged.
+const SWEEP_KEY = 'portal:ftsweep:at', SWEEP_EVERY_MS = 15 * 60 * 1000;
+export async function autoSweep(env, db, session, waitUntil) {
+    const kv = env.COURSE_KV;
+    if (!kv) return;
+    const last = await kv.get(SWEEP_KEY).catch(() => null);
+    if (last && Date.now() - Date.parse(last) < SWEEP_EVERY_MS) return;
+    await kv.put(SWEEP_KEY, new Date().toISOString()).catch(() => {});
+    const run = ftSweep(env, env.DB, db).then(async (r) => {
+        if (r && r.blocked && r.blocked.length) await logActivity(db, session.username, session.batchId, 'FT_REVOKED_SWEEP', { blocked: r.blocked, auto: true });
+    }).catch((e) => console.error('FT auto sweep:', e && e.message));
+    if (typeof waitUntil === 'function') waitUntil(run); else await run;
+}
+
+export async function onRequestGet({ request, env, waitUntil }) {
     const db = env.TRAINING_DB;
     // Never cache this — topic list and access status change as admins
     // approve requests and seed data changes, and a stale cached response
@@ -56,6 +73,7 @@ export async function onRequestGet({ request, env }) {
         ).all();
 
         if (auth.session.userType === 'Admin') {
+            try { await autoSweep(env, db, auth.session, waitUntil); } catch (e) { /* never stops the page */ }
             // Admins get every trainee's access row per topic, so Master
             // Control can render an approval queue.
             const { results: access } = await db.prepare(
