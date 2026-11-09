@@ -10,7 +10,7 @@ const TraineesCalendars = (function () {
         { id: 'activity', icon: '📝', title: 'Calendaring Activity', viewOnly: true }];   // (the blank calendar: its automated check, every entry, and no mock-call scorecard)
     const E = (t) => Sim.esc(t), go = (u, o) => (Sim.fetchRetry ? Sim.fetchRetry(u, o) : fetch(u, o));
     const S = { box: null, people: [], extra: null, q: '', err: '' };
-    const card = (inner) => `<div class="card tc-card" style="padding:18px">${inner}</div>`;
+    const card = (inner) => `<div class="card tc-card" style="padding:18px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 4px 18px rgba(11,22,51,.12)">${inner}</div>`;
     const head = '<h2 style="margin:0;font-size:20px;color:#0b1633">👥 Your trainees’ calendars</h2>';
     const href = (u, t) => '/simulators/gcal.html?' + (t === 'standard' ? '' : 'track=' + encodeURIComponent(t) + '&') + 'trainee=' + encodeURIComponent(u);
     const when = (t) => { const d = new Date(String(t || '').replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(t || '')) ? '' : 'Z')); return isNaN(d) ? '' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); };
