@@ -561,7 +561,7 @@ function renderUsersList() {
                 <tbody>${users.map(u => renderUserRow(u, isTrainer)).join('')}</tbody></table></div></details>`;
     };
 
-    const search = `<input type="text" id="users-search" placeholder="Search name, username, email or batch" value="${escapeHtml(q)}" oninput="renderUsersList(); const i=document.getElementById('users-search'); i.focus(); i.setSelectionRange(i.value.length,i.value.length);" style="width:100%;max-width:420px;padding:10px 12px;border:1.5px solid #94a3b8;border-radius:8px;margin-bottom:12px;font-size:14px;color:#0f172a;">`;
+    const search = `<input type="text" id="users-search" placeholder="Search name, username, email or batch" value="${escapeHtml(q)}" oninput="renderUsersList(); const i=document.getElementById('users-search'); i.focus(); i.setSelectionRange(i.value.length,i.value.length);" style="width:100%;max-width:460px;padding:12px 14px;border:1.5px solid #94a3b8;border-radius:8px;margin-bottom:12px;font-size:16px;font-weight:600;color:#0f172a;">`;
     const toolbar = `<div class="pa-toolbar"><button class="btn-ghost" onclick="paExpandAll(true, 'users-list')">Expand all</button><button class="btn-ghost" onclick="paExpandAll(false, 'users-list')">Collapse all</button></div>`;
     container.innerHTML = search
         + ((!admins.length && !batches.length) ? '<p class="pa-empty">No accounts match.</p>' : toolbar
