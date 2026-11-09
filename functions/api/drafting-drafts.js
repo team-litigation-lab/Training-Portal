@@ -1,4 +1,6 @@
 import { json, requireSession } from '../_utils.js';
+import { courseIdsFor } from '../_ft-block.js';
+import { courseTraineeId } from './call-results.js';
 
 // ✍ Drafting (simulators/drafting.html): the letters a trainee is drafting, saved to their Portal account, so a letter
 // follows them to another browser or computer (the page also keeps it in the browser, and opens the newer of the two).
@@ -14,6 +16,8 @@ import { json, requireSession } from '../_utils.js';
 //   GET  /api/drafting-drafts?letter=<id>        one of mine: { data, updatedAt } (data null: nothing saved)
 //   GET  /api/drafting-drafts?letter=<id>&user=<username>   (admins) a trainee's, for looking at their work
 //   GET  /api/drafting-drafts?letter=<id>:pdf&raw=1 (&user=…)  an uploaded PDF or Word file itself (:pdf / :docx), to open
+//   GET  /api/drafting-drafts?assigned=1         my LOR case, as my trainer assigned it in the Foundational Training (📄 Assign
+//                                                LORs → the course's lorassign:<id> in COURSE_KV): { case: 1…n | null, found }
 //   GET  /api/drafting-drafts?pdfs=1             (admins) every trainee's uploaded PDF and Word file: [{ username, name, batch, letter, updatedAt }]
 //   POST { action:'draft', letter, data, base }  save mine; `base` is the updatedAt this copy was made from: if a newer one is
 //                                                saved (another tab or device) the answer is 409 DRAFT_NEWER and nothing changes
@@ -33,12 +37,37 @@ async function ensure(db) {
         updated_at TEXT NOT NULL, PRIMARY KEY (username, letter))`).run();
 }
 
+// The course names a trainee's record by their first and last name and their batch, slugged (worker.js candidateIds): every
+// form the Portal account gives (a middle initial or not, the first and last word only), read until one has an assignment.
+// { case: n, found: true } assigned; { case: null, found: true } a record says not assigned (taken off); { found: false } none.
+export async function assignedCase(env, username) {
+    const kv = env.COURSE_KV, db = env.DB;
+    if (!kv || !db) return { case: null, found: false };
+    let u = null;
+    try { u = await db.prepare(`SELECT first_name, mi, last_name, suffix, batch_id FROM users WHERE username = ?`).bind(username).first(); } catch (e) { u = null; }
+    if (!u) return { case: null, found: false };
+    const full = [u.first_name, u.mi, u.last_name, u.suffix].filter(Boolean).join(' ');
+    const ids = [...new Set([courseTraineeId(u.first_name, u.last_name, u.batch_id)].concat(courseIdsFor(full, u.batch_id)))].slice(0, 8);
+    let found = false;
+    for (const id of ids) {
+        let a = null;
+        try { a = await kv.get('ft:lorassign:' + id, 'json'); } catch (e) { a = null; }
+        if (!a || typeof a !== 'object') continue;
+        found = true;
+        const n = Number(a.case);
+        if (Number.isInteger(n) && n >= 1) return { case: n, found: true, at: a.at || null };
+    }
+    return { case: null, found };
+}
+
 export async function onRequestGet({ request, env }) {
     const auth = await requireSession(request, env);
     if (!auth.ok) return auth.response;
     const s = auth.session, db = env.TRAINING_DB;
     await ensure(db);
     const q = new URL(request.url).searchParams;
+    // 📄 my assigned LOR case, read from the course: the drafting tool opens on it alone wherever it is opened from
+    if (q.get('assigned') != null) return json(Object.assign({ success: true }, await assignedCase(env, s.username)), 200);
     // (admins) every trainee's edited PDF (from Nitro Pro), newest first, for the trainer's list on the Drafting page
     if (q.get('pdfs') != null) {
         if (s.userType !== 'Admin') return json({ success: false, error: 'Admin access required.' }, 403);

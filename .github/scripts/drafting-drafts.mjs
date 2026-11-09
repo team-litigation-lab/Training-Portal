@@ -10,6 +10,8 @@ import os from 'os';
 import path from 'path';
 import { pathToFileURL } from 'url';
 const src = fs.readFileSync('functions/api/drafting-drafts.js', 'utf8')
+    .replace("from '../_ft-block.js'", `from '${pathToFileURL(path.resolve('functions/_ft-block.js')).href}'`)
+    .replace("from './call-results.js'", `from '${pathToFileURL(path.resolve('functions/api/call-results.js')).href}'`)
     .replace("import { json, requireSession } from '../_utils.js';", "const json=(d,s=200)=>new Response(JSON.stringify(d),{status:s,headers:{'Content-Type':'application/json'}});let CUR=null;const requireSession=async()=>CUR?{ok:true,session:CUR}:{ok:false,response:json({success:false,code:'NOT_AUTHENTICATED'},401)};globalThis.__setSession=(x)=>{CUR=x};");
 if (!/globalThis.__setSession/.test(src)) throw new Error('the test could not stand in for the session: update it with drafting-drafts.js');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'dd-')); fs.writeFileSync(path.join(tmp, 'drafting-drafts.mjs'), src);
@@ -17,9 +19,10 @@ const m = await import(pathToFileURL(path.join(tmp, 'drafting-drafts.mjs')).href
 const sql = new DatabaseSync(':memory:');
 const mk = (q) => { let a = []; const o = { bind: (...x) => { a = x; return o; }, run: async () => { const r = sql.prepare(q).run(...a); return { meta: { changes: r.changes } }; }, first: async () => sql.prepare(q).get(...a) || null, all: async () => ({ results: sql.prepare(q).all(...a) }) }; return o; };
 const accounts = new DatabaseSync(':memory:');
-accounts.exec(`CREATE TABLE users (username TEXT, first_name TEXT, last_name TEXT, batch_id TEXT); INSERT INTO users VALUES ('ann', 'Ann', 'Lee', 'B102226');`);
-const mkA = (q) => { let a = []; const o = { bind: (...x) => { a = x; return o; }, all: async () => ({ results: accounts.prepare(q).all(...a) }) }; return o; };
-const env = { TRAINING_DB: { prepare: mk }, DB: { prepare: mkA } };
+accounts.exec(`CREATE TABLE users (username TEXT, first_name TEXT, mi TEXT, last_name TEXT, suffix TEXT, batch_id TEXT); INSERT INTO users VALUES ('ann', 'Ann', 'Q', 'Lee', NULL, 'B102226'), ('cy', 'Cy', NULL, 'Ross', NULL, 'B102226');`);
+const mkA = (q) => { let a = []; const o = { bind: (...x) => { a = x; return o; }, all: async () => ({ results: accounts.prepare(q).all(...a) }), first: async () => accounts.prepare(q).get(...a) || null }; return o; };
+const kvStore = new Map();
+const env = { TRAINING_DB: { prepare: mk }, DB: { prepare: mkA }, COURSE_KV: { get: async (k, t) => kvStore.has(k) ? (t === 'json' ? JSON.parse(kvStore.get(k)) : kvStore.get(k)) : null } };
 const call = async (meth, body, qs = '') => { const req = new Request('https://p/api/drafting-drafts' + qs, { method: meth, body: body ? JSON.stringify(body) : undefined });
     const r = await (meth === 'GET' ? m.onRequestGet : m.onRequestPost)({ request: req, env }); return { st: r.status, j: await r.json() }; };
 const fails = []; const ck = (o, t) => { console.log((o ? 'PASS ' : 'FAIL ') + t); if (!o) fails.push(t); };
@@ -79,6 +82,18 @@ ck(res.status === 200 && /wordprocessingml/.test(res.headers.get('Content-Type')
     && /^attachment; filename="INS _ 1P\.docx"$/.test(res.headers.get('Content-Disposition')), 'the saved Word file downloads as itself');
 __setSession(bo);
 r = await call('GET', null, '?pdfs=1'); ck(r.st === 200 && r.j.pdfs.length === 4 && r.j.pdfs.filter(x => /:docx$/.test(x.letter)).length === 2, 'the trainer lists the Word files with the PDFs');
+
+// 📄 the LOR case a trainer assigned in the Foundational Training (the course's ft:lorassign:<first-last--batch>), read for the
+// drafting tool whatever link opened it: none yet, assigned, taken off again; another trainee's isn't theirs
+__setSession(ann);
+r = await call('GET', null, '?assigned=1'); ck(r.st === 200 && r.j.case === null && r.j.found === false, 'no assignment yet: no case');
+kvStore.set('ft:lorassign:ann-lee--b102226', JSON.stringify({ case: 3, at: '2026-11-09T10:00:00Z' }));
+r = await call('GET', null, '?assigned=1'); ck(r.j.case === 3 && r.j.found === true, 'the trainer assigned case 3: the trainee gets case 3');
+__setSession(cy);
+r = await call('GET', null, '?assigned=1'); ck(r.j.case === null && r.j.found === false, 'another trainee does not get it');
+__setSession(ann);
+kvStore.set('ft:lorassign:ann-lee--b102226', JSON.stringify({ case: null, at: '2026-11-09T11:00:00Z' }));
+r = await call('GET', null, '?assigned=1'); ck(r.j.case === null && r.j.found === true, 'taken off again: found, with no case');
 
 console.log(fails.length ? `\n${fails.length} failed` : '\nall passed');
 process.exit(fails.length ? 1 : 0);
