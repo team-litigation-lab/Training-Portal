@@ -1,6 +1,7 @@
 import { json, requireSession, tombstoneUser, logActivity, isMaster, MASTER_USERNAME } from '../_utils.js';
 import { driveConfigured, saveUserRecordsToDrive } from '../_drive.js';
 import { collectUserRecords, purgeUserRecords, fullName } from '../_purge.js';
+import { ftBlockRevoked } from '../_ft-block.js';
 
 // Permanent, irreversible account revocation: tombstones the row (so the
 // username/email is recognized as previously-deleted — see
@@ -76,6 +77,10 @@ export async function onRequestPost({ request, env }) {
     await tombstoneUser(db, user, session.username);
     await db.prepare(`DELETE FROM users WHERE id = ?`).bind(userId).run();
     const gone = await purgeUserRecords(env, user, records);
+    // 🚫 and Standard Foundational Training is told: every course record of theirs the purge didn't find (another form of
+    // their name, another batch there) goes on its block list, so they leave every scorecard there too (_ft-block.js)
+    try { const ft = await ftBlockRevoked(env, db, user, session.username); if (ft.blocked.length) gone.ftBlocked = ft.blocked; }
+    catch (e) { gone.ftBlocked = `not told: ${e.message}`; }
     await logActivity(db, session.username, session.batchId, 'revoke-user',
         { userId, username: user.username, backup: backup || 'downloaded by the admin', removed: gone, courseIncomplete: records.courseIncomplete });
 
