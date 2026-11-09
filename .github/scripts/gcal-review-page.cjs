@@ -311,7 +311,7 @@ const server = http.createServer((req, res) => {
         ok(/AI writing/.test(await txt(page, '.rv-top .chip') || ''), 'test setup: the header chip should say AI writing');
         await tick(page, 4000);
         ok(await until(async () => /Done now/.test(await txt(page, '#rv-ai') || '')), 'the finished review never showed');
-        ok(/AI review ready/.test(await txt(page, '.rv-top .chip') || ''), 'the header chip is stale after the review finished: ' + await txt(page, '.rv-top .chip'));
+        ok(/Ready to review/.test(await txt(page, '.rv-top .chip') || ''), 'the header chip is stale after the review finished: ' + await txt(page, '.rv-top .chip'));
         ok(await page.$eval('[data-a="finalize"]', e => !e.disabled && !e.hasAttribute('title')), 'the Send button keeps its "Wait for the AI review" tooltip');
         // Try again on the stuck one, then Send
         await openRow(page, 5);

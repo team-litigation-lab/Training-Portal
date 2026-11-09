@@ -116,7 +116,7 @@ function chip(r) {
     if (r.status === 'final') return '<span class="chip final">📤 Sent</span>';
     if (r.aiStatus === 'pending') return '<span class="chip pend">🤖 AI writing…</span>';
     if (r.aiStatus === 'error') return '<span class="chip err">⚠ AI failed</span>';
-    return '<span class="chip ready">✅ AI review ready</span>';
+    return '<span class="chip ready">✅ Ready to review</span>';
 }
 const keepFocus = (box, fn) => {   // a box that is drawn again keeps the focus on the same button
     const f = document.activeElement, k = f && box.contains(f) && (f.dataset.id ? '[data-id="' + f.dataset.id + '"]' : f.dataset.a ? '[data-a="' + f.dataset.a + '"]' : '');
@@ -374,7 +374,7 @@ function traineeExtra(p, trackId) {
     const r = (R.list || []).filter(x => x.username === p.username && x.track === trackId).sort((a, b) => String(b.submittedAt).localeCompare(String(a.submittedAt)))[0];
     if (!r) return '';
     return `<div class="rv-tsub"><span class="rv-sub">📤 Submitted ${esc(when(r.submittedAt))}${r.checkScore != null ? ' · check ' + esc(r.checkScore) + '%' : ''}</span><div>${chip(r)}</div>
-        <button type="button" class="btn btn-navy" data-sub="${esc(r.id)}">${r.status === 'final' ? '🖥 Open the sent report' : '🖥 AI review &amp; send'}</button></div>`;
+        <button type="button" class="btn btn-navy" data-sub="${esc(r.id)}">${r.status === 'final' ? '📤 Open the sent report' : '👁 Open review'}</button></div>`;
 }
 const tsig = () => (R.list || []).map(r => [r.id, r.status, r.aiStatus].join(':')).join('|');
 async function openRow(id) {
