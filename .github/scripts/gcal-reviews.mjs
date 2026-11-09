@@ -295,7 +295,10 @@ const zed = pr.calsim.byName['zed recent']; ck(zed && zed.ft && zed.ft.weeks[0].
     const sent = (globalThis.__course || [])[0] || [];
     ck(r.st === 200 && sent[1] === 'ann' && sent[2] === 'FT' && sent[3] && sent[3].simulator === 'Calendaring Activity · Final evaluation' && sent[3].score === 88,
         'the activity\'s final evaluation records the trainer\'s score on Standard Training: ' + JSON.stringify(sent.slice(1)));
-    globalThis.__course = []; r = await call('POST', { action: 'finalize', id: 1 }); ck(!(globalThis.__course || []).length, 'a mock-call calendar\'s final report sends nothing to Standard Training');
+    // (the mock-call calendar's final evaluation goes to Standard Training's Scorecard too, under its own name: the trainer's evaluation)
+    globalThis.__course = []; r = await call('POST', { action: 'reopen', id: 1 }); r = await call('POST', { action: 'finalize', id: 1 });
+    { const m = (globalThis.__course || [])[0] || []; ck(r.st === 200 && m[2] === 'FT' && m[3] && m[3].simulator === 'Google Calendar Simulator · Final evaluation' && m[3].score === 84,
+        'a mock-call calendar\'s final evaluation records the trainer\'s score on Standard Training: ' + JSON.stringify(m.slice(1))); }
 }
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(fails.length ? 'FAILED' : 'all passed'); process.exit(fails.length ? 1 : 0);

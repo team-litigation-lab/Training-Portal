@@ -335,12 +335,17 @@ export async function onRequestPost({ request, env, waitUntil }) {
         }
         await db.prepare(`UPDATE gcal_reviews SET status = ?, finalized_at = ?, finalized_by = ?, ${TOUCH} WHERE id = ?`)
             .bind(fin ? 'final' : 'submitted', fin ? nowIso() : null, fin ? clean(s.fullName || 'Trainer', 120) : null, nowIso(), id).run();
-        // 📝 the Calendaring Activity's final evaluation: its score is Standard Training's (the Foundational Training's Scorecard, simresults);
-        // the record stays here. The trainer's score, else the automated check's.
+        // 📝 every final evaluation goes to its course's Scorecard (simresults, each trainee's 🔎 Every grade there); the record stays here.
+        // The trainer's score, else the automated check's. Standard Training gets the Calendaring Activity's and the mock-call calendar's
+        // (the trainer's evaluation, apart from the course's own booking-rule checks); CM and EA / PA get theirs.
         let course = null;
-        if (fin && row.track === 'activity') {
+        const TO = { activity: ['FT', 'Calendaring Activity · Final evaluation', 'Attorney Calendar Management Activity (Day 5)'],
+            standard: ['FT', 'Google Calendar Simulator · Final evaluation', 'Calendar mock calls (Day 6)'],
+            cm: ['CM', 'Google Calendar Simulator · Final evaluation', 'Litigation Week calendar'],
+            ea: ['EA', 'Google Calendar Simulator · Final evaluation', 'Executive Week calendar'] }[row.track];
+        if (fin && TO) {
             const t = parse(row.trainer) || {}, score = t.score != null && Number.isFinite(Number(t.score)) ? Math.max(0, Math.min(100, Math.round(Number(t.score)))) : row.check_score;
-            if (score != null) try { course = await toCourseFor(env, row.username, 'FT', { simulator: 'Calendaring Activity · Final evaluation', scenario: 'Attorney Calendar Management Activity (Day 5)', score, at: nowIso() }); } catch (e) { course = null; }
+            if (score != null) try { course = await toCourseFor(env, row.username, TO[0], { simulator: TO[1], scenario: TO[2], score, at: nowIso() }); } catch (e) { course = null; }
         }
         return json({ success: true, course });
     }
