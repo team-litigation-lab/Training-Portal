@@ -52,7 +52,7 @@ Standalone data/deck modules and repo-level config.
 | `attendance-sync.gs` | 236 | Google Apps Script pasted into the attendance spreadsheet: two-way sync between the 'Platform Attendance' tab and /api/attendance-feed (15-minute pull, installable on-edit push of Training/Time In/Time Out/Status/Notes). |
 | `lsh-blueprint.js` | 519 | Shared LSH Blueprint slide-deck engine (trainee/trainer/admin decks from window.LSH_BLUEPRINT), with keyboard nav, screenshot zoom, auto-fit scaling, and a jsPDF-based real-text PDF export. |
 | `progress-records.js` | 404 | Browser script for /progress.html: admin Trainee Progress & Feedback — per-program tabs, batch-grouped trainee table with detail rows, archived batches (open/restore/Save to Drive), trainee feedback pane, CSV exports, all against /api/program-progress. |
-| `topics_seed.sql` | 23 | Seed INSERT for the D1 `topics` table: 22 training/reference topic keys with display names and sort_order. |
+| `topics_seed.sql` | 24 | Seed INSERT for the D1 `topics` table: 23 training/reference topic keys with display names and sort_order. |
 | `wrangler.toml` | 22 | Cloudflare Pages config: output dir = repo root, two D1 bindings (DB, TRAINING_DB) and the read-only COURSE_KV namespace for course progress. |
 
 ## Google Calendar Simulator
