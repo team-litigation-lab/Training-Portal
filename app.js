@@ -3018,7 +3018,7 @@ async function loadProgramAccess() {
 }
 const PA_HIDDEN = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];   // keep in step with ARCHIVED_TOPICS in programs.html (same list; a different name because programs.html loads app.js into the same global scope)
 // the programs' names as the Training Directory shows them (PROGRAM_NAMES in programs.html)
-const PA_NAMES = { 'STANDARD TRAINING': 'Standard Foundational Training', 'CM TRAINING': 'Case Management Training', 'REVISED CM TRAINING': 'Revised Case Management Training', 'PROPERTY DAMAGE': 'Property Damage Claims Training', 'MEDSUM AND DEMAND': 'Medsum & Demand Training' };
+const PA_NAMES = { 'STANDARD TRAINING': 'Standard Foundational Training', 'CM TRAINING': 'Case Management Training', 'REVISED CM TRAINING': 'Revised Case Management Training', 'PROPERTY DAMAGE': 'Property Damage Claims Training', 'MEDSUM AND DEMAND': 'Medsum & Demand Training', 'LIEN NEGOTIATION': 'Lien Negotiator Training' };
 const paName = (key) => PA_NAMES[key] || ((__paTopics.find(t => t.key === key) || {}).name) || key;
 const paIsSuspended = (st) => String(st || '').startsWith('Suspended');
 const paPillClass = (st) => paIsSuspended(st) ? 'suspended' : String(st || '').toLowerCase();

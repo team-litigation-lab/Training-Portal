@@ -305,7 +305,7 @@
 <script src="portal.js"></script>
 <script>
     // Standard Foundational Training, CM Training, EA PA Training,
-    // Property Damage and Medsum & Demand are the only programs with a real,
+    // Property Damage, Medsum & Demand and Lien Negotiation are the only programs with a real,
     // built portal so far — everything else in the topics table is reference-only until its
     // own site exists. Keyed by the exact `key` value seeded into the topics
     // table. Standard Foundational Training is the 18-day program
@@ -313,19 +313,21 @@
     // (Case-Management-Training repo); the CMS it uses opens from inside it.
     // Property Damage is the 5-day PD Claims course
     // (propertydamageclaimstraining repo). Medsum and Demand is the 5-day
-    // Medsum & Demand course (medsumanddemandtraining repo).
+    // Medsum & Demand course (medsumanddemandtraining repo). Lien Negotiation is the
+    // 2-day Lien Negotiator course (LienNegotiatorTraining repo).
     const BUILT_PROGRAMS = {
         'STANDARD TRAINING': 'https://foundational-training.legalsupporthelp.workers.dev/',
         'CM TRAINING': 'https://case-management-training.legalsupporthelp.workers.dev/',
         'EA  PA TRAINING-OUTSOURCED MANP': 'https://ea-pa-training.legalsupporthelp.workers.dev/',
         'PROPERTY DAMAGE': 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/',
-        'MEDSUM AND DEMAND': 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/'
+        'MEDSUM AND DEMAND': 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/',
+        'LIEN NEGOTIATION': 'https://liennegotiatortraining.legalsupporthelp.workers.dev/'
     };
 
     // Programs that open through this portal's single sign-in: their own site has no trainee
     // sign-in, and trainees come in with a signed ticket from /api/launch (functions/api/launch.js).
     // Keep in step with SSO_PROGRAMS there. Admins go through it too (no admin password again in the program).
-    const SSO_PROGRAMS = ['STANDARD TRAINING', 'EA  PA TRAINING-OUTSOURCED MANP', 'CM TRAINING', 'PROPERTY DAMAGE', 'MEDSUM AND DEMAND'];
+    const SSO_PROGRAMS = ['STANDARD TRAINING', 'EA  PA TRAINING-OUTSOURCED MANP', 'CM TRAINING', 'PROPERTY DAMAGE', 'MEDSUM AND DEMAND', 'LIEN NEGOTIATION'];
     // Opening a program asks the Portal to vouch for you (/api/launch), which needs a live Portal session. A Portal tab that sat in the
     // background has its heartbeat slowed by the browser, so the session can look timed out right when you click. Wake it first, then go.
     document.addEventListener('click', function (e) {

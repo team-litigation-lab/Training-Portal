@@ -74,6 +74,7 @@ const PortalNav = {
         ['Case Management Training', '/api/launch?program=CM%20TRAINING&to=blueprint'],
         ['Property Damage Claims Training', '/api/launch?program=PROPERTY%20DAMAGE&to=blueprint'],
         ['Medsum & Demand Training', '/api/launch?program=MEDSUM%20AND%20DEMAND&to=blueprint'],
+        ['Lien Negotiator Training', '/api/launch?program=LIEN%20NEGOTIATION&to=blueprint'],
         ['Case Management System', '/api/launch?tool=cms&to=blueprint'],
         ['LSH Ring Channel', '/api/launch?tool=ringchannel&to=blueprint'],
         ['Knowledge Base', '/api/launch?tool=kb&to=blueprint']
