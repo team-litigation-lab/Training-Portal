@@ -21,7 +21,8 @@ const PROGRAMS = [
     { id: 'eapa', label: 'EA / PA Training', prefix: '' },
     { id: 'cm', label: 'Case Management Training', prefix: 'cm:' },
     { id: 'pd', label: 'PD Claims Training', prefix: 'pd:' },
-    { id: 'md', label: 'Medsum & Demand Training', prefix: 'md:' }
+    { id: 'md', label: 'Medsum & Demand Training', prefix: 'md:' },
+    { id: 'ln', label: 'Lien Negotiator Training', prefix: 'ln:' }
 ];
 // The courses key their records by their own trainee id, not by the Portal's
 // username, so a person is found in them by name (the same match /progress.html
