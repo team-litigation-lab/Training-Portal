@@ -31,7 +31,7 @@ export const PROGRAMS = [
             'Total Loss, Valuation & Negotiation', 'Releases, Payment, Subrogation & Closing the PD Claim'] },
     { id: 'md', label: 'Medsum & Demand Training', prefix: 'md:', days: [] },
     { id: 'ln', label: 'Lien Negotiator Training', prefix: 'ln:',
-        days: ['The Lien Negotiator Role, Pt. 1', 'The Lien Negotiator Role, Pt. 2'] }
+        days: ['The Lien Negotiator Role, Pt. 1', 'The Lien Negotiator Role, Pt. 2', 'Process Questions, Live Demo & Shadowing'] }
 ];
 // The attendance sheet's statuses (attendance.html has them with their colors; keep the two in step).
 export const STATUSES = ['Present', 'Late', 'Late with Notif', 'Early Out - POC Approved', 'Undertime - POC Approved', 'Undertime - No Approval',
