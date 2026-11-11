@@ -425,11 +425,18 @@ function providerBar() {
 
 /* ---------- the case notes beside it ---------- */
 // A case by the client's name, as the case notes give it, with the date of loss (several cases share a client).
+// Two cases with the same client and date of loss are told apart by the client's own carrier.
 function caseLabel(c, i) {
-    const side = (c && (c.p1 || c.p3)) || {};
-    const name = String(side['Client’s Name'] || side["Client's Name"] || side['Client Name'] || '').trim();
-    const dol = String(side['Date of Loss'] || '').trim();
-    return name ? name + (dol ? ' · DOL ' + dol : '') : 'Case ' + (i + 1);
+    const base = (x) => {
+        const side = (x && (x.p1 || x.p3)) || {};
+        const name = String(side['Client’s Name'] || side["Client's Name"] || side['Client Name'] || '').trim();
+        const dol = String(side['Date of Loss'] || '').trim();
+        return name ? name + (dol ? ' · DOL ' + dol : '') : '';
+    };
+    const b = base(c);
+    if (!b) return 'Case ' + (i + 1);
+    const twin = CASES.some((x, j) => j !== i && base(x) === b), carrier = String(((c && c.p1) || {})['Insurance Company Name'] || '').trim();
+    return twin && carrier ? b + ' · ' + carrier : b;
 }
 function caseHtml() {
     if (S.tab === 'prov') {

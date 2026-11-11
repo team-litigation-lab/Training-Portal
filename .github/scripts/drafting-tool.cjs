@@ -222,7 +222,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     ASSIGNED = { success: true, case: null, found: true };
     const as5 = await shown();
     const opts = await page.$$eval('select[onchange*="pickCase"] option', os => os.map(o => o.textContent.trim()));
-    check('the cases are listed by the client\'s name on the case', opts[0] === 'Jane Doe · DOL March 10, 2023' && opts[11] === 'Treyvonte Stroman · DOL August 22, 2022' && opts.every(o => !/^Case \d/.test(o)) && new Set(opts).size === opts.length, opts.join(' | '));
+    check('the cases are listed by the client\'s name on the case', opts[0] === 'Jane Doe · DOL March 10, 2023' && opts[11] === 'John Doe · DOL August 22, 2022' && opts[14] === 'Jane Doe · DOL November 10, 2023 · American National General Insurance Company' && opts.every(o => /^(John|Jane) Doe · DOL /.test(o)) && opts.every(o => !/^Case \d/.test(o)) && new Set(opts).size === opts.length, opts.join(' | '));
     check('taken off in the course: the trainee picks the case again', as5.sel > 0 && as5.txt === '', JSON.stringify(as5));
 
     // 9. ✎ Edit here: the platform's own editor, on the draft; the trainee's own file name; Download as Word with the edits;
