@@ -1,6 +1,7 @@
-// The Drafting tool (simulators/drafting.js): each letter opens as the firm's original, the trainee edits it on their
-// own computer — ✎ Edit in Word for Word or any word processor, ✎ Edit in PDF for any PDF editor — and uploads it back,
-// where it is checked and scored to their progress.
+// The Drafting tool (simulators/drafting.js): the letters, steps and case notes down the left, the document on the right.
+// Each letter opens as the firm's original; the trainee edits it here (✎ Edit here, the platform's own editor) or on
+// their own computer — ✎ Edit in Word for Word or any word processor, ✎ Edit in PDF for any PDF editor — and uploads it
+// back, where it is checked and scored to their progress. The platform never combines files into a PDF.
 //
 // Checked here, as a trainee does it: the original opens read-only with ✎ Edit in Word · ✎ Edit in PDF, each handing
 // over the firm's own file named the trainers' way; an uploaded Word file is checked (a highlight left in it is found,
@@ -81,9 +82,17 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await page.waitForSelector('section.docx > article', { timeout: 30000 });
     await original();
     check('the original opens read-only', await page.$$eval('section.docx > article', as => as.length > 0 && as.every(a => a.contentEditable !== 'true')), 'an editable article');
-    const acts = await page.$$eval('.dr-docacts .sim-btn', bs => bs.map(b => b.textContent.trim()).join(' | '));
+    const lay = await page.evaluate(() => {
+        const l = document.querySelector('.dr-left').getBoundingClientRect(), r = document.querySelector('.dr-pane').getBoundingClientRect();
+        return { side: l.right <= r.left + 1, wider: r.width > l.width, nav: !!document.querySelector('.dr-left .dr-nav'), cards: ['#dr-edit', '.dr-left .dr-note h3'].every(q => document.querySelector(q)),
+            notes: /Case notes/.test(document.querySelector('.dr-left').textContent) && /The trainers' reminders/.test(document.querySelector('.dr-left').textContent) };
+    });
+    check('the letters, steps and case notes on the left, the document on the right and wider', lay.side && lay.wider && lay.nav && lay.cards && lay.notes, JSON.stringify(lay));
+    const acts = await page.$$eval('#dr-edit .sim-btn[data-word], #dr-edit .sim-btn[data-pdfedit]', bs => bs.map(b => b.textContent.trim()).join(' | '));
     check('✎ Edit in Word · ✎ Edit in PDF', acts === '✎ Edit in Word | ✎ Edit in PDF', acts);
-    check('no editor on the page any more', !(await page.$('.wd-ribbon')) && !(await page.$('[contenteditable="true"]')), 'an editor');
+    const bar = await page.$$eval('.dr-docbar button', bs => bs.map(b => b.textContent.trim()).join(' | '));
+    check('over the document: Original / Edit here, Download as Word, Save as PDF', /👁 Original/.test(bar) && /✎ Edit here/.test(bar) && /Download as Word \(\.docx\)/.test(bar) && /Save as PDF/.test(bar), bar);
+    check('the original has no editor', !(await page.$('.wd-ribbon')) && !(await page.$('[contenteditable="true"]')), 'an editor');
 
     // 1. ✎ Edit in Word hands over the firm's .docx, named the trainers' way, and puts the Word steps first
     const tplDocx = fs.readFileSync(path.join(ROOT, 'simulators/drafting/templates/1P_LOR.docx'));
@@ -133,6 +142,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     const keptPdf = ACCOUNT['lor1p:pdf'] && JSON.parse(ACCOUNT['lor1p:pdf'].data);
     check('the PDF is kept on the account, as uploaded', !!keptPdf && Buffer.from(keptPdf.b64, 'base64').equals(tplPdf), 'not kept');
     // a clean PDF, dated today (made in the page with pdf-lib, as an editor would save it)
+    await page.addScriptTag({ url: 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js' });   // the test's own: the page no longer loads pdf-lib
     const clean = await page.evaluate(async () => {
         const d = await PDFLib.PDFDocument.create(), pg = d.addPage([612, 792]), f = await d.embedFont(PDFLib.StandardFonts.Helvetica);
         const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -162,7 +172,9 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     const hipPages = await page.$$eval('#dr-hipaa canvas', cs => cs.filter(c => c.width > 0 && c.height > 0).length);
     check('the MedLOR\'s original shows the client\'s signed HIPAA, the firm\'s own PDF, its two pages drawn',
         fs.existsSync(path.join(ROOT, decodeURIComponent(hipSrc))) && hipPages === 2, hipSrc + ', ' + hipPages + ' pages drawn');
-    check('and the HIPAA\'s steps are there', /The client's signed HIPAA/.test(await page.textContent('.dr-side')) && !!(await page.$('.dr-side .dr-hip')), 'no Step 2');
+    check('and the HIPAA\'s blanks are there', /The client's signed HIPAA/.test(await page.textContent('.dr-left')) && !!(await page.$('.dr-left .dr-hip')), 'no HIPAA blanks');
+    const merge = await page.evaluate(() => ({ input: !!document.querySelector('#dr-medpdf'), button: /Build the packet/.test(document.body.textContent), api: typeof LSHDrafting.packet, lib: typeof window.PDFLib }));
+    check('no way to combine files into a PDF on the page', !merge.input && !merge.button && merge.api === 'undefined' && merge.lib === 'undefined', JSON.stringify(merge));
 
     // 5. every letter the firm sent opens as its original, with its PDF for Edit in PDF
     const sweep = await page.evaluate(async () => {
@@ -215,6 +227,58 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     ASSIGNED = { success: true, case: null, found: true };
     const as5 = await shown();
     check('taken off in the course: the trainee picks the case again', as5.sel > 0 && as5.txt === '', JSON.stringify(as5));
+
+    // 9. ✎ Edit here: the platform's own editor, on the draft; the trainee's own file name; Download as Word with the edits;
+    // Check my letter scored to progress; the draft kept; an uploaded Word file is the draft from then on
+    await page.goto(base + '/simulators/drafting.html?tab=lor3p', { waitUntil: 'load' });
+    await page.waitForSelector('section.docx > article', { timeout: 30000 });
+    await page.click('.dr-mode[data-mode="edit"]');
+    await page.waitForSelector('#dr-ribbon .wd-tabs', { timeout: 30000 });
+    await page.waitForSelector('section.docx > article[contenteditable="true"]', { timeout: 30000 });
+    check('✎ Edit here opens the editor in the document\'s place, with Word\'s ribbon', !!(await page.$('.dr-pane #dr-ribbon .wd-tabs')) && !!(await page.$('.dr-docbar [data-checkhere]')), 'no editor');
+    await page.evaluate(() => {
+        const p = [...document.querySelectorAll('section.docx > article p')].find(x => /To Whom It May Concern/.test(x.textContent));
+        const w = document.createTreeWalker(p, NodeFilter.SHOW_TEXT); let last = null; while (w.nextNode()) if (w.currentNode.nodeValue.trim()) last = w.currentNode;
+        p.closest('article').focus();
+        const r = document.createRange(); r.setStart(last, last.nodeValue.length); r.collapse(true);
+        const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    });
+    await page.keyboard.type(' ZQXEDITED');
+    await page.waitForTimeout(1500);
+    await page.fill('#dr-fname', 'My own name: for/the "3P" letter.docx');
+    await page.waitForTimeout(200);
+    const named = await page.evaluate(() => ({ v: document.getElementById('dr-fname').value, w: document.querySelector('[data-word]').getAttribute('download') }));
+    check('the trainee names the file before downloading (characters a file name can\'t have dropped)', named.w === 'My own name forthe 3P letter.docx', JSON.stringify(named));
+    [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-dlword]')]);
+    const edited = await page.evaluate(async (b64) => { const z = await JSZip.loadAsync(b64, { base64: true }); return (await z.file('word/document.xml').async('string')).indexOf('ZQXEDITED') >= 0; },
+        fs.readFileSync(await dl.path()).toString('base64'));
+    check('⬇ Download as Word: the firm\'s file with the edits made here', edited, 'the edit is not in the download');
+    check('… under the trainee\'s own name', dl.suggestedFilename() === 'My own name forthe 3P letter.docx' || dl.suggestedFilename() === 'download', dl.suggestedFilename());
+    let n9 = RESULTS.length;
+    await page.click('[data-checkhere]');
+    for (let i = 0; i < 100 && RESULTS.length === n9; i++) await page.waitForTimeout(100);
+    r = RESULTS[RESULTS.length - 1];
+    cs = await checks();
+    check('✔ Check my letter, in the editor: checked and scored to progress', RESULTS.length > n9 && r.details.editedIn === 'platform' && /platform's editor/.test(r.summary) && cs.length >= 5 && r.details.fileName === 'My own name forthe 3P letter.docx', JSON.stringify(r && r.summary));
+    await page.waitForTimeout(3000);
+    check('the draft made here is kept on the account', !!ACCOUNT['lor3p'], 'no draft');
+    await page.goto(base + '/simulators/drafting.html?tab=lor3p', { waitUntil: 'load' });
+    await page.waitForSelector('section.docx > article', { timeout: 30000 });
+    await page.click('.dr-mode[data-mode="edit"]');
+    await page.waitForFunction(() => /Your draft/.test((document.querySelector('#dr-wd .wd-title [data-state]') || {}).textContent || ''), null, { timeout: 30000 }).catch(() => {});
+    check('opened again, the editor has the draft', await page.evaluate(() => /ZQXEDITED/.test(document.querySelector('#dr-paper').textContent)), 'not the draft');
+    check('and the name the trainee gave it', (await page.inputValue('#dr-fname')) === 'My own name forthe 3P letter', await page.inputValue('#dr-fname'));
+    await page.click('.dr-freset');
+    check('↺ puts the trainers\' name back', /^INS – 3P .* - LOR with Affidavit \d\d\.\d\d\.\d{4} \(Ann\)$/.test(await page.inputValue('#dr-fname')), await page.inputValue('#dr-fname'));
+    // a Word file uploaded is the draft from then on
+    {
+        const tpl3 = fs.readFileSync(path.join(ROOT, 'simulators/drafting/templates', await page.evaluate(() => LSH_DRAFTING_TEMPLATES.find(x => x.id === 'lor3p').file)));
+        const marked = await page.evaluate(async (b64) => { const z = await JSZip.loadAsync(b64, { base64: true }); const x = await z.file('word/document.xml').async('string');
+            z.file('word/document.xml', x.replace(/(<w:t(?: [^>]*)?>)(\s*To Whom It May Concern)/, '$1UPLOADEDZZ $2')); return z.generateAsync({ type: 'base64' }); }, tpl3.toString('base64'));
+        await upload('docx', Buffer.from(marked, 'base64'), 'mine.docx');
+        await page.waitForFunction(() => /UPLOADEDZZ/.test(document.querySelector('#dr-paper').textContent), null, { timeout: 30000 }).catch(() => {});
+        check('an uploaded Word file opens in the editor as the draft', await page.evaluate(() => /UPLOADEDZZ/.test(document.querySelector('#dr-paper').textContent)), 'not the upload');
+    }
 
     check('no page errors', !errors.length, errors.join(' | '));
     await browser.close(); server.close();
