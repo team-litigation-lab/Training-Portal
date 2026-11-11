@@ -65,7 +65,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     const checks = () => page.$$eval('#dr-check .dr-checks li', ls => ls.map(l => (l.querySelector('.ok') ? '✓ ' : '✗ ') + l.querySelector('div').firstChild.textContent));
     const upload = async (kind, buffer, name) => {
         const n = RESULTS.length;
-        await page.setInputFiles(`#dr-edit input[onchange*="'${kind}'"]`, { name, mimeType: kind === 'pdf' ? 'application/pdf' : TYPES['.docx'], buffer });
+        await page.setInputFiles('[data-upload] input', { name, mimeType: kind === 'pdf' ? 'application/pdf' : TYPES['.docx'], buffer });
         for (let i = 0; i < 300 && RESULTS.length === n; i++) await new Promise(r => setTimeout(r, 100));
         return RESULTS.length > n ? RESULTS[RESULTS.length - 1] : null;
     };
@@ -84,30 +84,24 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     check('the original opens read-only', await page.$$eval('section.docx > article', as => as.length > 0 && as.every(a => a.contentEditable !== 'true')), 'an editable article');
     const lay = await page.evaluate(() => {
         const l = document.querySelector('.dr-left').getBoundingClientRect(), r = document.querySelector('.dr-pane').getBoundingClientRect();
-        return { side: l.right <= r.left + 1, wider: r.width > l.width, nav: !!document.querySelector('.dr-left .dr-nav'), cards: ['#dr-edit', '.dr-left .dr-note h3'].every(q => document.querySelector(q)),
+        return { side: l.right <= r.left + 1, wider: r.width > l.width, nav: !!document.querySelector('.dr-left .dr-nav'), cards: ['.dr-left .dr-note h3'].every(q => document.querySelector(q)),
             notes: /Case notes/.test(document.querySelector('.dr-left').textContent) && /The trainers' reminders/.test(document.querySelector('.dr-left').textContent) };
     });
     check('the letters, steps and case notes on the left, the document on the right and wider', lay.side && lay.wider && lay.nav && lay.cards && lay.notes, JSON.stringify(lay));
-    const acts = await page.$$eval('#dr-edit .sim-btn[data-word], #dr-edit .sim-btn[data-pdfedit]', bs => bs.map(b => b.textContent.trim()).join(' | '));
-    check('✎ Edit in Word · ✎ Edit in PDF', acts === '✎ Edit in Word | ✎ Edit in PDF', acts);
+    check('no "Edit it on your computer" card, no Edit in Word / Edit in PDF', !/Edit it on your computer/.test(await page.textContent('body')) && !(await page.$('[data-word], [data-pdfedit]')), 'still there');
     const bar = await page.$$eval('.dr-docbar button', bs => bs.map(b => b.textContent.trim()).join(' | '));
-    check('over the document: Original / Edit here, Download as Word, Save as PDF', /👁 Original/.test(bar) && /✎ Edit here/.test(bar) && /Download as Word \(\.docx\)/.test(bar) && /Save as PDF/.test(bar), bar);
+    const up = await page.$eval('.dr-docbar [data-upload]', l => ({ t: l.textContent.trim(), acc: l.querySelector('input').accept }));
+    check('⬆ Upload over the document, for the PDF (or the Word file)', /Upload my letter \(PDF\)/.test(up.t) && /pdf/.test(up.acc) && /docx/.test(up.acc), JSON.stringify(up));
+    check('over the document: Original / Edit here, Download as Word, and no Save as PDF', /👁 Original/.test(bar) && /✎ Edit here/.test(bar) && /Download as Word \(\.docx\)/.test(bar) && !/Save as PDF/.test(bar) && typeof (await page.evaluate(() => LSHDrafting.pdf)) === 'undefined', bar);
     check('the original has no editor', !(await page.$('.wd-ribbon')) && !(await page.$('[contenteditable="true"]')), 'an editor');
 
-    // 1. ✎ Edit in Word hands over the firm's .docx, named the trainers' way, and puts the Word steps first
+    // 1. ⬇ Download as Word hands over the firm's .docx (no draft yet), named the trainers' way
     const tplDocx = fs.readFileSync(path.join(ROOT, 'simulators/drafting/templates/1P_LOR.docx'));
-    let [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-word]')]);
-    check('Edit in Word downloads the firm\'s own Word file', fs.readFileSync(await dl.path()).equals(tplDocx), 'another file');
-    // (the name is the link's own: headless Chromium reports every download as "download")
-    const wordName = await page.$eval('[data-word]', a => a.getAttribute('download'));
-    check('named the trainers\' way', /^INS – 1P .* - LOR \d\d\.\d\d\.\d{4} \(Ann\)\.docx$/.test(wordName), wordName);
-    check('and the steps for Word, or any word processor, come first', await page.$eval('#dr-edit [data-way="word"]', el => el.classList.contains('on') && /LibreOffice Writer/.test(el.textContent) && /Google Docs/.test(el.textContent)), 'not shown');
-    // ✎ Edit in PDF hands over the same letter as a PDF
-    [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-pdfedit]')]);
     const tplPdf = fs.readFileSync(path.join(ROOT, 'simulators/drafting/pdf/templates/1P_LOR.pdf'));
-    const pdfName = await page.$eval('[data-pdfedit]', a => a.getAttribute('download'));
-    check('Edit in PDF downloads the letter as a PDF, for any PDF editor', fs.readFileSync(await dl.path()).equals(tplPdf) && pdfName === wordName.replace(/\.docx$/, '.pdf')
-        && await page.$eval('#dr-edit [data-way="pdf"]', el => el.classList.contains('on') && /LibreOffice Draw/.test(el.textContent)), pdfName);
+    let [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-dlword]')]);
+    check('Download as Word hands over the firm\'s own Word file', fs.readFileSync(await dl.path()).equals(tplDocx), 'another file');
+    const wordName = (await page.inputValue('#dr-fname')) + '.docx';
+    check('named the trainers\' way', /^INS – 1P .* - LOR \d\d\.\d\d\.\d{4} \(Ann\)\.docx$/.test(wordName), wordName);
 
     // 2. a Word file uploaded untouched: checked, the highlights found, kept on the account, scored to progress
     let r = await upload('docx', tplDocx, 'INS – 1P.docx');
@@ -115,6 +109,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     check('an uploaded Word file is checked', cs.length >= 5, cs.join(' | '));
     check('the highlights left in it are found', cs.some(c => c === '✗ No highlighted text left'), cs.join(' | '));
     check('its score goes to the trainee\'s progress', !!r && r.simulator === 'Drafting — LOR' && r.details.editedIn === 'word' && r.score < 100 && /Edited in Word/.test(r.summary), JSON.stringify(r && r.summary));
+    check('a Word file is not converted to PDF: that check fails, with how to convert it', cs.some(c => c === '✗ Converted to PDF'), cs.join(' | '));
     const keptDocx = ACCOUNT['lor1p:docx'] && JSON.parse(ACCOUNT['lor1p:docx'].data);
     check('the Word file is kept on the account, as uploaded', !!keptDocx && Buffer.from(keptDocx.b64, 'base64').equals(tplDocx), 'not kept');
     await new Promise(res => setTimeout(res, 3000));            // the draft goes to the account 2.5 s after the last change
@@ -129,9 +124,9 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     check('a highlight saved as shading (LibreOffice, Google Docs) is found too', cs.some(c => c === '✗ No highlighted text left'), cs.join(' | '));
     // not a Word file: refused, nothing scored
     let n = RESULTS.length;
-    await page.setInputFiles('#dr-edit input[onchange*="\'docx\'"]', { name: 'letter.docx', mimeType: TYPES['.docx'], buffer: Buffer.from('not a word file') });
+    await page.setInputFiles('[data-upload] input', { name: 'letter.docx', mimeType: TYPES['.docx'], buffer: Buffer.from('not a word file') });
     await new Promise(res => setTimeout(res, 1500));
-    check('a file that is not a Word document is refused, and nothing is scored', RESULTS.length === n && dialogs.some(d => /not a Word document/.test(d)), dialogs.join(' | '));
+    check('a file that is neither a PDF nor a Word file is refused, and nothing is scored', RESULTS.length === n && dialogs.some(d => /not a PDF/.test(d)), dialogs.join(' | '));
 
     // 3. a PDF edited in any PDF editor: read back, checked, kept, scored
     r = await upload('pdf', tplPdf, 'INS – 1P.pdf');
@@ -151,9 +146,9 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     }).then(b => Buffer.from(b, 'base64'));
     await upload('pdf', clean, 'clean.pdf');
     cs = await checks();
-    check('a PDF with no yellow left, dated today, passes those checks', cs.some(c => c === '✓ No highlighted text left') && cs.some(c => /^✓ The letter is dated today/.test(c)), cs.join(' | '));
+    check('a PDF with no yellow left, dated today, passes those checks (converted to PDF too)', cs.some(c => c === '✓ Converted to PDF') && cs.some(c => c === '✓ No highlighted text left') && cs.some(c => /^✓ The letter is dated today/.test(c)), cs.join(' | '));
     n = RESULTS.length;
-    await page.setInputFiles('#dr-edit input[onchange*="\'pdf\'"]', { name: 'notes.pdf', mimeType: 'application/pdf', buffer: Buffer.from('not a pdf') });
+    await page.setInputFiles('[data-upload] input', { name: 'notes.pdf', mimeType: 'application/pdf', buffer: Buffer.from('not a pdf') });
     await new Promise(res => setTimeout(res, 1500));
     check('a file that is not a PDF is refused, and nothing is scored', RESULTS.length === n && dialogs.some(d => /not a PDF/.test(d)), dialogs.join(' | '));
     // what was uploaded is there after a reload, to download again
@@ -181,7 +176,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
         const wait = async () => { for (let i = 0; i < 200; i++) { await new Promise(r => setTimeout(r, 100));
             const st = document.querySelector('#dr-wd .wd-title [data-state]'); if (st && /Original/.test(st.textContent)) return true; } return false; };
         const bad = []; let n = 0;
-        const pdfOk = async () => { const h = document.querySelector('[data-pdfedit]').getAttribute('href'); return (await fetch(h, { method: 'HEAD' })).ok ? null : decodeURIComponent(h); };
+        const pdfOk = async () => null;      // (Edit in PDF is gone: no PDF to hand over)
         for (const tab of ['lor1p', 'lor3p']) { LSHDrafting.tab(tab); if (await wait()) { n++; const b = await pdfOk(); if (b) bad.push(b); } else bad.push('did not open: ' + tab); }
         LSHDrafting.tab('prov');
         const count = document.querySelectorAll('select[aria-label="Medical provider"] option').length;
@@ -207,25 +202,27 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await page.goto(base + '/simulators/drafting.html?tab=lor1p&case=5', { waitUntil: 'load' });
     await page.waitForSelector('section.docx > article', { timeout: 30000 });
     await page.waitForTimeout(800);
-    const as1 = await page.evaluate(() => ({ sel: document.querySelectorAll('select[onchange*="pickCase"]').length, txt: (document.body.innerText.match(/Your assigned case: Case \d+/) || [''])[0] }));
-    check('an assigned case is the only one shown', as1.sel === 0 && as1.txt === 'Your assigned case: Case 5', JSON.stringify(as1));
+    const as1 = await page.evaluate(() => ({ sel: document.querySelectorAll('select[onchange*="pickCase"]').length, txt: (document.body.innerText.match(/Your assigned case: [^\n]+/) || [''])[0] }));
+    check('an assigned case is the only one shown', as1.sel === 0 && as1.txt === 'Your assigned case: Jane Doe · DOL May 5, 2023', JSON.stringify(as1));
     await page.goto(base + '/simulators/drafting.html?tab=lor1p', { waitUntil: 'load' });
     await page.waitForSelector('section.docx > article', { timeout: 30000 });
     await page.waitForTimeout(800);
-    const as2 = await page.evaluate(() => ({ sel: document.querySelectorAll('select[onchange*="pickCase"]').length, txt: (document.body.innerText.match(/Your assigned case: Case \d+/) || [''])[0] }));
-    check('the assigned case stays without the link', as2.sel === 0 && as2.txt === 'Your assigned case: Case 5', JSON.stringify(as2));
+    const as2 = await page.evaluate(() => ({ sel: document.querySelectorAll('select[onchange*="pickCase"]').length, txt: (document.body.innerText.match(/Your assigned case: [^\n]+/) || [''])[0] }));
+    check('the assigned case stays without the link', as2.sel === 0 && as2.txt === 'Your assigned case: Jane Doe · DOL May 5, 2023', JSON.stringify(as2));
 
     // 8. the case assigned in the course (📄 Assign LORs) reaches the tool however it is opened (the Simulators hub, a bookmark):
     // read from the course, it is the only one shown; taken off there, the trainee picks again; a ?case=N link still wins
     const shown = async (q) => { await page.goto(base + '/simulators/drafting.html?tab=lor1p' + (q || ''), { waitUntil: 'load' }); await page.waitForSelector('section.docx > article', { timeout: 30000 });
-        await page.waitForTimeout(1000); return page.evaluate(() => ({ sel: document.querySelectorAll('select[onchange*="pickCase"]').length, txt: (document.body.innerText.match(/Your assigned case: Case \d+/) || [''])[0] })); };
+        await page.waitForTimeout(1000); return page.evaluate(() => ({ sel: document.querySelectorAll('select[onchange*="pickCase"]').length, txt: (document.body.innerText.match(/Your assigned case: [^\n]+/) || [''])[0] })); };
     ASSIGNED = { success: true, case: 2, found: true };
     const as3 = await shown();
-    check('the course\'s assignment is shown without the link', as3.sel === 0 && as3.txt === 'Your assigned case: Case 2', JSON.stringify(as3));
+    check('the course\'s assignment is shown without the link', as3.sel === 0 && as3.txt === 'Your assigned case: Jane Doe · DOL January 20, 2024', JSON.stringify(as3));
     const as4 = await shown('&case=7');
-    check('a ?case=N link still wins', as4.txt === 'Your assigned case: Case 7', JSON.stringify(as4));
+    check('a ?case=N link still wins', as4.txt === 'Your assigned case: John Doe · DOL April 2, 2023', JSON.stringify(as4));
     ASSIGNED = { success: true, case: null, found: true };
     const as5 = await shown();
+    const opts = await page.$$eval('select[onchange*="pickCase"] option', os => os.map(o => o.textContent.trim()));
+    check('the cases are listed by the client\'s name on the case', opts[0] === 'Jane Doe · DOL March 10, 2023' && opts[11] === 'John Doe · DOL August 22, 2022' && opts[14] === 'Jane Doe · DOL November 10, 2023 · American National General Insurance Company' && opts.every(o => /^(John|Jane) Doe · DOL /.test(o)) && opts.every(o => !/^Case \d/.test(o)) && new Set(opts).size === opts.length, opts.join(' | '));
     check('taken off in the course: the trainee picks the case again', as5.sel > 0 && as5.txt === '', JSON.stringify(as5));
 
     // 9. ✎ Edit here: the platform's own editor, on the draft; the trainee's own file name; Download as Word with the edits;
@@ -247,8 +244,9 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await page.waitForTimeout(1500);
     await page.fill('#dr-fname', 'My own name: for/the "3P" letter.docx');
     await page.waitForTimeout(200);
-    const named = await page.evaluate(() => ({ v: document.getElementById('dr-fname').value, w: document.querySelector('[data-word]').getAttribute('download') }));
-    check('the trainee names the file before downloading (characters a file name can\'t have dropped)', named.w === 'My own name forthe 3P letter.docx', JSON.stringify(named));
+    await page.$eval('#dr-fname', el => el.blur());
+    const named = await page.inputValue('#dr-fname');
+    check('the trainee names the file before downloading (characters a file name can\'t have dropped)', named === 'My own name forthe 3P letter', named);
     [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-dlword]')]);
     const edited = await page.evaluate(async (b64) => { const z = await JSZip.loadAsync(b64, { base64: true }); return (await z.file('word/document.xml').async('string')).indexOf('ZQXEDITED') >= 0; },
         fs.readFileSync(await dl.path()).toString('base64'));

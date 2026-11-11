@@ -43,6 +43,10 @@
 .dr-fbox input { flex: 1; min-width: 0; border: 0; outline: 0; padding: 8px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--navy, #0f2148); }
 .dr-freset { border: 0; border-left: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; padding: 0 10px; font-size: 14px; }
 .dr-freset[hidden] { display: none; }
+.dr-upload { cursor: pointer; }
+.dr-upline { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 8px; }
+.dr-kept { margin-right: 10px; }
+.dr-linkbtn { border: 0; background: none; padding: 0 0 0 4px; color: #185abd; font: inherit; font-weight: 700; cursor: pointer; }
 .dr-how { margin: 4px 0 8px; }
 .dr-how summary { cursor: pointer; font-size: 12px; font-weight: 700; color: #475569; }
 .dr-waybtn { display: block !important; text-align: center; margin: 8px 0 4px; text-decoration: none; }
@@ -237,19 +241,6 @@ textarea.dr-f { display: block; width: 100%; min-height: 72px; resize: vertical;
 .wd.wd-view .wd-canvas { cursor: default; }
 @media (max-width: 600px) { .dr-docacts, .dr-docacts .sim-btn { width: 100%; justify-content: center; } }
 
-/* ⬇ Download as PDF: only the letter's pages print (drafting.js pdf() puts a copy in #dr-print), edge to edge on Letter paper. */
-@media print {
-    @page { size: letter; margin: 0; }
-    body.dr-printing { margin: 0 !important; padding: 0 !important; background: #fff !important; }
-    body.dr-printing > *:not(#dr-print) { display: none !important; }
-    #dr-print { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    #dr-print .dr-paper { padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: #fff !important; }
-    #dr-print .docx-wrapper { padding: 0 !important; background: #fff !important; display: block !important; zoom: 1 !important; }
-    #dr-print section.docx { margin: 0 !important; box-shadow: none !important; }
-    #dr-print .dr-pgband { display: none !important; }
-}
-#dr-print { display: none; }
-@media print { #dr-print { display: block; } }
 
 /* Word's own default size (10 pt) for a run whose file gives no size anywhere; drafting-editor.js sets the file's own
    default (docDefaults) on the wrapper when it has one. Never the page's 15px: the MedLORs ran to a third or fourth page. */

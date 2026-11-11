@@ -11,9 +11,9 @@
    and can be edited two ways:
      ✎ Edit here — in the platform's own Word-style editor (drafting-editor.js), nothing to install; the draft is
        saved to the trainee's account as they type, ⬇ Download as Word (.docx) hands over the firm's own file with
-       their edits (drafting-docx.js applyEditsXml), ⬇ Save as PDF prints the pages, ✔ Check my letter scores it.
-     ✎ Edit in Word / ✎ Edit in PDF — on their own computer, in whatever they have; what they save is uploaded back
-       here and checked the same way.
+       their edits (drafting-docx.js applyEditsXml), ✔ Check my letter scores it.
+     ⬆ Upload — the letter edited here or in Word and saved as PDF (or the Word file) comes back here, and is checked
+       for the conversion to PDF and for the edits.
    Either way the file name is the trainers' (18-Day guide) unless the trainee types their own before downloading.
    The platform never combines files into one PDF: a MedLOR's packet with the HIPAA is put together outside it.
    A MedLOR's original comes with the client's signed HIPAA under it, drawn from the firm's PDF (pdf.js).
@@ -33,11 +33,10 @@ const esc = (v) => Sim.esc(String(v == null ? '' : v));
 const app = () => document.getElementById('app');
 // tab: a letter template's id, or 'prov' for the medical providers' letters, which are a letter
 // per provider (their own address block is part of their own file) in two kinds.
-// edit: the way the trainee last chose to edit it on their computer ('word' or 'pdf'), to show those steps first.
 // assigned: the case a trainer assigned this trainee (0-based), from the course's link (?case=N, the Foundational Training's
 // lorassign:<id>): only that case is shown, kept with the drafts so it stays when the page is opened without the link.
 // mode: 'view' (the firm's original) or 'edit' (the platform's own editor).
-const S = { tab: TEMPLATES[0].id, caseNo: 0, prov: 0, kind: 'medlor', answers: {}, savedAt: null, edit: null, packet: false, assigned: null, mode: 'view' };
+const S = { tab: TEMPLATES[0].id, caseNo: 0, prov: 0, kind: 'medlor', answers: {}, savedAt: null, packet: false, assigned: null, mode: 'view' };
 const LETTER_KIND = { medlor: 'Medical LOR + Unsworn Declaration', lienbv: 'Lien Balance Verification' };
 
 /* ---------- the trainee's own drafts, in their browser ---------- */
@@ -145,7 +144,6 @@ function tpl() {
 }
 const srcOf = (t) => '/simulators/drafting/' + t.dir + '/' + t.file.split('/').map(encodeURIComponent).join('/');
 // The same document as a PDF (simulators/drafting/pdf/, made from the .docx by make-drafting-pdfs.cjs), for Edit PDF.
-const pdfOf = (t) => '/simulators/drafting/pdf/' + t.dir + '/' + t.file.replace(/\.docx$/i, '.pdf').split('/').map(encodeURIComponent).join('/');
 const origName = (t) => t.file.split('/').pop();
 const key = (tid, f) => tid + ':' + f;
 const answer = (tid, f) => S.answers[key(tid, f)] || '';
@@ -367,6 +365,7 @@ async function runChecks(t, a) {
     const text = a.paras.join('\n'), out = [];
     const add = (ok, label, detail, weight) => out.push({ ok: ok === true, part: typeof ok === 'number' ? ok : (ok ? 1 : 0), label, detail: detail || '', weight: weight || 1 });
     const clip = (xs) => xs.slice(0, 4).map(x => '“' + String(x).trim().slice(0, 60) + '”').join(', ') + (xs.length > 4 ? ` and ${xs.length - 4} more` : '');
+    if (a.from !== 'platform') add(a.from === 'pdf', 'Converted to PDF', a.from === 'pdf' ? '' : 'This is the Word file. Save it as PDF (Word: File › Save As › PDF; Google Docs: File › Download › PDF) and upload the PDF.', 2);
     if (a.from === 'pdf') add(!a.yellow, 'No highlighted text left', a.yellow ? 'There is still yellow highlighting on the PDF. Take the highlight off every piece you changed (or the template\'s highlight is still under it).' : '', 2);
     else add(!a.highlighted.length, 'No highlighted text left', a.highlighted.length ? 'Still highlighted: ' + clip(a.highlighted) + '. Select it and choose Text Highlight Color › No Color.' : '', 2);
     const notes = (text.match(/\[[^\]\n]*\]|PLS UPDATE[^\n]*|\(Use this address[^)]*\)/gi) || []);
@@ -425,6 +424,20 @@ function providerBar() {
 }
 
 /* ---------- the case notes beside it ---------- */
+// A case by the client's name, as the case notes give it, with the date of loss (several cases share a client).
+// Two cases with the same client and date of loss are told apart by the client's own carrier.
+function caseLabel(c, i) {
+    const base = (x) => {
+        const side = (x && (x.p1 || x.p3)) || {};
+        const name = String(side['Client’s Name'] || side["Client's Name"] || side['Client Name'] || '').trim();
+        const dol = String(side['Date of Loss'] || '').trim();
+        return name ? name + (dol ? ' · DOL ' + dol : '') : '';
+    };
+    const b = base(c);
+    if (!b) return 'Case ' + (i + 1);
+    const twin = CASES.some((x, j) => j !== i && base(x) === b), carrier = String(((c && c.p1) || {})['Insurance Company Name'] || '').trim();
+    return twin && carrier ? b + ' · ' + carrier : b;
+}
 function caseHtml() {
     if (S.tab === 'prov') {
         const p = provider(); if (!p) return '';
@@ -439,9 +452,9 @@ function caseHtml() {
     const rows = Object.keys(side || {}).map(k => `<dt>${esc(k)}</dt><dd>${esc(side[k])}</dd>`).join('');
     return `<div class="dr-note">
         <h3>Case notes · ${S.tab === 'lor3p' ? '3P' : '1P'}</h3>
-        ${S.assigned != null ? `<p style="margin:0 0 10px;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;background:#f8fafc;"><b>Your assigned case: Case ${S.assigned + 1}${c.p1 && c.p1['Client Name'] ? ' · ' + esc(c.p1['Client Name']) : ''}</b></p>`
+        ${S.assigned != null ? `<p style="margin:0 0 10px;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;background:#f8fafc;"><b>Your assigned case: ${esc(caseLabel(c, S.assigned))}</b></p>`
         : `<select onchange="LSHDrafting.pickCase(this.value)" style="width:100%;padding:6px;border:1px solid #e2e8f0;border-radius:6px;font:inherit;font-size:12px;margin-bottom:10px;">
-            ${CASES.map((x, i) => `<option value="${i}" ${i === S.caseNo ? 'selected' : ''}>Case ${i + 1}${x.p1 && x.p1['Client Name'] ? ' · ' + esc(x.p1['Client Name']) : ''}</option>`).join('')}
+            ${CASES.map((x, i) => `<option value="${i}" ${i === S.caseNo ? 'selected' : ''}>${esc(caseLabel(x, i))}</option>`).join('')}
         </select>`}
         ${rows ? `<dl>${rows}</dl>` : '<p style="margin:0;color:#64748b;">This case has no notes for this side.</p>'}
     </div>`;
@@ -659,9 +672,15 @@ function docBarHtml(t) {
             </label>
             <span class="dr-docacts">
                 <button class="sim-btn orange" data-dlword onclick="LSHDrafting.download()" title="${edit ? 'Your letter as on screen, as the firm\'s own Word file' : 'Your latest draft (edited here or uploaded), else the firm\'s original'}">⬇ Download as Word (.docx)</button>
-                <button class="sim-btn ghost" data-dlpdf onclick="LSHDrafting.pdf()" title="Prints the pages on screen: choose “Save as PDF” as the printer">⬇ Save as PDF</button>
-                ${edit ? '<button class="sim-btn primary" data-checkhere onclick="LSHDrafting.checkHere()">✔ Check my letter</button>' : ''}
+                ${edit ? '<button class="sim-btn ghost" data-checkhere onclick="LSHDrafting.checkHere()">✔ Check my letter</button>' : ''}
+                <label class="sim-btn primary dr-upload" data-upload title="Your finished letter, saved as PDF (or the Word file): checked for the conversion and your edits, and scored">⬆ Upload my letter (PDF)
+                    <input type="file" accept="application/pdf,.pdf,.docx,${MIME.docx}" hidden onchange="LSHDrafting.upload(this)"></label>
             </span>
+        </div>
+        <div class="dr-upline" id="dr-edit">
+            <span>Edit it (here or in Word), <b>save it as PDF</b>, then <b>⬆ Upload</b> it: it is checked for the PDF and for your edits, and scored to your progress.</span>
+            <span data-saved>${cloudOn() ? 'Looking for what you uploaded…' : 'Sign in to keep your uploads on the platform.'}</span>
+            <span data-sync></span>
         </div>
     </div>`;
 }
@@ -669,38 +688,6 @@ function docBarHtml(t) {
 const PDF_MAX = 1400000;
 const fileKey = (t, kind) => t.id + ':' + kind;
 const MIME = { docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', pdf: 'application/pdf' };
-function editHtml(t) {
-    const step = (n, html) => `<li style="margin:0 0 6px;">${html}</li>`;
-    return `<div class="dr-note" id="dr-edit">
-        <h3>Edit it on your computer</h3>
-        <p style="margin:0 0 8px;">Or edit it right here: <b>✎ Edit here</b>, over the document. Either way, what you check or upload is scored to your progress.</p>
-        <div class="dr-way${S.edit === 'word' ? ' on' : ''}" data-way="word">
-            <b>✎ In Word, or any word processor</b>
-            <a class="sim-btn orange dr-waybtn" href="${srcOf(t)}" download="${esc(docName(t))}.docx" data-word onclick="LSHDrafting.editing('word')">✎ Edit in Word</a>
-            <details class="dr-how" ${S.edit === 'word' ? 'open' : ''}><summary>How, step by step</summary><ol style="margin:6px 0 8px;padding-left:18px;">
-                ${step(1, '<b>✎ Edit in Word</b> downloads the letter as a Word file (.docx).')}
-                ${step(2, 'Open it from your downloads (or right-click › <b>Open with</b>): <b>Microsoft Word</b> — or <b>LibreOffice Writer</b>, <b>WPS Office</b> (both free), or <b>Google Docs</b> (upload to Drive, open with Google Docs, then File › Download › Microsoft Word).')}
-                ${step(3, 'Save it as a <b>Word document (.docx)</b> and upload it here.')}
-            </ol></details>
-            <label class="sim-btn ghost" style="display:block;text-align:center;cursor:pointer;">⬆ Upload my edited Word file
-                <input type="file" accept=".docx,${MIME.docx}" hidden onchange="LSHDrafting.upload(this, 'docx')"></label>
-        </div>
-        <div class="dr-way${S.edit === 'pdf' ? ' on' : ''}" data-way="pdf">
-            <b>✎ In any PDF editor</b>
-            <a class="sim-btn orange dr-waybtn" href="${pdfOf(t)}" download="${esc(docName(t))}.pdf" data-pdfedit onclick="LSHDrafting.editing('pdf')">✎ Edit in PDF</a>
-            <details class="dr-how" ${S.edit === 'pdf' ? 'open' : ''}><summary>How, step by step</summary><ol style="margin:6px 0 8px;padding-left:18px;">
-                ${step(1, '<b>✎ Edit in PDF</b> downloads the letter as a PDF.')}
-                ${step(2, 'Open it in your PDF editor (right-click › <b>Open with</b>): <b>Adobe Acrobat</b>, <b>Nitro Pro</b>, <b>Foxit PDF Editor</b>, <b>PDF-XChange Editor</b>, or <b>LibreOffice Draw</b> (free). Use its <b>Edit text</b> tool; a fill-and-sign tool only types on top, and the highlighted text stays under it.')}
-                ${step(3, '<b>Save</b> it as a PDF and upload it here.')}
-            </ol></details>
-            <label class="sim-btn ghost" style="display:block;text-align:center;cursor:pointer;">⬆ Upload my edited PDF
-                <input type="file" accept="application/pdf,.pdf" hidden onchange="LSHDrafting.upload(this, 'pdf')"></label>
-        </div>
-        <p style="margin:0;color:#64748b;font-size:12px;">An uploaded Word file becomes your draft: open <b>✎ Edit here</b> to keep working on it in the platform.</p>
-        <div data-saved style="margin-top:10px;color:#64748b;">${cloudOn() ? 'Looking for what you uploaded…' : 'Sign in to keep your uploads on the platform.'}</div>
-        <div data-sync style="color:#64748b;font-size:12px;"></div>
-    </div>`;
-}
 // The trainer's view (admins): every trainee's uploaded Word file and PDF, newest first, each opening from the platform.
 function letterLabel(id) {
     const tid = id.replace(/:(pdf|docx)$/, ''), t = TEMPLATES.find(x => x.id === tid);
@@ -740,15 +727,15 @@ async function showSaved(t) {
         ((d && d.success && d.letters) || []).forEach(x => { if (x.letter === fileKey(t, 'docx')) at.docx = x.updatedAt; if (x.letter === fileKey(t, 'pdf')) at.pdf = x.updatedAt; });
     } catch (e) { /* offline: say nothing is known */ }
     if (!document.body.contains(box) || tpl().id !== t.id) return;
-    const row = (kind, label) => at[kind] ? `<div style="margin-top:6px;">Your ${label} is on the platform (${esc(new Date(at[kind]).toLocaleString())}).
-        <button class="sim-btn ghost" style="margin-top:6px;width:100%;" onclick="LSHDrafting.savedFile('${kind}')">⬇ Download my ${label}</button></div>` : '';
-    box.innerHTML = row('docx', 'Word file') + row('pdf', 'PDF') || 'Nothing uploaded for this letter yet.';
+    const row = (kind, label) => at[kind] ? `<span class="dr-kept">Your ${label} is on the platform (${esc(new Date(at[kind]).toLocaleString())})
+        <button type="button" class="dr-linkbtn" onclick="LSHDrafting.savedFile('${kind}')">⬇ Download my ${label}</button></span>` : '';
+    box.innerHTML = row('pdf', 'PDF') + row('docx', 'Word file') || 'Nothing uploaded for this letter yet.';
 }
 function titleHtml() {
     return `<div class="dr-titlecard">
         <div class="eyebrow">Simulator · Drafting</div>
         <h1>✍ Drafting — Letters of Representation</h1>
-        <p>The firm's own documents. Edit one here (<b>✎ Edit here</b>) or on your computer, then download it as Word — named the trainers' way or your own.</p>
+        <p>The firm's own documents. Edit one here (<b>✎ Edit here</b>) or download it as Word, then save it as PDF and upload it to be checked.</p>
     </div>`;
 }
 function renderView(t) {
@@ -760,7 +747,6 @@ function renderView(t) {
                 ${titleHtml()}
                 ${navHtml()}
                 <div class="dr-cards">
-                    ${editHtml(t)}
                     <div class="dr-note" id="dr-check" hidden><h3>Your letter, checked</h3><div data-body></div></div>
                     ${packetHtml(t)}
                     ${caseHtml()}
@@ -838,28 +824,21 @@ function fileOut(blob, name) {
 function say(msg) { const s = document.querySelector('#dr-status [data-say]'); if (s) { s.textContent = msg; clearTimeout(say.t); say.t = setTimeout(() => { s.textContent = ''; }, 5000); } }
 const API = {
     tab(id) { if (S.tab !== id && S.mode === 'edit' && CUR && CUR.mode === 'edit') keepDraft(CUR.t, CUR.ed); S.tab = id; render(); window.scrollTo(0, 0); },
-    // ✎ Edit in Word / Edit in PDF: the link downloads the file; this puts that way's steps first.
-    editing(way) {
-        S.edit = way;
-        document.querySelectorAll('#dr-edit .dr-way').forEach(el => {
-            el.classList.toggle('on', el.getAttribute('data-way') === way);
-            const how = el.querySelector('.dr-how'); if (how) how.open = el.getAttribute('data-way') === way;
-        });
-        const el = document.querySelector(`#dr-edit [data-way="${way}"]`);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    },
     // ⬆ The edited letter, back from the trainee's computer: checked, scored to their progress, and kept on their account.
-    async upload(input, kind) {
+    // A PDF or a Word file, told apart by what is in it (not its name).
+    async upload(input) {
         const t = tpl(), file = input && input.files && input.files[0];
         if (input) input.value = '';
         if (!file) return;
         const box = document.querySelector('#dr-edit [data-saved]');
         const say = (m) => { if (box) box.innerHTML = m; };
         const bytes = new Uint8Array(await file.arrayBuffer());
+        const head = String.fromCharCode.apply(null, bytes.slice(0, 5));
+        const kind = head === '%PDF-' ? 'pdf' : head.slice(0, 2) === 'PK' ? 'docx' : null;
+        if (!kind) { alert('That file is not a PDF. Save your letter as PDF (Word: File › Save As › PDF) and choose it again.'); return; }
         let letter;
         try {
             if (kind === 'pdf') {
-                if (String.fromCharCode.apply(null, bytes.slice(0, 5)) !== '%PDF-') { alert('That file is not a PDF. Save it from your PDF editor as a PDF and choose it again.'); return; }
                 say('Reading your PDF…');
                 const p = await readPdf(bytes.slice(0));
                 letter = { from: 'pdf', paras: p.paras, yellow: p.yellow, highlighted: [], checks: [], fonts: null };
@@ -961,25 +940,6 @@ const API = {
             fileOut(blob, docName(t) + '.docx');
             if (CUR && CUR.mode === 'edit' && left) say(`Downloaded · ${left} highlighted piece${left === 1 ? '' : 's'} still in it`);
         } catch (e) { alert('It could not be downloaded: ' + (e && e.message || e)); }
-    },
-    // ⬇ Save as PDF: the pages on screen, printed edge to edge (the browser's “Save as PDF”). One document only:
-    // the platform never combines files into a PDF.
-    pdf() {
-        const host = document.getElementById('dr-paper');
-        if (!host || !host.querySelector('section.docx')) { alert('The document is still opening. Try again in a moment.'); return; }
-        const ed = CUR && CUR.ed;
-        if (ed && ed.gap) ed.gap(0);
-        const out = document.createElement('div');
-        out.id = 'dr-print';
-        out.appendChild(host.cloneNode(true));
-        out.querySelectorAll('[contenteditable]').forEach(n => n.removeAttribute('contenteditable'));
-        document.body.appendChild(out);
-        document.body.classList.add('dr-printing');
-        const was = document.title;
-        document.title = docName(tpl());                     // the browser offers the title as the PDF's name
-        const done = () => { document.title = was; document.body.classList.remove('dr-printing'); out.remove(); if (ed && ed.gap) ed.gap(18); window.removeEventListener('afterprint', done); };
-        window.addEventListener('afterprint', done);
-        try { window.print(); } finally { setTimeout(() => { if (document.body.contains(out)) done(); }, 1500); }
     },
     // ✔ Check my letter, in the platform's editor: the same checks as an upload, scored to progress.
     async checkHere() {
