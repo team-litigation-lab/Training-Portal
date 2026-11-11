@@ -148,7 +148,7 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/drafting-docs.cjs
-      - name: Drafting tool (the letters and steps on the left, the document on the right; the firm's original read-only; Edit here in the platform's editor with Download as Word and the trainee's own file name; Edit in Word and Edit in PDF hand over the files for any word processor or PDF editor; no PDF merging; the uploaded Word file or PDF checked, kept on the account and scored to progress; the MedLOR's signed HIPAA drawn under it; every letter opens)
+      - name: Drafting tool (the letters and steps on the left, the document on the right; the firm's original read-only; Edit here in the platform's editor with Download as Word and the trainee's own file name; one Upload for the letter saved as PDF, checked for the conversion and the edits; cases listed by the client's name; no PDF merging; the uploaded Word file or PDF checked, kept on the account and scored to progress; the MedLOR's signed HIPAA drawn under it; every letter opens)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/drafting-tool.cjs
