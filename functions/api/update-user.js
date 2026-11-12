@@ -1,9 +1,9 @@
-import { json, canonicalBatch, requireSession, hashPassword, isUsernameTombstoned, logActivity, isMaster, MASTER_USERNAME, buildFullName } from '../_utils.js';
+import { json, canonicalBatch, requireSession, hashPassword, isUsernameTombstoned, logActivity, MASTER_USERNAME, buildFullName } from '../_utils.js';
 
 // POST /api/update-user { userId, batchId?, username?, email?, firstName?, lastName?, password? }  (admins only)
 //
 // Lets an admin correct an account: its Batch ID, its name and email, its username and a new password. Only the fields sent are changed.
-//   - Only the Master Account may edit an Admin; nobody edits the Master Account here (its credentials are the admin password secret).
+//   - Any admin may edit any account, a Trainee's or another Admin's; nobody edits the Master Account here (its credentials are the admin password secret).
 //   - A new username moves the trainee's program access, submissions/grades and simulator results with it (they are keyed by username).
 //   - A new username or password ends the account's open sessions, so the next sign-in uses the new one.
 //   - A new Batch ID is what the programs are told at launch: a program that already knows this trainee under the old Batch ID
@@ -22,7 +22,6 @@ export async function onRequestPost({ request, env }) {
     const user = await db.prepare(`SELECT * FROM users WHERE id = ?`).bind(body.userId).first();
     if (!user) return json({ success: false, error: 'User not found.' }, 404);
     if (user.username === MASTER_USERNAME) return json({ success: false, error: 'The Master Account\'s credentials are set with the admin password secret, not here.' }, 403);
-    if (user.user_type === 'Admin' && !isMaster(session)) return json({ success: false, error: 'Only the Master Account can edit an Admin.' }, 403);
 
     const set = {}; const changed = [];
     // A Batch ID belongs to a batch of trainees going through the course together; a

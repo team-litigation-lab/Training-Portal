@@ -1,4 +1,4 @@
-import { json, requireSession, tombstoneUser, logActivity, isMaster, MASTER_USERNAME } from '../_utils.js';
+import { json, requireSession, tombstoneUser, logActivity, MASTER_USERNAME } from '../_utils.js';
 import { driveConfigured, saveUserRecordsToDrive } from '../_drive.js';
 import { collectUserRecords, purgeUserRecords, fullName } from '../_purge.js';
 import { ftBlockRevoked } from '../_ft-block.js';
@@ -25,8 +25,7 @@ import { ftBlockRevoked } from '../_ft-block.js';
 //
 // Permission rules:
 //   - The Master Account can never be revoked, by anyone.
-//   - Only the Master Account may revoke another Admin.
-//   - Any Admin may revoke a Trainee.
+//   - Any Admin may revoke a Trainee or another Admin.
 //   - An Admin may not revoke their own currently-logged-in account.
 export async function onRequestPost({ request, env }) {
     const auth = await requireSession(request, env, { adminOnly: true });
@@ -44,9 +43,6 @@ export async function onRequestPost({ request, env }) {
 
     if (user.username === MASTER_USERNAME) {
         return json({ success: false, error: 'The Master Account can never be revoked.' }, 403);
-    }
-    if (user.user_type === 'Admin' && !isMaster(session)) {
-        return json({ success: false, error: 'Only the Master Account can revoke an Admin.' }, 403);
     }
     if (user.username === session.username) {
         return json({ success: false, error: 'You cannot revoke your own account.' }, 403);

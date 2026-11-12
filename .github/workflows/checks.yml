@@ -46,11 +46,11 @@ jobs:
         run: node --no-warnings .github/scripts/program-access.mjs
       - name: Standard Foundational Training's block list follows the Portal (a revoked / suspended program, a revoked account; only the Portal's own entries come off)
         run: node --no-warnings .github/scripts/ft-block.mjs
-      - name: Admin registrations (a trainer sets an admin account up; any trainer or the master account approves it)
+      - name: Admin registrations (a trainer sets an admin account up; any trainer or the master account approves and edits it)
         run: node --no-warnings .github/scripts/admin-approval.mjs
       - name: New-registration popup's list (trainers only, every pending registration; on /api/live only when asked)
         run: node --no-warnings .github/scripts/pending-registrations.mjs
-      - name: Revoking an account files their records to their batch folder first, then leaves nothing of their work
+      - name: Revoking an account files their records to their batch folder first, then leaves nothing of their work (any trainer revokes another trainer, never themselves or the master account)
         run: node --no-warnings .github/scripts/revoke-purge.mjs
       - name: Simulator SSO (a simulator framed beside a lesson keeps its session; another site cannot spend it)
         run: node --no-warnings .github/scripts/sso-frame.mjs
