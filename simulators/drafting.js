@@ -143,7 +143,6 @@ function tpl() {
     return Object.assign({}, t, { dir: 'templates' });
 }
 const srcOf = (t) => '/simulators/drafting/' + t.dir + '/' + t.file.split('/').map(encodeURIComponent).join('/');
-// The same document as a PDF (simulators/drafting/pdf/, made from the .docx by make-drafting-pdfs.cjs), for Edit PDF.
 const origName = (t) => t.file.split('/').pop();
 const key = (tid, f) => tid + ':' + f;
 const answer = (tid, f) => S.answers[key(tid, f)] || '';
@@ -519,14 +518,11 @@ const nameKey = (t) => t.id + ':name';
 const cleanName = (v) => String(v || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').replace(/\.(docx?|pdf)$/i, '').replace(/\s+/g, ' ').trim().slice(0, 180);
 const customName = (t) => cleanName(S.answers[nameKey(t)]);
 const docName = (t) => customName(t) || fileName(t);
-// Everywhere the name shows (the box, the download links), after the letter or the name changed.
+// Everywhere the name shows, after the letter or the name changed.
 function refreshNames(t) {
     if (!t || tpl().id !== t.id) return;
     const n = docName(t), box = document.getElementById('dr-fname');
     if (box && document.activeElement !== box) box.value = n;
-    const w = document.querySelector('[data-word]'), p = document.querySelector('[data-pdfedit]');
-    if (w) w.setAttribute('download', n + '.docx');
-    if (p) p.setAttribute('download', n + '.pdf');
     const reset = document.querySelector('[data-fname-reset]'); if (reset) reset.hidden = !customName(t);
     const hint = document.querySelector('[data-fname-hint]'); if (hint) hint.textContent = customName(t) ? 'Your own name · the trainers\' is ' + fileName(t) : 'The trainers\' naming (18-Day guide) · type to change it';
 }

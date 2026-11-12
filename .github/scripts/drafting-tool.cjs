@@ -97,7 +97,6 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
 
     // 1. ⬇ Download as Word hands over the firm's .docx (no draft yet), named the trainers' way
     const tplDocx = fs.readFileSync(path.join(ROOT, 'simulators/drafting/templates/1P_LOR.docx'));
-    const tplPdf = fs.readFileSync(path.join(ROOT, 'simulators/drafting/pdf/templates/1P_LOR.pdf'));
     let [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-dlword]')]);
     check('Download as Word hands over the firm\'s own Word file', fs.readFileSync(await dl.path()).equals(tplDocx), 'another file');
     const wordName = (await page.inputValue('#dr-fname')) + '.docx';
@@ -128,7 +127,17 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await new Promise(res => setTimeout(res, 1500));
     check('a file that is neither a PDF nor a Word file is refused, and nothing is scored', RESULTS.length === n && dialogs.some(d => /not a PDF/.test(d)), dialogs.join(' | '));
 
-    // 3. a PDF edited in any PDF editor: read back, checked, kept, scored
+    // 3. a PDF: read back, checked, kept, scored. Made in the page with pdf-lib (the test's own: the page doesn't load it):
+    // the letter saved as PDF with a template line still in it and still highlighted in yellow.
+    await page.addScriptTag({ url: 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js' });
+    const tplPdf = await page.evaluate(async () => {
+        const d = await PDFLib.PDFDocument.create(), pg = d.addPage([612, 792]), f = await d.embedFont(PDFLib.StandardFonts.Helvetica);
+        const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        pg.drawRectangle({ x: 70, y: 655, width: 330, height: 16, color: PDFLib.rgb(1, 1, 0) });
+        [today, 'SENT VIA FACSIMILE AND E-MAIL', 'Attn: [PLS UPDATE Client’s Insurance Adjuster Name & Address]', 'Our Client: Jane Doe']
+            .forEach((t, i) => pg.drawText(t.replace('’', "'"), { x: 72, y: 700 - i * 20, size: 11, font: f }));
+        return btoa(String.fromCharCode.apply(null, await d.save()));
+    }).then(b => Buffer.from(b, 'base64'));
     r = await upload('pdf', tplPdf, 'INS – 1P.pdf');
     cs = await checks();
     check('an uploaded PDF is read back and checked', cs.length >= 4 && cs.some(c => /dated today/.test(c)), cs.join(' | '));
@@ -136,8 +145,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     check('its score goes to the trainee\'s progress', !!r && r.details.editedIn === 'pdf' && /a PDF editor/.test(r.summary) && /PLS UPDATE/.test(r.details.letter), JSON.stringify(r && r.summary));
     const keptPdf = ACCOUNT['lor1p:pdf'] && JSON.parse(ACCOUNT['lor1p:pdf'].data);
     check('the PDF is kept on the account, as uploaded', !!keptPdf && Buffer.from(keptPdf.b64, 'base64').equals(tplPdf), 'not kept');
-    // a clean PDF, dated today (made in the page with pdf-lib, as an editor would save it)
-    await page.addScriptTag({ url: 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js' });   // the test's own: the page no longer loads pdf-lib
+    // a clean PDF, dated today
     const clean = await page.evaluate(async () => {
         const d = await PDFLib.PDFDocument.create(), pg = d.addPage([612, 792]), f = await d.embedFont(PDFLib.StandardFonts.Helvetica);
         const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
