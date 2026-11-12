@@ -432,14 +432,6 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-// Who may decide a pending registration. A trainee's is any trainer's to approve; an Admin / Trainer's is
-// the Master Account's, so one trainer login can't mint another working admin login on its own. The server
-// enforces it (functions/api/update-status.js) — this only keeps a button out of reach that would be refused.
-function canDecideRegistration(u) {
-    if (u.userType !== 'Admin') return true;
-    const me = getSession();
-    return !!me && me.username === 'LSHADMIN123';
-}
 // The batch a waiting trainee will join: their Batch ID if one was already set, otherwise the one approval gives
 // them — B + MMDDYY of the training start date (nextBatchId in functions/_utils.js, read in UTC the same way).
 function regBatchId(u) {
@@ -483,10 +475,9 @@ function renderRegistrations() {
         <td class="mc-sub">${escapeHtml(u.email || '')}</td>
         <td class="mc-sub">${when(u.created_at)}</td>
         <td>${u.trainingStartDate ? escapeHtml(u.trainingStartDate) : (u.userType === 'Admin' ? '' : '<span class="pa-none">Not given</span>')}</td>
-        <td class="mc-actions">${canDecideRegistration(u) ? `
+        <td class="mc-actions">
             <button class="btn-primary" onclick="approveRegistration(${u.id})">Approve</button>
-            <button class="btn-ghost btn-danger-ghost" onclick="rejectRegistration(${u.id})">Reject</button>`
-            : `<span class="mc-sub">The Master Account decides an Admin / Trainer registration.</span>`}</td>
+            <button class="btn-ghost btn-danger-ghost" onclick="rejectRegistration(${u.id})">Reject</button></td>
     </tr>`;
     const section = (key, title, cls, users, note) => `<details class="pa-batch ${cls}" data-key="${escapeHtml(key)}" ontoggle="paToggle(this)"${isOpen(key) ? ' open' : ''}>
             <summary><span class="pa-caret" aria-hidden="true">▶</span><span class="pa-title">${escapeHtml(title)}</span>
