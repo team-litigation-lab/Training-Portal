@@ -1,12 +1,10 @@
-// Approving an Admin / Trainer registration is the Master Account's, not any trainer's.
+// Approving an Admin / Trainer registration: any trainer may, as may the Master Account.
 //
-// Four trainers each have their own admin sign-in, and any of them may set an account up
-// (functions/api/create-user.js). But the approval that actually turns a login on is what grants access,
-// so for an Admin / Trainer account it stays with the Master Account: otherwise one trainer login could
-// create a second admin account and approve it itself, with nobody else involved.
-// A trainee's registration is unchanged — any trainer approves it.
-// Checks: a trainer may create an admin account but not approve or reject it; the Master Account may;
-// a trainer still approves a trainee, and that issues the Batch ID.
+// Four trainers each have their own admin sign-in; any of them may set an account up
+// (functions/api/create-user.js) and approve or reject any pending registration, a trainee's or
+// another Admin / Trainer's (functions/api/update-status.js).
+// Checks: a trainer may create an admin account and approve it; a trainer may reject another; the Master
+// Account approves one too; an approved trainer gets no Batch ID; a trainer approves a trainee, which issues one.
 // Run: node --no-warnings .github/scripts/admin-approval.mjs   (from the repository root)
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
@@ -57,18 +55,13 @@ check(r.status === 200 && r.body.success, `a trainer may create an Admin / Train
 check(rowOf('danao') && rowOf('danao').status === 'Pending', 'and it waits for approval, with no Batch ID');
 check(rowOf('danao') && !rowOf('danao').batch_id, 'no Batch ID until approved');
 
-// ...but not approve it, including the one it just made itself.
+// ...and approve it, as any trainer may decide an Admin / Trainer registration.
 r = await read(await status.onRequestPost({ request: req(trainer, { userId: idOf('danao'), newStatus: 'Approved' }), env }));
-check(r.status === 403, `a trainer cannot approve the admin account it created: ${r.status}`);
-check(rowOf('danao').status === 'Pending', 'the account is still Pending after the refused approval');
+check(r.status === 200 && r.body.success, `a trainer approves an Admin / Trainer registration: ${r.status} ${r.body.error || ''}`);
+check(rowOf('danao').status === 'Approved', 'the account is Approved');
+check(!rowOf('danao').batch_id, `and is given no Batch ID: ${rowOf('danao').batch_id}`);
 
-r = await read(await status.onRequestPost({ request: req(trainer, { userId: idOf('pendingadmin'), newStatus: 'Approved' }), env }));
-check(r.status === 403, `nor another Admin / Trainer registration: ${r.status}`);
-r = await read(await status.onRequestPost({ request: req(trainer, { userId: idOf('pendingadmin'), newStatus: 'Rejected' }), env }));
-check(r.status === 403, `nor reject one: ${r.status}`);
-check(rowOf('pendingadmin').status === 'Pending', 'that registration is untouched');
-
-// The Master Account may, and the approval issues the Batch ID.
+// The Master Account may too.
 r = await read(await status.onRequestPost({ request: req(master, { userId: idOf('pendingadmin'), newStatus: 'Approved' }), env }));
 check(r.status === 200 && r.body.success, `the Master Account approves an Admin / Trainer registration: ${r.status} ${r.body.error || ''}`);
 check(rowOf('pendingadmin').status === 'Approved', 'the admin account is Approved');

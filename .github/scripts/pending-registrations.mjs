@@ -1,6 +1,6 @@
 // ⏳ The new-registration popup's list (functions/api/pending-registrations.js, read through /api/live?pending=1).
-// Checks: trainers only (a trainee and a signed-out browser get nothing); a trainer sees the pending trainees but
-// not an Admin / Trainer registration (only the Master Account decides those, so only it sees them); approved and
+// Checks: trainers only (a trainee and a signed-out browser get nothing); a trainer sees every pending registration,
+// a trainee's and an Admin / Trainer's (any trainer decides either); approved and
 // rejected accounts are never listed; /api/live carries the list only when asked (?pending=1).
 // Run: node --no-warnings .github/scripts/pending-registrations.mjs   (from the repository root)
 import { DatabaseSync } from 'node:sqlite';
@@ -51,8 +51,8 @@ const master = await cookieFor('LSHADMIN123', 'Admin', 'MASTER-ADMIN');
 const trainee = await cookieFor('ana', 'Trainee', 'B110126');
 
 let r = await read(await pending.onRequestGet({ request: get('/api/pending-registrations', trainer), env }));
-check(r.status === 200 && names(r.body.pending) === 'Nia Reyes', `a trainer sees the pending trainee, not the pending admin: ${names(r.body.pending)}`);
-const nia = (r.body.pending || [])[0] || {};
+check(r.status === 200 && names(r.body.pending) === 'Nia Reyes, Pat Lim', `a trainer sees the pending trainee and the pending admin: ${names(r.body.pending)}`);
+const nia = (r.body.pending || []).find(x => x.fullName === 'Nia Reyes') || {};
 check(nia.userType === 'Trainee' && nia.email === 'n@x' && nia.trainingStartDate === '2026-11-09' && nia.id, 'with what the popup shows: type, email, start date, id');
 check(!('password' in nia) && !('username' in nia), 'and nothing it does not need (no password hash, no username)');
 
@@ -65,13 +65,13 @@ r = await read(await pending.onRequestGet({ request: get('/api/pending-registrat
 check(r.status === 401, `a signed-out browser gets nothing: ${r.status}`);
 
 r = await read(await live.onRequestGet({ request: get('/api/live?pings=1&pending=1', trainer), env }));
-check(r.status === 200 && names(r.body.pending) === 'Nia Reyes', `/api/live carries it for a trainer who asks: ${names(r.body.pending)}`);
+check(r.status === 200 && names(r.body.pending) === 'Nia Reyes, Pat Lim', `/api/live carries it for a trainer who asks: ${names(r.body.pending)}`);
 r = await read(await live.onRequestGet({ request: get('/api/live?pings=1', trainer), env }));
 check(r.status === 200 && r.body.pending === null, '/api/live leaves it out when not asked');
 r = await read(await live.onRequestGet({ request: get('/api/live?pings=1&pending=1', trainee), env }));
 check(r.status === 200 && r.body.pending === null && r.body.success, `/api/live gives a trainee who asks none, and still works: ${JSON.stringify(r.body.pending)}`);
 
-sql.exec(`UPDATE users SET status = 'Approved' WHERE username = 'nia'`);
+sql.exec(`UPDATE users SET status = 'Approved' WHERE username IN ('nia', 'pat')`);
 r = await read(await pending.onRequestGet({ request: get('/api/pending-registrations', trainer), env }));
 check(r.status === 200 && Array.isArray(r.body.pending) && r.body.pending.length === 0, 'once approved (here or in Master Control), it leaves the list');
 
