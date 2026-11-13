@@ -60,7 +60,7 @@ export async function courseTrainees(kv, max = 900, prefix = PREFIX) {
     return out;
 }
 // the course records that are this person's (name + batch); people = [{name, batch}]
-const matches = (all, people) => all.filter(({ rec }) => people.some(p => {
+export const matches = (all, people) => all.filter(({ rec }) => people.some(p => {
     const n = nameCore(p.name);
     return n && recNames(rec).includes(n) && sameBatch(rec, p.batch);
 }));

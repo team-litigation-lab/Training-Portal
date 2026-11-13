@@ -11,6 +11,7 @@ import { pathToFileURL } from 'node:url';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pa-'));
 const put = (name, text) => { const p = path.join(tmp, name); fs.writeFileSync(p, text); return pathToFileURL(p).href; };
+put('_programs.js', fs.readFileSync('functions/_programs.js', 'utf8'));   // (_ft-block.js and _purge.js read the program list from beside them)
 const utilsUrl = put('_utils.mjs', fs.readFileSync('functions/_utils.js', 'utf8'));
 const ftBlockUrl = put('_ft-block.mjs', fs.readFileSync('functions/_ft-block.js', 'utf8').replace("'./_utils.js'", `'${utilsUrl}'`));
 const load = (name, file) => import(put(name, fs.readFileSync(file, 'utf8').replace("'../_utils.js'", `'${utilsUrl}'`).replace("'../_ft-block.js'", `'${ftBlockUrl}'`)));

@@ -12,9 +12,11 @@ import { pathToFileURL } from 'node:url';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'mc-'));
 const put = (name, text) => { const p = path.join(tmp, name); fs.writeFileSync(p, text); return pathToFileURL(p).href; };
+put('_programs.js', fs.readFileSync('functions/_programs.js', 'utf8'));   // (_ft-block.js and _purge.js read the program list from beside them)
 const utilsUrl = put('_utils.mjs', fs.readFileSync('functions/_utils.js', 'utf8'));
 const ftBlockUrl = put('_ft-block.mjs', fs.readFileSync('functions/_ft-block.js', 'utf8').replace("'./_utils.js'", `'${utilsUrl}'`));
-const load = (name, file) => import(put(name, fs.readFileSync(file, 'utf8').replace("'../_utils.js'", `'${utilsUrl}'`).replace("'../_ft-block.js'", `'${ftBlockUrl}'`)));
+const purgeUrl = put('_purge.mjs', fs.readFileSync('functions/_purge.js', 'utf8').replace("'./_utils.js'", `'${utilsUrl}'`).replace("'./_ft-block.js'", `'${ftBlockUrl}'`));
+const load = (name, file) => import(put(name, fs.readFileSync(file, 'utf8').replace("'../_utils.js'", `'${utilsUrl}'`).replace("'../_ft-block.js'", `'${ftBlockUrl}'`).replace("'../_purge.js'", `'${purgeUrl}'`)));
 const users = await load('users.mjs', 'functions/api/users.js');
 const logs = await load('activity-logs.mjs', 'functions/api/activity-logs.js');
 const state = await load('site-state.mjs', 'functions/api/site-state.js');

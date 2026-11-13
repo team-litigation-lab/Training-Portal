@@ -18,7 +18,7 @@
 
 import { canonicalBatch } from './_utils.js';
 import { COURSE_PROGRAMS } from './_programs.js';
-import { directMatches, revokedMatches, liveAccounts, recEnds, batchForm as ftBatchForm, both } from './_ft-block.js';
+import { directMatches, matches, liveAccounts, recEnds, batchForm as ftBatchForm, both } from './_ft-block.js';
 
 // every program in the one list (_programs.js): a program added there is wiped on a revocation too
 const PROGRAMS = COURSE_PROGRAMS.map(({ id, label, prefix }) => ({ id, label, prefix }));
@@ -74,10 +74,9 @@ export async function collectUserRecords(env, user) {
 // 🎓 Every program's own record of a revoked person: what every roster, Batch Sheet, ranking and scorecard in that
 // program is drawn from. All six courses keep their trainees in the shared COURSE_KV as <prefix>trainee:<id>, the id
 // being their first and last name and their batch, slugged, and everything else of theirs as <prefix><family>:<id>.
-// So a person is found the way Standard Foundational Training's block list finds them (_ft-block.js): their ids read
-// straight first, then each program's list searched by name (every form of it) and batch, or by first + last name in any
-// batch when no open Portal account has that name. A record an open account could own (same first and last name, same
-// batch) is never taken. Deleting the trainee record takes them off every sheet of that program; the rest of their keys
+// So a person is found by their ids read straight first, then each program's records searched by name (every form of it)
+// and batch: the exact match, since a deletion can't be undone (someone of the same name in another batch is left alone).
+// A record an open account could own (same first and last name, same batch) is never taken. Deleting the trainee record takes them off every sheet of that program; the rest of their keys
 // go with it. people = [{ name, batch, username }]; live = liveAccounts() of everyone still on the Portal.
 // Returns { course: [{ program, label, id, person, keys: [{ key, value }] }], skipped: [program label] }.
 const FAMILIES = ['feedback', 'progress', 'backup:progress', 'focus', 'checkin', 'callsim', 'simresults', 'actsub', 'actup',
@@ -118,14 +117,20 @@ export async function findCourseRecords(env, people, live, budget = KV_BUDGET) {
                 cursor = page.list_complete ? null : page.cursor;
             } while (cursor);
         } catch (e) { skipped.push(p.label); continue; }
-        const cand = ids.filter(id => want.includes(ends(id.split('--')[0])) && !hits.some(h => h.p === p && h.id === id));
+        // (a program small enough is read whole, so a record whose id doesn't carry the name is still found; a larger one
+        // only where the id carries their first and last name)
+        const fresh = ids.filter(id => !hits.some(h => h.p === p && h.id === id));
+        const room = Math.floor((budget * 0.7 - ops) / Math.max(1, PROGRAMS.length - PROGRAMS.indexOf(p)));
+        const cand = fresh.length <= room ? fresh : fresh.filter(id => want.includes(ends(id.split('--')[0])));
         const all = [];
         for (const id of cand) {
             if (ops++ >= budget * 0.7) { skipped.push(p.label); break; }
             const rec = await kv.get(`${p.prefix}trainee:${id}`, 'json').catch(() => null);
             if (rec) all.push({ id, rec });
         }
-        for (const person of people) revokedMatches(all, person, live).forEach(x => hits.push({ p, person, ...x }));
+        // deleting can't be undone, so only the exact match: every form of their name, and their batch (the looser match the
+        // block list uses, any batch when no open account has the name, is for blocking, which ▶ Restore undoes)
+        for (const person of people) matches(all, [person]).filter(x => !ownedByLive(x.rec)).forEach(x => hits.push({ p, person, ...x }));
     }
     // 3. each record once, with everything else the program keeps under its id
     const seenKey = new Set();

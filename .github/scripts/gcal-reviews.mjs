@@ -256,7 +256,8 @@ ck(JSON.stringify(hc.calendar.week) === JSON.stringify(good.week), 'a week as th
 /* ---------- Progress: each trainee's LATEST evaluation, however many rows there are ---------- */
 let pp = fs.readFileSync('functions/api/program-progress.js', 'utf8')
     .replace("import { json, requireSession, logActivity } from '../_utils.js';", "const json=(d,s=200,h={})=>new Response(JSON.stringify(d),{status:s,headers:{'Content-Type':'application/json',...h}});const requireSession=async()=>({ok:true,session:{username:'boss',userType:'Admin'}});const logActivity=async()=>{};")
-    .replace("import { driveConfigured, saveBatchToDrive } from '../_drive.js';", "const driveConfigured=()=>false;const saveBatchToDrive=async()=>({});");
+    .replace("import { driveConfigured, saveBatchToDrive } from '../_drive.js';", "const driveConfigured=()=>false;const saveBatchToDrive=async()=>({});")
+    .replace("import { readList } from '../_ft-block.js';", "const readList=async(kv,p='')=>{const v=await kv.get(p+'access:blocked','json').catch(()=>null);return (v&&v.ids)||{};};");
 if (/from '\.\.\//.test(pp)) throw new Error('the test could not stub program-progress.js imports');
 fs.writeFileSync(path.join(tmp, 'program-progress.mjs'), pp);
 const prog = await import(pathToFileURL(path.join(tmp, 'program-progress.mjs')).href);
