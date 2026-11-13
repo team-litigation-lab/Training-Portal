@@ -139,7 +139,9 @@ Login/session plumbing, user management, site lock/pause/alert, logs and monitor
 | `functions/api/me.js` | 19 | GET /api/me: who is signed in on this browser, restarts the heartbeat; special-cases the Master Account. |
 | `functions/api/pings.js` | 68 | GET new pings for the signed-in user (poll with ?since); POST send a ping to all or named users (admin). |
 | `functions/api/register.js` | 79 | POST /api/register: public self-registration, creates a Pending users row after field/password/tombstone checks. |
-| `functions/api/revoke-user.js` | 47 | POST /api/revoke-user (admin): permanent revocation — tombstone, delete row, clear heartbeat and program access. |
+| `functions/api/revoke-user.js` | 85 | POST /api/revoke-user (admin): permanent revocation — backup, tombstone, delete row, and wipe their records on the Portal and in all six training programs (`_purge.js` findCourseRecords), so they leave every scorecard. |
+| `functions/_programs.js` | 20 | The one list of training programs in the course KV (topic, id, label, prefix): Revoke and Program Access reach every program on it. A new program: see `COURSE-PROGRAMS.md`. |
+| `functions/api/revoked-sweep.js` | 80 | POST /api/revoked-sweep (admin): Users → 🧹 Wipe revoked trainees from every program — the same wipe for accounts revoked before, backup first. |
 | `functions/api/server-logs.js` | 45 | GET /api/server-logs (admin): the accounts DB's activity_log newest-first, with per-logout session duration computed from login pairs. |
 | `functions/api/set-password.js` | 70 | POST /api/set-password: choosing a password with no admin step, the account staying Approved: `first` (an account made without one, password column holding SET_PASSWORD_MARK, after /api/login answers SET_PASSWORD) or `forgot` (username + registered email); throttled like sign-in, ends open sessions. UI: portal.js showPasswordPanel() on both login pages. |
 | `functions/api/site-state.js` | 131 | GET public lock/pause state (+pause message); POST LOCK/UNLOCK/PAUSE/RESUME with master-credential re-verification. |

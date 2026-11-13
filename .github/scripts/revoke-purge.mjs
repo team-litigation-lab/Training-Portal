@@ -15,10 +15,11 @@ import { pathToFileURL } from 'node:url';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rv-'));
 const put = (name, text) => { const p = path.join(tmp, name); fs.writeFileSync(p, text); return pathToFileURL(p).href; };
+put('_programs.js', fs.readFileSync('functions/_programs.js', 'utf8'));   // (_ft-block.js and _purge.js read the program list from beside them)
 const utilsUrl = put('_utils.mjs', fs.readFileSync('functions/_utils.js', 'utf8'));
 const driveUrl = put('_drive.mjs', fs.readFileSync('functions/_drive.js', 'utf8'));
-const purgeUrl = put('_purge.mjs', fs.readFileSync('functions/_purge.js', 'utf8').replace("'./_utils.js'", `'${utilsUrl}'`));
 const ftBlockUrl = put('_ft-block.mjs', fs.readFileSync('functions/_ft-block.js', 'utf8').replace("'./_utils.js'", `'${utilsUrl}'`));
+const purgeUrl = put('_purge.mjs', fs.readFileSync('functions/_purge.js', 'utf8').replace("'./_utils.js'", `'${utilsUrl}'`).replace("'./_ft-block.js'", `'${ftBlockUrl}'`));
 const revoke = await import(put('revoke-user.mjs', fs.readFileSync('functions/api/revoke-user.js', 'utf8')
     .replace("'../_utils.js'", `'${utilsUrl}'`).replace("'../_drive.js'", `'${driveUrl}'`).replace("'../_purge.js'", `'${purgeUrl}'`).replace("'../_ft-block.js'", `'${ftBlockUrl}'`)));
 const u = await import(utilsUrl);

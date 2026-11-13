@@ -670,6 +670,10 @@
             <!-- USERS -->
             <div class="mc-pane" id="admin-dash-users">
                 <p style="font-size:16px;font-weight:600;line-height:1.6;color:#0f172a;margin-bottom:16px;">All approved logins: 🧑‍🏫 trainers on their own, then one table per batch (newest first; click a batch to open or close it). <b>Edit</b> changes a login's Batch ID, name, email, username or password; <b>Suspend</b>, <b>Restore</b> and <b>Revoke</b> (the whole account) are on each row. For one program at a time, use <b>Program Access</b>.</p>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 14px;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:10px;background:#f8fafc;">
+                    <button class="btn-primary" id="users-revoked-sweep-btn" style="padding:10px 18px;font-size:15px;font-weight:800;border-radius:8px;" onclick="usersRevokedSweep()">🧹 Wipe revoked trainees from every program</button>
+                    <span style="font-size:15px;font-weight:600;color:#0f172a;line-height:1.6;flex:1;min-width:240px;"><b>Revoke</b> takes a trainee out of every training program (Foundational, EA / PA, Case Management, PD Claims, Medsum &amp; Demand, Lien Negotiator), so they leave every Batch Sheet, ranking and scorecard there. This button does the same for anyone revoked <b>before</b> that: their records are filed to their batch's folder (or downloaded), then deleted.</span>
+                </div>
                 <div id="users-list"></div>
             </div>
 
@@ -794,8 +798,8 @@
                 <input type="text" id="pa-search" placeholder="Search by name, username or batch" oninput="renderProgramAccess()" style="width:100%;max-width:460px;padding:12px 14px;border:1.5px solid #94a3b8;border-radius:8px;margin-bottom:12px;font-size:16px;font-weight:600;color:#0f172a;">
                 <div id="program-access-list"></div>
                 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:18px 0 14px;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:10px;background:#f8fafc;">
-                    <button class="btn-primary" id="pa-ft-sweep-btn" style="padding:10px 18px;font-size:15px;font-weight:800;border-radius:8px;" onclick="paFtSweep()">🧹 Clear revoked trainees from Standard Foundational Training</button>
-                    <span style="font-size:15px;font-weight:600;color:#0f172a;line-height:1.6;flex:1;min-width:240px;">Revoking or suspending <b>Standard Foundational Training</b> here now takes the trainee off its sheets (Batch Sheet, Weekly Ranking…) at once, and granting it again brings them back. This button does the same for anyone revoked <b>before</b>: a revoked account, or that program's access revoked or suspended. Nothing is deleted; the course's ▶ Restore brings someone back.</span>
+                    <button class="btn-primary" id="pa-ft-sweep-btn" style="padding:10px 18px;font-size:15px;font-weight:800;border-radius:8px;" onclick="paFtSweep()">🧹 Clear revoked trainees from every program's scorecards</button>
+                    <span style="font-size:15px;font-weight:600;color:#0f172a;line-height:1.6;flex:1;min-width:240px;">Revoking or suspending a program here takes the trainee off <b>that program's</b> sheets and scorecards (Batch Sheet, rankings, Trainee Audit…) at once, in every program, and granting or restoring it brings them back. This button does the same for anyone revoked <b>before</b>: a revoked account, or a program's access revoked or suspended. Nothing is deleted.</span>
                 </div>
                 <div id="access-requests-list"></div>
             </div>
