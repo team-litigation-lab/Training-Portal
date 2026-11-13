@@ -17,16 +17,11 @@
 // below finds anything an older revocation (before all this was purged) left behind.
 
 import { canonicalBatch } from './_utils.js';
+import { COURSE_PROGRAMS } from './_programs.js';
 import { directMatches, revokedMatches, liveAccounts, recEnds, batchForm as ftBatchForm, both } from './_ft-block.js';
 
-const PROGRAMS = [
-    { id: 'ft', label: 'Standard Foundational Training', prefix: 'ft:' },
-    { id: 'eapa', label: 'EA / PA Training', prefix: '' },
-    { id: 'cm', label: 'Case Management Training', prefix: 'cm:' },
-    { id: 'pd', label: 'PD Claims Training', prefix: 'pd:' },
-    { id: 'md', label: 'Medsum & Demand Training', prefix: 'md:' },
-    { id: 'ln', label: 'Lien Negotiator Training', prefix: 'ln:' }
-];
+// every program in the one list (_programs.js): a program added there is wiped on a revocation too
+const PROGRAMS = COURSE_PROGRAMS.map(({ id, label, prefix }) => ({ id, label, prefix }));
 // The courses key their records by their own trainee id, not by the Portal's
 // username, so a person is found in them by name and batch: findCourseRecords() below.
 const nameKey = (s) => String(s || '').split(' · ')[0].trim().toLowerCase().replace(/\s+/g, ' ');

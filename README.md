@@ -11,6 +11,10 @@ Every program and tool opens only from the Portal (`/api/launch`, below), so the
 - **Programs signed in to directly:** the programs' own trainer password sign-in (each program's `MASTER_ADMIN_PASSWORD`) doesn't go through the Portal; this rule covers everything opened from the Portal.
 - Test: `google-only.mjs`.
 
+## 🚫 Revoking reaches every program
+
+**Users → Revoke** wipes the trainee from every training program, and **Program Access → Revoke / Suspend** takes them off that program's scorecards (and Grant / Restore puts them back). Every program in `functions/_programs.js` is covered. **A new program:** follow `COURSE-PROGRAMS.md` (the program list, the key layout, and the block-list code its Worker copies) before it goes live.
+
 ## Trainee sign-in on the Main Portal (single sign-in)
 
 Trainees log in once, here, and open each training program from the Training Directory. They aren't asked to sign in again inside the program.

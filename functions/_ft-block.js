@@ -19,16 +19,15 @@
 // punctuation aside, and their batch in its one form; someone of the same name in another batch is left alone.
 // Nothing is deleted: a block is undone by the course's ▶ Restore, or here by granting the access again.
 import { canonicalBatch, logActivity } from './_utils.js';
+import { COURSE_PROGRAMS } from './_programs.js';
 
 export const FT_TOPIC = 'STANDARD TRAINING';
 const PREFIX = 'ft:', BLOCK_KEY = PREFIX + 'access:blocked';
 // 🚫 Every program keeps the same list now, <prefix>access:blocked, and every program's Worker leaves a trainee on it off
 // every roster, Batch Sheet, ranking and scorecard it serves (its listAll), and won't sign them in from a Portal ticket.
 // Program Access → Revoke / Suspend puts them on it (programBlock), Grant / Approve / Restore / Mark Passed takes them off.
-export const PROGRAM_PREFIX = {
-    'STANDARD TRAINING': 'ft:', 'EA  PA TRAINING-OUTSOURCED MANP': '', 'CM TRAINING': 'cm:',
-    'PROPERTY DAMAGE': 'pd:', 'MEDSUM AND DEMAND': 'md:', 'LIEN NEGOTIATION': 'ln:'
-};
+// (topic key → prefix, from the one list of programs: _programs.js)
+export const PROGRAM_PREFIX = Object.fromEntries(COURSE_PROGRAMS.map(p => [p.topic, p.prefix]));
 export const blockKeyOf = (prefix) => prefix + 'access:blocked';
 const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'iv', 'v']);
 // a name as a set of words, accents, dots and commas aside, without a middle initial or a suffix:
