@@ -17,6 +17,7 @@
 // below finds anything an older revocation (before all this was purged) left behind.
 
 import { canonicalBatch } from './_utils.js';
+import { directMatches, revokedMatches, liveAccounts, recEnds, batchForm as ftBatchForm, both } from './_ft-block.js';
 
 const PROGRAMS = [
     { id: 'ft', label: 'Standard Foundational Training', prefix: 'ft:' },
@@ -27,22 +28,11 @@ const PROGRAMS = [
     { id: 'ln', label: 'Lien Negotiator Training', prefix: 'ln:' }
 ];
 // The courses key their records by their own trainee id, not by the Portal's
-// username, so a person is found in them by name (the same match /progress.html
-// uses) and, when the course record carries one, their batch.
+// username, so a person is found in them by name and batch: findCourseRecords() below.
 const nameKey = (s) => String(s || '').split(' · ')[0].trim().toLowerCase().replace(/\s+/g, ' ');
 const fullName = (u) => [u.first_name, u.mi, u.last_name, u.suffix].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
-// A course record's name is the one the Portal's launch ticket gave it: first + last name only (the
-// middle initial and suffix, when kept, are in fullName). So a person is matched on every form of
-// their name, accents, dots and commas aside ("Mark Christian Lucban" and "Mark Christian D. Lucban, Jr."
-// are the same person), and on their batch in its one form (B103026 and B10302026 are the same batch).
-const looseKey = (s) => nameKey(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
-const nameForms = (u) => new Set([
-    [u.first_name, u.last_name], [u.first_name, u.mi, u.last_name], [u.first_name, u.last_name, u.suffix], [u.first_name, u.mi, u.last_name, u.suffix]
-].map(p => looseKey(p.filter(Boolean).join(' '))).filter(Boolean));
-const recNames = (rec) => [rec.name, rec.fullName, [rec.firstName, rec.lastName].filter(Boolean).join(' ')].map(looseKey).filter(Boolean);
+// a batch in its one form (B103026 and B10302026 are the same batch)
 const batchForm = (b) => canonicalBatch(b) || String(b || '').trim().toUpperCase();
-const sameBatch = (rec, batch) => !batch || ![rec.batch, rec.batchFrom].some(Boolean)
-    || [rec.batch, rec.batchFrom].filter(Boolean).some(b => batchForm(b) === batchForm(batch));
 
 const KV_BUDGET = 900;          // Workers KV allows 1,000 operations per request
 
@@ -54,7 +44,7 @@ async function rows(db, sql, ...binds) {
 
 // Everything keyed to this person, read before anything is deleted.
 export async function collectUserRecords(env, user) {
-    const name = fullName(user), key = nameKey(name), forms = nameForms(user);
+    const name = fullName(user), key = nameKey(name);
     const t = env.TRAINING_DB, d = env.DB;
     const [submissions, simulatorResults, calsim, gcalDrafts, gcalReviews, topicAccess, draftingDrafts, emailPractice, activityLog, trainingActivityLog] = await Promise.all([
         rows(t, `SELECT * FROM submissions WHERE trainee_username = ?`, user.username),
@@ -72,33 +62,9 @@ export async function collectUserRecords(env, user) {
     // ("who's practicing"), with no username on it — those are theirs as well.
     const byName = await rows(t, `SELECT * FROM simulator_results WHERE username IS NULL AND lower(full_name) = ?`, key);
 
-    const course = [];
-    let ops = 0, skipped = [];
-    const kv = env.COURSE_KV;
-    if (kv) {
-        for (const p of PROGRAMS) {
-            if (ops >= KV_BUDGET) { skipped.push(p.label); continue; }
-            let cursor, ids = [];
-            do {
-                if (ops++ >= KV_BUDGET) { skipped.push(p.label); break; }
-                const page = await kv.list({ prefix: `${p.prefix}trainee:`, cursor, limit: 1000 });
-                page.keys.forEach(k => ids.push(k.name));
-                cursor = page.list_complete ? null : page.cursor;
-            } while (cursor);
-            for (const k of ids) {
-                if (ops++ >= KV_BUDGET) { skipped.push(p.label); break; }
-                const rec = await kv.get(k, 'json').catch(() => null);
-                if (!rec || !recNames(rec).some(n => forms.has(n))) continue;
-                if (!sameBatch(rec, user.batch_id)) continue;
-                const id = k.slice(`${p.prefix}trainee:`.length);
-                const entry = { program: p.id, label: p.label, keys: [{ key: k, value: rec }] };
-                const fb = await kv.get(`${p.prefix}feedback:${id}`, 'json').catch(() => null);
-                ops++;
-                if (fb) entry.keys.push({ key: `${p.prefix}feedback:${id}`, value: fb });
-                course.push(entry);
-            }
-        }
-    }
+    const live = (await liveAccounts(d)).filter(x => x.username !== user.username);
+    const found = await findCourseRecords(env, [{ name, batch: user.batch_id, username: user.username }], live);
+    const course = found.course, skipped = found.skipped;
     return {
         account: user,
         submissions, simulatorResults: simulatorResults.concat(byName), calsim, gcalDrafts, gcalReviews, topicAccess,
@@ -108,6 +74,79 @@ export async function collectUserRecords(env, user) {
         courseIncomplete: [...new Set(skipped)],
         collectedAt: new Date().toISOString()
     };
+}
+
+// 🎓 Every program's own record of a revoked person: what every roster, Batch Sheet, ranking and scorecard in that
+// program is drawn from. All six courses keep their trainees in the shared COURSE_KV as <prefix>trainee:<id>, the id
+// being their first and last name and their batch, slugged, and everything else of theirs as <prefix><family>:<id>.
+// So a person is found the way Standard Foundational Training's block list finds them (_ft-block.js): their ids read
+// straight first, then each program's list searched by name (every form of it) and batch, or by first + last name in any
+// batch when no open Portal account has that name. A record an open account could own (same first and last name, same
+// batch) is never taken. Deleting the trainee record takes them off every sheet of that program; the rest of their keys
+// go with it. people = [{ name, batch, username }]; live = liveAccounts() of everyone still on the Portal.
+// Returns { course: [{ program, label, id, person, keys: [{ key, value }] }], skipped: [program label] }.
+const FAMILIES = ['feedback', 'progress', 'backup:progress', 'focus', 'checkin', 'callsim', 'simresults', 'actsub', 'actup',
+    'labreview', 'merged', 'workspace', 'wsreview', 'assign', 'release', 'assess', 'buffer', 'calcheck', 'calrules', 'calsim',
+    'calweek', 'daycheck', 'drills', 'drivelink', 'guide', 'intakeassign', 'intakecheck', 'kcgames', 'kcreview', 'learn',
+    'listening', 'lor', 'lorassign', 'monitor', 'process', 'rankshare', 'sessions', 'shadow', 'skills', 'tracker',
+    'trackerreview', 'trainerfb', 'transcribe', 'videoaccess', 'videoreq'];
+const FT_ONLY = new Set(['assess', 'buffer', 'calcheck', 'calrules', 'calsim', 'calweek', 'daycheck', 'drills', 'drivelink', 'guide',
+    'intakeassign', 'intakecheck', 'kcgames', 'kcreview', 'learn', 'listening', 'lor', 'lorassign', 'monitor', 'process', 'rankshare',
+    'sessions', 'shadow', 'skills', 'tracker', 'trackerreview', 'trainerfb', 'transcribe', 'videoaccess', 'videoreq']);
+const familiesFor = (p) => FAMILIES.filter(f => p.id === 'ft' || !FT_ONLY.has(f));
+export async function findCourseRecords(env, people, live, budget = KV_BUDGET) {
+    const kv = env.COURSE_KV, course = [], skipped = [];
+    if (!kv || !people.length) return { course, skipped };
+    let ops = 0;
+    const ownedByLive = (rec) => live.some(x => recEnds(rec).includes(x.e)
+        && (!x.b || [rec.batch, rec.batchFrom].filter(Boolean).map(ftBatchForm).includes(x.b)));
+    const hits = [];      // { p: program, person, id, rec }
+    // 1. their ids, read straight: a few reads a person a program
+    for (const p of PROGRAMS) for (const person of people) {
+        const seen = new Set();
+        if (ops >= budget / 3) { skipped.push(p.label); break; }
+        (await directMatches(kv, person, seen, p.prefix)).forEach(x => { if (!ownedByLive(x.rec)) hits.push({ p, person, ...x }); });
+        ops += seen.size;
+    }
+    // 2. each program's list, searched by the names in its keys (an id is the name slugged, then '--' and the batch), so only
+    //    the records that could be theirs are read; then matched on the record itself
+    const slug = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const ends = (sl) => { const w = sl.split('-').filter(x => x.length > 1 && !['jr', 'sr', 'ii', 'iii', 'iv'].includes(x)); return w.length > 1 ? w[0] + '-' + w[w.length - 1] : w.join('-'); };
+    const want = people.map(person => ends(slug(person.name)));
+    for (const p of PROGRAMS) {
+        let cursor, ids = [];
+        try {
+            do {
+                ops++;
+                const page = await kv.list({ prefix: `${p.prefix}trainee:`, cursor, limit: 1000 });
+                page.keys.forEach(k => ids.push(k.name.slice(`${p.prefix}trainee:`.length)));
+                cursor = page.list_complete ? null : page.cursor;
+            } while (cursor);
+        } catch (e) { skipped.push(p.label); continue; }
+        const cand = ids.filter(id => want.includes(ends(id.split('--')[0])) && !hits.some(h => h.p === p && h.id === id));
+        const all = [];
+        for (const id of cand) {
+            if (ops++ >= budget * 0.7) { skipped.push(p.label); break; }
+            const rec = await kv.get(`${p.prefix}trainee:${id}`, 'json').catch(() => null);
+            if (rec) all.push({ id, rec });
+        }
+        for (const person of people) revokedMatches(all, person, live).forEach(x => hits.push({ p, person, ...x }));
+    }
+    // 3. each record once, with everything else the program keeps under its id
+    const seenKey = new Set();
+    for (const h of hits) {
+        const k = `${h.p.prefix}trainee:${h.id}`;
+        if (seenKey.has(k)) continue; seenKey.add(k);
+        const entry = { program: h.p.id, label: h.p.label, id: h.id, person: h.person.username || h.person.name, keys: [{ key: k, value: h.rec }] };
+        for (const f of familiesFor(h.p)) {
+            if (ops++ >= budget) { skipped.push(h.p.label); break; }
+            const key = `${h.p.prefix}${f}:${h.id}`;
+            const v = await kv.get(key).catch(() => null);
+            if (v != null) { let val = v; try { val = JSON.parse(v); } catch (e) { /* kept as text */ } entry.keys.push({ key, value: val }); }
+        }
+        course.push(entry);
+    }
+    return { course, skipped: [...new Set(skipped)] };
 }
 
 // Then nothing of it is left. Each delete is independent: one missing table must

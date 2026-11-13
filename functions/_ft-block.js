@@ -27,7 +27,7 @@ const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'iv', 'v']);
 // "Mark Christian D. Lucban, Jr." and "Mark Christian Lucban" read the same
 export const nameCore = (s) => String(s || '').split(' · ')[0].normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(w => w && w.length > 1 && !SUFFIXES.has(w)).join(' ');
-const batchForm = (b) => canonicalBatch(b) || String(b || '').trim().toUpperCase();
+export const batchForm = (b) => canonicalBatch(b) || String(b || '').trim().toUpperCase();
 const recNames = (rec) => [rec.name, rec.fullName, [rec.firstName, rec.lastName].filter(Boolean).join(' ')].map(nameCore).filter(Boolean);
 const sameBatch = (rec, batch) => !batch || ![rec.batch, rec.batchFrom].some(Boolean)
     || [rec.batch, rec.batchFrom].filter(Boolean).some(b => batchForm(b) === batchForm(batch));
@@ -35,19 +35,20 @@ const userName = (u) => u.full_name || [u.first_name, u.mi, u.last_name, u.suffi
 // a name's first and last word only ("Mark Christian G Lucban" and "Mark Lucban" → "mark lucban"): how a revoked person is
 // still found when the course keeps their name in another form (a middle name dropped or added)
 const nameEnds = (s) => { const w = nameCore(s).split(' ').filter(Boolean); return w.length > 1 ? w[0] + ' ' + w[w.length - 1] : w.join(' '); };
-const recEnds = (rec) => recNames(rec).map(nameEnds).filter(Boolean);
+export const recEnds = (rec) => recNames(rec).map(nameEnds).filter(Boolean);
 
-async function courseTrainees(kv, max = 900) {
+// (prefix: the program's own, '' for EA / PA, 'cm:', 'pd:', 'md:', 'ln:': every course keys its trainees the same way)
+export async function courseTrainees(kv, max = 900, prefix = PREFIX) {
     const out = [];
     let cursor, keys = [];
     do {
-        const page = await kv.list({ prefix: PREFIX + 'trainee:', cursor, limit: 1000 });
+        const page = await kv.list({ prefix: prefix + 'trainee:', cursor, limit: 1000 });
         page.keys.forEach(k => keys.push(k.name));
         cursor = page.list_complete ? null : page.cursor;
     } while (cursor);
     for (const k of keys.slice(0, Math.max(0, max))) {   // a Worker request may make 1,000 KV calls
         const rec = await kv.get(k, 'json').catch(() => null);
-        if (rec) out.push({ id: k.slice((PREFIX + 'trainee:').length), rec });
+        if (rec) out.push({ id: k.slice((prefix + 'trainee:').length), rec });
     }
     return out;
 }
@@ -71,17 +72,17 @@ export function courseIdsFor(name, batch) {
     forms.forEach(f => { const n = slug(f).slice(0, 40); if (n) bs.forEach(b => ids.push(`${n}--${b.slice(0, 20)}`)); });
     return [...new Set(ids)];
 }
-async function directMatches(kv, p, seen) {
+export async function directMatches(kv, p, seen, prefix = PREFIX) {
     const out = [];
     for (const id of courseIdsFor(p.name, p.batch)) {
         if (seen.has(id)) continue; seen.add(id);
-        const rec = await kv.get(PREFIX + 'trainee:' + id, 'json').catch(() => null);
+        const rec = await kv.get(prefix + 'trainee:' + id, 'json').catch(() => null);
         if (rec) out.push({ id, rec });
     }
     return out;
 }
 // (both ways, each record once)
-const both = (a, b) => { const m = new Map(); a.concat(b).forEach(x => { if (!m.has(x.id)) m.set(x.id, x); }); return [...m.values()]; };
+export const both = (a, b) => { const m = new Map(); a.concat(b).forEach(x => { if (!m.has(x.id)) m.set(x.id, x); }); return [...m.values()]; };
 
 // 🚫 a revoked person's course records, found the loose way too: the exact match above, or the same first and last name in
 // the same batch, or (when nobody with an open Portal account has that first and last name at all) in any batch: a record
@@ -89,7 +90,7 @@ const both = (a, b) => { const m = new Map(); a.concat(b).forEach(x => { if (!m.
 // (same first and last name, same batch) is never blocked. Blocking is undone by ▶ Restore, so the looser match is safe here;
 // the purge (_purge.js), which deletes, keeps the exact one.
 // live = [{e: first + last name, b: batch form}] of every open Portal account
-const revokedMatches = (all, p, live) => {
+export const revokedMatches = (all, p, live) => {
     const e = nameEnds(p.name); if (!e) return [];
     const anyBatch = !live.some(x => x.e === e);
     return all.filter(({ rec }) => {
@@ -100,7 +101,7 @@ const revokedMatches = (all, p, live) => {
     });
 };
 const LIVE = ['Approved', 'Suspended', 'Pending'];
-async function liveAccounts(db) {
+export async function liveAccounts(db) {
     if (!db) return [];
     try {
         const r = (await db.prepare(`SELECT username, first_name, mi, last_name, suffix, batch_id, status FROM users`).all()).results || [];

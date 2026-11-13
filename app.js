@@ -794,7 +794,7 @@ async function reactivateUser(id) {
 // itself; without it, it hands the record back here, this downloads it, and only
 // then does the second call do the deleting. Scores are not kept behind.
 async function revokeUser(id, name) {
-    if (!confirm(`Permanently revoke ${name}'s account?\n\nEverything of theirs goes with it \u2014 grades, submitted activities, simulator results, course progress, drafts and their activity log \u2014 after a copy is filed to their batch's folder. This cannot be undone.`)) return;
+    if (!confirm(`Permanently revoke ${name}'s account?\n\nEverything of theirs goes with it \u2014 grades, submitted activities, simulator results, drafts, their activity log, and their records in every training program, so they leave every scorecard \u2014 after a copy is filed to their batch's folder. This cannot be undone.`)) return;
     try {
         const first = await postJson('/api/revoke-user', { userId: id });
         if (first.needsBackup) {
@@ -966,6 +966,7 @@ function serverLogEvent(row) {
         case 'update-user': return E('✏️', 'Edited an account', 'info', [target, Array.isArray(d.changed) && d.changed.length ? 'changed ' + d.changed.join(', ') : ''].filter(Boolean).join(' · '));
         case 'update-access': return E(d.newStatus === 'Suspended' ? '⏸️' : '▶️', d.newStatus === 'Suspended' ? 'Suspended an account' : 'Restored an account', d.newStatus === 'Suspended' ? 'warn' : 'ok', target);
         case 'revoke-user': return E('⛔', 'Revoked an account', 'bad', target);
+        case 'REVOKED_SWEEP': return E('🧹', 'Wiped revoked trainees from every program', 'bad', Array.isArray(d.people) ? d.people.map(p => p.name).join(', ') : '');
         case 'set-first-password': return E('🔑', 'Set their first password', 'info');
         case 'forgot-password-reset': return E('🔑', 'Reset their password', 'info');
         case 'send-ping': return E('📣', 'Sent a ping', 'info', [d.mode === 'all' ? 'to everyone' : Array.isArray(d.usernames) && d.usernames.length ? 'to ' + d.usernames.join(', ') : '', d.message ? '“' + d.message + '”' : ''].filter(Boolean).join(' · '));
@@ -3142,6 +3143,30 @@ async function paFtSweep() {
     if (btn) btn.disabled = false;
 }
 window.paFtSweep = paFtSweep;
+// 🧹 Users: everyone revoked before Revoke reached every program is wiped from all six (revoked-sweep.js). Like a revocation,
+// nothing goes until a copy is safe: filed to the Drive, or (no Drive) downloaded here first and then the second call deletes.
+async function usersRevokedSweep() {
+    if (!confirm('Wipe every revoked trainee from every training program?\n\nAnyone whose account was revoked and who still has records in Foundational, EA / PA, Case Management, PD Claims, Medsum & Demand or Lien Negotiator Training is taken off every sheet and scorecard there. A copy is filed to their batch\'s folder (or downloaded) first. This cannot be undone.')) return;
+    const btn = document.getElementById('users-revoked-sweep-btn'); if (btn) btn.disabled = true;
+    try {
+        let r = await postJson('/api/revoked-sweep', {});
+        if (r.needsBackup) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify({ revokedTrainees: r.people, savedAt: new Date().toISOString() }, null, 1)], { type: 'application/json' }));
+            a.download = `revoked-trainees-${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+            r = await postJson('/api/revoked-sweep', { backupSaved: true });
+        }
+        const people = r.people || [];
+        const msg = people.length
+            ? `Wiped from every program: ${people.map(p => p.name + (p.batch ? ' (' + batchLabel(p.batch) + ')' : '') + (p.programs.length ? ': ' + p.programs.join(', ') : '')).join('; ')}.`
+            : 'Nobody left to wipe: no revoked trainee has records in any program.';
+        showToast(msg + (r.more ? ' Some programs were not fully searched: press the button again.' : ''), r.failed && r.failed.length ? 'error' : 'success');
+    } catch (e) { showToast(e.message, 'error'); }
+    if (btn) btn.disabled = false;
+}
+window.usersRevokedSweep = usersRevokedSweep;
 async function paSet(username, topicKey, action) {
     const name = paName(topicKey);
     if (action === 'DENY' && !confirm(`Revoke or deny ${username}'s access to ${name}?\n\nThey can request it again from the Training Directory.`)) return;
