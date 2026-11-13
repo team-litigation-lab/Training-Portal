@@ -966,6 +966,7 @@ function serverLogEvent(row) {
         case 'update-user': return E('✏️', 'Edited an account', 'info', [target, Array.isArray(d.changed) && d.changed.length ? 'changed ' + d.changed.join(', ') : ''].filter(Boolean).join(' · '));
         case 'update-access': return E(d.newStatus === 'Suspended' ? '⏸️' : '▶️', d.newStatus === 'Suspended' ? 'Suspended an account' : 'Restored an account', d.newStatus === 'Suspended' ? 'warn' : 'ok', target);
         case 'revoke-user': return E('⛔', 'Revoked an account', 'bad', target);
+        case 'PROGRAM_REVOKED_SWEEP': return E('🧹', 'Took revoked trainees off program scorecards', 'bad', Array.isArray(d.blocked) ? d.blocked.map(b => b.name + ' · ' + (PA_NAMES[b.program] || b.program)).join(', ') : '');
         case 'REVOKED_SWEEP': return E('🧹', 'Wiped revoked trainees from every program', 'bad', Array.isArray(d.people) ? d.people.map(p => p.name).join(', ') : '');
         case 'set-first-password': return E('🔑', 'Set their first password', 'info');
         case 'forgot-password-reset': return E('🔑', 'Reset their password', 'info');
@@ -3133,12 +3134,13 @@ function renderProgramAccess() {
 const PA_DONE = { APPROVE: 'Access approved.', DENY: 'Access revoked.', GRANT: 'Access granted.', MARK_PASSED: 'Marked as passed.', SUSPEND: 'Access suspended.', RESTORE: 'Access restored.', CLEAR: 'Request cleared.' };
 // 🧹 Standard Foundational Training: everyone revoked here before the course was told goes on its block list (topics.js FT_SWEEP)
 async function paFtSweep() {
-    if (!confirm('Take every revoked trainee off the Standard Foundational Training sheets?\n\nThat is anyone whose account was revoked, or whose Standard Foundational Training access was revoked or suspended, who still has a course record there. Nothing is deleted: the course\'s ▶ Restore brings someone back.')) return;
+    if (!confirm('Take every revoked trainee off the training programs\' sheets and scorecards?\n\nThat is anyone whose account was revoked, or whose access to a program was revoked or suspended, who still has a record in that program. Nothing is deleted: granting or restoring the access here brings them back.')) return;
     const btn = document.getElementById('pa-ft-sweep-btn'); if (btn) btn.disabled = true;
     try {
         const r = await postJson('/api/topics', { action: 'FT_SWEEP' });
-        const list = r.blocked || [];
-        showToast(list.length ? `Taken off the Standard Foundational Training sheets: ${list.map(x => x.name + (x.batch ? ' (' + batchLabel(x.batch) + ')' : '')).join(', ')}.` : 'Nobody to take off: every revoked trainee is already off the Standard Foundational Training sheets.', 'success');
+        const list = (r.blocked || []).map(x => x.name + (x.batch ? ' (' + batchLabel(x.batch) + ')' : '') + ': Standard Foundational Training')
+            .concat((r.programs || []).map(x => x.name + (x.batch ? ' (' + batchLabel(x.batch) + ')' : '') + ': ' + (PA_NAMES[x.program] || x.program)));
+        showToast(list.length ? `Taken off the program's sheets and scorecards: ${list.join('; ')}.` : 'Nobody to take off: every revoked trainee is already off every program\'s sheets.', 'success');
     } catch (e) { showToast(e.message, 'error'); }
     if (btn) btn.disabled = false;
 }

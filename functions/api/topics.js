@@ -1,5 +1,5 @@
 import { json, requireSession, logActivity, getSiteState } from '../_utils.js';
-import { FT_TOPIC, ftBlock, ftUnblock, ftSweep, autoSweep } from '../_ft-block.js';
+import { PROGRAM_PREFIX, programBlock, programUnblock, programSweepClosed, ftSweep, autoSweep } from '../_ft-block.js';
 
 // Topic access: a trainee only sees "Approved" for topics an
 // admin has explicitly granted them, and "Pending" for ones they've asked
@@ -13,15 +13,16 @@ async function topicExists(db, key) {
     return !!(await db.prepare(`SELECT 1 AS ok FROM topics WHERE key = ?`).bind(String(key)).first());
 }
 
-// 🚫 Standard Foundational Training keeps its own trainee list (_ft-block.js): revoking or suspending that program here
-// puts the trainee on the course's block list, so they leave its sheets; granting or restoring it takes them off again.
-// It never stops the decision itself: a course that can't be reached is said in the answer (ft.error), nothing more.
+// 🚫 Every training program keeps its own trainee list (_ft-block.js): revoking or suspending a program here puts the
+// trainee on that program's block list, so they leave all its sheets and scorecards; granting or restoring it takes them
+// off again. It never stops the decision itself: a course that can't be reached is said in the answer (ft.error).
 async function ftFollow(env, topicKey, traineeUsername, close, reason, by) {
-    if (topicKey !== FT_TOPIC || !env.COURSE_KV) return undefined;
+    const prefix = PROGRAM_PREFIX[topicKey];
+    if (prefix === undefined || !env.COURSE_KV) return undefined;
     try {
         const user = await env.DB.prepare(`SELECT username, first_name, mi, last_name, suffix, batch_id FROM users WHERE username = ?`).bind(traineeUsername).first();
         if (!user) return undefined;
-        return close ? await ftBlock(env, user, reason, by) : await ftUnblock(env, user);
+        return close ? await programBlock(env, prefix, user, reason, by) : await programUnblock(env, prefix, user);
     } catch (e) { return { error: e.message }; }
 }
 
@@ -188,7 +189,10 @@ export async function onRequestPost({ request, env }) {
             if (!env.COURSE_KV) return json({ success: false, error: 'Course data isn’t connected (COURSE_KV).' }, 500);
             const r = await ftSweep(env, env.DB, db);
             await logActivity(db, auth.session.username, auth.session.batchId, 'FT_REVOKED_SWEEP', { blocked: r.blocked });
-            return json({ success: true, blocked: r.blocked });
+            // and every other program: their Revoked / Suspended access goes on that program's list too
+            const o = await programSweepClosed(env, env.DB, db).catch(() => ({ blocked: [] }));
+            if (o.blocked.length) await logActivity(db, auth.session.username, auth.session.batchId, 'PROGRAM_REVOKED_SWEEP', { blocked: o.blocked });
+            return json({ success: true, blocked: r.blocked, programs: o.blocked });
         }
 
         return json({ success: false, error: 'Unknown action.' }, 400);

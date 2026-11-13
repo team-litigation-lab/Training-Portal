@@ -22,6 +22,14 @@ import { canonicalBatch, logActivity } from './_utils.js';
 
 export const FT_TOPIC = 'STANDARD TRAINING';
 const PREFIX = 'ft:', BLOCK_KEY = PREFIX + 'access:blocked';
+// 🚫 Every program keeps the same list now, <prefix>access:blocked, and every program's Worker leaves a trainee on it off
+// every roster, Batch Sheet, ranking and scorecard it serves (its listAll), and won't sign them in from a Portal ticket.
+// Program Access → Revoke / Suspend puts them on it (programBlock), Grant / Approve / Restore / Mark Passed takes them off.
+export const PROGRAM_PREFIX = {
+    'STANDARD TRAINING': 'ft:', 'EA  PA TRAINING-OUTSOURCED MANP': '', 'CM TRAINING': 'cm:',
+    'PROPERTY DAMAGE': 'pd:', 'MEDSUM AND DEMAND': 'md:', 'LIEN NEGOTIATION': 'ln:'
+};
+export const blockKeyOf = (prefix) => prefix + 'access:blocked';
 const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'iv', 'v']);
 // a name as a set of words, accents, dots and commas aside, without a middle initial or a suffix:
 // "Mark Christian D. Lucban, Jr." and "Mark Christian Lucban" read the same
@@ -108,22 +116,79 @@ export async function liveAccounts(db) {
         return r.filter(u => LIVE.includes(u.status)).map(u => ({ username: u.username, e: nameEnds(userName(u)), b: batchForm(u.batch_id) }));
     } catch (e) { return []; }
 }
-async function readList(kv) {
-    const v = await kv.get(BLOCK_KEY, 'json').catch(() => null);
+export async function readList(kv, prefix = PREFIX) {
+    const v = await kv.get(blockKeyOf(prefix), 'json').catch(() => null);
     return (v && v.ids && typeof v.ids === 'object') ? v.ids : {};
 }
-const writeList = (kv, ids) => kv.put(BLOCK_KEY, JSON.stringify({ ids, updatedAt: new Date().toISOString() }));
+const writeList = (kv, ids, prefix = PREFIX) => kv.put(blockKeyOf(prefix), JSON.stringify({ ids, updatedAt: new Date().toISOString() }));
 
-export async function ftBlock(env, user, reason, by) {
-    const kv = env.COURSE_KV;
-    if (!kv || !user) return { blocked: [] };
-    const found = matches(await courseTrainees(kv), [{ name: userName(user), batch: user.batch_id }]);
-    if (!found.length) return { blocked: [] };
-    const ids = await readList(kv), at = new Date().toISOString();
-    found.forEach(({ id, rec }) => { if (!ids[id]) ids[id] = { why: 'offboarded', name: rec.name || '', batch: rec.batch || '', at, by: 'portal', reason, portalUser: user.username || '', decidedBy: by || '' }; });
-    await writeList(kv, ids);
-    return { blocked: found.map(x => x.id) };
+// one person's records in a program, read cheaply: the program's keys listed, and only the records whose id (their name
+// slugged, '--', their batch) carries their first and last name read; then the exact match (every form of the name, batch)
+const slugT = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+const idEnds = (id) => nameEnds(String(id).split('--')[0].replace(/-/g, ' '));
+async function personRecords(kv, prefix, p) {
+    const want = nameEnds(p.name);
+    if (!want) return [];
+    const ids = [];
+    let cursor;
+    do {
+        const page = await kv.list({ prefix: prefix + 'trainee:', cursor, limit: 1000 });
+        page.keys.forEach(k => ids.push(k.name.slice((prefix + 'trainee:').length)));
+        cursor = page.list_complete ? null : page.cursor;
+    } while (cursor);
+    const all = [];
+    for (const id of ids.filter(i => idEnds(i) === want).slice(0, 60)) {
+        const rec = await kv.get(prefix + 'trainee:' + id, 'json').catch(() => null);
+        if (rec) all.push({ id, rec });
+    }
+    return matches(all, [p]);
 }
+// 🚫 a program's access closed for one trainee (Program Access → Revoke / Suspend): their record(s) there go on its list
+export async function programBlock(env, prefix, user, reason, by) {
+    const kv = env.COURSE_KV;
+    if (!kv || !user || prefix == null) return { blocked: [] };
+    const found = await personRecords(kv, prefix, { name: userName(user), batch: user.batch_id });
+    if (!found.length) return { blocked: [] };
+    const ids = await readList(kv, prefix), at = new Date().toISOString(), blocked = [];
+    found.forEach(({ id, rec }) => { if (!ids[id]) { ids[id] = { why: 'offboarded', name: rec.name || '', batch: rec.batch || '', at, by: 'portal', reason, portalUser: user.username || '', decidedBy: by || '' }; blocked.push(id); } });
+    if (blocked.length) await writeList(kv, ids, prefix);
+    return { blocked };
+}
+// ▶ and opened again (Grant / Approve / Restore / Mark Passed): the Portal's own entries for them come off; an entry the
+// course made itself (its own 🚫 Offboard) is left alone
+export async function programUnblock(env, prefix, user) {
+    const kv = env.COURSE_KV;
+    if (!kv || !user || prefix == null) return { unblocked: [] };
+    const ids = await readList(kv, prefix);
+    const n = nameCore(userName(user));
+    const gone = Object.keys(ids).filter(id => ids[id] && ids[id].by === 'portal'
+        && ((user.username && ids[id].portalUser === user.username) || (nameCore(ids[id].name) === n && sameBatch({ batch: ids[id].batch }, user.batch_id))));
+    if (!gone.length) return { unblocked: [] };
+    gone.forEach(id => { delete ids[id]; });
+    await writeList(kv, ids, prefix);
+    return { unblocked: gone };
+}
+// 🧹 every program but Standard Foundational Training (ftSweep has its own): each trainee whose access to it is Revoked
+// (Denied) or Suspended on the Portal goes on that program's list. Run with the Foundational sweep (autoSweep, FT_SWEEP).
+export async function programSweepClosed(env, db, tdb) {
+    const kv = env.COURSE_KV;
+    if (!kv || !tdb) return { blocked: [] };
+    const rows = async (d, sql) => { try { return (await d.prepare(sql).all()).results || []; } catch (e) { return []; } };
+    const keys = Object.keys(PROGRAM_PREFIX).filter(k => k !== FT_TOPIC);
+    const closed = await rows(tdb, `SELECT trainee_username, topic_key, status FROM trainee_topic_access WHERE topic_key IN (${keys.map(k => `'${k}'`).join(', ')}) AND (status = 'Denied' OR status LIKE 'Suspended%')`);
+    if (!closed.length) return { blocked: [] };
+    const users = new Map((await rows(db, `SELECT username, first_name, mi, last_name, suffix, batch_id FROM users`)).map(u => [u.username, u]));
+    const blocked = [];
+    for (const c of closed.slice(0, 40)) {
+        const u = users.get(c.trainee_username);
+        if (!u) continue;
+        const r = await programBlock(env, PROGRAM_PREFIX[c.topic_key], u, c.status === 'Denied' ? 'program access revoked' : 'program access suspended').catch(() => ({ blocked: [] }));
+        r.blocked.forEach(id => blocked.push({ id, name: userName(u), batch: u.batch_id || '', program: c.topic_key }));
+    }
+    return { blocked };
+}
+
+export const ftBlock = (env, user, reason, by) => programBlock(env, PREFIX, user, reason, by);
 // 🗑 an account revoked (Revoke & delete, revoke-user.js): every course record that is theirs goes on the block list, found
 // the loose way (revokedMatches), so they leave every sheet even when the purge found nothing of theirs to delete.
 // user = the deleted account (username, first_name, mi, last_name, suffix, batch_id, or full_name); db = the Portal's DB
@@ -141,20 +206,7 @@ export async function ftBlockRevoked(env, db, user, by) {
     if (blocked.length) await writeList(kv, ids);
     return { blocked };
 }
-export async function ftUnblock(env, user) {
-    const kv = env.COURSE_KV;
-    if (!kv || !user) return { unblocked: [] };
-    const ids = await readList(kv);
-    const portalIds = Object.keys(ids).filter(id => ids[id] && ids[id].by === 'portal');
-    if (!portalIds.length) return { unblocked: [] };
-    const n = nameCore(userName(user));
-    const gone = portalIds.filter(id => (user.username && ids[id].portalUser === user.username)
-        || (nameCore(ids[id].name) === n && sameBatch({ batch: ids[id].batch }, user.batch_id)));
-    if (!gone.length) return { unblocked: [] };
-    gone.forEach(id => { delete ids[id]; });
-    await writeList(kv, ids);
-    return { unblocked: gone };
-}
+export const ftUnblock = (env, user) => programUnblock(env, PREFIX, user);
 export async function ftSweep(env, db, tdb) {
     const kv = env.COURSE_KV;
     if (!kv) return { connected: false, blocked: [] };
@@ -207,6 +259,9 @@ export async function autoSweep(env, db, session, waitUntil) {
     await kv.put(SWEEP_KEY, new Date().toISOString()).catch(() => {});
     const run = ftSweep(env, env.DB, db).then(async (r) => {
         if (r && r.blocked && r.blocked.length) await logActivity(db, session.username, session.batchId, 'FT_REVOKED_SWEEP', { blocked: r.blocked, auto: true });
-    }).catch((e) => console.error('FT auto sweep:', e && e.message));
+    }).catch((e) => console.error('FT auto sweep:', e && e.message))
+        .then(() => programSweepClosed(env, env.DB, db)).then(async (r) => {
+            if (r && r.blocked && r.blocked.length) await logActivity(db, session.username, session.batchId, 'PROGRAM_REVOKED_SWEEP', { blocked: r.blocked, auto: true });
+        }).catch((e) => console.error('Program sweep:', e && e.message));
     if (typeof waitUntil === 'function') waitUntil(run); else await run;
 }

@@ -1,3 +1,4 @@
+import { readList } from '../_ft-block.js';
 import { json, requireSession, logActivity } from '../_utils.js';
 import { driveConfigured, saveBatchToDrive } from '../_drive.js';
 
@@ -310,7 +311,9 @@ export async function onRequestGet({ request, env }) {
         const trainees = [], traineeFeedback = [];
         for (const program of scope) {
             const p = program.prefix, L = program.label;
-            const recs = (await ctx.getAll(await ctx.keys(p + 'trainee:', L + ' trainees'), L + ' trainees'))
+            // 🚫 a trainee on the program's block list (access revoked or suspended: _ft-block.js) is on none of its scorecards
+            const blocked = await readList(kv, p).catch(() => ({}));
+            const recs = (await ctx.getAll((await ctx.keys(p + 'trainee:', L + ' trainees')).filter(k => !blocked[k.slice((p + 'trainee:').length)]), L + ' trainees'))
                 .map(([, v]) => v).filter(v => v && typeof v === 'object');
             // Only fetch trainer feedback for trainees who have some.
             const fbKeys = new Set(await ctx.keys(p + 'feedback:', L + ' trainer feedback'));
