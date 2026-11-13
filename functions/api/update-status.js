@@ -3,8 +3,8 @@ import { json, nextBatchId, logActivity, requireSession } from '../_utils.js';
 // Rejected. Permanent revocation of an already-approved user is a
 // different, irreversible operation (deletes the account entirely) and is
 // handled by its own endpoint — see revoke-user.js — which also enforces
-// who is allowed to revoke whom (Admins can't revoke Admins; only the
-// Master Account can; the Master Account itself can never be revoked).
+// who is allowed to revoke whom (any Admin may revoke a Trainee or another
+// Admin, never their own account; the Master Account can never be revoked).
 export async function onRequestPost({ request, env }) {
     const auth = await requireSession(request, env, { adminOnly: true });
     if (!auth.ok) return auth.response;

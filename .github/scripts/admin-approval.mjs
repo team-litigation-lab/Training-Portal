@@ -18,6 +18,7 @@ const utilsUrl = put('_utils.mjs', fs.readFileSync('functions/_utils.js', 'utf8'
 const load = (name, file) => import(put(name, fs.readFileSync(file, 'utf8').replace("'../_utils.js'", `'${utilsUrl}'`)));
 const status = await load('update-status.mjs', 'functions/api/update-status.js');
 const create = await load('create-user.mjs', 'functions/api/create-user.js');
+const edit = await load('update-user.mjs', 'functions/api/update-user.js');
 const u = await import(utilsUrl);
 
 const sql = new DatabaseSync(':memory:');
@@ -73,6 +74,11 @@ r = await read(await status.onRequestPost({ request: req(trainer, { userId: idOf
 check(r.status === 200 && r.body.success, `a trainer still approves a trainee: ${r.status} ${r.body.error || ''}`);
 check(rowOf('pendingtrainee').status === 'Approved', 'the trainee is Approved');
 check(/^B\d{6}$/.test(rowOf('pendingtrainee').batch_id || ''), `with a Batch ID: ${rowOf('pendingtrainee').batch_id}`);
+
+// Any trainer edits another trainer's account (functions/api/update-user.js).
+r = await read(await edit.onRequestPost({ request: req(trainer, { userId: idOf('pendingadmin'), email: 'pat.cruz@example.com' }), env }));
+check(r.status === 200 && r.body.success, `a trainer edits another trainer's account: ${r.status} ${r.body.error || ''}`);
+check(sql.prepare(`SELECT email FROM users WHERE username = 'pendingadmin'`).get().email === 'pat.cruz@example.com', 'the change is saved');
 
 fs.rmSync(tmp, { recursive: true, force: true });
 if (failures.length) { console.error(`\n${failures.length} check(s) failed.`); process.exit(1); }

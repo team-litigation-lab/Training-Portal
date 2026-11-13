@@ -4,7 +4,8 @@
 // deletes); their submissions, simulator results, calendaring work, evaluations,
 // program access and the course's own progress and trainer feedback all go; scores
 // are not kept behind; the activity log and the username tombstone stay; and another
-// trainee in the same batch is left alone.
+// trainee in the same batch is left alone. Any trainer revokes another trainer, never their own account,
+// and nobody revokes the Master Account.
 // Run: node --no-warnings .github/scripts/revoke-purge.mjs   (from the repository root)
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
@@ -133,6 +134,17 @@ check(r.status === 200 && r.body.success, `revoking a trainee with a middle init
 check(!kvData.has('ft:trainee:mark-christian-lucban--b103026') && !kvData.has('ft:feedback:mark-christian-lucban--b103026'),
     "his Foundational Training record (first + last name, the short Batch ID) is gone, so he leaves its Scorecard");
 check(kvData.has('ft:trainee:mark-christian-lucban--b010125'), 'the same name in another batch is left alone');
+
+// 7. A trainer revokes another trainer; never their own account, and nobody the Master Account.
+sql.exec(`INSERT INTO users (username, first_name, last_name, email, status, user_type, batch_id) VALUES
+ ('jo','Jo','Lim','j@x','Approved','Admin',NULL), ('LSHADMIN123','System','Administrator','s@x','Approved','Admin','MASTER-ADMIN')`);
+r = await read(await revoke.onRequestPost({ request: req(trainer, { userId: idOf('jo'), backupSaved: true }), env }));
+check(r.status === 200 && r.body.success, `a trainer revokes another trainer: ${r.status} ${r.body.error || ''}`);
+check(!one(`SELECT id FROM users WHERE username = 'jo'`), "the other trainer's account is gone");
+r = await read(await revoke.onRequestPost({ request: req(trainer, { userId: idOf('matt'), backupSaved: true }), env }));
+check(r.status === 403 && !!one(`SELECT id FROM users WHERE username = 'matt'`), `a trainer cannot revoke their own account: ${r.status}`);
+r = await read(await revoke.onRequestPost({ request: req(trainer, { userId: idOf('LSHADMIN123'), backupSaved: true }), env }));
+check(r.status === 403 && !!one(`SELECT id FROM users WHERE username = 'LSHADMIN123'`), `nobody revokes the Master Account: ${r.status}`);
 
 if (failures.length) { console.log(`\n${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
 console.log('\nRevoke test passed (the records are filed before anything is deleted, then nothing of theirs is left, scores included; the audit trail and the tombstone stay; the rest of the batch is untouched).');

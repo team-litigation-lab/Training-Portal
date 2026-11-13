@@ -3164,8 +3164,8 @@ window.openAccessRequests = openAccessRequests;
 // ===== Edit an account: Batch ID, name, email, username, new password (functions/api/update-user.js) =====
 function canEditUser(u) {
     const me = getSession();
-    if (!me || u.username === 'LSHADMIN123') return false;
-    return u.userType !== 'Admin' || me.username === 'LSHADMIN123';
+    // Any trainer edits any account, a trainee's or another trainer's; nobody edits the Master Account here.
+    return !!me && u.username !== 'LSHADMIN123';
 }
 function openEditUser(id) {
     const u = (__usersCache || []).find(x => x.id === id);
