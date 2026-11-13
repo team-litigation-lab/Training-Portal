@@ -19,9 +19,9 @@ import { ftBlockRevoked } from '../_ft-block.js';
 // Nothing is deleted until the backup is safe. With Google Drive configured the
 // Function files it itself; without it, the first call answers { needsBackup: true }
 // with the whole record, the admin's browser downloads it, and the second call
-// (backupSaved: true) does the deleting. The activity log and the username
-// tombstone stay: the audit trail of the revocation, and what stops the username
-// being used again, are not the person's work.
+// (backupSaved: true) does the deleting. Their own activity-log rows go too; what
+// stays is the trainer's "Revoked an account" entry and the username tombstone
+// (what stops the username being used again).
 //
 // Permission rules:
 //   - The Master Account can never be revoked, by anyone.

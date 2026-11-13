@@ -794,7 +794,7 @@ async function reactivateUser(id) {
 // itself; without it, it hands the record back here, this downloads it, and only
 // then does the second call do the deleting. Scores are not kept behind.
 async function revokeUser(id, name) {
-    if (!confirm(`Permanently revoke ${name}'s account?\n\nEverything of theirs goes with it \u2014 grades, submitted activities, simulator results and course progress \u2014 after a copy is filed to their batch's folder. This cannot be undone.`)) return;
+    if (!confirm(`Permanently revoke ${name}'s account?\n\nEverything of theirs goes with it \u2014 grades, submitted activities, simulator results, course progress, drafts and their activity log \u2014 after a copy is filed to their batch's folder. This cannot be undone.`)) return;
     try {
         const first = await postJson('/api/revoke-user', { userId: id });
         if (first.needsBackup) {
@@ -824,12 +824,13 @@ async function revokeUser(id, name) {
 // What actually went, so an admin sees it rather than being told "done".
 function revokeSummary(r) {
     const g = r.removed || {};
-    const n = ['submissions', 'simulatorResults', 'simulatorResultsByName', 'calsim', 'gcalDrafts', 'gcalReviews']
-        .reduce((a, k) => a + (typeof g[k] === 'number' ? g[k] : 0), 0);
+    const sum = (keys) => keys.reduce((a, k) => a + (typeof g[k] === 'number' ? g[k] : 0), 0);
+    const n = sum(['submissions', 'simulatorResults', 'simulatorResultsByName', 'calsim', 'gcalDrafts', 'gcalReviews', 'topicAccess', 'draftingDrafts', 'emailPractice']);
+    const logs = sum(['activityLog', 'trainingActivityLog']);
     const left = (r.courseIncomplete || []).length
         ? ` Course records in ${r.courseIncomplete.join(', ')} were not all read, so check them.`
         : '';
-    return `Account revoked. ${n} record${n === 1 ? '' : 's'} and ${g.courseKeys || 0} course entr${(g.courseKeys || 0) === 1 ? 'y' : 'ies'} removed.`
+    return `Account revoked. ${n} record${n === 1 ? '' : 's'}, ${g.courseKeys || 0} course entr${(g.courseKeys || 0) === 1 ? 'y' : 'ies'} and ${logs} log entr${logs === 1 ? 'y' : 'ies'} removed.`
         + (r.backup ? ' Their file is in the batch folder.' : '') + left;
 }
 

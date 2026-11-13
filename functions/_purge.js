@@ -9,10 +9,12 @@
 // Scores go too. They are not anonymised and kept: a batch average after a
 // revocation is the average of the people still in the batch.
 //
-// What is NOT deleted, deliberately: the activity log. It is the platform's audit
-// trail — who did what, including this revocation — not the person's own work, and
-// erasing it would erase the record that the revocation happened. The tombstone
-// (deleted_users) stays too: it is what stops the username being taken again.
+// Their own activity-log rows go too (their log-ins, uploads, submissions), in both
+// databases, so a revoked trainee leaves no trace in Server Logs or Activity Logs.
+// The one row kept is the trainer's own "Revoked an account" entry, which is the
+// trainer's action, not the trainee's. The tombstone (deleted_users) stays: it is
+// what stops the username being taken again, and it is how purgeRevokedLeftovers()
+// below finds anything an older revocation (before all this was purged) left behind.
 
 import { canonicalBatch } from './_utils.js';
 
@@ -54,13 +56,17 @@ async function rows(db, sql, ...binds) {
 export async function collectUserRecords(env, user) {
     const name = fullName(user), key = nameKey(name), forms = nameForms(user);
     const t = env.TRAINING_DB, d = env.DB;
-    const [submissions, simulatorResults, calsim, gcalDrafts, gcalReviews, topicAccess] = await Promise.all([
+    const [submissions, simulatorResults, calsim, gcalDrafts, gcalReviews, topicAccess, draftingDrafts, emailPractice, activityLog, trainingActivityLog] = await Promise.all([
         rows(t, `SELECT * FROM submissions WHERE trainee_username = ?`, user.username),
         rows(t, `SELECT * FROM simulator_results WHERE username = ?`, user.username),
         rows(t, `SELECT * FROM calsim_records WHERE username = ?`, user.username),
         rows(t, `SELECT * FROM gcal_drafts WHERE username = ?`, user.username),
         rows(t, `SELECT * FROM gcal_reviews WHERE username = ?`, user.username),
-        rows(t, `SELECT * FROM trainee_topic_access WHERE trainee_username = ?`, user.username)
+        rows(t, `SELECT * FROM trainee_topic_access WHERE trainee_username = ?`, user.username),
+        rows(t, `SELECT * FROM drafting_drafts WHERE username = ?`, user.username),
+        rows(t, `SELECT * FROM email_practice WHERE lower(trim(who_name)) = ?`, key),
+        rows(d, `SELECT * FROM activity_log WHERE actor_username = ?`, user.username),
+        rows(t, `SELECT * FROM activity_log WHERE actor_username = ?`, user.username)
     ]);
     // A simulator result can also be filed under the name a trainee typed in
     // ("who's practicing"), with no username on it — those are theirs as well.
@@ -96,6 +102,8 @@ export async function collectUserRecords(env, user) {
     return {
         account: user,
         submissions, simulatorResults: simulatorResults.concat(byName), calsim, gcalDrafts, gcalReviews, topicAccess,
+        draftingDrafts, emailPractice: emailPractice.filter(r => !r.who_batch || !user.batch_id || batchForm(r.who_batch) === batchForm(user.batch_id)),
+        activityLog: activityLog.concat(trainingActivityLog),
         course,
         courseIncomplete: [...new Set(skipped)],
         collectedAt: new Date().toISOString()
@@ -119,7 +127,17 @@ export async function purgeUserRecords(env, user, collected) {
     await run(t, 'gcalDrafts', `DELETE FROM gcal_drafts WHERE username = ?`, user.username);
     await run(t, 'gcalReviews', `DELETE FROM gcal_reviews WHERE username = ?`, user.username);
     await run(t, 'topicAccess', `DELETE FROM trainee_topic_access WHERE trainee_username = ?`, user.username);
+    await run(t, 'draftingDrafts', `DELETE FROM drafting_drafts WHERE username = ?`, user.username);
+    // the practice emails sent in their name (collected above: their name, their batch), by token
+    const tokens = (collected.emailPractice || []).map(r => r.token).filter(Boolean);
+    for (let i = 0; i < tokens.length; i += 90) {
+        const part = tokens.slice(i, i + 90);
+        await run(t, 'emailPractice', `DELETE FROM email_practice WHERE token IN (${part.map(() => '?').join(', ')})`, ...part);
+    }
     await run(d, 'heartbeats', `DELETE FROM heartbeats WHERE username = ?`, user.username);
+    await run(d, 'pings', `DELETE FROM pings WHERE target = ?`, user.username);
+    await run(d, 'activityLog', `DELETE FROM activity_log WHERE actor_username = ?`, user.username);
+    await run(t, 'trainingActivityLog', `DELETE FROM activity_log WHERE actor_username = ?`, user.username);
 
     // The course's own record of them: their progress, and the trainer's feedback on it.
     let courseKeys = 0, courseFailed = [];
@@ -134,6 +152,48 @@ export async function purgeUserRecords(env, user, collected) {
     gone.courseKeys = courseKeys;
     if (courseFailed.length) gone.courseFailed = courseFailed;
     return gone;
+}
+
+// 🧹 Anything an earlier revocation left behind: the platform once kept a revoked account's activity log, and
+// some of their records were not purged at all. Every username in the tombstone list (deleted_users) is cleared
+// out of every table keyed by username, unless that username has an account again. Runs in the background from
+// the Users list (users.js), at most every 15 minutes. Returns { usernames, removed: { table: rows } }.
+const LEFTOVER_KEY = 'portal:revoked-leftovers-sweep';
+const LEFTOVER_EVERY_MS = 15 * 60 * 1000;
+export async function purgeRevokedLeftovers(env) {
+    const d = env.DB, t = env.TRAINING_DB, removed = {};
+    if (!d) return { usernames: 0, removed };
+    const gone = (await rows(d, `SELECT DISTINCT username FROM deleted_users WHERE username IS NOT NULL
+        AND username NOT IN (SELECT username FROM users WHERE username IS NOT NULL)`)).map(r => r.username);
+    const tables = [
+        [d, 'activity_log', 'actor_username'], [d, 'heartbeats', 'username'], [d, 'pings', 'target'],
+        [t, 'activity_log', 'actor_username'], [t, 'submissions', 'trainee_username'], [t, 'simulator_results', 'username'],
+        [t, 'calsim_records', 'username'], [t, 'gcal_drafts', 'username'], [t, 'gcal_reviews', 'username'],
+        [t, 'trainee_topic_access', 'trainee_username'], [t, 'drafting_drafts', 'username']
+    ];
+    for (let i = 0; i < gone.length; i += 90) {
+        const part = gone.slice(i, i + 90), marks = part.map(() => '?').join(', ');
+        for (const [db, table, col] of tables) {
+            if (!db) continue;
+            const label = (db === d ? 'accounts.' : 'training.') + table;
+            try {
+                const r = await db.prepare(`DELETE FROM ${table} WHERE ${col} IN (${marks})`).bind(...part).run();
+                removed[label] = (removed[label] || 0) + ((r && r.meta && r.meta.changes) || 0);
+            } catch (e) { /* a table this deployment doesn't have yet */ }
+        }
+    }
+    return { usernames: gone.length, removed };
+}
+// The background run, throttled through COURSE_KV (no KV: every call, which is still only a few deletes).
+export async function autoPurgeRevoked(env, waitUntil) {
+    const kv = env.COURSE_KV;
+    if (kv) {
+        const last = await kv.get(LEFTOVER_KEY).catch(() => null);
+        if (last && Date.now() - Date.parse(last) < LEFTOVER_EVERY_MS) return;
+        await kv.put(LEFTOVER_KEY, new Date().toISOString()).catch(() => {});
+    }
+    const run = purgeRevokedLeftovers(env).catch((e) => console.error('Revoked leftovers sweep:', e && e.message));
+    if (typeof waitUntil === 'function') waitUntil(run); else await run;
 }
 
 export { fullName, PROGRAMS as PURGE_PROGRAMS };

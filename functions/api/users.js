@@ -1,5 +1,6 @@
 import { json, requireSession, buildFullName } from '../_utils.js';
 import { autoSweep } from '../_ft-block.js';
+import { autoPurgeRevoked } from '../_purge.js';
 
 export async function onRequestGet({ request, env, waitUntil }) {
     // Requires an authenticated Admin session
@@ -7,6 +8,8 @@ export async function onRequestGet({ request, env, waitUntil }) {
     if (!auth.ok) return auth.response;
     // 🧹 Standard Foundational Training's revoked-trainee sweep, in the background (at most every 15 minutes: topics.js)
     try { await autoSweep(env, env.TRAINING_DB, auth.session, waitUntil); } catch (e) { /* never stops the list */ }
+    // 🧹 and whatever older revocations left behind (their activity log, drafts…) is cleared, also in the background
+    try { await autoPurgeRevoked(env, waitUntil); } catch (e) { /* never stops the list */ }
 
     try {
         // Fetch all accounts from env.DB, excluding passwords
