@@ -20,12 +20,14 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '
 // The trainee is signed in; their account keeps letters and files the way functions/api/drafting-drafts.js does, and
 // their scores reach /api/sim-results as Sim.saveResult sends them.
 const ANN = { username: 'ann', userType: 'Trainee', fullName: 'Ann Lee', batchId: 'B1' };
+// (ME: Ann, or Ann as a trainer, to see what only trainers see: the trainers' file name, the list of cases)
+let ME = ANN;
 let ACCOUNT = {}, RESULTS = [], ASSIGNED = { success: true, case: null, found: false };
 const server = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
     const send = (o, st) => { res.writeHead(st || 200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
     const body = () => new Promise(r => { let b = ''; req.on('data', c => { b += c; }); req.on('end', () => r(JSON.parse(b || '{}'))); });
-    if (u.pathname === '/api/me') return send({ success: true, user: ANN });
+    if (u.pathname === '/api/me') return send({ success: true, user: ME });
     if (u.pathname === '/api/heartbeat') return send({ success: true });
     if (u.pathname === '/api/sim-results' && req.method === 'POST') return body().then(b => { RESULTS.push(b); send({ success: true }); });
     // (📄 the case the trainer assigned in the course, as /api/drafting-drafts?assigned=1 reads it: step 8 sets it)
@@ -95,12 +97,16 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     check('over the document: Original / Edit here, Download as Word, and no Save as PDF', /👁 Original/.test(bar) && /✎ Edit here/.test(bar) && /Download as Word \(\.docx\)/.test(bar) && !/Save as PDF/.test(bar) && typeof (await page.evaluate(() => LSHDrafting.pdf)) === 'undefined', bar);
     check('the original has no editor', !(await page.$('.wd-ribbon')) && !(await page.$('[contenteditable="true"]')), 'an editor');
 
-    // 1. ⬇ Download as Word hands over the firm's .docx (no draft yet), named the trainers' way
+    // 1. ⬇ Download as Word hands over the firm's .docx (no draft yet). The file name is graded, so a trainee's box is empty:
+    // a reminder of the naming convention only, never the answer; the download keeps the firm's own file name until they type one
     const tplDocx = fs.readFileSync(path.join(ROOT, 'simulators/drafting/templates/1P_LOR.docx'));
+    const fn = await page.evaluate(() => ({ v: document.getElementById('dr-fname').value, ph: document.getElementById('dr-fname').placeholder,
+        hint: document.querySelector('[data-fname-hint]').textContent, reset: document.querySelector('[data-fname-reset]').hidden }));
+    check('a trainee\'s file name starts empty, with the naming convention as a reminder only', fn.v === '' && !!fn.ph && fn.reset
+        && /^Reminder: INS – 1P Insurance Provider - LOR mm\.dd\.yyyy \(VA's first name\)/.test(fn.hint) && /graded/.test(fn.hint) && !/Ann|\d\d\.\d\d/.test(fn.hint), JSON.stringify(fn));
     let [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-dlword]')]);
     check('Download as Word hands over the firm\'s own Word file', fs.readFileSync(await dl.path()).equals(tplDocx), 'another file');
-    const wordName = (await page.inputValue('#dr-fname')) + '.docx';
-    check('named the trainers\' way', /^INS – 1P .* - LOR \d\d\.\d\d\.\d{4} \(Ann\)\.docx$/.test(wordName), wordName);
+    check('… under the firm\'s own file name, not the answer', dl.suggestedFilename() === '1P_LOR.docx' || dl.suggestedFilename() === 'download', dl.suggestedFilename());
 
     // 2. a Word file uploaded untouched: checked, the highlights found, kept on the account, scored to progress
     let r = await upload('docx', tplDocx, 'INS – 1P.docx');
@@ -229,9 +235,18 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     check('a ?case=N link still wins', as4.txt === 'Your assigned case: John Doe · DOL April 2, 2023', JSON.stringify(as4));
     ASSIGNED = { success: true, case: null, found: true };
     const as5 = await shown();
+    check('taken off in the course: a trainee sees no case, and no list of cases', as5.sel === 0 && as5.txt === '' && !!(await page.$('[data-nocase]')), JSON.stringify(as5));
+    // (the tab keeps who is signed in: forgotten, so the page asks /api/me again)
+    const asWho = async (who) => { ME = who; await page.evaluate(() => { sessionStorage.removeItem('LSH_SESSION_V1'); localStorage.removeItem('LSH_SESSION_V1'); }); };
+    await asWho(Object.assign({}, ANN, { userType: 'Admin' }));        // a trainer has the list
+    await shown();
     const opts = await page.$$eval('select[onchange*="pickCase"] option', os => os.map(o => o.textContent.trim()));
     check('the cases are listed by the client\'s name on the case', opts[0] === 'Jane Doe · DOL March 10, 2023' && opts[11] === 'John Doe · DOL August 22, 2022' && opts[14] === 'Jane Doe · DOL November 10, 2023 · American National General Insurance Company' && opts.every(o => /^(John|Jane) Doe · DOL /.test(o)) && opts.every(o => !/^Case \d/.test(o)) && new Set(opts).size === opts.length, opts.join(' | '));
-    check('taken off in the course: the trainee picks the case again', as5.sel > 0 && as5.txt === '', JSON.stringify(as5));
+    // (the trainers' name for the 3P letter, as a trainer sees it filled in: the trainee types it in step 9)
+    await page.goto(base + '/simulators/drafting.html?tab=lor3p', { waitUntil: 'load' }); await page.waitForSelector('section.docx > article', { timeout: 30000 }); await page.waitForTimeout(1000);
+    const trainers3p = await page.inputValue('#dr-fname');
+    check('a trainer sees the trainers\' name filled in', /^INS – 3P .* - LOR with Affidavit \d\d\.\d\d\.\d{4} \((Ann|VA)\)$/.test(trainers3p), trainers3p);
+    await asWho(ANN);
 
     // 9. ✎ Edit here: the platform's own editor, on the draft; the trainee's own file name; Download as Word with the edits;
     // Check my letter scored to progress; the draft kept; an uploaded Word file is the draft from then on
@@ -266,6 +281,16 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     r = RESULTS[RESULTS.length - 1];
     cs = await checks();
     check('✔ Check my letter, in the editor: checked and scored to progress', RESULTS.length > n9 && r.details.editedIn === 'platform' && /platform's editor/.test(r.summary) && cs.length >= 5 && r.details.fileName === 'My own name forthe 3P letter.docx', JSON.stringify(r && r.summary));
+    check('a file name off the convention fails its check, without giving the answer', cs.includes('✗ File name follows the naming convention') && !(await page.textContent('#dr-check')).includes(trainers3p), cs.join(' | '));
+    // typed the convention's way (another dash, the year in two digits): that check passes
+    await page.fill('#dr-fname', trainers3p.replace(/\((Ann|VA)\)$/, '(Ann)').replace(' – ', ' - ').replace(/(\d\d\.\d\d\.)\d\d(\d\d)/, '$1$2'));
+    await page.waitForTimeout(200);
+    n9 = RESULTS.length;
+    await page.click('[data-checkhere]');
+    for (let i = 0; i < 100 && RESULTS.length === n9; i++) await page.waitForTimeout(100);
+    cs = await checks();
+    check('the file name typed the convention\'s way passes', cs.includes('✓ File name follows the naming convention'), cs.join(' | '));
+    await page.fill('#dr-fname', 'My own name forthe 3P letter'); await page.waitForTimeout(200);
     await page.waitForTimeout(3000);
     check('the draft made here is kept on the account', !!ACCOUNT['lor3p'], 'no draft');
     await page.goto(base + '/simulators/drafting.html?tab=lor3p', { waitUntil: 'load' });
@@ -274,8 +299,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await page.waitForFunction(() => /Your draft/.test((document.querySelector('#dr-wd .wd-title [data-state]') || {}).textContent || ''), null, { timeout: 30000 }).catch(() => {});
     check('opened again, the editor has the draft', await page.evaluate(() => /ZQXEDITED/.test(document.querySelector('#dr-paper').textContent)), 'not the draft');
     check('and the name the trainee gave it', (await page.inputValue('#dr-fname')) === 'My own name forthe 3P letter', await page.inputValue('#dr-fname'));
-    await page.click('.dr-freset');
-    check('↺ puts the trainers\' name back', /^INS – 3P .* - LOR with Affidavit \d\d\.\d\d\.\d{4} \(Ann\)$/.test(await page.inputValue('#dr-fname')), await page.inputValue('#dr-fname'));
+    check('a trainee has no ↺ to the trainers\' name', await page.$eval('.dr-freset', b => b.hidden), 'shown');
     // a Word file uploaded is the draft from then on
     {
         const tpl3 = fs.readFileSync(path.join(ROOT, 'simulators/drafting/templates', await page.evaluate(() => LSH_DRAFTING_TEMPLATES.find(x => x.id === 'lor3p').file)));
