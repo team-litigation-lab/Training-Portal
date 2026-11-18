@@ -9,6 +9,7 @@ const CHECKS = [
     { name: 'EA/PA Training course', url: 'https://ea-pa-training.legalsupporthelp.workers.dev/', expect: '<html' },
     { name: 'PD Claims Training course', url: 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/', expect: '<html' },
     { name: 'Medsum & Demand Training course', url: 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/', expect: '<html' },
+    { name: 'Lien Negotiator Training course', url: 'https://liennegotiatortraining.legalsupporthelp.workers.dev/', expect: '<html' },
     { name: 'CMS (home)', url: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/', expect: 'front-desk-drill.js' },
     { name: 'CMS (database)', url: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/api/state', json: (b) => b && typeof b.locked === 'boolean' },
     // The two other tools a signed-in person reaches through SSO (functions/api/launch.js SSO_TOOLS).
