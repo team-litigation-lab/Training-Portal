@@ -14,7 +14,9 @@
        their edits (drafting-docx.js applyEditsXml), ✔ Check my letter scores it.
      ⬆ Upload — the letter edited here or in Word and saved as PDF (or the Word file) comes back here, and is checked
        for the conversion to PDF and for the edits.
-   Either way the file name is the trainers' (18-Day guide) unless the trainee types their own before downloading.
+   The file name is part of the grade (attention to detail): a trainee's box starts empty, with only a reminder of the
+   naming convention, and the name they give it (or the uploaded file's own name) is checked against the convention.
+   Trainers see the trainers' name filled in. A trainee sees only the case their trainer assigned them, never the list.
    The platform never combines files into one PDF: a MedLOR's packet with the HIPAA is put together outside it.
    A MedLOR's original comes with the client's signed HIPAA under it, drawn from the firm's PDF (pdf.js).
    What the trainee did is kept in their browser and on their account (LSH_DRAFTING_DOCS_V1: each uploaded Word
@@ -396,12 +398,18 @@ async function runChecks(t, a) {
             .map(r => r.ph.trim()).filter((ph, i, xs) => xs.indexOf(ph) === i && values.every(v => v.indexOf(norm(ph)) < 0) && text.indexOf(ph) >= 0);
         add(!left.length, 'No sample details from the template left', left.length ? 'Still the template\'s: ' + clip(left) : '', 2);
     }
+    // the file name (attention to detail): what the trainee typed, or the uploaded file's own name
+    const given = cleanName(a.fileName);
+    add(!!given && nameMatches(t, given), 'File name follows the naming convention',
+        !given ? 'Name the file as the naming convention gives it (the reminder under File name).'
+        : nameMatches(t, given) ? '' : `“${given}” does not follow it: check the reminder under File name — the side, the insurance provider or provider, the letter, today's date and your first name.`
+            + (trainee() ? '' : ` The trainers' name: ${fileName(t)}`), 2);
     if (isMedlor(t)) {
         const ticked = /☒|☑|✓|✔|\bX\b(?= ?(Medical|Itemized|Bills|Records))/.test(text) || (a.checks || []).some(Boolean);
         add(ticked, 'A box ticked for what you are requesting', ticked ? '' : 'Tick bills, records or both: double-click a ☐, or Insert › Symbol ☒.');
     }
     const total = out.reduce((s, c) => s + c.weight, 0), got = out.reduce((s, c) => s + c.weight * c.part, 0);
-    return { checks: out, score: total ? Math.round(got / total * 100) : 0, text: a.paras };
+    return { checks: out, score: total ? Math.round(got / total * 100) : 0, text: a.paras, fileName: given };
 }
 function checksHtml(res) {
     if (!res) return '<p style="margin:0;color:#64748b;">Upload your edited letter to have it checked.</p>';
@@ -447,6 +455,11 @@ function caseHtml() {
         </div>`;
     }
     if (!CASES.length) return '';
+    // a trainee works only the case their trainer assigned (📄 Assign LORs in the course): no list of every case
+    if (S.assigned == null && !Sim.isAdmin()) return `<div class="dr-note" data-nocase>
+        <h3>Case notes · ${S.tab === 'lor3p' ? '3P' : '1P'}</h3>
+        <p style="margin:0;color:#64748b;">Your trainer hasn't assigned your case yet. Once they do, your case and its notes show here — ask your trainer if you are ready to draft.</p>
+    </div>`;
     const c = CASES[S.caseNo] || CASES[0], side = S.tab === 'lor3p' ? c.p3 : c.p1;
     const rows = Object.keys(side || {}).map(k => `<dt>${esc(k)}</dt><dd>${esc(side[k])}</dd>`).join('');
     return `<div class="dr-note">
@@ -517,14 +530,42 @@ function fileName(t) {
 const nameKey = (t) => t.id + ':name';
 const cleanName = (v) => String(v || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').replace(/\.(docx?|pdf)$/i, '').replace(/\s+/g, ' ').trim().slice(0, 180);
 const customName = (t) => cleanName(S.answers[nameKey(t)]);
-const docName = (t) => customName(t) || fileName(t);
+// A trainer sees the trainers' name filled in; a trainee types it themselves (it is graded), so theirs is only what they typed.
+const trainee = () => !Sim.isAdmin();
+const docName = (t) => customName(t) || (trainee() ? '' : fileName(t));
+// What the download is called before a trainee has typed a name: the firm's own template file, not the answer.
+const saveAs = (t) => docName(t) || origName(t).replace(/\.docx?$/i, '');
+// The naming convention as a reminder only (no carrier, client, date or name filled in): the trainee works it out.
+function convention(t) {
+    if (t.dir === 'providers') return t.id.endsWith(':medlor')
+        ? "MED - Client's initials(Provider) - MedLOR with Unsworn COR and HIPAA mm.dd.yy (VA's first name)"
+        : "MED - Client's initials(Provider) - Lien Balance Verification mm.dd.yyyy (VA's first name)";
+    return t.id === 'lor3p' ? "INS – 3P Insurance Provider - LOR with Affidavit mm.dd.yyyy (VA's first name)"
+        : "INS – 1P Insurance Provider - LOR mm.dd.yyyy (VA's first name)";
+}
+const hintText = (t) => trainee()
+    ? 'Reminder: ' + convention(t) + (t.dir === 'providers' ? ' · NPIM: the doctor\'s name after the provider' : '') + ' · your file name is graded (attention to detail)'
+    : (customName(t) ? 'Your own name · the trainers\' is ' + fileName(t) : 'The trainers\' naming (18-Day guide) · type to change it');
+// ✔ the name the trainee gave the file, against the convention: the dashes, spacing and letter case aside, and
+// today's date as mm.dd.yyyy or mm.dd.yy.
+function nameMatches(t, given) {
+    const n = (v) => String(v || '').replace(/[\u2010-\u2015\u2212]/g, '-').replace(/\s*-\s*/g, ' - ').replace(/\s*\(\s*/g, '(').replace(/\s*\)/g, ')')
+        .replace(/\s+/g, ' ').trim().toLowerCase();
+    const rx = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const d = new Date(), mm = pad2(d.getMonth() + 1), dd = pad2(d.getDate()), y4 = String(d.getFullYear()), y2 = y4.slice(2);
+    const days = '(?:' + rx(`${mm}.${dd}.${y4}`) + '|' + rx(`${mm}.${dd}.${y2}`) + ')';
+    let want = rx(n(fileName(t)));
+    const long = rx(`${mm}.${dd}.${y4}`), short = rx(`${mm}.${dd}.${y2}`);
+    want = want.indexOf(long) >= 0 ? want.replace(long, days) : want.replace(short, days);
+    return new RegExp('^' + want + '$').test(n(given));
+}
 // Everywhere the name shows, after the letter or the name changed.
 function refreshNames(t) {
     if (!t || tpl().id !== t.id) return;
     const n = docName(t), box = document.getElementById('dr-fname');
     if (box && document.activeElement !== box) box.value = n;
-    const reset = document.querySelector('[data-fname-reset]'); if (reset) reset.hidden = !customName(t);
-    const hint = document.querySelector('[data-fname-hint]'); if (hint) hint.textContent = customName(t) ? 'Your own name · the trainers\' is ' + fileName(t) : 'The trainers\' naming (18-Day guide) · type to change it';
+    const reset = document.querySelector('[data-fname-reset]'); if (reset) reset.hidden = trainee() || !customName(t);
+    const hint = document.querySelector('[data-fname-hint]'); if (hint) hint.textContent = hintText(t);
 }
 
 /* ---------- the MedLOR and the client's signed HIPAA ----------
@@ -662,9 +703,10 @@ function docBarHtml(t) {
         <div class="dr-docrow">
             <label class="dr-fname"><span>File name</span>
                 <span class="dr-fbox"><input id="dr-fname" value="${esc(docName(t))}" spellcheck="false" autocomplete="off" aria-describedby="dr-fname-hint"
-                    oninput="LSHDrafting.rename(this.value)" onblur="LSHDrafting.renamed()"><button type="button" class="dr-freset" data-fname-reset ${customName(t) ? '' : 'hidden'}
+                    ${trainee() ? 'placeholder="Type the file name, as the naming convention gives it"' : ''}
+                    oninput="LSHDrafting.rename(this.value)" onblur="LSHDrafting.renamed()"><button type="button" class="dr-freset" data-fname-reset ${!trainee() && customName(t) ? '' : 'hidden'}
                     title="Back to the trainers' name" aria-label="Back to the trainers' name" onclick="LSHDrafting.rename('')">↺</button></span>
-                <small id="dr-fname-hint" data-fname-hint>${customName(t) ? 'Your own name · the trainers\' is ' + esc(fileName(t)) : 'The trainers\' naming (18-Day guide) · type to change it'}</small>
+                <small id="dr-fname-hint" data-fname-hint>${esc(hintText(t))}</small>
             </label>
             <span class="dr-docacts">
                 <button class="sim-btn orange" data-dlword onclick="LSHDrafting.download()" title="${edit ? 'Your letter as on screen, as the firm\'s own Word file' : 'Your latest draft (edited here or uploaded), else the firm\'s original'}">⬇ Download as Word (.docx)</button>
@@ -790,7 +832,7 @@ async function record(t, res, from) {
         summary: `Edited in ${from === 'pdf' ? 'a PDF editor' : from === 'platform' ? 'the platform\'s editor' : 'Word'} · ${res.score}% · ${res.checks.length - failed.length} of ${res.checks.length} checks passed`
             + (hip ? ` · HIPAA ${hipOk} of ${hip.length} right` : ''),
         details: { template: t.id, editedIn: from, caseNo: S.tab === 'prov' ? null : S.caseNo + 1, provider: S.tab === 'prov' ? t.provider : null,
-            hipaa: hip, fileName: docName(t) + (from === 'pdf' ? '.pdf' : '.docx'), trainersName: fileName(t) + (from === 'pdf' ? '.pdf' : '.docx'),
+            hipaa: hip, fileName: (res.fileName || docName(t)) + (from === 'pdf' ? '.pdf' : '.docx'), trainersName: fileName(t) + (from === 'pdf' ? '.pdf' : '.docx'),
             checks: res.checks.map(c => ({ check: c.label, ok: c.ok, detail: c.detail })), letter: res.text.join('\n').slice(0, 20000) }
     };
     await Sim.saveResult(r);
@@ -854,6 +896,7 @@ const API = {
             return;
         }
         if (!letter.paras.join('').trim()) { say(''); alert('No text could be read from that file. If it is a scanned or flattened PDF, edit the downloaded one and save it from your editor.'); return; }
+        letter.fileName = String(file.name || '').replace(/\.(docx?|pdf)$/i, '').replace(/\s\(\d+\)$/, '') || docName(t);
         const res = await runChecks(t, letter);
         showChecks(res);
         say('Checking done · keeping your file on the platform…');
@@ -876,12 +919,12 @@ const API = {
             for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([out], { type: MIME[kind] }));
-            a.download = docName(t) + '.' + kind;
+            a.download = (docName(t) || String(p.name || '').replace(/\.(docx?|pdf)$/i, '') || saveAs(t)) + '.' + kind;
             document.body.appendChild(a); a.click(); a.remove();
             setTimeout(() => URL.revokeObjectURL(a.href), 4000);
         } catch (e) { alert('It could not be downloaded: ' + e.message); }
     },
-    pickCase(i) { if (S.assigned != null) return; S.caseNo = Number(i) || 0; save(); render(); },
+    pickCase(i) { if (S.assigned != null || !Sim.isAdmin()) return; S.caseNo = Number(i) || 0; save(); render(); },
     pickProvider(i) {
         S.prov = Number(i) || 0;
         const p = provider();
@@ -912,9 +955,9 @@ const API = {
     // The file name the trainee types before downloading ('' puts the trainers' back).
     rename(v) {
         const t = tpl(), c = cleanName(v);
-        if (c && c !== fileName(t)) S.answers[nameKey(t)] = c; else delete S.answers[nameKey(t)];
+        if (c && (trainee() || c !== fileName(t))) S.answers[nameKey(t)] = c; else delete S.answers[nameKey(t)];
         save();
-        if (!String(v).trim()) { const box = document.getElementById('dr-fname'); if (box) box.value = fileName(t); }
+        if (!String(v).trim()) { const box = document.getElementById('dr-fname'); if (box) box.value = docName(t); }
         refreshNames(t);
     },
     renamed() { const box = document.getElementById('dr-fname'); if (box) box.value = docName(tpl()); },
@@ -933,7 +976,7 @@ const API = {
                 blob = draft ? await LSHDraftingDocx.pack(bytes, draft) : new Blob([bytes], { type: MIME.docx });
             }
             const left = LETTER[t.id] && LETTER[t.id].highlighted ? LETTER[t.id].highlighted.length : 0;
-            fileOut(blob, docName(t) + '.docx');
+            fileOut(blob, saveAs(t) + '.docx');
             if (CUR && CUR.mode === 'edit' && left) say(`Downloaded · ${left} highlighted piece${left === 1 ? '' : 's'} still in it`);
         } catch (e) { alert('It could not be downloaded: ' + (e && e.message || e)); }
     },
@@ -946,7 +989,7 @@ const API = {
         const au = LSHDraftingDocx.auditXml(xml);
         let fonts = null;
         try { fonts = CUR.ed.fonts ? fontsOfXml(xml) : null; } catch (e) { fonts = null; }
-        const res = await runChecks(t, Object.assign({ from: 'platform', fonts }, au));
+        const res = await runChecks(t, Object.assign({ from: 'platform', fonts, fileName: docName(t) }, au));
         showChecks(res);
         await record(t, res, 'platform');
         const c = document.getElementById('dr-check'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
