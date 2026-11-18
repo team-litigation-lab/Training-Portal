@@ -351,7 +351,7 @@ About 98 requests a minute per signed-in tab became about 5. Pings are read from
 
 **Uptime** (`.github/workflows/uptime.yml`) checks every 30 minutes (at :07 and :37):
 - the live portal, including its database (`/api/site-state`) and the Docket simulator;
-- the CM, EA/PA, PD Claims and Medsum & Demand courses;
+- the CM, EA/PA, PD Claims, Medsum & Demand and Lien Negotiator courses;
 - the CMS, including its database (`/api/state`).
 
 Each failing check is retried once after 20 seconds.
