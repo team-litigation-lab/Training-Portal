@@ -11,7 +11,9 @@ const CHECKS = [
     { name: 'Medsum & Demand Training course', url: 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/', expect: '<html' },
     { name: 'Lien Negotiator Training course', url: 'https://liennegotiatortraining.legalsupporthelp.workers.dev/', expect: '<html' },
     { name: 'CMS (home)', url: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/', expect: 'front-desk-drill.js' },
-    { name: 'CMS (database)', url: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/api/state', json: (b) => b && typeof b.locked === 'boolean' },
+    // the CMS's site state: it answers paused (true/false) once its database is reachable (Lock/Unlock, and its
+    // locked field, were removed from the CMS)
+    { name: 'CMS (database)', url: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/api/state', json: (b) => b && typeof b.paused === 'boolean' },
     // The two other tools a signed-in person reaches through SSO (functions/api/launch.js SSO_TOOLS).
     { name: 'Knowledge Base', url: 'https://lsh-knowledge-base.legalsupporthelp.workers.dev/', expect: '<html' },
     { name: 'LSH Ring Channel', url: 'https://lshringchannel.legalsupporthelp.workers.dev/', expect: '<html' }
