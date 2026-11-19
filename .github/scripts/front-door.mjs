@@ -53,6 +53,14 @@ const MODEL = '/simulators/drafting/trainers/Model%20packet%20-%20MedLOR%20with%
 let tr = await hit(MODEL, ann); check(!tr.passed && tr.status === 302 && tr.loc === '/admin-login.html', 'a trainee cannot open the trainers\' model packet');
 tr = await hit(MODEL, null); check(!tr.passed && tr.status === 302, 'nor can a signed-out visitor');
 tr = await hit(MODEL, boss); check(tr.passed, 'a trainer (admin) can');
+// the attendance sheet's Apps Script (📋 Copy the sheet script): admins only, sent as plain text; not redirected away by _redirects
+tr = await hit('/attendance-sync.gs', boss); check(tr.passed, 'an admin gets the attendance sheet script');
+tr = await hit('/attendance-sync.gs', ann); check(!tr.passed && tr.status === 302 && tr.loc === '/admin-login.html', 'a trainee does not get the attendance sheet script');
+tr = await hit('/attendance-sync.gs', null); check(!tr.passed && tr.status === 302, 'nor does a signed-out visitor');
+{ const res = await mw.onRequest({ request: new Request('https://p/attendance-sync.gs', { headers: { cookie: boss } }), env, next: async () => new Response('function x(){}', { headers: { 'Content-Type': 'application/octet-stream' } }) });
+  check(/^text\/plain/.test(res.headers.get('content-type') || ''), `the script is sent as text: ${res.headers.get('content-type')}`); }
+check(!/^\/attendance-sync\.gs\s/m.test(fs.readFileSync('_redirects', 'utf8')), '_redirects must not send /attendance-sync.gs to the home page (the middleware gates it)');
+check(fs.existsSync('attendance-sync.gs') && /function\s/.test(fs.readFileSync('attendance-sync.gs', 'utf8')), 'attendance-sync.gs is a script');
 tr = await hit('/simulators/drafting/hipaa/INTAKE%20-%20HIPAA%202.0%20for%20training%20purposes.pdf', ann); check(tr.passed, 'a trainee gets the HIPAA they work from');
 let rr = await hit('/trainee-login.html', ann);
 check(rr.status === 302 && rr.loc === '/programs.html', 'a signed-in trainee on the sign-in page goes to the Training Directory');

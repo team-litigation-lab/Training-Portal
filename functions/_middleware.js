@@ -7,7 +7,10 @@ import { ticketSession } from './api/ticket-login.js';
 // The admin pages: only a signed-in Admin gets them. Everyone else (a trainee, a visitor) is sent to the admin sign-in and receives none of the page.
 const ADMIN_PAGES = [/^\/(core|attendance|progress|referrals|system)(\.html)?\/?$/i,
     // Trainer material (model answers, finished examples): trainers only. Trainees get only what they work from.
-    /^\/simulators\/drafting\/trainers\//i];
+    /^\/simulators\/drafting\/trainers\//i,
+    // The attendance Google Sheet's Apps Script (attendance.html's 📋 Copy the sheet script): for the trainers who set the sheet up.
+    // It holds no secret (the feed key is typed into the sheet), but it is trainer material and stays off the public site.
+    /^\/attendance-sync\.gs$/i];
 // The Training Directory is for signed-in people: a visitor who opens it (or presses "Access Training Directory" on the main
 // page) is sent to the trainee sign-in, and comes back here once signed in. The main page itself stays public.
 const MEMBER_PAGES = [/^\/programs(\.html)?\/?$/i];
@@ -75,6 +78,7 @@ export async function onRequest(context) {
             const out = new Response(res.body, res);
             out.headers.set('Cache-Control', 'private, no-store');
             out.headers.set('X-Robots-Tag', 'noindex');
+            if (/\.gs$/i.test(path)) out.headers.set('Content-Type', 'text/plain; charset=UTF-8');
             return out;
         }
         return new Response(null, { status: 302, headers: { Location: '/admin-login.html', 'Cache-Control': 'no-store' } });
