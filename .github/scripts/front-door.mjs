@@ -167,6 +167,13 @@ for (const f of files) {
 }
 check(bare.length === 0, 'every link to the main page carries ?stay=1' + (bare.length ? ':\n    ' + bare.join('\n    ') : ''));
 
+// the sign-in card's CSS is in one file (code inventory 2026-10-16 #9): all three pages load auth.css, none keeps its own copy
+for (const pg of ['trainee-login.html', 'admin-login.html', 'registration.html']) {
+    const html = fs.readFileSync(pg, 'utf8');
+    check(/<link rel="stylesheet" href="\/auth\.css">/.test(html) && !/\.auth-(submit|msg|switch|card)\s*\{/.test(html), `${pg} uses auth.css and keeps no copy of the sign-in card's CSS`);
+}
+check(!/\.auth-(submit|msg|switch)\s*\{/.test(fs.readFileSync('styles.css', 'utf8')), 'styles.css keeps no (unreachable) copy of the sign-in card\'s CSS');
+
 // the heartbeat's grace outlasts a backgrounded tab's throttled beats (code inventory 2026-10-16 #8): 5x the 30 s client beat
 {
     check(u.HEARTBEAT_GRACE_SECONDS >= 150 && /HEARTBEAT_INTERVAL_MS = 30000/.test(fs.readFileSync('app.js', 'utf8')), `the grace window (${u.HEARTBEAT_GRACE_SECONDS} s) is at least 5x the client's 30 s beat`);
