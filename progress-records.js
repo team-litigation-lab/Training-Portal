@@ -105,7 +105,7 @@ function cards() {
         const drafts = act.reduce((a, t) => a + ((t.feedback || {}).drafts || 0), 0);
         const sentFb = act.reduce((a, t) => a + ((t.feedback || {}).sent || 0), 0);
         const theirs = tfb.filter(f => f.program === p.id), st = starAvg(theirs);
-        return `<div class="sim-card pg-card"><div class="k">${esc(p.label)} · ${p.days} days</div><div class="v">${act.length}</div>
+        return `<div class="sim-card pg-card"><div class="k">${esc(p.label)} · ${p.days} ${esc(p.unit || 'days')}</div><div class="v">${act.length}</div>
             <div class="s">${act.length === 1 ? 'approved trainee' : 'approved trainees'} in ${nBatches} batch${nBatches === 1 ? '' : 'es'} · ${recent} active this week${pending ? ` · <b>${pending} pending approval</b>` : ''}${nArch ? ` · ${nArch} archived batch${nArch === 1 ? '' : 'es'}` : ''}</div>
             <div class="s" style="margin-top:6px;">Avg completion ${done == null ? '—' : done + '%'} · Knowledge Checks ${avg(act.map(t => t.kcAvg)) == null ? '—' : avg(act.map(t => t.kcAvg)) + '%'}</div>
             <div class="s" style="margin-top:6px;">Trainer feedback: ${sentFb} sent${drafts ? ` · <b>${drafts} draft${drafts === 1 ? '' : 's'} to review</b>` : ''} · From trainees: ${theirs.length}${st != null ? ` (avg ${(st / 20).toFixed(1)}★)` : ''}</div>
@@ -164,7 +164,7 @@ const batchName = (b) => b ? `Batch ${b}` : 'No batch set';
 function traineeRows(list) {
     return list.map(p => { const open = !!P.open[p.key];
         return `<tr class="row" onclick="toggle(${esc(JSON.stringify(p.key))})" aria-expanded="${open}"><td class="nm"><b>${esc(p.name)}</b></td>
-            <td>${p.enrollments.map(t => `<span class="pg-prog ${esc(t.program)} ${esc(t.status)}" title="${esc(t.status)}">${t.daysDone}/${t.daysTotal} days</span>`).join('<br>')}</td>
+            <td>${p.enrollments.map(t => `<span class="pg-prog ${esc(t.program)} ${esc(t.status)}" title="${esc(t.status)}">${t.daysDone}/${t.daysTotal} ${esc(t.unit || 'days')}</span>`).join('<br>')}</td>
             <td><span class="pg-bar"><i style="width:${Math.round(p.done * 100)}%"></i></span>${Math.round(p.done * 100)}%</td>
             <td>${score(p.kcAvg)}</td><td>${score(p.practiceAvg)}</td><td>${score(p.taskAvg)}</td>
             <td>${p.fbSent || p.fbDrafts ? `${rating(p.latestRating)} <span class="pg-muted">${p.fbSent} sent${p.fbDrafts ? ` · <b>${p.fbDrafts} draft${p.fbDrafts === 1 ? '' : 's'}</b>` : ''}</span>` : '<span class="pg-muted">—</span>'}</td>

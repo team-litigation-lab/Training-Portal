@@ -34,7 +34,9 @@ import { courseTraineeId } from './call-results.js';
 // under "cm:"), number of days and course address. dayIds: the course's own ids for
 // its days 1, 2, … when they aren't 1, 2, … (the CM course's Case Flow days are 11–15).
 const PROGRAMS = [
-    { id: 'ft', label: 'Standard Foundational Training', prefix: 'ft:', days: 10, url: 'https://foundational-training.legalsupporthelp.workers.dev/' },
+    // (Standard Foundational Training's dayProgress is kept per lesson, 1 to 8: its 16 schedule days teach 8 lessons, and its
+    // certificate is 8 of 8. The old Lesson 9, Lien Negotiator, left the programme. Platform QA 2026-11-19, FT finding 2.)
+    { id: 'ft', label: 'Standard Foundational Training', prefix: 'ft:', days: 8, unit: 'lessons', url: 'https://foundational-training.legalsupporthelp.workers.dev/' },
     { id: 'eapa', label: 'EA / PA Training', prefix: '', days: 10, url: 'https://ea-pa-training.legalsupporthelp.workers.dev/' },
     { id: 'cm', label: 'Case Management Training', prefix: 'cm:', days: 5, dayIds: [11, 12, 13, 14, 15], url: 'https://case-management-training.legalsupporthelp.workers.dev/' },
     { id: 'pd', label: 'PD Claims Training', prefix: 'pd:', days: 5, url: 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/' },
@@ -126,6 +128,7 @@ function summarize(rec, program, fb) {
         lastActive: rec.lastActive || null,
         daysDone: Object.values(days).filter(x => x.done).length,
         daysTotal: program.days,
+        unit: program.unit || 'days',
         kcAvg: avg(kc),
         practiceAvg: avg(practice),
         practiceDone: practice.length,

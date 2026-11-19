@@ -18,11 +18,13 @@ export const PROGRAMS = [
         before: ['Onboarding', 'Setting of Expectations & Tech Set-up'], orientation: 'Training Orientation and Rules',
         days: ['Virtual Assistant Essentials', 'Law Firm Communication', 'Personal Injury Process Flow', 'Receptionist Training',
             'Calendaring & Appointment Setting Training', 'Intake Specialist Training', 'Claims Specialist Training',
-            'Medical Records Specialist Training', 'Lien Negotiator Training'] },
+            'Medical Records Specialist Training'] },   // (8 lessons: the old Lesson 9, Lien Negotiator, left the programme)
     { id: 'eapa', label: 'EA / PA Training', prefix: '',
-        days: ['Foundations of the Legal Executive Assistant Role', 'Managing Up & How to Leverage AI with Precision', 'Time, Calendar & Travel Management',
-            'Data & Outreach', 'Household, Risk & Lifestyle Support', 'Business Setup, Compliance & Project Leadership', 'Financial Operations Support',
-            'Access, Confidentiality & Crisis Management', 'Events, Compliance Tracking & Reputation', 'Digital Presence & Social Media Support'] },
+        // (the course's own day titles, js/days/day<n>/lessons.js "title")
+        days: ['The Legal EA/PA Role, Communication & Managing Up', 'Force Multiplier, Leveraging AI & Email Management', 'Calendar, Legal Calendaring & Travel Management',
+            'Time Management, Data, Sales & Outreach', 'Household Operations, Vendors & Risk Management', 'Business Formation, Compliance, Projects & SOPs',
+            'Finance: Invoicing, Billing & QuickBooks', 'Access, Data Security & Crisis Management', 'Events, Meetings, CLE & Reputation',
+            'Digital Presence & Social Media Management'] },
     { id: 'cm', label: 'Case Management Training', prefix: 'cm:',
         days: ['Case Management Fundamentals, Intake & Treatment', 'Pre-Demand, BI Demand & BI Settlement', 'UM Demand, UM Settlement, Lien Reduction & Disbursement',
             'Mediation, Arbitration & Their Bottlenecks', 'Litigation, Property Damage, Liability Disputes & MIA Clients'] },
