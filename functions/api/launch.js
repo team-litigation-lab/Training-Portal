@@ -14,7 +14,8 @@ import { requireSession, b64url, isMaster, buildFullName } from '../_utils.js';
 //
 // full: the trainee's whole name as registered (with a middle initial and suffix), for display only: a program's trainee ID
 // stays first + last + batch. Deploy order: the Portal first (programs that don't check p yet ignore it), then the programs
-// (they require p); see reports/platform-qa/2026-11-19-portal.md "Fixes applied".
+// (they refuse a ticket whose p is another program's; one with no p is still taken during the rollout); see
+// reports/platform-qa/2026-11-19-portal.md "Fixes applied".
 //
 // Only programs whose site accepts tickets are listed. The others still open directly, until they
 // get js/portal-gate.js and the Worker endpoints too (see the Foundational-Training repo).

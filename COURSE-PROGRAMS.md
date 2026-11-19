@@ -27,7 +27,8 @@ program's scorecards. This file is the contract that makes that work. **A new pr
    screen, not an error (see Lien Negotiator's `index.html` `api()` and `viewPending()`).
 5. **The program's Worker checks a ticket's audience and takes it once.** A Portal ticket (`/api/launch`, `makeTicket`)
    carries `p`, the topic key of the program it was made for (or the tool id). `readPortalTicket` refuses a ticket whose `p`
-   is not this program's own topic key (`code: "audience"`, also when `p` is missing), and `/api/auth/portal` passes every
+   is set and is not this program's own topic key (`code: "audience"`; a ticket with no `p` is still taken, so nobody is
+   locked out whichever side deploys first), and `/api/auth/portal` passes every
    ticket, trainee, admin and system, through `useTicketOnce` (a KV nonce kept 10 minutes, longer than a ticket lives). A
    ticket the program signs for a tool (`/api/auth/tool-ticket`) carries `p: "tool"` / the tool id, never a program's key.
    The trainee's whole registered name comes as `full` (display only; the id stays first + last + batch).
