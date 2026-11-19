@@ -7,6 +7,7 @@ import { json, requireSession, logActivity, generateAiReview, parseJsonList } fr
 function gradeAnswers(questions, answers) {
     const responseByQ = new Map((answers || []).map(a => [a.questionId, a.response]));
     let autoScore = 0;
+    let totalPoints = 0;
     let hasEssay = false;
 
     for (const q of questions) {
@@ -14,6 +15,7 @@ function gradeAnswers(questions, answers) {
             hasEssay = true;
             continue;
         }
+        totalPoints += q.points || 1;
         const resp = responseByQ.get(q.id);
         if (resp === undefined || resp === null || resp === '') continue;
         const correct = String(q.correctAnswer ?? '').trim().toLowerCase();
@@ -23,7 +25,12 @@ function gradeAnswers(questions, answers) {
         }
     }
 
-    return { autoScore, hasEssay };
+    return { autoScore, totalPoints, hasEssay };
+}
+// A grade is a percentage everywhere it is shown ("Graded · 90%", "/ 100", the averages, the leaderboard, the 100% celebration):
+// an all-objective submission's points are turned into one. (auto_score keeps the raw points, as before.)
+export function percentOf(points, total) {
+    return total > 0 ? Math.round((100 * points) / total) : 0;
 }
 
 export async function onRequestGet({ request, env }) {
@@ -131,7 +138,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
 
             let res;
             if (questions.length > 0) {
-                const { autoScore, hasEssay } = gradeAnswers(questions, answers);
+                const { autoScore, totalPoints, hasEssay } = gradeAnswers(questions, answers);
 
                 if (!hasEssay) {
                     // Every question was objective — grade and close it out immediately.
@@ -141,7 +148,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
                     ).bind(
                         activityId, storedTitle, auth.session.username,
                         auth.session.fullName || auth.session.username, notes || '',
-                        answersJson, autoScore, autoScore
+                        answersJson, autoScore, percentOf(autoScore, totalPoints)
                     ).run();
                 } else {
                     // Contains at least one essay question — objective portion is

@@ -6,9 +6,12 @@ export async function onRequestGet({ request, env }) {
 
     try {
         // Only "Activity" type items count toward completion — lesson decks
-        // are reference material, not gradable work.
+        // are reference material, not gradable work — and only ones a trainee can
+        // see (api/activities.js shows them Published and Closed only): a Draft or
+        // Unpublished activity an admin is still writing would otherwise hold every
+        // trainee below 100% with nothing they could do about it.
         const { results: activityRows } = await env.TRAINING_DB.prepare(
-            "SELECT id FROM activities WHERE type = 'Activity'"
+            "SELECT id FROM activities WHERE type = 'Activity' AND status IN ('Published', 'Closed')"
         ).all();
         const totalActivities = (activityRows || []).length;
         // Archiving an activity hard-deletes its row (api/activities.js), but its

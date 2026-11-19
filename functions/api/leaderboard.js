@@ -9,6 +9,12 @@ export async function onRequestGet({ request, env }) {
             "SELECT trainee_username, activity_id, status, score FROM submissions"
         ).all();
         const submissions = subRows || [];
+        // "Activities completed" counts only activities that still exist and a trainee can see: archiving hard-deletes the row
+        // (api/activities.js) but keeps its submissions, as api/progress.js already allows for.
+        const { results: liveRows } = await env.TRAINING_DB.prepare(
+            "SELECT id FROM activities WHERE status IN ('Published', 'Closed')"
+        ).all();
+        const liveActivityIds = new Set((liveRows || []).map(a => a.id));
 
         const { results: userRows } = await env.DB.prepare(`
             SELECT id, first_name, mi, last_name, suffix, user_type, batch_id, username, status
@@ -34,7 +40,7 @@ export async function onRequestGet({ request, env }) {
         for (const s of submissions) {
             const st = byUsername.get(s.trainee_username);
             if (!st) continue;
-            st.completedIds.add(s.activity_id);
+            if (liveActivityIds.has(s.activity_id)) st.completedIds.add(s.activity_id);
             if (s.status === 'Graded' && s.score !== null && s.score !== undefined) {
                 st.gradedScores.push(Number(s.score));
             }

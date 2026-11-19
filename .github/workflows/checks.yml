@@ -74,6 +74,8 @@ jobs:
         run: node --no-warnings .github/scripts/sso-audience.mjs
       - name: A trainee's graded submission says which objective answers were right, never the answer key
         run: node --no-warnings .github/scripts/submission-marks.mjs
+      - name: Completion and the leaderboard count only the activities a trainee can see
+        run: node --no-warnings .github/scripts/grade-counts.mjs
       - name: Graded calls from the Call Simulator count in the trainee's course (the Portal's results and each course's store)
         run: node --no-warnings .github/scripts/call-results.mjs
       - name: Simulator results count in the trainee's own record and course (the account's name, each course's store)

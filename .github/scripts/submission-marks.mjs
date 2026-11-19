@@ -61,5 +61,21 @@ const app = fs.readFileSync('app.js', 'utf8');
 if ((app.match(/answerIsCorrect\(sub, q, given\)/g) || []).length < 2) fail('renderSubmissionAnswersHtml and buildSubmissionReportLines should both use answerIsCorrect');
 if (!/question_results/.test(app)) fail('app.js should read question_results');
 
+// An all-objective activity is graded as a percentage of its points (code inventory 2026-10-16 #1): 3 of 4 points is 75, not 3.
+sql.exec(`CREATE TABLE IF NOT EXISTS activity_log (id INTEGER PRIMARY KEY AUTOINCREMENT, actor_username TEXT, actor_batch TEXT, action TEXT, details TEXT, timestamp TEXT DEFAULT (datetime('now')));`);
+sql.prepare('INSERT INTO activities VALUES (2, ?, ?, ?)').run('Objective quiz', JSON.stringify([
+    { id: 'a', type: 'mcq', prompt: 'A?', points: 1, correctAnswer: 'B' }, { id: 'b', type: 'mcq', prompt: 'B?', points: 1, correctAnswer: 'C' },
+    { id: 'c', type: 'short', prompt: 'C?', points: 2, correctAnswer: 'lien' }]), 'Published');
+{
+    const stmtLast = (q) => { const o = stmt(q); const run = o.run; o.run = async () => { const r = await run(); return { meta: { last_row_id: Number(r.lastInsertRowid) } }; }; return o; };
+    const env2 = Object.assign({}, env, { TRAINING_DB: { prepare: stmtLast } });
+    const token = await u.createSessionToken({ username: 'ann', userType: 'Trainee', fullName: 'Ann Lee', batchId: 'B1' }, env.SESSION_SECRET);
+    const r = await subs.onRequestPost({ request: new Request('https://p/api/submissions', { method: 'POST', headers: { cookie: `lsh_session=${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'SUBMIT', activityId: 2, activityTitle: 'Objective quiz', answers: [{ questionId: 'a', response: 'B' }, { questionId: 'b', response: 'A' }, { questionId: 'c', response: 'Lien' }] }) }), env: env2, waitUntil: () => {} });
+    const out = await r.json();
+    const row = sql.prepare('SELECT auto_score, score, status FROM submissions WHERE activity_id = 2').get();
+    if (!out.success || !row || row.status !== 'Graded' || row.score !== 75 || row.auto_score !== 3) fail(`an all-objective submission should be graded 75 (%), with auto_score 3 (points): ${JSON.stringify({ out, row })}`);
+}
+
 if (failures.length) { console.log(`\n${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
 console.log('A trainee\'s graded submission says which objective answers were right, without the answer key.');

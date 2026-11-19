@@ -1286,9 +1286,10 @@ async function openGradeModal(submissionId) {
     }
 
     document.getElementById('grade-modal-subtitle').innerText = `${sub.trainee_name} - ${sub.activity_title}`;
-    document.getElementById('grade-score-input').value = sub.status === 'Graded'
-        ? sub.score
-        : (sub.auto_score !== null && sub.auto_score !== undefined ? sub.auto_score : '');
+    // (the grade is a percentage; auto_score is the objective questions' raw points, so it is a hint here, not the grade)
+    const scoreInput = document.getElementById('grade-score-input');
+    scoreInput.value = sub.status === 'Graded' ? sub.score : '';
+    scoreInput.placeholder = sub.status !== 'Graded' && sub.auto_score !== null && sub.auto_score !== undefined ? `Objective part: ${sub.auto_score} pt — enter the overall %` : '';
     document.getElementById('grade-feedback-input').value = sub.feedback || '';
     document.getElementById('modal-grade-submission').dataset.submissionId = submissionId;
 
