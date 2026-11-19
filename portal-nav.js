@@ -1,4 +1,4 @@
-/* LSH Case Works — shared navigation.
+/* LSH Nexus — shared navigation.
    Every portal page shows the same links (Home, Training Directory, Blueprint)
    plus a Back button. The Simulators and the Knowledge Base aren't in the top bar:
    they open from the Home page and the Training Directory. Portal pages open in the
@@ -56,7 +56,7 @@ const PortalNav = {
     // One entry per destination: Master Control's tabs (users, access, who's online) open from Master Control itself,
     // and the Knowledge Base and Ring Channel are banners on the Training Directory.
     SYSTEM_LINKS: [
-        ['/index.html?stay=1', '🏠 Main Portal', 'The LSH Case Works landing page'],
+        ['/index.html?stay=1', '🏠 Main Portal', 'The LSH Nexus landing page'],
         ['/programs.html', '🎓 Training Directory', 'Every training program, plus the Simulators, Knowledge Base, Ring Channel and CMS'],
         ['/core.html#master', '🛡 Master Control', "Users & revoke access, program access, who's online, activity logs and broadcasts: all on one screen"],
         ['/core.html#registrations', '📝 Log-in Approvals <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Approve new trainee registrations'],
@@ -105,7 +105,7 @@ const PortalNav = {
         // it goes on those pages, and the smoke test wants the Back button on every page.
         const tv = PortalNav.traineeView();
         return back
-            + (PortalNav.isMain(backTo) ? '' : pill('home', '/index.html?stay=1', '🏠 Main Portal', 'The LSH Case Works landing page'))
+            + (PortalNav.isMain(backTo) ? '' : pill('home', '/index.html?stay=1', '🏠 Main Portal', 'The LSH Nexus landing page'))
             + (opts.blueprintMenu ? PortalNav.blueprintMenuHtml(active, '/blueprint.html?track=admin')
                 : pill('orient', '/blueprint.html?track=admin', 'Blueprint', 'The Platform Blueprint: how the portal works, for screen sharing'))
             + pill('sys', '/system.html', 'System Management <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Master Control: access, AI usage, feedback, referrals, GitHub and Cloudflare, the Blueprint')
@@ -123,7 +123,7 @@ const PortalNav = {
         const back = backTo ? `<a class="pn-back" onclick="PortalNav.back('${backTo}')" title="Go back">← Back</a>` : '';
         // As in adminHtml: no Home pill beside a Back button that already goes there.
         return back
-            + (PortalNav.isMain(backTo) ? '' : pill('home', '/index.html?stay=1', 'Home', 'The LSH Case Works main page'))
+            + (PortalNav.isMain(backTo) ? '' : pill('home', '/index.html?stay=1', 'Home', 'The LSH Nexus main page'))
             + pill('orient', '/blueprint.html', 'Blueprint', 'The Platform Blueprint: how the portal works')
             + (opts.signedIn
                 ? pill('mine', '/simulators/my-evaluations.html', 'My Evaluations', 'Your calendars in progress, submitted, and your trainer’s reports')

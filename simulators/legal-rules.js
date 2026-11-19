@@ -1,4 +1,4 @@
-/* LSH Case Works — court deadline rules (shared by the Docket System and Medical Records Requests).
+/* LSH Nexus — court deadline rules (shared by the Docket System and Medical Records Requests).
    Dates are plain 'YYYY-MM-DD' strings, handled in UTC so time zones never shift a day.
 
    Two counting methods:

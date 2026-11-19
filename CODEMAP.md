@@ -1,4 +1,4 @@
-# Code map — LSH Case Works
+# Code map — LSH Nexus
 
 An inventory of every code file in this repository: what each one is for, at a glance.
 Produced by the October 2026 full-repo audit (nine area reviews plus adversarial verification).

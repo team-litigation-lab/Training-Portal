@@ -2,9 +2,9 @@
 // Prints a Markdown report and exits 1 if any check fails. Each check is retried
 // once after 20 s so a single blip doesn't open an issue.
 const CHECKS = [
-    { name: 'LSH Case Works (home)', url: 'https://cm-training-activity.pages.dev/', expect: '<html' },
-    { name: 'LSH Case Works (database)', url: 'https://cm-training-activity.pages.dev/api/site-state', json: (b) => b && b.success === true },
-    { name: 'LSH Case Works (Docket simulator)', url: 'https://cm-training-activity.pages.dev/simulators/docket.html', expect: '<html' },
+    { name: 'LSH Nexus (home)', url: 'https://cm-training-activity.pages.dev/', expect: '<html' },
+    { name: 'LSH Nexus (database)', url: 'https://cm-training-activity.pages.dev/api/site-state', json: (b) => b && b.success === true },
+    { name: 'LSH Nexus (Docket simulator)', url: 'https://cm-training-activity.pages.dev/simulators/docket.html', expect: '<html' },
     { name: 'CM Training course', url: 'https://case-management-training.legalsupporthelp.workers.dev/', expect: '<html' },
     { name: 'EA/PA Training course', url: 'https://ea-pa-training.legalsupporthelp.workers.dev/', expect: '<html' },
     { name: 'PD Claims Training course', url: 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/', expect: '<html' },
