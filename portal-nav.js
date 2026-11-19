@@ -8,9 +8,10 @@
    Signed-in admins get one admin bar on every main page instead (PortalNav.adminHtml):
    🏠 Main Portal · Blueprint · System Management · Trainee Monitoring · Attendance ·
    Referrals · Switch view · Logout. Everything else is on the System Management page (system.html).
-   Every link to the landing page carries ?stay=1: functions/_middleware.js redirects a
-   signed-in person who asks for /index.html on to /programs.html, so without it a
-   "Main Portal" / "Home" button lands them back on the Training Directory. */
+   Every link to the landing page carries ?stay=1 (.github/scripts/front-door.mjs checks it). The landing
+   page itself is never redirected now: functions/_middleware.js sends a signed-in person on to the
+   Training Directory only from the two sign-in pages, and ?stay=1 is what keeps a sign-in page on
+   screen (right after logging out). */
 const PortalNav = {
     LINKS: [
         ['home', '/index.html?stay=1', 'Home'],
