@@ -5,7 +5,7 @@
 const SESSION_KEY = 'LSH_SESSION_V1';
 // Every request that runs a Function counts toward the Cloudflare account's monthly requests (shared by
 // every LSH site), so open pages ask sparingly. The heartbeat keeps the session alive: the server allows
-// HEARTBEAT_GRACE_SECONDS (90) between beats, and one is sent when the tab comes back into view.
+// HEARTBEAT_GRACE_SECONDS (150) between beats, and one is sent when the tab comes back into view.
 const HEARTBEAT_INTERVAL_MS = 30000;
 // Progress and the leaderboard: once a minute, only on a page that shows them and only while it's in view.
 const LIVE_DATA_INTERVAL_MS = 60000;
@@ -211,7 +211,7 @@ function stopLiveDataPolling() {
 // 2b. SESSION HEARTBEAT
 // Keeps the server-side `heartbeats` row fresh so requireSession() (see
 // _utils.js) keeps treating this tab as logged in. If this stops ticking,
-// the session is treated as expired within HEARTBEAT_GRACE_SECONDS (90 s)
+// the session is treated as expired within HEARTBEAT_GRACE_SECONDS (150 s)
 // even if the signed session cookie itself hasn't expired yet.
 function startHeartbeat() {
     stopHeartbeat(); // idempotent — never run two intervals at once
@@ -631,9 +631,9 @@ async function renderActivityLogs() {
 // =========================================================
 // Same layout as Users and Program Access: the trainers online in a section of their own, then one retractable
 // table per batch (newest first). Each row says what the person is viewing and when their page last checked in:
-// a heartbeat older than the server's grace window (HEARTBEAT_GRACE_SECONDS in functions/_utils.js, 90s) means the
+// a heartbeat older than the server's grace window (HEARTBEAT_GRACE_SECONDS in functions/_utils.js, 150 s) means the
 // tab was closed or went to sleep without logging out, so that row reads Away rather than Online.
-const MON_GRACE_SECONDS = 90;
+const MON_GRACE_SECONDS = 150;
 function monSecondsAgo(v) {
     if (!v) return null;
     const d = new Date(String(v).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(v)) ? '' : 'Z'));

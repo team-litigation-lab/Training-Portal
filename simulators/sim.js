@@ -4,7 +4,7 @@ const Sim = {
     session() { try { return (typeof getSession === 'function' ? getSession() : JSON.parse(sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1') || 'null')) || {}; } catch (e) { return {}; } },
     isAdmin() { return Sim.session().userType === 'Admin'; },
     // Everyone signs in on the Portal (Admin and Trainee alike), and the tab's copy of who is what keeps the heartbeat going (app.js beats
-    // only for a person it knows); with no beat for 90 s the Portal's APIs answer 401. A page opened in a new tab (a link that opens
+    // only for a person it knows); with no beat for 150 s the Portal's APIs answer 401. A page opened in a new tab (a link that opens
     // with noopener, a bookmark, the trainer's live review) has the signed cookie but no copy in the tab's own storage, so isAdmin()
     // reads false for a signed-in admin and nothing beats. Ask /api/me once, as programs.html does, keep the answer for the tab and start
     // the heartbeat. Resolves to the session ({} when signed out). A page awaits it before its first render.
@@ -51,7 +51,7 @@ const Sim = {
             return !!(d && d.success && (d.access || []).some(a => Sim.PACKET_TOPICS.includes(a.topic_key) && /^(Approved|Passed)$/i.test(a.status || '')));
         } catch (e) { return false; }
     },
-    // The portal's own APIs refuse a session whose heartbeat is more than 90 s old (401, code SESSION_EXPIRED): a laptop that slept, a tab
+    // The portal's own APIs refuse a session whose heartbeat is more than 150 s old (401, code SESSION_EXPIRED): a laptop that slept, a tab
     // the browser throttled. /api/me re-seeds it, so ask once and send the request again once. Returns the Response either way. (opts
     // are used twice: pass a string body, not a stream.)
     async fetchRetry(url, opts) {

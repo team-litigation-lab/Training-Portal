@@ -167,6 +167,15 @@ for (const f of files) {
 }
 check(bare.length === 0, 'every link to the main page carries ?stay=1' + (bare.length ? ':\n    ' + bare.join('\n    ') : ''));
 
+// the heartbeat's grace outlasts a backgrounded tab's throttled beats (code inventory 2026-10-16 #8): 5x the 30 s client beat
+{
+    check(u.HEARTBEAT_GRACE_SECONDS >= 150 && /HEARTBEAT_INTERVAL_MS = 30000/.test(fs.readFileSync('app.js', 'utf8')), `the grace window (${u.HEARTBEAT_GRACE_SECONDS} s) is at least 5x the client's 30 s beat`);
+    for (const [ago, alive] of [[120, true], [200, false]]) {
+        sql.prepare(`INSERT OR REPLACE INTO heartbeats (username, full_name, batch_id, user_type, last_seen) VALUES ('beat', 'b', 'B1', 'Trainee', datetime('now', ?))`).run(`-${ago} seconds`);
+        check(await u.isSessionHeartbeatAlive(env.DB, 'beat') === alive, `a heartbeat ${ago} s old reads ${alive ? 'alive' : 'gone'}`);
+    }
+}
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(failures.length ? `\n${failures.length} failed` : '\nall passed');
 process.exit(failures.length ? 1 : 0);

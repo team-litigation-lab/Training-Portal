@@ -126,19 +126,14 @@ export function originAllowed(request) {
 }
 
 /**
- * Client heartbeat interval is 2s, but this window needs to survive
- * realistic browser behavior, not just the nominal interval: most
- * browsers throttle setInterval() timers in backgrounded tabs — often
- * down to once every several seconds, and much further after a few
- * minutes backgrounded. A trainee alt-tabbing to check something else for
- * under a minute is completely normal, not a dead session. A 6-second
- * window (3x the nominal interval) died on exactly that, intermittently,
- * which is why this looked like "sometimes it just doesn't work" rather
- * than a consistent failure. Widened to comfortably outlast normal
- * backgrounding while still catching a genuinely closed/crashed tab
- * reasonably quickly.
+ * The client beats every 30 s (app.js HEARTBEAT_INTERVAL_MS) and once more when a tab comes back into view. The window
+ * must outlast realistic browser behaviour, not just the nominal interval: a backgrounded tab's timers are throttled to
+ * once a minute or less, so one throttled beat plus network jitter crossed the old 90 s (exactly 3x the interval) and a
+ * trainee who had only switched tabs read as signed out (SESSION_EXPIRED, e.g. on /api/launch from an idle tab).
+ * 150 s is 5x the interval: two throttled beats can be late without ending the session, and a closed or crashed tab still
+ * reads as gone within a few minutes. (Code inventory 2026-10-16 #8.)
  */
-export const HEARTBEAT_GRACE_SECONDS = 90;
+export const HEARTBEAT_GRACE_SECONDS = 150;
 
 /**
  * True when the user's heartbeats row was touched within the grace window.

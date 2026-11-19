@@ -54,7 +54,7 @@ progress: Standard Training by lesson (Reception 4, Calendar Management 5, Intak
   heartbeat view label.
 - Everyone signs in on the Portal, trainees and admins alike: `functions/_middleware.js` sends a visitor without a Portal session
   to the sign-in before any `/simulators/*` page, and the simulators' APIs refuse one. **`sim.js` keeps a Trainee session** (it
-  used to delete it): `Sim.isAdmin()` is only `userType === 'Admin'`. The Portal treats a session with no heartbeat for 90 s as
+  used to delete it): `Sim.isAdmin()` is only `userType === 'Admin'`. The Portal treats a session with no heartbeat for 150 s as
   expired (the APIs answer 401 `SESSION_EXPIRED`), and `app.js` beats every 30 s only for a person the tab knows. A page opened
   in a new tab (a course's link, which opens with `noopener`, or a bookmark) has the cookie but no copy in the tab, so **every
   page that decides by who is signed in calls `await Sim.restore()` before its first render** (every simulator page does): it

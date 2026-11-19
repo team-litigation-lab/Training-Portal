@@ -333,7 +333,7 @@ Every request that runs a Pages Function counts toward the Cloudflare account's 
 | What | How often | Before |
 |---|---|---|
 | The lock and pause, the alert and new pings: **one** request, `/api/live` (`functions/api/live.js`, `pollLive` in `portal.js`) | every 20 s; 60 s in a background tab; at once when the tab comes back | three requests (`/api/site-state`, `/api/alert`, `/api/pings`) every 3 s |
-| Heartbeat (`app.js`; the server allows 90 s between beats) | every 30 s, and when the tab comes back | every 2 s |
+| Heartbeat (`app.js`; the server allows 150 s between beats) | every 30 s, and when the tab comes back | every 2 s |
 | Progress and the leaderboard | once a minute, only on a page that shows them, only while it's in view | every 15 s on every signed-in page |
 
 About 98 requests a minute per signed-in tab became about 5. Pings are read from where the last one left off, so a slower check misses none. `/api/site-state`, `/api/alert` and `/api/pings` still answer on their own (Master Control uses them right after a change).
