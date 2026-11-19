@@ -25,7 +25,13 @@ program's scorecards. This file is the contract that makes that work. **A new pr
 3. **The program's Worker honors `access:blocked`.** Copy the block below (it is the same in every course).
 4. **The program's page shows the refusal.** On a `403` with `code: "access-offboarded"`, show an "Access revoked"
    screen, not an error (see Lien Negotiator's `index.html` `api()` and `viewPending()`).
-5. Check it: put `{"ids": {"<a test trainee id>": {"why": "offboarded"}}}` at `<prefix>access:blocked`. The test trainee
+5. **The program's Worker checks a ticket's audience and takes it once.** A Portal ticket (`/api/launch`, `makeTicket`)
+   carries `p`, the topic key of the program it was made for (or the tool id). `readPortalTicket` refuses a ticket whose `p`
+   is not this program's own topic key (`code: "audience"`, also when `p` is missing), and `/api/auth/portal` passes every
+   ticket, trainee, admin and system, through `useTicketOnce` (a KV nonce kept 10 minutes, longer than a ticket lives). A
+   ticket the program signs for a tool (`/api/auth/tool-ticket`) carries `p: "tool"` / the tool id, never a program's key.
+   The trainee's whole registered name comes as `full` (display only; the id stays first + last + batch).
+6. Check it: put `{"ids": {"<a test trainee id>": {"why": "offboarded"}}}` at `<prefix>access:blocked`. The test trainee
    should be gone from the program's admin lists and `/api/storage/list`, and the trainee's own sign-in should be refused.
 
 ## The Worker code (copy into `worker.js`)

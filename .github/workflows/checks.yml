@@ -70,6 +70,8 @@ jobs:
         run: node --no-warnings .github/scripts/calls-route.mjs
       - name: LSH Ring Channel opens from the Portal (signed in; admins to its trainer sign-in; linked on the Portal)
         run: node --no-warnings .github/scripts/ringchannel.mjs
+      - name: A sign-in ticket names the one program or tool it is for, and the tools' check refuses a program's ticket
+        run: node --no-warnings .github/scripts/sso-audience.mjs
       - name: Graded calls from the Call Simulator count in the trainee's course (the Portal's results and each course's store)
         run: node --no-warnings .github/scripts/call-results.mjs
       - name: Simulator results count in the trainee's own record and course (the account's name, each course's store)

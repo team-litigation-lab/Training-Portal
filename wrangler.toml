@@ -14,9 +14,11 @@ binding = "TRAINING_DB"
 database_name = "lsh-training-activities-db"
 database_id = "6d23429e-e69b-413b-b9fe-0e724f7992e7"
 
-# 3. COURSE DATA (read-only here): the KV namespace the course Workers use for
-#    trainees and progress (EA/PA: "trainee:*", CM course: "cm:trainee:*").
-#    Admin → Trainee Progress (/progress.html, /api/program-progress) reads it.
+# 3. COURSE DATA: the KV namespace the course Workers use for trainees and progress
+#    (EA/PA: "trainee:*", CM course: "cm:trainee:*"; every prefix in functions/_programs.js).
+#    Admin → Trainee Progress (/progress.html, /api/program-progress) reads it. The Portal also
+#    writes it: each program's access:blocked list (_ft-block.js), revoke's purge (_purge.js),
+#    attendance (_attendance.js) and graded simulator / call results (api/sim-results.js, api/call-results.js).
 [[kv_namespaces]]
 binding = "COURSE_KV"
 id = "b121aa911590471bbad351d03274d7f4"
