@@ -40,9 +40,33 @@ export async function onRequestGet({ request, env }) {
         }
 
         const { results } = await env.TRAINING_DB.prepare(query).bind(...binds).all();
+        // A trainee never gets the answer key (api/activities.js strips correctAnswer), so their Details view and PDF can't
+        // mark an objective answer right or wrong themselves: a graded submission says it here, per question (correct:
+        // true / false; an essay or an unanswered question has none). Admins get the key with the activity, as before.
+        const keys = new Map();
+        if (auth.session.userType !== 'Admin') {
+            const ids = [...new Set((results || []).filter(s => s.status === 'Graded').map(s => s.activity_id))];
+            for (const id of ids) {
+                const row = await env.TRAINING_DB.prepare('SELECT questions FROM activities WHERE id = ?').bind(id).first().catch(() => null);
+                keys.set(id, row ? parseJsonList(row.questions) : []);
+            }
+        }
+        const marks = (s, answers) => {
+            if (!keys.has(s.activity_id)) return undefined;
+            const given = new Map(answers.map(a => [a.questionId, a.response]));
+            const out = {};
+            for (const q of keys.get(s.activity_id)) {
+                if (!q || q.type === 'essay') continue;
+                const resp = given.get(q.id);
+                if (resp === undefined || resp === null || resp === '') continue;
+                out[q.id] = { correct: !!String(q.correctAnswer ?? '').trim() && String(resp).trim().toLowerCase() === String(q.correctAnswer ?? '').trim().toLowerCase() };
+            }
+            return out;
+        };
         const submissions = (results || []).map(s => ({
             ...s,
             answers: parseJsonList(s.answers),
+            ...(keys.has(s.activity_id) && s.status === 'Graded' ? { question_results: marks(s, parseJsonList(s.answers)) } : {}),
             // ai_review is stored as a JSON string (see generateAiReview in
             // _utils.js) — null/undefined here just means it hasn't been
             // generated yet (still pending, generation failed, or the

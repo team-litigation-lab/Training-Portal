@@ -1112,6 +1112,16 @@ function openAnswerActivityModal(activityId) {
     document.getElementById('modal-answer-activity').classList.add('open');
 }
 
+// Was this objective answer right? An admin has the answer key (q.correctAnswer); a trainee doesn't (it is stripped from what
+// they get), so a graded submission carries the server's verdict per question (sub.question_results[id].correct).
+// null: not known (a trainee's submission not graded yet).
+function answerIsCorrect(sub, q, given) {
+    const r = sub && sub.question_results && sub.question_results[q.id];
+    if (r && typeof r.correct === 'boolean') return r.correct;
+    if (q.correctAnswer === undefined) return null;
+    return given !== undefined && String(given).trim().toLowerCase() === String(q.correctAnswer || '').trim().toLowerCase();
+}
+
 // Builds the per-question answer breakdown HTML for a submission — shared
 // by the admin grade modal, the trainee's own read-only detail view, and
 // the PDF report generator, so all three always show the same thing.
@@ -1129,12 +1139,14 @@ function renderSubmissionAnswersHtml(sub, activity) {
             const given = answerByQ.get(q.id);
             let correctness = '';
             if (q.type !== 'essay') {
-                const isCorrect = given !== undefined && String(given).trim().toLowerCase() === String(q.correctAnswer || '').trim().toLowerCase();
+                const isCorrect = answerIsCorrect(sub, q, given);
                 correctness = given === undefined
                     ? `<span style="color:#94a3b8;font-weight:800;font-size:10px;">NOT ANSWERED</span>`
+                    : isCorrect === null
+                        ? `<span style="color:#94a3b8;font-weight:800;font-size:10px;">AWAITING GRADING</span>`
                     : isCorrect
                         ? `<span style="color:#166534;font-weight:800;font-size:10px;">\u2713 CORRECT</span>`
-                        : `<span style="color:#b91c1c;font-weight:800;font-size:10px;">\u2717 INCORRECT &middot; Answer key: ${escapeHtml(q.correctAnswer || '')}</span>`;
+                        : `<span style="color:#b91c1c;font-weight:800;font-size:10px;">\u2717 INCORRECT${q.correctAnswer !== undefined ? ` &middot; Answer key: ${escapeHtml(q.correctAnswer || '')}` : ''}</span>`;
             }
             return `
                 <div class="admin-tile" style="text-align:left;margin-bottom:8px;">
@@ -1171,10 +1183,11 @@ function buildSubmissionReportLines(sub, activity) {
             if (q.scenario) lines.push({ type: 'scenario', text: q.scenario });
             lines.push({ type: 'body', text: `Answer: ${given !== undefined ? given : '(no response)'}` });
             if (q.type !== 'essay') {
-                const isCorrect = given !== undefined && String(given).trim().toLowerCase() === String(q.correctAnswer || '').trim().toLowerCase();
+                const isCorrect = answerIsCorrect(sub, q, given);
                 if (given === undefined) lines.push({ type: 'status-neutral', text: 'NOT ANSWERED' });
+                else if (isCorrect === null) lines.push({ type: 'status-neutral', text: 'AWAITING GRADING' });
                 else if (isCorrect) lines.push({ type: 'status-good', text: 'CORRECT' });
-                else lines.push({ type: 'status-bad', text: `INCORRECT \u2014 Answer key: ${q.correctAnswer || ''}` });
+                else lines.push({ type: 'status-bad', text: q.correctAnswer !== undefined ? `INCORRECT \u2014 Answer key: ${q.correctAnswer || ''}` : 'INCORRECT' });
             }
             lines.push({ type: 'spacer' });
         });
