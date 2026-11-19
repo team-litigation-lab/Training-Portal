@@ -146,16 +146,44 @@ const Sim = {
         if (!Sim.isAdmin() && !(w.name && w.name.length >= 2)) return;   // "just practice": not sent to the trainer
         try { await Sim.fetchRetry('/api/sim-results', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({}, r, { who: { name: w.name, batch: w.batch, program: r.program || w.program } })) }); } catch (e) { /* best effort */ }
     },
-    async results() {
-        if (!Sim.isAdmin()) {
-            let rows = [];
-            try { rows = JSON.parse(localStorage.getItem('LSH_SIM_HISTORY') || '[]'); } catch (e) {}
-            return { success: true, admin: false, results: rows };
-        }
-        const res = await Sim.fetchRetry('/api/sim-results', { credentials: 'include' });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.success) throw new Error(data.error || 'Could not load results.');
-        return data;
+    // The results a person sees as their history. A signed-in trainee: every result saved to their account, from any device
+    // (GET /api/sim-results, read page by page), with what this browser kept that the server doesn't have ("just practice" runs),
+    // the same run never twice. A visitor (not signed in): this browser's own list. An administrator: everyone's latest 200, as before.
+    // opts.since (an ISO date) limits a trainee's to results from then on.
+    async results(opts) {
+        await Sim.ready;
+        const local = Sim.localHistory();
+        const s = Sim.session();
+        if (!s.userType) return { success: true, admin: false, results: local };
+        const page = async (before) => {
+            const q = new URLSearchParams({ limit: '200' });
+            if (before) q.set('before', before);
+            if (opts && opts.since) q.set('since', opts.since);
+            const res = await Sim.fetchRetry('/api/sim-results?' + q, { credentials: 'include' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) throw new Error(data.error || 'Could not load results.');
+            return data;
+        };
+        if (Sim.isAdmin()) return page('');
+        let rows = [], before = '', pages = 0;
+        try {
+            do { const d = await page(before); rows = rows.concat(d.results || []); before = d.next || ''; } while (before && ++pages < 100);
+        } catch (e) { if (!rows.length) return { success: true, admin: false, results: local, offline: true }; }
+        return { success: true, admin: false, results: Sim.mergeHistory(rows, local) };
+    },
+    localHistory() { try { const v = JSON.parse(localStorage.getItem('LSH_SIM_HISTORY') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } },
+    // The server's rows plus the browser's that aren't among them: the same simulator, scenario and score saved within 10 minutes
+    // of each other is one run (the browser's copy carries the browser's clock, the server's its own). Newest first.
+    mergeHistory(server, local) {
+        const t = (r) => Date.parse(r && r.created_at) || 0;
+        const left = (server || []).slice();
+        const extra = (local || []).filter((l) => {
+            const i = left.findIndex((r) => r.simulator === l.simulator && String(r.scenario || '') === String(l.scenario || '') && (r.score == null ? null : Number(r.score)) === (l.score == null ? null : Number(l.score)) && Math.abs(t(r) - t(l)) <= 10 * 60 * 1000);
+            if (i < 0) return true;
+            left.splice(i, 1);   // (each server row stands for one browser copy at most)
+            return false;
+        });
+        return (server || []).concat(extra).sort((a, b) => t(b) - t(a));
     },
     scoreChip(n) { if (n == null) return '<span class="sim-score">—</span>'; const c = n >= 85 ? 'good' : n >= 70 ? 'mid' : 'low'; return `<span class="sim-score ${c}">${n}%</span>`; },
     fmtDate(iso) { try { return new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return iso; } }

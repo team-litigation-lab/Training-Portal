@@ -69,6 +69,17 @@
     </section>
 
     <div class="hub-grid" id="hub-grid"></div>
+
+    <!-- 📈 Your results: every graded run saved to your account, from any device (and this browser's practice runs) -->
+    <section class="sim-card" id="my-results" hidden style="margin-top:18px;">
+        <h3 style="margin-top:0;">📈 Your results</h3>
+        <p id="my-results-note" style="margin:4px 0 10px;"></p>
+        <div style="overflow-x:auto;"><table class="sim-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr><th style="text-align:left;padding:6px 8px;">When</th><th style="text-align:left;padding:6px 8px;">Simulator</th><th style="text-align:left;padding:6px 8px;">Scenario</th><th style="text-align:right;padding:6px 8px;">Score</th></tr></thead>
+            <tbody id="my-results-rows"></tbody>
+        </table></div>
+        <div class="row" style="margin-top:10px;"><button class="sim-btn ghost" id="my-results-more" hidden onclick="showMyResults(true)">Show all</button></div>
+    </section>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -120,8 +131,30 @@
             </div>`).join('');
     }
 
+    // 📈 Your results: a signed-in trainee's come from their account (every device), a visitor's from this browser; administrators
+    // see everyone's on the Portal's own pages, so the panel is not shown to them.
+    let MY_RESULTS = null;
+    async function showMyResults(all) {
+        const box = document.getElementById('my-results');
+        if (Sim.isAdmin()) { box.hidden = true; return; }
+        if (!MY_RESULTS) { try { MY_RESULTS = await Sim.results(); } catch (e) { MY_RESULTS = { results: Sim.localHistory(), offline: true }; } }
+        const rows = (MY_RESULTS.results || []).filter(r => r && r.simulator);
+        if (!rows.length) { box.hidden = true; return; }
+        const shown = all ? rows : rows.slice(0, 10);
+        document.getElementById('my-results-rows').innerHTML = shown.map(r => `<tr>
+            <td style="padding:6px 8px;white-space:nowrap;">${Sim.esc(Sim.fmtDate(r.created_at))}</td><td style="padding:6px 8px;">${Sim.esc(r.simulator)}</td>
+            <td style="padding:6px 8px;">${Sim.esc(r.scenario || '')}</td><td style="padding:6px 8px;text-align:right;">${Sim.scoreChip(r.score == null ? null : Number(r.score))}</td></tr>`).join('');
+        const signedIn = !!Sim.session().userType;
+        document.getElementById('my-results-note').textContent = (signedIn
+            ? (MY_RESULTS.offline ? 'Your account\'s results couldn\'t be loaded just now, so this is what this browser kept.' : 'Every result saved to your account, from any device, newest first.')
+            : 'Kept in this browser only: sign in on the Portal to keep your results on your account.') + ` ${rows.length} in all.`;
+        const more = document.getElementById('my-results-more');
+        more.hidden = all || rows.length <= 10; more.textContent = `Show all ${rows.length}`;
+        box.hidden = false;
+    }
+
     // A new tab has the signed cookie but no copy of who in its own storage: ask first, so an admin gets the admin hub, and the heartbeat runs.
-    document.addEventListener('DOMContentLoaded', async () => { await Sim.restore(); renderHub(); PACKET_OK = await Sim.packetAccess(); if (PACKET_OK) renderHub(); });
+    document.addEventListener('DOMContentLoaded', async () => { await Sim.restore(); renderHub(); showMyResults(false); PACKET_OK = await Sim.packetAccess(); if (PACKET_OK) renderHub(); });
 </script>
 </body>
 </html>

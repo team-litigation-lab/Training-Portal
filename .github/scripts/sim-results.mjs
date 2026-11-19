@@ -60,5 +60,41 @@ await post({ simulator: 'Docket System', score: 50, who: {} }, jamie);
 await post({ simulator: 'Docket System', score: 50, who: { program: 'FT' } }, await cookie('boss', 'Admin'));
 if (kv.size !== before) fail('a result with no course, or an admin\'s, was written to a course');
 
+// 📈 a trainee's whole history is reachable (platform QA 2026-11-19, finding 11): 130 old results back to 12 October 2026, page by page
+// (?before=), only theirs, and ?since= limits it; the default page is still 50
+{
+    const ins = sql.prepare(`INSERT INTO simulator_results (username, full_name, simulator, scenario, score, summary, details, created_at) VALUES (?, ?, ?, ?, ?, '', '{}', ?)`);
+    for (let i = 0; i < 130; i++) ins.run('jcruz', 'jcruz', 'Docket System', 'old ' + i, 70, new Date(Date.UTC(2026, 9, 12) + i * 3600e3).toISOString());
+    ins.run('someone', 'someone', 'Docket System', 'not theirs', 10, '2026-10-20T00:00:00.000Z');
+    const total = sql.prepare(`SELECT COUNT(*) AS n FROM simulator_results WHERE username = 'jcruz'`).get().n;
+    const get = async (q) => (await onRequestGet({ request: new Request('https://portal.test/api/sim-results' + q, { headers: { cookie: jamie } }), env })).json();
+    const first = await get('');
+    if ((first.results || []).length !== 50 || !first.next) fail(`the default page should still be 50 rows with a next cursor: ${(first.results || []).length} ${first.next}`);
+    let all = [], before = '', pages = 0;
+    do { const d = await get('?limit=40' + (before ? '&before=' + before : '')); all = all.concat(d.results); before = d.next || ''; } while (before && ++pages < 20);
+    const ids = new Set(all.map(r => r.id));
+    if (all.length !== total || ids.size !== total) fail(`paging should reach every one of the trainee's ${total} results once, got ${all.length} (${ids.size} distinct)`);
+    if (all.some(r => r.username !== 'jcruz')) fail('paging must return only the trainee\'s own results');
+    if (!all.some(r => r.created_at.startsWith('2026-10-12'))) fail('the oldest results (12 October 2026) should be reachable');
+    const since = await get('?limit=200&since=2026-10-16');
+    if (!since.results.length || since.results.some(r => r.created_at < '2026-10-16')) fail('?since= should keep only results from then on');
+    const junk = await get('?limit=abc&before=1;DROP&since=nope');
+    if (!junk.success || junk.results.length !== 50) fail(`bad paging values should be ignored: ${JSON.stringify(junk).slice(0, 200)}`);
+}
+// the page's merge: the server's rows plus this browser's that the server doesn't have, the same run once
+{
+    const fs = await import('node:fs');
+    const src = fs.readFileSync(new URL('../../simulators/sim.js', import.meta.url), 'utf8');
+    const m = src.match(/    mergeHistory\(server, local\) \{[\s\S]*?\n    \},\n/);
+    const merge = m && new Function('return ({' + m[0] + '})')().mergeHistory;
+    if (!merge) fail('Sim.mergeHistory not found in simulators/sim.js');
+    else {
+        const srv = [{ simulator: 'Docket System', scenario: 'A', score: 80, created_at: '2026-11-18T10:00:00.000Z' }, { simulator: 'Drafting', scenario: '', score: 90, created_at: '2026-11-17T10:00:00.000Z' }];
+        const loc = [{ simulator: 'Docket System', scenario: 'A', score: 80, created_at: '2026-11-18T10:00:40.000Z' }, { simulator: 'Docket System', scenario: 'practice', score: 40, created_at: '2026-11-19T09:00:00.000Z' }];
+        const out = merge(srv, loc);
+        if (out.length !== 3 || out[0].scenario !== 'practice' || out.filter(r => r.scenario === 'A').length !== 1) fail(`the history merge: ${JSON.stringify(out)}`);
+    }
+}
+
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
 console.log('Simulator results test passed (the signed-in trainee\'s own account, each course\'s store by its prefix and id with the best per simulator, nothing for a Portal-only or an admin\'s result).');

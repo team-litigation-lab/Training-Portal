@@ -10,7 +10,7 @@ import { courseTraineeId, ensureSimResultsTable } from './call-results.js';
 //        also goes to that course's own store (COURSE_KV), under <prefix>simresults:<the course's trainee id>, so it counts in the
 //        trainee's course (their Scorecard there) and not only here:
 //        { traineeId, updatedAt, results: [{ simulator, scenario, score, at }] (the latest 60), best: { <simulator>: { score, count, at } } }
-//   GET  → admins: everyone's latest 200; signed-in users: their own. No session: 401
+//   GET  → admins: everyone's, latest 200 a page; signed-in users: their own, 50 a page (?limit=, ?before=, ?since=: below). No session: 401
 //          (the simulator pages keep a visitor's own history in their browser).
 const COURSES = { FT: 'ft:', CM: 'cm:', PD: 'pd:', EA: '' };
 const PROGRAM_ALIASES = { STANDARD: 'FT', FOUNDATIONAL: 'FT', 'EA-PA': 'EA', 'EA/PA': 'EA' };
@@ -43,11 +43,22 @@ export async function onRequestGet({ request, env }) {
     try {
         await ensureSimResultsTable(env.TRAINING_DB);
         const isAdmin = auth.session && auth.session.userType === 'Admin';
-        const stmt = isAdmin
-            ? env.TRAINING_DB.prepare(`SELECT id, username, full_name, simulator, scenario, score, summary, created_at FROM simulator_results ORDER BY id DESC LIMIT 200`)
-            : env.TRAINING_DB.prepare(`SELECT id, username, full_name, simulator, scenario, score, summary, created_at FROM simulator_results WHERE username = ? ORDER BY id DESC LIMIT 50`).bind(auth.session.username);
+        // Paging, so a trainee's whole history is reachable (the Simulators page reads all of it, from every device):
+        //   ?limit=  rows per page (admins up to 200, the default; a trainee up to 200, default 50)
+        //   ?before= the id of the last row of the page before (rows are newest first); next comes back when there may be more
+        //   ?since=  an ISO date or time: only results from then on
+        const q = new URL(request.url).searchParams;
+        const limit = Math.max(1, Math.min(200, Math.floor(Number(q.get('limit'))) || (isAdmin ? 200 : 50)));
+        const before = /^\d{1,15}$/.test(q.get('before') || '') ? Number(q.get('before')) : 0;
+        const sinceRaw = q.get('since') || '', since = sinceRaw && !isNaN(Date.parse(sinceRaw)) ? new Date(Date.parse(sinceRaw)).toISOString() : '';
+        const where = [], binds = [];
+        if (!isAdmin) { where.push('username = ?'); binds.push(auth.session.username); }
+        if (before) { where.push('id < ?'); binds.push(before); }
+        if (since) { where.push('created_at >= ?'); binds.push(since); }
+        const stmt = env.TRAINING_DB.prepare(`SELECT id, username, full_name, simulator, scenario, score, summary, created_at FROM simulator_results${where.length ? ' WHERE ' + where.join(' AND ') : ''} ORDER BY id DESC LIMIT ?`).bind(...binds, limit);
         const { results } = await stmt.all();
-        return json({ success: true, admin: isAdmin, results: results || [] });
+        const rows = results || [];
+        return json({ success: true, admin: isAdmin, results: rows, next: rows.length === limit ? rows[rows.length - 1].id : null });
     } catch (err) {
         return json({ success: false, error: err.message }, 500);
     }
