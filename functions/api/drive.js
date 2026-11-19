@@ -442,7 +442,7 @@ export async function onRequestPost({ request, env }) {
             if (!bytes.length || bytes.length > DRIVE_MAX_BYTES) return json({ error: 'The document is empty or larger than 4 MB.' }, 400);
             if (!(await folderLives(env, who, rec, rec.folders[folder]))) await driveBuild(env, who, rec);
             const boundary = 'lsh' + crypto.randomUUID().replace(/-/g, '');
-            const meta = JSON.stringify({ name, parents: [rec.folders[folder]], description: 'Filed from the Legal Skills Hub.' });
+            const meta = JSON.stringify({ name, parents: [rec.folders[folder]], description: 'Filed from LSH Case Works.' });
             const head = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: ${String(b.mime || 'application/pdf').replace(/[^\w.+/-]/g, '').slice(0, 100) || 'application/pdf'}\r\n\r\n`);
             const tail = enc.encode(`\r\n--${boundary}--`);
             const raw = new Uint8Array(head.length + bytes.length + tail.length);

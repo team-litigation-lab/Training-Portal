@@ -1,4 +1,4 @@
-/* Legal Skills Hub — Court E-Filing simulator.
+/* LSH Case Works — Court E-Filing simulator.
    Two kinds of e-filing, as US courts run them:
    - Federal (CM/ECF style): category → event → case → filer → the entry it refers to →
      main document and attachments → docket text → submit → Notice of Electronic Filing.
