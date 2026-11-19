@@ -42,8 +42,9 @@ for (const c of CHECKS) {
     rows.push(`| ${r.ok ? '✅' : '🔴'} | ${c.name} | ${c.url} | ${r.detail} | ${r.ms} ms |`);
 }
 
-// 🚀 Is the live site the latest code? A course that stamps its build (APP_BUILD in index.html, written by its
-// build/script-versions.cjs) is compared with the same stamp on its GitHub main. A deploy that stopped (a failed
+// 🚀 Is the live site the latest code? The commit the live course was built from (its /deploy.json, written by its
+// build/deploy-info.cjs) is compared with its GitHub main's; a course without one yet is compared by the page's build
+// stamp (APP_BUILD in index.html), which only follows the page's own files. A deploy that stopped (a failed
 // Cloudflare build, build minutes used up, an expired token) shows here instead of going unnoticed for days. A main
 // commit under 45 minutes old is given time to deploy.
 const DEPLOYS = [
@@ -59,9 +60,18 @@ async function deployed(d) {
         if (!res.ok && gh.Authorization) { delete gh.Authorization; res = await fetch(api, { headers: gh, signal: AbortSignal.timeout(20000) }); }   // (a public repository reads without the token)
         const commit = await res.json();
         if (!res.ok || !commit.sha) return { ok: false, ms: Date.now() - t0, detail: `GitHub didn't give main's latest commit (HTTP ${res.status})` };
+        const age = (Date.now() - Date.parse(commit.commit.committer.date)) / 60000;
+        const info = await fetch(d.live + 'deploy.json?uptime=' + Date.now(), { headers: { 'User-Agent': 'LSH-uptime-check' }, signal: AbortSignal.timeout(20000) })
+            .then(async (r) => r.ok ? JSON.parse(await r.text()) : null).catch(() => null);
+        if (info && info.commit) {
+            const ms = Date.now() - t0, have = String(info.commit).slice(0, 7), want = commit.sha.slice(0, 7);
+            if (String(info.commit) === commit.sha) return { ok: true, ms, detail: `live is main (commit ${have})` };
+            if (age < 45) return { ok: true, ms, detail: `main is ${Math.round(age)} min old: deploying (live ${have}, main ${want})` };
+            return { ok: false, ms, detail: `live is commit ${have} but main is ${want}, ${Math.round(age / 60)} h old: the deploy has stopped (check the Cloudflare build)` };
+        }
         const want = stamp(await (await fetch(`https://raw.githubusercontent.com/${d.repo}/${commit.sha}/index.html`, { signal: AbortSignal.timeout(20000) })).text());
         const have = stamp(await (await fetch(d.live + '?uptime=' + Date.now(), { headers: { 'User-Agent': 'LSH-uptime-check' }, signal: AbortSignal.timeout(20000) })).text());
-        const ms = Date.now() - t0, age = (Date.now() - Date.parse(commit.commit.committer.date)) / 60000;
+        const ms = Date.now() - t0;
         if (!want || !have) return { ok: false, ms, detail: `no build stamp to compare (live ${have || 'none'}, main ${want || 'none'})` };
         if (have === want) return { ok: true, ms, detail: `live is main (${have})` };
         if (age < 45) return { ok: true, ms, detail: `main is ${Math.round(age)} min old: deploying (live ${have}, main ${want})` };
