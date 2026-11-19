@@ -51,6 +51,18 @@ ck(!other, 'the same name in another batch is left alone');
   ck(res.ok && sent.length === 1 && sent[0].u === 'https://ft.test/api/calsim-card-in' && sent[0].key === 'gw-secret' && sent[0].body.name === 'Abesh Dawn Jamon' && sent[0].body.batch === 'B103026' && sent[0].body.card.pct === 80,
     'a trainer\'s scorecard is mirrored to the Foundational Training (name, batch, card, the secret)');
   const off = await cs.mirrorToFt(Object.assign({}, env, { AI_GATEWAY_SECRET: '' }), 'abesh', {}); ck(off.off === true, 'without the secret nothing is mirrored'); }
+// 📝 the Standard Training - Calendaring Activity (Day 5's Attorney Calendar Management Activity), for its scoresheet on Graders
+r = await call('GET', null, '?activity=1&name=Abesh+Dawn+Jamon&batch=B103026'); ck(r.st === 200 && r.j.username === 'abesh' && r.j.activity === null, 'the Calendaring Activity: nothing submitted yet (no table) is null');
+sql.exec(`CREATE TABLE gcal_reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, name TEXT, batch TEXT, track TEXT, submitted_at TEXT, calendar TEXT, check_score INTEGER, ai_status TEXT, ai TEXT, trainer TEXT, status TEXT, finalized_at TEXT, finalized_by TEXT, updated_at TEXT)`);
+sql.prepare(`INSERT INTO gcal_reviews (username, track, submitted_at, calendar, check_score, trainer, status, updated_at) VALUES ('abesh','standard','2026-11-05T10:00:00Z','{}',99,'{"score":99}','final','x')`).run();
+sql.prepare(`INSERT INTO gcal_reviews (username, track, submitted_at, calendar, check_score, trainer, status, updated_at) VALUES ('abesh','activity','2026-11-04T10:00:00Z','{}',60,'{"score":70}','final','x')`).run();
+sql.prepare(`INSERT INTO gcal_reviews (username, track, submitted_at, calendar, check_score, trainer, status, updated_at) VALUES ('abesh','activity','2026-11-06T10:00:00Z','{}',84,'{"score":90}','submitted','x')`).run();
+r = await call('GET', null, '?activity=1&name=Abesh+Dawn+Jamon&batch=B103026');
+ck(r.j.activity && r.j.activity.checkScore === 84 && r.j.activity.status === 'submitted' && r.j.activity.trainerScore === null, 'the latest activity submission, its automated check; a trainer score not finalized yet is not shared');
+sql.prepare(`UPDATE gcal_reviews SET status='final', finalized_at='2026-11-07T01:00:00Z', finalized_by='Coach Tess' WHERE track='activity' AND check_score=84`).run();
+r = await call('GET', null, '?activity=1&name=Abesh+Dawn+Jamon&batch=B103026');
+ck(r.j.activity.trainerScore === 90 && r.j.activity.finalizedBy === 'Coach Tess', 'once finalized, the trainer\'s score too (the activity track only, not the Standard Training one)');
+r = await call('GET', null, '?activity=1&name=Abesh+Dawn+Jamon&batch=B103026', 'wrong'); ck(r.st === 401, 'the activity read needs the secret too');
 delete env.AI_GATEWAY_SECRET; r = await call('GET', null, '?name=Abesh+Dawn+Jamon&batch=B103026'); ck(r.st === 501, 'without the secret on the Portal: 501');
 if (fails.length) { console.log(`\n${fails.length} failed`); process.exit(1); }
 console.log('\nCalendar scorecard (shared) test passed.');
