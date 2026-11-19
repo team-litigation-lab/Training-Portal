@@ -1,4 +1,4 @@
-import { json, logActivity, hashPassword, verifyPassword, needsNewPassword, loginBlocked, loginFailed, MASTER_USERNAME } from '../_utils.js';
+import { json, logActivity, hashPassword, verifyPassword, needsNewPassword, loginBlocked, loginFailed, MASTER_USERNAME, findUserByUsername, AMBIGUOUS_USERNAME_MESSAGE } from '../_utils.js';
 
 // POST /api/set-password: choosing a password without an administrator, for an account that is already approved.
 // The account stays Approved: nothing here sends it back to Master Control -> Registrations.
@@ -32,7 +32,9 @@ export async function onRequestPost({ request, env }) {
         return json({ success: false, error: 'Too many tries. Wait 10 minutes and try again, or ask your trainer.', code: 'TOO_MANY_TRIES' }, 429);
     }
 
-    const user = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(username).first();
+    const found = await findUserByUsername(db, username);
+    if (found.ambiguous) return json({ success: false, code: 'AMBIGUOUS_USERNAME', error: AMBIGUOUS_USERNAME_MESSAGE }, 409);
+    const user = found.user;
 
     if (mode === 'first') {
         const want = body.portalMode === 'Admin' ? 'Admin' : 'Trainee';

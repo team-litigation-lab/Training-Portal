@@ -436,8 +436,31 @@ export async function tombstoneUser(db, user, deletedByUsername) {
     ).bind(user.username, user.user_type, user.batch_id || null, user.email || null, fullName, deletedByUsername || null).run();
 }
 
+// (any capitalisation: a retired jsmith can't come back as JSmith)
 export async function isUsernameTombstoned(db, username) {
-    const row = await db.prepare(`SELECT 1 AS ok FROM deleted_users WHERE username = ? LIMIT 1`).bind(username).first();
+    const row = await db.prepare(`SELECT 1 AS ok FROM deleted_users WHERE lower(username) = lower(?) LIMIT 1`).bind(username).first();
+    return !!row;
+}
+
+/* Usernames are matched without regard to capitals (the users table's own collation isn't relied on, and isn't changed):
+   the account whose username is exactly what was typed, else the one account that matches it in any capitalisation.
+   Two accounts that differ only in capitals (made before this rule) and neither typed exactly: { ambiguous: true }, and the
+   sign-in is refused with AMBIGUOUS_USERNAME_MESSAGE rather than guessing between them. */
+export const AMBIGUOUS_USERNAME_MESSAGE = 'More than one account has this username with different capital letters. Type it exactly as it was registered (capitals included), or ask your trainer to tell the accounts apart.';
+export async function findUserByUsername(db, username) {
+    const name = String(username == null ? '' : username);
+    if (!name) return { user: null };
+    const exact = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(name).first();
+    if (exact) return { user: exact };
+    const { results } = await db.prepare(`SELECT * FROM users WHERE lower(username) = lower(?) LIMIT 2`).bind(name).all();
+    const rows = results || [];
+    return rows.length > 1 ? { user: null, ambiguous: true } : { user: rows[0] || null };
+}
+// Is a username (any capitalisation) taken by another account than exceptId?
+export async function usernameTaken(db, username, exceptId = null) {
+    const row = exceptId == null
+        ? await db.prepare(`SELECT id FROM users WHERE lower(username) = lower(?) LIMIT 1`).bind(username).first()
+        : await db.prepare(`SELECT id FROM users WHERE lower(username) = lower(?) AND id != ? LIMIT 1`).bind(username, exceptId).first();
     return !!row;
 }
 

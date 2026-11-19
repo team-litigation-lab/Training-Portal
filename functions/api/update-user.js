@@ -1,4 +1,4 @@
-import { json, canonicalBatch, requireSession, hashPassword, isUsernameTombstoned, logActivity, MASTER_USERNAME, buildFullName } from '../_utils.js';
+import { json, canonicalBatch, requireSession, hashPassword, isUsernameTombstoned, logActivity, MASTER_USERNAME, buildFullName, usernameTaken } from '../_utils.js';
 
 // POST /api/update-user { userId, batchId?, username?, email?, firstName?, lastName?, password? }  (admins only)
 //
@@ -53,9 +53,9 @@ export async function onRequestPost({ request, env }) {
         const u = String(body.username || '').trim();
         if (!USERNAME_RE.test(u)) return json({ success: false, error: 'Username: 3 to 30 letters, numbers or underscores.' }, 400);
         if (u !== user.username) {
-            if (u === MASTER_USERNAME) return json({ success: false, error: 'That username is reserved.' }, 409);
-            if (await db.prepare(`SELECT id FROM users WHERE username = ?`).bind(u).first()) return json({ success: false, error: 'That username is already taken.' }, 409);
-            if (await isUsernameTombstoned(db, u)) return json({ success: false, error: 'That username has been permanently retired and cannot be used again.' }, 409);
+            if (u.toLowerCase() === MASTER_USERNAME.toLowerCase()) return json({ success: false, error: 'That username is reserved.' }, 409);
+            if (await usernameTaken(db, u, user.id)) return json({ success: false, error: 'That username is already taken.' }, 409);   // (any capitalisation; a change of capitals only is theirs to make)
+            if (u.toLowerCase() !== String(user.username).toLowerCase() && await isUsernameTombstoned(db, u)) return json({ success: false, error: 'That username has been permanently retired and cannot be used again.' }, 409);
             set.username = u; usernameChanged = true; changed.push('username');
         }
     }
