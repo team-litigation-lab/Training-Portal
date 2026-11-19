@@ -20,7 +20,7 @@ The landing page, sign-in, registration, claim and referral pages, and their sha
 | `registration.html` | 211 | New-account request form (Trainee/Admin) handled by portal.js submitRegistration() → POST /api/register; lock-aware via AUTH_PAGE_TYPE='registration'. |
 | `show-password.js` | 37 | Injects a Show/Hide toggle into every password input, including ones added later, via a MutationObserver; loaded only by admin-login.html (per its own 'admin pages' comment). |
 | `styles.css` | 512 | Shared app-shell stylesheet for core.html (sidebar, classification bar, modals, Master Control, lock/pause/alert overlays, toasts, auth gate); also loaded by the auth pages, which deliberately override its body height:100vh/overflow:hidden. |
-| `theme.css` | 372 | The standard page style, loaded last on every page: the navy/orange gradients, the shared photo backdrop (now the default `body` background — `--portal-photo`/`--portal-wash`/`--portal-base` per page, `.portal-bg-dark` for white-copy pages, `.no-portal-bg` to opt out) and the translucent card surfaces that let it read through. See "The standard page style" in README.md. |
+| `theme.css` | 372 | The standard page style, loaded last on every page: the navy/orange gradients, the shared photo backdrop (now the default `body` background — `--portal-photo`/`--portal-wash`/`--portal-base` per page, `.portal-bg-dark` for white-copy pages, `--portal-photo: none` to opt out) and the translucent card surfaces that let it read through. See "The standard page style" in README.md. |
 | `trainee-login.html` | 86 | Trainee sign-in page; wires portal.js attemptLogin() with currentPortalMode='Trainee' and is lock-aware via AUTH_PAGE_TYPE='trainee-login'. |
 
 ## Portal pages and shared scripts

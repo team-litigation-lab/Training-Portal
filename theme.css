@@ -313,7 +313,7 @@
      --portal-wash    how much of it shows through
      --portal-base    the colour under both, for the moment before it loads
    A page whose copy is white adds class="portal-bg-dark" for the navy wash.
-   A page that must not have a backdrop at all adds class="no-portal-bg".
+   (A page that ever needs a flat surface sets --portal-photo: none on its body.)
    `body.portal-bg` stays valid so older pages keep working; it does nothing
    a plain body does not already do. */
 body {
@@ -329,9 +329,6 @@ body.portal-bg-dark {
     --portal-wash: rgba(8, 18, 38, .82);
     --portal-base: var(--navy, #0f2148);
 }
-/* The one way out, for a page that needs a flat surface (a print view, a
-   full-bleed canvas): it keeps the base colour and drops the photo. */
-body.no-portal-bg { background: var(--portal-base); }
 /* A fixed backdrop is the thing that misbehaves on iOS Safari — the image
    jumps or renders at the wrong scale mid-scroll — and the photo is wasted at
    phone width anyway, so phones scroll it instead. */

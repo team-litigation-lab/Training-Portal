@@ -69,5 +69,3 @@ const TraineesCalendars = (function () {
     function repaint() { if (!S.box) return; const tb = S.box.querySelector('.cs-ttable tbody'); if (!tb) { paint(); return; } tb.innerHTML = rows(); filter(); }
     return { load, repaint, TRACKS };
 })();
-// (the Calendaring Simulators page called its search this: kept so a link or a test that does still works)
-window.csFind = function (q) { const i = document.getElementById('cs-tfind'); if (i) { i.value = q; i.dispatchEvent(new Event('input', { bubbles: true })); } };

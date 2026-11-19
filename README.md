@@ -299,7 +299,7 @@ default, the office on the landing page. Three variables on the page's own
 
 A page whose body copy is white adds `class="portal-bg-dark"` to its `<body>`
 for the navy wash instead of the cream one (Progress and System Management do).
-A page that genuinely must be flat adds `class="no-portal-bg"`. Both are the
+A page that genuinely must be flat sets `--portal-photo: none` on its body. Both are the
 exception; `class="portal-bg"` is the old opt-in name and still harmless.
 
 **The panels.** Cards are translucent so the backdrop carries on underneath —
