@@ -403,6 +403,7 @@ async function loadUsersData() {
         renderRegistrations();
         renderUsersList();
         updateUserStats();
+        resumeRevokes();   // (⏯ a revoke that stopped partway is finished now)
     } catch (e) {
         console.error('loadUsersData failed', e);
         showToast('Network error while loading users.', 'error');
@@ -796,7 +797,7 @@ async function reactivateUser(id) {
 async function revokeUser(id, name) {
     if (!confirm(`Permanently revoke ${name}'s account?\n\nEverything of theirs goes with it \u2014 grades, submitted activities, simulator results, drafts, their activity log, and their records in every training program, so they leave every scorecard \u2014 after a copy is filed to their batch's folder. This cannot be undone.`)) return;
     try {
-        const first = await postJson('/api/revoke-user', { userId: id });
+        const first = await revokeStep({ userId: id });
         if (first.needsBackup) {
             // No Drive configured: this browser is where the only copy comes from,
             // so it is saved before the account is touched.
@@ -811,15 +812,56 @@ async function revokeUser(id, name) {
                 showToast('Nothing was deleted.', 'error');
                 return;
             }
-            const done = await postJson('/api/revoke-user', { userId: id, backupSaved: true });
-            showToast(revokeSummary(done), 'success');
+            showToast(revokeSummary(await revokeRun(id, { backupSaved: true }, name)), 'success');
         } else {
-            showToast(revokeSummary(first), 'success');
+            showToast(revokeSummary(first.done ? first : await revokeRun(id, {}, name)), 'success');
         }
         loadUsersData();
     } catch (e) {
         showToast(e.message, 'error');
+        loadUsersData();
     }
+}
+// ⚙ A revoke runs in steps on the server (revoke-user.js: collect → account → course → block), each its own request so
+// none runs out of Cloudflare's per-request allowance. This chains them with no prompt in between, says where it is,
+// and tries a step that failed (a dropped connection, a busy server) again, up to 4 times, before giving up. A job
+// left unfinished is picked up again when the Users page loads (resumeRevokes).
+async function revokeStep(payload) {
+    let last;
+    for (let i = 0; i < 4; i++) {
+        try { return await postJson('/api/revoke-user', payload); }
+        catch (e) {
+            last = e;
+            if (/User not found|never be revoked|own account|nothing was deleted/i.test(e.message)) throw e;   // (not worth retrying)
+            await new Promise(r => setTimeout(r, 1500 * (i + 1)));
+        }
+    }
+    throw last;
+}
+const REVOKE_STEP_NAME = { account: 'removing the account', course: 'removing their course records', block: 'closing the course sheets' };
+async function revokeRun(id, first, name) {
+    let r = await revokeStep(Object.assign({ userId: id }, first));
+    for (let n = 0; r.more && n < 200; n++) {
+        showToast(`Revoking ${name}: ${REVOKE_STEP_NAME[r.step] || r.step}${r.left ? ` (${r.left} left)` : ''}…`, 'info');
+        r = await revokeStep({ userId: id });
+    }
+    if (!r.done) throw new Error(`The revoke of ${name} didn't finish. Open Users again to carry on.`);
+    return r;
+}
+// ⏯ revokes that stopped once the account was gone (it isn't on the list to click again): finished on their own
+let resumingRevokes = false;
+async function resumeRevokes() {
+    if (resumingRevokes) return;
+    resumingRevokes = true;
+    try {
+        const res = await fetch('/api/revoke-user', { credentials: 'include', cache: 'no-store' });
+        const d = await res.json().catch(() => null);
+        for (const j of (d && d.success && d.jobs) || []) {
+            try { showToast(revokeSummary(await revokeRun(j.userId, {}, j.username)).replace('Account revoked.', `Finished revoking ${j.username}.`), 'success'); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+    } catch (e) { /* offline: next time */ }
+    finally { resumingRevokes = false; }
 }
 // What actually went, so an admin sees it rather than being told "done".
 function revokeSummary(r) {

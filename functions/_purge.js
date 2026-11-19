@@ -29,7 +29,7 @@ const fullName = (u) => [u.first_name, u.mi, u.last_name, u.suffix].filter(Boole
 // a batch in its one form (B103026 and B10302026 are the same batch)
 const batchForm = (b) => canonicalBatch(b) || String(b || '').trim().toUpperCase();
 
-const KV_BUDGET = 900;          // Workers KV allows 1,000 operations per request
+const KV_BUDGET = 800;          // Workers KV allows 1,000 operations per request: room left for the D1 reads beside it (revoke-user.js collect)
 
 async function rows(db, sql, ...binds) {
     if (!db) return [];
@@ -151,7 +151,8 @@ export async function findCourseRecords(env, people, live, budget = KV_BUDGET) {
 
 // Then nothing of it is left. Each delete is independent: one missing table must
 // not stop the rest, or a revocation would leave some of it behind.
-export async function purgeUserRecords(env, user, collected) {
+// (opts.courseKeys false: the course keys are left to the caller, a few hundred per request — revoke-user.js does it in steps)
+export async function purgeUserRecords(env, user, collected, opts = {}) {
     const t = env.TRAINING_DB, d = env.DB, gone = {};
     const run = async (db, label, sql, ...binds) => {
         if (!db) return;
@@ -180,7 +181,7 @@ export async function purgeUserRecords(env, user, collected) {
 
     // The course's own record of them: their progress, and the trainer's feedback on it.
     let courseKeys = 0, courseFailed = [];
-    if (env.COURSE_KV) {
+    if (env.COURSE_KV && opts.courseKeys !== false) {
         for (const entry of (collected.course || [])) {
             for (const k of entry.keys) {
                 try { await env.COURSE_KV.delete(k.key); courseKeys++; }
