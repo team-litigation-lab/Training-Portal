@@ -20,7 +20,7 @@ node --no-warnings .github/scripts/front-door.mjs
 node --no-warnings .github/scripts/master-control.mjs
 node --no-warnings .github/scripts/admin-approval.mjs
 node --no-warnings .github/scripts/ai-gateway.mjs
-npx --yes wrangler@3 pages functions build --outdir /tmp/tp-dist   # build only, never deploy
+npx --yes wrangler@3.114.17 pages functions build --outdir /tmp/tp-dist   # build only, never deploy
 ```
 
 The rest of `checks.yml` (the `smoke` job) needs Playwright and Chromium. Chromium is preinstalled at

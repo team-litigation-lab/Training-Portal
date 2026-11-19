@@ -89,7 +89,7 @@ jobs:
       - name: Email Replies is scored on the five fixed scorecard metrics
         run: node --no-warnings .github/scripts/email-scorecard.mjs
       - name: Build the Pages Functions without deploying
-        run: npx --yes wrangler@3 pages functions build --outdir "$RUNNER_TEMP/dist"
+        run: npx --yes wrangler@3.114.17 pages functions build --outdir "$RUNNER_TEMP/dist"
 
   smoke:
     name: Smoke test in a browser

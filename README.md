@@ -338,6 +338,41 @@ Every request that runs a Pages Function counts toward the Cloudflare account's 
 
 About 98 requests a minute per signed-in tab became about 5. Pings are read from where the last one left off, so a slower check misses none. `/api/site-state`, `/api/alert` and `/api/pings` still answer on their own (Master Control uses them right after a change).
 
+## ⚙ Settings (Cloudflare Pages: Settings → Variables and Secrets)
+
+Every variable the Functions read, in one table. Secrets are marked 🔒. Anything not set uses the default shown; the
+code's defaults are what is in effect, whatever the dashboard shows. Bindings (`DB`, `TRAINING_DB`, `COURSE_KV`) are in
+`wrangler.toml`.
+
+| Variable | What it does | Default |
+|---|---|---|
+| 🔒 `SESSION_SECRET` | Signs every Portal session cookie. Without it nobody can sign in. Changing it signs everyone out. | (required) |
+| 🔒 `MASTER_ADMIN_PASSWORD` | The Master Account's password (`LSHADMIN123`). | (none: the Master Account can't sign in) |
+| 🔒 `PORTAL_SSO_SECRET` | Signs the program / tool sign-in tickets (`/api/launch`); the same value on every program Worker. | (none: programs can't be opened signed in) |
+| `GOOGLE_CLIENT_ID`, 🔒 `GOOGLE_CLIENT_SECRET`, `GOOGLE_ALLOWED_DOMAIN` | The @legalsupporthelp.com Google sign-in rule (see the top of this file). | off |
+| 🔒 `AI_GATEWAY_SECRET` | The key the CMS and the program Workers send to `/api/ai-gateway`. | (gateway answers 501) |
+| 🔒 `ANTHROPIC_API_KEY` | Claude answers text calls first when set; Gemini is the fallback. | off |
+| `CLAUDE_CHAT_MODEL` / `CLAUDE_GRADING_MODEL` | Claude models for practice chats / for reviews and grading. | `claude-haiku-5-5` / `claude-sonnet-5-5` |
+| 🔒 `GEMINI_API_KEY`, `GEMINI_API_KEY1`, `GEMINI_API_KEY2`, … | The Gemini key pool; each request starts on the next key. | (none) |
+| `GEMINI_MODEL` | Tried first for the AI review of a submission, before the built-in Flash list. | (the built-in list) |
+| 🔒 `AI_RELAY_SECRET`, `AI_RELAY_URL` | The US relay for Gemini (regions Gemini refuses). | off; the EA/PA Worker's `/api/ai-relay` |
+| `AI_PREFER` | `gemini`: the Portal's own keys before the relay. | relay first |
+| `AI_DAILY_CALLS` / `AI_DAILY_TOKENS` | The whole platform's AI budget per day. | 4000 / 3,000,000 |
+| `AI_MINUTE_CALLS` | AI calls per minute, platform-wide. | 60 |
+| `AI_USER_10MIN` | AI calls per person per 10 minutes. | 150 |
+| `AI_MODULE_SHARE` | The most of the day one call flow (CMS, calendaring, …) may take once the day is under way. | 0.5 |
+| `AI_REVIEW_RESERVE` | The last share of the day kept for AI reviews and grading done by the server (not open to browser requests). | 0.1 (max 0.5) |
+| `AI_LIVE_COST` | What one live voice call counts as, in requests. | 25 |
+| `AI_REVIEW_RETRY_MS` | The pause between AI-review retries (the tests set it short). | built-in back-off |
+| `FT_URL` | Standard Foundational Training's Worker, for the calendaring scorecard copy (`/api/calsim-card-in`). | `https://foundational-training.legalsupporthelp.workers.dev` |
+| 🔒 `GDRIVE_SA_EMAIL`, 🔒 `GDRIVE_SA_KEY`, `GDRIVE_ARCHIVE_FOLDER` | Google Drive service account for archived batches and the Backup Drive. | off |
+| 🔒 `POSTMARK_SERVER_TOKEN`, `EMAIL_FROM` | Outgoing practice email (Email Replies). | off |
+| 🔒 `EMAIL_INBOUND_SECRET`, `EMAIL_INBOUND_ADDRESS` | Incoming practice email. | off |
+| `EMAIL_DAILY_PER_ADDRESS` | Practice emails per address per day. | 5 |
+| 🔒 `ATTENDANCE_FEED_KEY` | The key the attendance Google Sheet's script sends. | (feed off) |
+| `SIM_RATE_LIMIT` | Simulator requests per IP per 10 minutes. | 400 |
+| `REFERRAL_RATE_LIMIT` | Referrals per IP per hour. | 5 |
+
 ## Checks and uptime alerts (GitHub Actions)
 
 **Checks** (`.github/workflows/checks.yml`) runs on every pull request and every push to `main`. A red status means something is broken, and the log says what:
