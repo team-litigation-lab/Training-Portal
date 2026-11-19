@@ -20,6 +20,24 @@
     .grades-toolbar .grades-danger[disabled] { opacity: .45; cursor: not-allowed; }
     .grades-hint { font-size: 11.5px; color: #475569; }
     .grades-hint.ready { color: #166534; font-weight: 700; }
+    /* On a phone (and a narrow tablet) the top bar (announcement, clock, time zone, two links, the user) is far wider than the screen, and body has
+       overflow: hidden, so it used to push the dashboard off the right edge with no way to scroll to it. It wraps instead:
+       the announcement takes its own line, the clock and time-zone picker (the computer's clock is on the phone already) go. */
+    @media (max-width: 1180px) {
+        #classification-bar .top-bar-right { flex-wrap: wrap; justify-content: flex-end; gap: 8px 14px; min-width: 0; max-width: 100%; }
+        #classification-bar .top-ticker-mini { flex: 1 1 100%; max-width: 100%; min-width: 0; order: 9; }
+    }
+    @media (max-width: 1180px) { #classification-bar { height: auto; min-height: 38px; padding-top: 6px; padding-bottom: 6px; } }
+    @media (max-width: 700px) {
+        #classification-bar { padding: 8px 14px; gap: 8px; }
+        #classification-bar .top-clock { display: none; }
+        /* and the 280px side menu sits above the dashboard (its own scroll) instead of beside it, so the cards get the width */
+        #app-shell { flex-direction: column; }
+        #app-shell > aside.custom-sidebar-panel { width: 100% !important; max-height: 38vh; overflow-y: auto; flex-shrink: 0; border-right: none !important; border-bottom: 1px solid #0d1c3d; }
+        #app-shell > aside.custom-sidebar-panel > div:first-child { display: none !important; }   /* (the logo: the top bar already says where they are) */
+        #app-shell > aside.custom-sidebar-panel { max-height: 46vh; }
+        #app-shell > main { min-height: 0; }
+    }
 </style>
 </head>
 <body>
