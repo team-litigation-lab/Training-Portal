@@ -1286,6 +1286,9 @@ async function liveStart(again) {
         S = Object.assign(fresh(), RV.empty ? {} : c, { panel: 'result', side: false }, again ? keep : {});
         if (OPEN) S.reqs = []; else if (!Array.isArray(S.reqs)) S.reqs = [];
         S.result = Object.assign(checkNow(), { at: new Date().toISOString() });
+        // (📝 the Calendaring Activity: the check run here is kept for the Foundational Training's Graders, gcal-reviews.js activity-check)
+        if (BLANK && !RV.empty && S.result) Sim.fetchRetry(EV_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'activity-check', user: RV.user, score: S.result.score, met: S.result.met, total: S.result.total, right: S.result.right, entries: S.result.entries, savedAt: RV.savedAt || '' }) }).catch(() => {});
         if (!again) { S.anchor = S.today; S.mini = S.today.slice(0, 7); }
         closeAll(); render(); watchScorecards();
         if (again) snack('Their calendar is up to date');

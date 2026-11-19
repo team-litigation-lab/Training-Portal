@@ -53,6 +53,13 @@ ck(!other, 'the same name in another batch is left alone');
   const off = await cs.mirrorToFt(Object.assign({}, env, { AI_GATEWAY_SECRET: '' }), 'abesh', {}); ck(off.off === true, 'without the secret nothing is mirrored'); }
 // 📝 the Standard Training - Calendaring Activity (Day 5's Attorney Calendar Management Activity), for its scoresheet on Graders
 r = await call('GET', null, '?activity=1&name=Abesh+Dawn+Jamon&batch=B103026'); ck(r.st === 200 && r.j.username === 'abesh' && r.j.activity === null, 'the Calendaring Activity: nothing submitted yet (no table) is null');
+// (saved, never submitted: the trainee's own last check, kept with their calendar; then a trainer's view's newer check)
+sql.exec(`CREATE TABLE gcal_drafts (username TEXT, track TEXT, data TEXT, updated_at TEXT)`);
+sql.prepare(`INSERT INTO gcal_drafts VALUES ('abesh','activity',?, '2026-11-03T09:00:00Z')`).run(JSON.stringify({ v: 1, events: [], result: { score: 35, at: '2026-11-03T09:00:00Z' } }));
+r = await call('GET', null, '?activity=1&name=Abesh+Dawn+Jamon&batch=B103026'); ck(r.j.activity && r.j.activity.checkScore === 35 && r.j.activity.status === 'saved', 'a calendar saved but not submitted: its last automated check');
+sql.exec(`CREATE TABLE gcal_activity_checks (username TEXT PRIMARY KEY, score INTEGER, met INTEGER, total INTEGER, right_n INTEGER, entries INTEGER, saved_at TEXT, checked_at TEXT, checked_by TEXT)`);
+sql.prepare(`INSERT INTO gcal_activity_checks VALUES ('abesh', 41, 90, 220, 2, 20, '2026-11-03T09:00:00Z', '2026-11-03T12:00:00Z', 'Coach Tess')`).run();
+r = await call('GET', null, '?activity=1&name=Abesh+Dawn+Jamon&batch=B103026'); ck(r.j.activity.checkScore === 41 && r.j.activity.checkedBy === 'Coach Tess', 'a trainer\'s view\'s newer check is the one shared');
 sql.exec(`CREATE TABLE gcal_reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, name TEXT, batch TEXT, track TEXT, submitted_at TEXT, calendar TEXT, check_score INTEGER, ai_status TEXT, ai TEXT, trainer TEXT, status TEXT, finalized_at TEXT, finalized_by TEXT, updated_at TEXT)`);
 sql.prepare(`INSERT INTO gcal_reviews (username, track, submitted_at, calendar, check_score, trainer, status, updated_at) VALUES ('abesh','standard','2026-11-05T10:00:00Z','{}',99,'{"score":99}','final','x')`).run();
 sql.prepare(`INSERT INTO gcal_reviews (username, track, submitted_at, calendar, check_score, trainer, status, updated_at) VALUES ('abesh','activity','2026-11-04T10:00:00Z','{}',60,'{"score":70}','final','x')`).run();

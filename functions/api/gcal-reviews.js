@@ -307,6 +307,19 @@ export async function onRequestPost({ request, env, waitUntil }) {
         return json({ success: true, updatedAt: at });
     }
     if (!admin) return json({ success: false, error: 'Admin access required.' }, 403);
+    // 📝 the Calendaring Activity's automated check, as a trainer's view of a trainee's calendar ran it (gcal.js liveStart): kept so
+    // the Foundational Training's Graders can show it (calsim-scorecard.js ?activity=1), whether or not the calendar was submitted
+    if (b.action === 'activity-check') {
+        const user = clean(b.user, 80), n = (v) => { const x = Number(v); return Number.isFinite(x) ? Math.max(0, Math.round(x)) : null; };
+        if (!user || n(b.score) == null) return json({ success: false, error: 'Missing trainee or score.' }, 400);
+        await db.prepare(`CREATE TABLE IF NOT EXISTS gcal_activity_checks (username TEXT PRIMARY KEY, score INTEGER, met INTEGER, total INTEGER, right_n INTEGER,
+            entries INTEGER, saved_at TEXT, checked_at TEXT, checked_by TEXT)`).run();
+        await db.prepare(`INSERT INTO gcal_activity_checks (username, score, met, total, right_n, entries, saved_at, checked_at, checked_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(username) DO UPDATE SET score = excluded.score, met = excluded.met, total = excluded.total, right_n = excluded.right_n, entries = excluded.entries,
+            saved_at = excluded.saved_at, checked_at = excluded.checked_at, checked_by = excluded.checked_by`)
+            .bind(user, Math.min(100, n(b.score)), n(b.met), n(b.total), n(b.right), n(b.entries), clean(b.savedAt, 40) || null, nowIso(), clean(s.fullName || s.username || 'Trainer', 120)).run();
+        return json({ success: true });
+    }
     if (b.action === 'rules') {
         const track = TRACKS.includes(b.track) ? b.track : 'standard';
         await db.prepare(`INSERT INTO gcal_review_rules (track, text, updated_by, updated_at) VALUES (?, ?, ?, ?)
