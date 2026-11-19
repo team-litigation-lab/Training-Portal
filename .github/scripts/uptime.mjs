@@ -10,6 +10,7 @@ const CHECKS = [
     { name: 'PD Claims Training course', url: 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/', expect: '<html' },
     { name: 'Medsum & Demand Training course', url: 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/', expect: '<html' },
     { name: 'Lien Negotiator Training course', url: 'https://liennegotiatortraining.legalsupporthelp.workers.dev/', expect: '<html' },
+    { name: 'Standard Foundational Training course', url: 'https://foundational-training.legalsupporthelp.workers.dev/', expect: '<html' },
     { name: 'CMS (home)', url: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/', expect: 'front-desk-drill.js' },
     // the CMS's site state: it answers paused (true/false) once its database is reachable (Lock/Unlock, and its
     // locked field, were removed from the CMS)
@@ -40,8 +41,40 @@ for (const c of CHECKS) {
     if (!r.ok) down++;
     rows.push(`| ${r.ok ? '✅' : '🔴'} | ${c.name} | ${c.url} | ${r.detail} | ${r.ms} ms |`);
 }
+
+// 🚀 Is the live site the latest code? A course that stamps its build (APP_BUILD in index.html, written by its
+// build/script-versions.cjs) is compared with the same stamp on its GitHub main. A deploy that stopped (a failed
+// Cloudflare build, build minutes used up, an expired token) shows here instead of going unnoticed for days. A main
+// commit under 45 minutes old is given time to deploy.
+const DEPLOYS = [
+    { name: 'Standard Foundational Training deploy', live: 'https://foundational-training.legalsupporthelp.workers.dev/', repo: 'team-litigation-lab/Foundational-Training' }
+];
+const stamp = (html) => (String(html).match(/APP_BUILD = "([^"]+)"/) || [])[1] || null;
+async function deployed(d) {
+    const t0 = Date.now(), gh = { 'User-Agent': 'LSH-uptime-check', Accept: 'application/vnd.github+json' };
+    if (process.env.GH_TOKEN) gh.Authorization = 'Bearer ' + process.env.GH_TOKEN;
+    try {
+        const api = `https://api.github.com/repos/${d.repo}/commits/main`;
+        let res = await fetch(api, { headers: gh, signal: AbortSignal.timeout(20000) });
+        if (!res.ok && gh.Authorization) { delete gh.Authorization; res = await fetch(api, { headers: gh, signal: AbortSignal.timeout(20000) }); }   // (a public repository reads without the token)
+        const commit = await res.json();
+        if (!res.ok || !commit.sha) return { ok: false, ms: Date.now() - t0, detail: `GitHub didn't give main's latest commit (HTTP ${res.status})` };
+        const want = stamp(await (await fetch(`https://raw.githubusercontent.com/${d.repo}/${commit.sha}/index.html`, { signal: AbortSignal.timeout(20000) })).text());
+        const have = stamp(await (await fetch(d.live + '?uptime=' + Date.now(), { headers: { 'User-Agent': 'LSH-uptime-check' }, signal: AbortSignal.timeout(20000) })).text());
+        const ms = Date.now() - t0, age = (Date.now() - Date.parse(commit.commit.committer.date)) / 60000;
+        if (!want || !have) return { ok: false, ms, detail: `no build stamp to compare (live ${have || 'none'}, main ${want || 'none'})` };
+        if (have === want) return { ok: true, ms, detail: `live is main (${have})` };
+        if (age < 45) return { ok: true, ms, detail: `main is ${Math.round(age)} min old: deploying (live ${have}, main ${want})` };
+        return { ok: false, ms, detail: `live is ${have} but main is ${want}, ${Math.round(age / 60)} h old: the deploy has stopped (check the Cloudflare build)` };
+    } catch (e) { return { ok: false, ms: Date.now() - t0, detail: e.name === 'TimeoutError' ? 'no answer within 20 s' : e.message }; }
+}
+for (const d of DEPLOYS) {
+    const r = await deployed(d);
+    if (!r.ok) down++;
+    rows.push(`| ${r.ok ? '✅' : '🔴'} | ${d.name} | ${d.live} | ${r.detail} | ${r.ms} ms |`);
+}
 console.log(`### Uptime check · ${new Date().toISOString().replace('T', ' ').slice(0, 16)} UTC\n`);
-console.log(down ? `**${down} of ${CHECKS.length} checks failed.**\n` : `All ${CHECKS.length} checks passed.\n`);
+console.log(down ? `**${down} of ${rows.length} checks failed.**\n` : `All ${rows.length} checks passed.\n`);
 console.log('| | Site | Address | Result | Time |\n|---|---|---|---|---|');
 console.log(rows.join('\n'));
 if (down) console.log(`\nWorkflow run: ${process.env.GITHUB_SERVER_URL || ''}/${process.env.GITHUB_REPOSITORY || ''}/actions/runs/${process.env.GITHUB_RUN_ID || ''}`);

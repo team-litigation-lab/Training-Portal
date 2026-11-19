@@ -1,4 +1,4 @@
-# Checks the live LSH training sites every 30 minutes. When one is down it
+# Checks the live LSH training sites every 30 minutes, and that a course's live build is its GitHub main's. When one is down it
 # opens (or updates) an issue labelled "site-down", which notifies everyone
 # watching this repository; when everything is back up it closes the issue.
 # Run it by hand from the Actions tab: "Uptime" → "Run workflow".
@@ -30,6 +30,8 @@ jobs:
           node-version: 22
       - name: Check the live sites
         id: check
+        env:
+          GH_TOKEN: ${{ github.token }}   # (the deploy check reads each course's main from the GitHub API)
         run: node .github/scripts/uptime.mjs | tee "$RUNNER_TEMP/uptime.md"
         continue-on-error: true
       - name: Open, update or close the "site-down" issue
