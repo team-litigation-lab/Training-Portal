@@ -1,4 +1,4 @@
-# Legal Skills Hub — Simulators
+# LSH Nexus — Simulators
 
 Shared simulators live on the main portal (not inside a single course) because every
 program reuses them. More than one Claude chat builds here, so **read this file first,

@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blueprint — Legal Skills Hub</title>
+<title>Blueprint — LSH Nexus</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <!--
-  Platform Blueprint for the Legal Skills Hub (the master portal).
+  Platform Blueprint for LSH Nexus (the master portal).
   The deck itself is drawn by /lsh-blueprint.js, the Blueprint engine every LSH platform shares:
   the same navy cover band with the numbered contents, the same points / where to find it / tip
   slide, and the same real-text PDF — so the portal's blueprint and every program's blueprint
@@ -86,7 +86,7 @@ function signedIn() { return !!lshSession(); }
 </script>
 
 <div class="sim-top">
-    <a class="sim-brand" href="/programs.html"><img src="/img/logo.svg" alt="Legal Support Help" width="75" height="46"><span>Legal Skills Hub<small>Blueprint</small></span></a>
+    <a class="sim-brand" href="/programs.html"><img src="/img/logo.svg" alt="Legal Support Help" width="75" height="46"><span>LSH Nexus<small>Blueprint</small></span></a>
     <div class="sim-nav">
         <script>document.write(isAdmin() ? PortalNav.adminHtml('orient', { back: '/programs.html' })
             : PortalNav.traineeHtml('orient', { back: '/index.html?stay=1', signedIn: signedIn() }));</script>
@@ -97,7 +97,7 @@ function signedIn() { return !!lshSession(); }
     <div class="or-head">
         <div>
             <div class="eyebrow">Platform Blueprint · for screen sharing</div>
-            <h1>🧭 Welcome to the Legal Skills Hub</h1>
+            <h1>🧭 Welcome to LSH Nexus</h1>
         </div>
         <div class="or-tools">
             <div class="or-tabs" role="tablist" aria-label="Blueprint track">
@@ -125,12 +125,12 @@ const PROGRAMS_LIVE = 'Standard Foundational Training, Case Management Training,
 const SLIDES = {
 trainee: [
 { icon: '🏠', title: 'One portal for all of your LSH training', points: [
-    'The Legal Support Help Upskill Hub is the master portal: the front door to every LSH training program, plus the practice tools and resources all programs share.',
+    'LSH Nexus is the master portal: the front door to every LSH training program, plus the practice tools and resources all programs share.',
     'Main page → Log In → Training Directory → your program, with the Simulators and the Knowledge Base beside it.',
     'One log in: sign in once on the portal. Your programs, the Simulators and the Knowledge Base open without asking you to sign in again.',
     'Your program holds your lessons, activities, scores, feedback and certificate.',
     'The Simulators and the Knowledge Base are where you practice real work, and look up the SOPs.'],
-  where: 'The main page of the Upskill Hub — Home on any section band brings you back to it.',
+  where: 'The main page of LSH Nexus — Home on any section band brings you back to it.',
   tip: 'Bookmark the main page rather than a program: everything else opens from here, already signed in.' },
 { icon: '🔑', title: 'Register once, then log in once', points: [
     'New to LSH? Press Register on the log-in page and choose a username and password. An admin approves your registration and gives you your Batch ID.',
@@ -184,7 +184,7 @@ trainee: [
   where: 'Everywhere — your progress is saved to your account, not to the computer you used.',
   tip: "Do a day's activities on the day. Scores and trainer feedback are far easier to act on while the lesson is fresh." },
 { icon: '🚀', title: "You're ready: your first steps", points: [
-    '1. Bookmark the Legal Support Help Upskill Hub.',
+    '1. Bookmark LSH Nexus.',
     '2. Log In (or Register first, and wait for approval).',
     '3. In the Training Directory, request your program, then press Enter Program once it is approved.',
     '4. Start your first open lesson.',
@@ -261,8 +261,8 @@ admin: [
    The deck and its PDF are lsh-blueprint.js, the same Blueprint engine as every LSH platform: it is made from
    the slides deployed right now, stamped with the deploy and the date. */
 const SUBS = {
-    trainee: 'The Legal Skills Hub: how to find and use your training',
-    admin: 'The Legal Skills Hub: running training from the admin side'
+    trainee: 'LSH Nexus: how to find and use your training',
+    admin: 'LSH Nexus: running training from the admin side'
 };
 let track = 'trainee';
 const $ = id => document.getElementById(id);
@@ -275,7 +275,7 @@ function version() {
     return ver;
 }
 window.LSH_BLUEPRINT = {
-    product: 'Legal Skills Hub', site: 'Legal Skills Hub', file: 'Legal_Skills_Hub', logo: '/lsh-logo-dark.png',
+    product: 'LSH Nexus', site: 'LSH Nexus', file: 'LSH_Nexus', logo: '/lsh-logo-dark.png',
     trainee: { sub: SUBS.trainee, slides: SLIDES.trainee },
     get trainer() { return SLIDES.admin ? { sub: SUBS.admin, slides: SLIDES.admin } : null; },
     role: () => (isAdmin() ? 'trainer' : 'trainee'),
@@ -293,7 +293,7 @@ function renderTrack() {
     // the deck outside the portal, so it is not on the Trainees track even for an admin.
     const pdf = $('orPdf');
     if (pdf) pdf.hidden = !(isAdmin() && track === 'admin');
-    document.title = (track === 'admin' ? 'Trainer Blueprint' : 'Blueprint') + ' — Legal Skills Hub';
+    document.title = (track === 'admin' ? 'Trainer Blueprint' : 'Blueprint') + ' — LSH Nexus';
     const q = new URLSearchParams(location.search);
     q.set('track', track);
     history.replaceState(null, '', location.pathname + '?' + q);
