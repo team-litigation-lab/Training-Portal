@@ -8,6 +8,11 @@ import { PROGRAM_PREFIX, programBlock, programUnblock, programSweepClosed, ftSwe
 // mirroring the same request → admin-approval shape registration already
 // uses elsewhere in this app.
 
+// The programs that have their own site and open through /api/launch: the one list of programs (_programs.js, through
+// _ft-block.js's PROGRAM_PREFIX). The Training Directory (programs.html) reads it from here rather than keeping its own copy;
+// .github/scripts/sso-audience.mjs checks launch.js's SSO_PROGRAMS has exactly these keys.
+const LAUNCHABLE = Object.keys(PROGRAM_PREFIX);
+
 // Access rows are only ever made for trainings that exist.
 async function topicExists(db, key) {
     return !!(await db.prepare(`SELECT 1 AS ok FROM topics WHERE key = ?`).bind(String(key)).first());
@@ -45,7 +50,7 @@ export async function onRequestGet({ request, env, waitUntil }) {
             const { results: topics } = await db.prepare(
                 `SELECT key, name, sort_order FROM topics ORDER BY sort_order ASC, name ASC`
             ).all();
-            return json({ success: true, public: true, topics: topics || [], access: [] }, 200, noCache);
+            return json({ success: true, public: true, topics: topics || [], access: [], programs: LAUNCHABLE }, 200, noCache);
         } catch (err) {
             return json({ success: false, error: err.message }, 500, noCache);
         }
@@ -63,14 +68,14 @@ export async function onRequestGet({ request, env, waitUntil }) {
             const { results: access } = await db.prepare(
                 `SELECT trainee_username, topic_key, status, requested_at, decided_at, decided_by FROM trainee_topic_access`
             ).all();
-            return json({ success: true, topics: topics || [], access: access || [] }, 200, noCache);
+            return json({ success: true, topics: topics || [], access: access || [], programs: LAUNCHABLE }, 200, noCache);
         }
 
         // Trainee: just their own access rows.
         const { results: myAccess } = await db.prepare(
             `SELECT topic_key, status FROM trainee_topic_access WHERE trainee_username = ?`
         ).bind(auth.session.username).all();
-        return json({ success: true, topics: topics || [], access: myAccess || [] }, 200, noCache);
+        return json({ success: true, topics: topics || [], access: myAccess || [], programs: LAUNCHABLE }, 200, noCache);
     } catch (err) {
         return json({ success: false, error: err.message }, 500, noCache);
     }

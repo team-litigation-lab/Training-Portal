@@ -99,5 +99,17 @@ for (const [key, url] of Object.entries(launch.SSO_PROGRAMS)) {
     if (!s || s.body.r !== 's' || s.body.p !== key) fail(`the Sign-in check's ticket for ${key} should name it: ${JSON.stringify(s)}`);
 }
 
+// 6. one list of programs (code inventory 2026-10-16 #10): launch.js's addresses are for exactly the programs in _programs.js, which
+//    /api/topics hands the Training Directory (programs.html keeps no copy of its own)
+{
+    const progs = await import(pathToFileURL(path.resolve('functions/_programs.js')).href);
+    const want = progs.COURSE_PROGRAMS.map((p) => p.topic).sort(), have = Object.keys(launch.SSO_PROGRAMS).sort();
+    if (JSON.stringify(want) !== JSON.stringify(have)) fail(`launch.js SSO_PROGRAMS (${have}) and _programs.js (${want}) list different programs`);
+    const page = fs.readFileSync('programs.html', 'utf8');
+    if (/BUILT_PROGRAMS|workers\.dev/.test(page) || !/SSO_PROGRAMS = Array\.isArray\(data\.programs\)/.test(page)) fail('programs.html should take its program list from /api/topics (programs), not keep its own map of addresses');
+    const tp = fs.readFileSync('functions/api/topics.js', 'utf8');
+    if ((tp.match(/programs: LAUNCHABLE/g) || []).length !== 3) fail('/api/topics should hand the program list (programs) in each of its answers');
+}
+
 if (failures.length) { console.log(`\n${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
 console.log('Sign-in tickets: each names the program or tool it is for (p) and the full registered name; the tools\' check and the Portal\'s ticket sign-in refuse a program\'s ticket.');
