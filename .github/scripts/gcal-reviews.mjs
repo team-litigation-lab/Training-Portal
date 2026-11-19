@@ -257,13 +257,14 @@ ck(JSON.stringify(hc.calendar.week) === JSON.stringify(good.week), 'a week as th
 let pp = fs.readFileSync('functions/api/program-progress.js', 'utf8')
     .replace("import { json, requireSession, logActivity } from '../_utils.js';", "const json=(d,s=200,h={})=>new Response(JSON.stringify(d),{status:s,headers:{'Content-Type':'application/json',...h}});const requireSession=async()=>({ok:true,session:{username:'boss',userType:'Admin'}});const logActivity=async()=>{};")
     .replace("import { driveConfigured, saveBatchToDrive } from '../_drive.js';", "const driveConfigured=()=>false;const saveBatchToDrive=async()=>({});")
+    .replace("import { courseTraineeId } from './call-results.js';", `import { courseTraineeId } from '${pathToFileURL(path.resolve('functions/api/call-results.js')).href}';`)
     .replace("import { readList } from '../_ft-block.js';", "const readList=async(kv,p='')=>{const v=await kv.get(p+'access:blocked','json').catch(()=>null);return (v&&v.ids)||{};};");
 if (/from '\.\.\//.test(pp)) throw new Error('the test could not stub program-progress.js imports');
 fs.writeFileSync(path.join(tmp, 'program-progress.mjs'), pp);
 const prog = await import(pathToFileURL(path.join(tmp, 'program-progress.mjs')).href);
-sql.exec(`CREATE TABLE users (username TEXT, first_name TEXT, last_name TEXT)`);
+sql.exec(`CREATE TABLE users (username TEXT, first_name TEXT, last_name TEXT, batch_id TEXT)`);
 sql.exec(`CREATE TABLE calsim_records (username TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL)`);
-sql.exec(`INSERT INTO users VALUES ('late', 'Late', 'Learner'), ('zed', 'Zed', 'Recent')`);
+sql.exec(`INSERT INTO users VALUES ('late', 'Late', 'Learner', 'B1'), ('zed', 'Zed', 'Recent', 'B1')`);
 const ins = (user, track, at, score, status, trainer) => sql.prepare(`INSERT INTO gcal_reviews (username, name, batch, track, submitted_at, calendar, check_score, ai_status, trainer, status, updated_at) VALUES (?, ?, 'B1', ?, ?, '{}', ?, 'done', ?, ?, ?)`).run(user, user, track, at, score, trainer || null, status, at);
 ins('late', 'standard', '2026-09-01T10:00:00.000Z', 40, 'submitted'); ins('late', 'cm', '2026-09-02T10:00:00.000Z', 55, 'submitted');
 sql.exec(`WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 5200) INSERT INTO gcal_reviews (username, name, batch, track, submitted_at, calendar, check_score, ai_status, status, updated_at)
@@ -273,11 +274,12 @@ ins('late', 'standard', '2026-10-05T10:00:00.000Z', 90, 'final', JSON.stringify(
 sql.exec(`WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 1100) INSERT INTO calsim_records (username, data, updated_at) SELECT 'old' || i, '{}', '2026-08-01T00:00:00.000Z' FROM n`);
 sql.prepare(`INSERT INTO calsim_records (username, data, updated_at) VALUES ('zed', ?, '2026-10-06T00:00:00.000Z')`).run(JSON.stringify({ gsubs: [{ track: 'standard', at: '2026-10-06T09:00:00.000Z', result: { score: 66 } }] }));
 const pr = await (await prog.onRequestGet({ request: new Request('https://p/api/program-progress'), env: { TRAINING_DB: env.TRAINING_DB, DB: env.TRAINING_DB } })).json();
-const late = pr.calsim.byName['late learner'];
+// (filed by the account's course id, name--batch: two trainees with one name in two batches are two people)
+const late = pr.calsim.byId['late-learner--b1'];
 const std = late && late.ft && late.ft.weeks.filter(x => x.label === 'Google Calendar · Standard Training');
 ck(std && std.length === 1 && std[0].auto === 90 && std[0].score === 88 && std[0].comment === 'Great week.' && std[0].at === '2026-10-05T10:00:00.000Z', 'Progress shows the trainee\'s newest Standard Training evaluation (its score and the trainer\'s), though it is past row 5,000');
 ck(late.cm && late.cm.weeks.length === 1 && late.cm.weeks[0].auto === 55, 'and the latest of each other track');
-const zed = pr.calsim.byName['zed recent']; ck(zed && zed.ft && zed.ft.weeks[0].auto === 66, 'the calendar records read are the most recently saved ones, not whichever the table lists first');
+const zed = pr.calsim.byId['zed-recent--b1']; ck(zed && zed.ft && zed.ft.weeks[0].auto === 66, 'the calendar records read are the most recently saved ones, not whichever the table lists first');
 
 // 📝 the Calendaring Activity: the AI checks every entry, in the facilitator's feedback DNA (Michelle's), from the automated check of every field
 {

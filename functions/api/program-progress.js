@@ -1,6 +1,7 @@
 import { readList } from '../_ft-block.js';
 import { json, requireSession, logActivity } from '../_utils.js';
 import { driveConfigured, saveBatchToDrive } from '../_drive.js';
+import { courseTraineeId } from './call-results.js';
 
 // All-program trainee progress and feedback for admins (/progress.html).
 //
@@ -171,25 +172,44 @@ const batchKey = (b) => String(b || '').trim();
 
 // visitors are saved as "Name · Batch"; records are matched to trainees by name
 const nameKey = (s) => String(s || '').split(' · ')[0].trim().toLowerCase().replace(/\s+/g, ' ');
+/* 🪪 Who a result belongs to (code inventory 2026-10-16 #5): a result saved under a Portal account is filed by that account's course
+   trainee id (courseTraineeId: first + last name + batch, the id every course keys its trainee by), so two trainees with the same
+   name in different batches are two people (byId). Only a result with no Portal account behind it (a visitor's "Name · Batch",
+   an account since removed) is still filed by name, as before (byName). progress-records.js reads byId first. */
+async function accountIds(usersDb) {
+    const ids = new Map();
+    try {
+        const { results } = await usersDb.prepare(`SELECT username, first_name, last_name, batch_id FROM users`).all();
+        for (const u of results || []) if (u.username && u.first_name && u.last_name) ids.set(u.username, courseTraineeId(u.first_name, u.last_name, u.batch_id || ''));
+    } catch (e) { /* no users table: everything by name */ }
+    return ids;
+}
+// the bucket for one result: { byId, byName }[...][key]
+function bucketOf(out, ids, username, name, make) {
+    const id = username ? ids.get(username) : null;
+    const key = id || nameKey(name || username);
+    if (!key) return null;
+    const m = id ? out.byId : out.byName;
+    return m[key] || (m[key] = make());
+}
 
-async function simulatorSummary(db) {
+async function simulatorSummary(db, ids) {
+    const out = { byId: {}, byName: {} };
     try {
         const { results } = await db.prepare(
             `SELECT username, full_name, simulator, score, created_at FROM simulator_results ORDER BY id DESC LIMIT 5000`
         ).all();
-        const byName = {};
         for (const r of results || []) {
-            const key = nameKey(r.full_name || r.username);
-            if (!key) continue;
-            const s = byName[key] || (byName[key] = { runs: 0, scores: [], last: null, sims: {} });
+            const s = bucketOf(out, ids, r.username, r.full_name, () => ({ runs: 0, scores: [], last: null, sims: {} }));
+            if (!s) continue;
             s.runs++; if (num(r.score)) s.scores.push(r.score);
             if (!s.last || r.created_at > s.last) s.last = r.created_at;
             s.sims[r.simulator] = (s.sims[r.simulator] || 0) + 1;
         }
-        for (const k of Object.keys(byName)) { const s = byName[k]; s.avg = avg(s.scores); delete s.scores; }
-        return byName;
+        for (const m of [out.byId, out.byName]) for (const k of Object.keys(m)) { const s = m[k]; s.avg = avg(s.scores); delete s.scores; }
+        return out;
     } catch (e) {
-        return {};   // table not created yet (no simulator results so far)
+        return out;   // table not created yet (no simulator results so far)
     }
 }
 
@@ -198,22 +218,21 @@ async function simulatorSummary(db) {
 // Standard Training → ft, Litigation Week → cm, Executive Week → eapa. Latest submission per week, with the
 // automated % and the trainer's score, so each program's grading shows its own calendaring.
 const CAL_WEEKS = { rivera: ['ft', 'Standard · Week 1'], chen: ['ft', 'Standard · Week 2'], litigation: ['cm', 'Litigation Week'], executive: ['eapa', 'Executive Week'] };
-async function calsimSummary(db, usersDb) {
+async function calsimSummary(db, ids) {
+    const out = { byId: {}, byName: {} };
     try {
         const { results } = await db.prepare(`SELECT username, data FROM calsim_records ORDER BY updated_at DESC LIMIT 1000`).all();
-        const byName = {};
         for (const r of results || []) {
             let d; try { d = JSON.parse(r.data); } catch (e) { continue; }
             if (!d || (!Array.isArray(d.submissions) && !Array.isArray(d.gsubs))) continue;
-            const u = await usersDb.prepare(`SELECT first_name, last_name FROM users WHERE username = ?`).bind(r.username).first();
-            const key = nameKey(u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : r.username);
-            if (!key) continue;
+            const mine = bucketOf(out, ids, r.username, r.username, () => ({}));
+            if (!mine) continue;
             const latest = {};
             (Array.isArray(d.submissions) ? d.submissions : []).forEach(z => { if (CAL_WEEKS[z.scn]) latest[z.scn] = z; });
             for (const [scn, z] of Object.entries(latest)) {
                 const [program, label] = CAL_WEEKS[scn];
                 const rev = (d.reviews || {})[scn + '|' + z.at] || null;
-                const p = (byName[key] || (byName[key] = {}))[program] || (byName[key][program] = { weeks: [] });
+                const p = mine[program] || (mine[program] = { weeks: [] });
                 p.weeks.push({ label, at: z.at || null, auto: z.auto && num(z.auto.pct) ? z.auto.pct : null, score: rev && num(rev.score) ? rev.score : null, comment: rev ? str(rev.comment, 400) : '' });
             }
             // Google Calendar Simulator submissions (standard → ft, cm → cm, ea → eapa): the latest per track, with the trainer's score
@@ -223,7 +242,7 @@ async function calsimSummary(db, usersDb) {
             for (const [track, g] of Object.entries(lastG)) {
                 const [program, label] = GSUB[track];
                 const rev = (d.reviews || {})['g:' + track + '|' + g.at] || null;
-                const p = (byName[key] || (byName[key] = {}))[program] || (byName[key][program] = { weeks: [] });
+                const p = mine[program] || (mine[program] = { weeks: [] });
                 p.weeks.push({ label, at: g.at || null, auto: g.result && num(g.result.score) ? g.result.score : null, score: rev && num(rev.score) ? rev.score : null, comment: rev ? str(rev.comment, 400) : '' });
             }
         }
@@ -237,45 +256,43 @@ async function calsimSummary(db, usersDb) {
             const last = {};
             for (const r of ev || []) if (GTR[r.track] && !last[r.username + '|' + r.track]) last[r.username + '|' + r.track] = r;   // (newest first: the first one stays)
             for (const r of Object.values(last)) {
-                const u = await usersDb.prepare(`SELECT first_name, last_name FROM users WHERE username = ?`).bind(r.username).first();
-                const key = nameKey(u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : (r.name || r.username));
-                if (!key) continue;
+                const mine = bucketOf(out, ids, r.username, r.name || r.username, () => ({}));
+                if (!mine) continue;
                 const [program, label] = GTR[r.track];
                 let t = null; try { t = JSON.parse(r.trainer || 'null'); } catch (e) { t = null; }
                 const fin = r.status === 'final';
-                const p = (byName[key] || (byName[key] = {}))[program] || (byName[key][program] = { weeks: [] });
+                const p = mine[program] || (mine[program] = { weeks: [] });
                 const old = p.weeks.findIndex(w => w.label === label);
                 if (old >= 0 && String(p.weeks[old].at || '') > String(r.submitted_at)) continue;
                 if (old >= 0) p.weeks.splice(old, 1);
                 p.weeks.push({ label, at: r.submitted_at, auto: num(r.check_score) ? r.check_score : null, score: fin && t && num(t.score) ? t.score : null, comment: fin && t ? str(t.notes, 400) : '' });
             }
         } catch (e) { /* no evaluations yet */ }
-        return byName;
-    } catch (e) { return {}; }   // no calendars saved yet
+        return out;
+    } catch (e) { return out; }   // no calendars saved yet
 }
 
 // Activities trainees submitted on the portal itself, with the grader's feedback.
-async function portalWorkSummary(db) {
+async function portalWorkSummary(db, ids) {
+    const out = { byId: {}, byName: {} };
     try {
         const { results } = await db.prepare(
             `SELECT activity_title, trainee_username, trainee_name, status, score, feedback, submitted_at, graded_at
              FROM submissions ORDER BY submitted_at DESC LIMIT 3000`
         ).all();
-        const byName = {};
         for (const r of results || []) {
-            const key = nameKey(r.trainee_name || r.trainee_username);
-            if (!key) continue;
-            const w = byName[key] || (byName[key] = { submitted: 0, graded: 0, scores: [], last: null, items: [] });
+            const w = bucketOf(out, ids, r.trainee_username, r.trainee_name || r.trainee_username, () => ({ submitted: 0, graded: 0, scores: [], last: null, items: [] }));
+            if (!w) continue;
             w.submitted++;
             if (r.status === 'Graded') { w.graded++; if (num(r.score)) w.scores.push(r.score); }
             if (!w.last || r.submitted_at > w.last) w.last = r.submitted_at;
             if (w.items.length < 15) w.items.push({ title: str(r.activity_title, 160), status: str(r.status, 20), score: num(r.score) ? r.score : null,
                 feedback: str(r.feedback, 800), submittedAt: r.submitted_at || null, gradedAt: r.graded_at || null });
         }
-        for (const k of Object.keys(byName)) { const w = byName[k]; w.avgScore = avg(w.scores); delete w.scores; }
-        return byName;
+        for (const m of [out.byId, out.byName]) for (const k of Object.keys(m)) { const w = m[k]; w.avgScore = avg(w.scores); delete w.scores; }
+        return out;
     } catch (e) {
-        return {};   // no submissions yet
+        return out;   // no submissions yet
     }
 }
 
@@ -298,8 +315,9 @@ export async function onRequestGet({ request, env }) {
             return json({ success: true, program: only, batch: batchKey(snapBatch), archivedAt: row.archived_at, archivedBy: row.archived_by, trainees: JSON.parse(row.snapshot) }, 200, noStore);
         } catch (err) { return json({ success: false, error: err.message }, 500, noStore); }
     }
-    const [simByName, workByName, calByName] = await Promise.all([simulatorSummary(env.TRAINING_DB), portalWorkSummary(env.TRAINING_DB), calsimSummary(env.TRAINING_DB, env.DB)]);
-    const base = { success: true, programs, program: only || null, driveConfigured: driveConfigured(env), simulators: { byName: simByName }, portalWork: { byName: workByName }, calsim: { byName: calByName },
+    const ids = await accountIds(env.DB);
+    const [sims, work, cal] = await Promise.all([simulatorSummary(env.TRAINING_DB, ids), portalWorkSummary(env.TRAINING_DB, ids), calsimSummary(env.TRAINING_DB, ids)]);
+    const base = { success: true, programs, program: only || null, driveConfigured: driveConfigured(env), simulators: sims, portalWork: work, calsim: cal,
         archivedBatches: only ? await archivedBatches(env.TRAINING_DB, only) : [] };
     const kv = env.COURSE_KV;
     if (!kv) {

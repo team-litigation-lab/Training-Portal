@@ -78,6 +78,8 @@ jobs:
         run: node --no-warnings .github/scripts/grade-counts.mjs
       - name: Usernames match in any capitals; a case-only duplicate is refused, never guessed
         run: node --no-warnings .github/scripts/username-case.mjs
+      - name: Trainee Monitoring keeps two trainees with one name in two batches apart
+        run: node --no-warnings .github/scripts/progress-identity.mjs
       - name: Graded calls from the Call Simulator count in the trainee's course (the Portal's results and each course's store)
         run: node --no-warnings .github/scripts/call-results.mjs
       - name: Simulator results count in the trainee's own record and course (the account's name, each course's store)

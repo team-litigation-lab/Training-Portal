@@ -9,6 +9,13 @@ const P = { data: null, cache: {}, snaps: {}, tab: 'people', program: (() => { t
     fb: { day: '', status: '', batch: '', q: '' } };
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nameKey = (s) => String(s || '').split(' · ')[0].trim().toLowerCase().replace(/\s+/g, ' ');
+// 🪪 One record per person is one name in one batch (the id every course keys its trainee by: name--batch, as
+// functions/api/call-results.js courseTraineeId builds it), not one name: two trainees called Maria Santos in different
+// batches are two people. The Portal's own results come keyed the same way (byId); byName is only for results with no
+// Portal account behind them (a visitor's), as before. (Code inventory 2026-10-16 #5.)
+const slugPart = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+const personKey = (t) => { const s = slugPart(String(t.name || '').replace(/\s+/g, ' ').trim()).slice(0, 40), b = slugPart(t.batch).slice(0, 20); return s ? (b ? `${s}--${b}` : s) : ''; };
+const byPerson = (m, key, name) => (m && m.byId && m.byId[key]) || (m && m.byName && m.byName[nameKey(name)]) || null;
 const avg = (xs) => { xs = xs.filter(v => v != null); return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : null; };
 const AREAS = [['platform', 'Platform & ease of use'], ['lessons', 'Lessons & content'], ['facilitator', 'Facilitator / trainer'], ['practice', 'Practice & roleplays'], ['assessment', 'Knowledge Checks & feedback']];
 const STATUS_RANK = { Approved: 0, Pending: 1, Rejected: 2, Archived: 3 };
@@ -31,16 +38,17 @@ function starAvg(items) { return avg(items.flatMap(f => Object.values(f.ratings 
 function people() {
     const d = P.data, by = {};
     for (const t of d.trainees || []) {
-        const k = nameKey(t.name) || (t.program + ':' + t.id);
+        const k = personKey(t) || (t.program + ':' + t.id);
         (by[k] = by[k] || { key: k, enrollments: [] }).enrollments.push(t);
     }
     const tfb = d.traineeFeedback || [];
     return Object.values(by).map(p => {
         const en = p.enrollments.sort((a, b) => (STATUS_RANK[a.status] - STATUS_RANK[b.status]) || String(b.lastActive || '').localeCompare(String(a.lastActive || '')));
         const ids = new Set(en.map(t => t.program + ':' + t.id));
-        const sent = tfb.filter(f => !f.anonymous && (ids.has(f.program + ':' + f.traineeId) || (!f.traineeId && nameKey(f.name) === p.key)));
-        const sim = (d.simulators && d.simulators.byName || {})[p.key] || null;
-        const work = (d.portalWork && d.portalWork.byName || {})[p.key] || null;
+        const nm = p.enrollments[0] && p.enrollments[0].name;
+        const sent = tfb.filter(f => !f.anonymous && (ids.has(f.program + ':' + f.traineeId) || (!f.traineeId && nameKey(f.name) === nameKey(nm) && (!f.batch || p.enrollments.some(t => slugPart(t.batch) === slugPart(f.batch))))));
+        const sim = byPerson(d.simulators, p.key, nm);
+        const work = byPerson(d.portalWork, p.key, nm);
         const fbs = en.map(t => t.feedback || { sent: 0, drafts: 0, unread: 0, days: {} });
         const latest = en.flatMap(t => Object.values((t.feedback || {}).days || {}).filter(f => f.status === 'sent'))
             .sort((a, b) => String(b.sentAt || '').localeCompare(String(a.sentAt || '')))[0];
@@ -292,7 +300,7 @@ function tfbCard(f, withName) {
 }
 function detail(p) {
     const d = P.data || {};
-    const cal = (t) => { const c = ((d.calsim && d.calsim.byName || {})[p.key] || {})[t.program]; if (!c) return '';
+    const cal = (t) => { const c = (byPerson(d.calsim, p.key, p.name) || {})[t.program]; if (!c) return '';
         return `<h5>📅 Calendaring Simulators</h5>` + c.weeks.map(w => `<div class="pg-muted"><b>${esc(w.label)}</b> · 🤖 ${w.auto ?? '—'}${w.auto != null ? '%' : ''} · ${w.score != null ? '👤 ' + w.score + '/100' : 'to review'} · ${esc(date(w.at))}${w.comment ? '<br>' + esc(w.comment) : ''}</div>`).join(''); };
     const enr = p.enrollments.map(t => `<div class="pg-enr">
         <h4><span class="pg-prog ${esc(t.program)}">${esc(progLabel(t.program))}</span><span class="pg-st ${esc(t.status)}">${esc(t.status)}</span>
