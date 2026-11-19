@@ -17,7 +17,7 @@ import { json, requireSession, sameSecret } from '../_utils.js';
 //     "cms:<their CMS username>"), so the progress page shows it with the other simulators;
 //   - the course's own store (COURSE_KV, the LSH_KV namespace every course Worker shares), under <prefix>callsim:<id>, where
 //     <id> is the id the course gives the trainee (the same slug of "first last" and batch: courseTraineeId), and the
-//     course shows it on its progress. EA / PA's trainee may be on an older id (trainee-alias:<id> points to it).
+//     course shows it on its progress. a trainee may be on an older id (<prefix>trainee-alias:<id> points to it: EA / PA's linked record, a Batch ID change).
 //     { traineeId, updatedAt, calls: [{ id, line, lesson, title, score, at }] (the latest 60), best: { <lesson or line>: { score, calls, at } } }
 //   GET  /api/call-results   (a signed-in admin) the latest graded calls.
 const COURSES = { FT: { prefix: 'ft:' }, CM: { prefix: 'cm:' }, PD: { prefix: 'pd:' }, EA: { prefix: '' }, MD: { prefix: 'md:' } };
@@ -93,7 +93,9 @@ export async function onRequestPost({ request, env }) {
     if (env.COURSE_KV) {
         const prefix = COURSES[call.program].prefix;
         let id = courseTraineeId(first, last, batch);
-        if (call.program === 'EA') { const alias = await env.COURSE_KV.get(`trainee-alias:${id}`); if (alias && /^[a-z0-9-]{1,80}$/.test(alias)) id = alias; }
+        // a trainee whose record a course kept under an earlier id (EA / PA's linked record, a Batch ID change: every course
+        // writes <prefix>trainee-alias:<new id> = <kept id>) gets the result on that record
+        { const alias = await env.COURSE_KV.get(`${prefix}trainee-alias:${id}`); if (alias && /^[a-z0-9-]{1,100}$/.test(alias)) id = alias; }
         const key = `${prefix}callsim:${id}`;
         let rec = null; try { rec = JSON.parse(await env.COURSE_KV.get(key) || 'null'); } catch (e) { rec = null; }
         const next = addCall(rec, id, call);

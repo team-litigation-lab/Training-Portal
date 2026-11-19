@@ -25,7 +25,8 @@ export async function toCourseFor(env, username, program, row) {
     const u = await env.DB.prepare(`SELECT first_name, last_name, batch_id FROM users WHERE username = ?`).bind(username).first();
     if (!u || !u.first_name || !u.last_name) return null;
     let id = courseTraineeId(u.first_name, u.last_name, u.batch_id || '');
-    if (c === 'EA') { const alias = await env.COURSE_KV.get(`trainee-alias:${id}`); if (alias && /^[a-z0-9-]{1,80}$/.test(alias)) id = alias; }
+    // (a record the course kept under an earlier id: <prefix>trainee-alias:<new id>, written by every course on a Batch ID change)
+    { const alias = await env.COURSE_KV.get(`${COURSES[c]}trainee-alias:${id}`); if (alias && /^[a-z0-9-]{1,100}$/.test(alias)) id = alias; }
     const key = `${COURSES[c]}simresults:${id}`;
     let rec = null; try { rec = JSON.parse(await env.COURSE_KV.get(key) || 'null'); } catch (e) { rec = null; }
     rec = rec && typeof rec === 'object' ? rec : {};

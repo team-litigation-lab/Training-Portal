@@ -51,6 +51,11 @@ if (!rec || rec.results.length !== 3 || rec.best['Google Calendar'].score !== 90
     if (dd.admin !== true || !(dd.results || []).some(r => r.username === 'jcruz' && r.simulator === 'Google Calendar')) fail(`the trainer can't see the trainee's score: ${JSON.stringify(dd.results)}`);
     if (courseTraineeId('Jamie', 'Cruz', 'B100526') !== 'jamie-cruz--b100526') fail('the course trainee id is not built the same way on the read side');
 }
+// a course's record kept under an earlier id after a Batch ID change: the result follows <prefix>trainee-alias:
+kv.set('ft:trainee-alias:jamie-cruz--b100526', 'jamie-cruz--b010126');
+r = await post({ simulator: 'Google Calendar', score: 50, who: { program: 'FT' } }, jamie);
+if (r.data.course !== 'ft:simresults:jamie-cruz--b010126') fail(`the result should follow the course's alias: ${JSON.stringify(r.data)}`);
+kv.delete('ft:trainee-alias:jamie-cruz--b100526');
 // the CM course, by its prefix
 r = await post({ simulator: 'Medical Records Requests', score: 80, who: { program: 'CM' } }, jamie);
 if (!kv.has('cm:simresults:jamie-cruz--b100526')) fail('a CM result didn\'t reach the CM course');
