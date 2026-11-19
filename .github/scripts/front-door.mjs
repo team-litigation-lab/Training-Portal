@@ -116,6 +116,17 @@ r = await hit('/trainee-login.html', ann, '?next=' + encodeURIComponent('/simula
 check(r.status === 302 && r.loc === '/simulators/email.html?program=CM', 'a signed-in trainee on the sign-in page goes back to that page');
 r = await hit('/trainee-login.html', ann, '?next=' + encodeURIComponent('//evil.example/x'));
 check(r.status === 302 && r.loc === '/programs.html', 'a next address on another site is ignored (the Training Directory instead)');
+// ... in every spelling a browser turns into another site: a tab or line break (browsers drop them), a backslash, //, a scheme
+for (const bad of ['/\t/evil.example/x', '/\n/evil.example', '/\r\n/evil.example', '/\\evil.example', '/\t\\evil.example', '\\\\evil.example', '///evil.example',
+    '//evil.example', 'https://evil.example/', 'javascript:alert(1)', ' /\t/evil.example', '/\u0000/evil.example']) {
+    r = await hit('/trainee-login.html', ann, '?next=' + encodeURIComponent(bad));
+    check(r.status === 302 && r.loc === '/programs.html', `a next address that leaves the site (${JSON.stringify(bad)}) is ignored: ${JSON.stringify(r.loc)}`);
+}
+// (an encoded %09 stays a literal path segment on this site, never another site; a query on this site is kept)
+r = await hit('/trainee-login.html', ann, '?next=' + encodeURIComponent('/%09/evil.example'));
+check(r.status === 302 && new URL(r.loc, 'https://p').origin === 'https://p', `an encoded %09 stays on this site: ${r.loc}`);
+r = await hit('/trainee-login.html', ann, '?next=' + encodeURIComponent('/simulators/gcal.html?track=standard&x=//y'));
+check(r.status === 302 && r.loc === '/simulators/gcal.html?track=standard&x=//y', `a next address on this site with a query is kept: ${r.loc}`);
 
 // /api/me
 const getMe = async (cookie) => { const res = await me.onRequestGet({ request: new Request('https://p/api/me', { headers: cookie ? { cookie } : {} }), env }); return { status: res.status, body: await res.json() }; };

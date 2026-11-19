@@ -37,6 +37,16 @@ async function signedInPerson(request, env) {
     return session;
 }
 
+// The path and query of `next` when it is an address on this site, else ''.
+export function sameSitePath(next, base) {
+    const nxt = String(next || '');
+    if (!/^\/(?![\/\\])/.test(nxt) || /[\u0000-\u001f\u007f\\]/.test(nxt)) return '';
+    try {
+        const here = new URL(base), u = new URL(nxt, here);
+        return u.origin === here.origin ? u.pathname + u.search : '';
+    } catch (e) { return ''; }
+}
+
 export async function onRequest(context) {
     const { request, env, next } = context;
     const path = new URL(request.url).pathname;
@@ -46,8 +56,10 @@ export async function onRequest(context) {
             const person = await signedInPerson(request, env);
             const adminDoor = /^\/admin-login(\.html)?\/?$/i.test(path);
             // back to the page that sent them here (a simulator a course opened), else the Training Directory
+            // (only a path on this site: the browser drops tabs and line breaks from an address, so '/<TAB>/evil' would be
+            // '//evil', another site; the address is resolved here as the browser will and must stay on this origin)
             const nxt = new URL(request.url).searchParams.get('next') || '';
-            const to = /^\/(?!\/)[^\\]*$/.test(nxt) ? nxt : '/programs.html';
+            const to = sameSitePath(nxt, request.url) || '/programs.html';
             if (person && (!adminDoor || person.userType === 'Admin')) return new Response(null, { status: 302, headers: { Location: to, 'Cache-Control': 'no-store' } });
         } catch (e) { /* any trouble: show the page as usual */ }
     }
