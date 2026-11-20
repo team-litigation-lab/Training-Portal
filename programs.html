@@ -351,14 +351,19 @@
     // Display names that replace the topics table's `name`, so a program can
     // be renamed without editing the live database. topics_seed.sql carries
     // the same names for new databases.
+    // The programs are called Playbooks on the cards (was "Training").
     const PROGRAM_NAMES = {
-        'STANDARD TRAINING': 'Standard Foundational Training',
+        'STANDARD TRAINING': 'Standard Foundational Playbook',
         // The live topics table still carries the old "CM Training" / "Revised CM Training"
         // from before the rename; these put the full names on the cards without a migration.
-        'CM TRAINING': 'Case Management Training',
-        'REVISED CM TRAINING': 'Revised Case Management Training',
-        'PROPERTY DAMAGE': 'Property Damage Claims Training',
-        'MEDSUM AND DEMAND': 'Medsum & Demand Training'
+        'CM TRAINING': 'Case Management Playbook',
+        'REVISED CM TRAINING': 'Revised Case Management Playbook',
+        'EA  PA TRAINING-OUTSOURCED MANP': 'EA PA Playbook',
+        'REVISED EA PA TRAINING': 'Revised EA PA Playbook',
+        'CALENDAR MANAGEMENT TRAINING': 'Calendar Management Playbook',
+        'PROPERTY DAMAGE': 'Property Damage Claims Playbook',
+        'MEDSUM AND DEMAND': 'Medsum & Demand Playbook',
+        'LIEN NEGOTIATION': 'Lien Negotiator Playbook'
     };
 
     // Programs shown on the index that aren't in the live topics table yet.
@@ -368,7 +373,7 @@
     // Give it a BUILT_PROGRAMS link once it has its own site.
     const EXTRA_PROGRAMS = [
         { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Programs', sort_order: 0 },
-        { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Training', sort_order: 13 }
+        { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Playbook', sort_order: 13 }
     ];
     // Shown first on the index, ahead of the progression, with a "Free" badge.
     const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
