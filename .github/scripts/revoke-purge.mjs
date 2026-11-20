@@ -133,7 +133,9 @@ check(count(`SELECT COUNT(*) n FROM deleted_users WHERE username = 'ana'`) === 1
 // 4b. whose key is whose (_purge.js keyOfTrainee): only a ':'-part that IS the id; EA / PA's '' prefix never takes another program's key
 for (const [name, prefix, id, want] of [['cm:feedback:t-x', 'cm:', 't-x', true], ['cm:actup:t-x:a1', 'cm:', 't-x', true], ['cm:checkin:2026-11-01:t-x', 'cm:', 't-x', true],
     ['cm:feedback:t-x1', 'cm:', 't-x', false], ['cm:actup:t-x1:a1', 'cm:', 't-x', false], ['cm:access:blocked', 'cm:', 'blocked', false],
-    ['feedback:t-x', '', 't-x', true], ['cm:feedback:t-x', '', 't-x', false], ['ft:trainee:t-x', '', 't-x', false], ['pd:actup:t-x:a2', 'pd:', 't-x', true]])
+    ['feedback:t-x', '', 't-x', true], ['cm:feedback:t-x', '', 't-x', false], ['ft:trainee:t-x', '', 't-x', false], ['pd:actup:t-x:a2', 'pd:', 't-x', true],
+    // (data-safety review 2026-11-19) another app's keys under EA / PA's '' prefix are never taken
+    ['rc:calls:t-x', '', 't-x', false], ['kb:sess:t-x', '', 't-x', false], ['lsh:t-x', '', 't-x', false], ['ticket:t-x', '', 't-x', false], ['merged:bob--b1', '', 't-x', false]])
     check(purge.keyOfTrainee(name, prefix, id) === want, `keyOfTrainee(${name}, '${prefix}', ${id}) is ${want}`);
 
 // 5. The rest of the batch is untouched.

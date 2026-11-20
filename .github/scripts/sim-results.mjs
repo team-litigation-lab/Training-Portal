@@ -55,6 +55,11 @@ if (!rec || rec.results.length !== 3 || rec.best['Google Calendar'].score !== 90
 kv.set('ft:trainee-alias:jamie-cruz--b100526', 'jamie-cruz--b010126');
 r = await post({ simulator: 'Google Calendar', score: 50, who: { program: 'FT' } }, jamie);
 if (r.data.course !== 'ft:simresults:jamie-cruz--b010126') fail(`the result should follow the course's alias: ${JSON.stringify(r.data)}`);
+// ... but never away from a record the course has under the id itself (that record is always theirs)
+kv.set('ft:trainee-alias:jamie-cruz--b100526', 'jamie-cruz--b010126'); kv.set('ft:trainee:jamie-cruz--b100526', '{}');
+r = await post({ simulator: 'Google Calendar', score: 51, who: { program: 'FT' } }, jamie);
+if (r.data.course !== 'ft:simresults:jamie-cruz--b100526') fail(`an alias must not take a result away from the trainee's own record: ${JSON.stringify(r.data)}`);
+kv.delete('ft:trainee:jamie-cruz--b100526');
 kv.delete('ft:trainee-alias:jamie-cruz--b100526');
 // ... and a record merged into another (👥 Duplicate accounts: <prefix>merged:<id> = {into})
 kv.set('cm:merged:jamie-cruz--b100526', JSON.stringify({ into: 'jamie-cruz--b090126' }));
@@ -103,6 +108,13 @@ if (kv.size !== before) fail('a result with no course, or an admin\'s, was writt
         const loc = [{ simulator: 'Docket System', scenario: 'A', score: 80, created_at: '2026-11-18T10:00:40.000Z' }, { simulator: 'Docket System', scenario: 'practice', score: 40, created_at: '2026-11-19T09:00:00.000Z' }];
         const out = merge(srv, loc);
         if (out.length !== 3 || out[0].scenario !== 'practice' || out.filter(r => r.scenario === 'A').length !== 1) fail(`the history merge: ${JSON.stringify(out)}`);
+        // (a browser's unrounded score is the same run as the server's rounded one)
+        const out2 = merge([{ simulator: 'X', scenario: '', score: 80, created_at: '2026-11-18T10:00:00.000Z' }], [{ simulator: 'X', scenario: '', score: 80.4, created_at: '2026-11-18T10:01:00.000Z' }]);
+        if (out2.length !== 1) fail(`a rounded score is the same run: ${JSON.stringify(out2)}`);
+    }
+    // only this browser's runs made while this trainee was signed in are merged; a visitor sees only untagged runs
+    if (!/local\.filter\(\(l\) => l && l\.user && l\.user === me\)/.test(src) || !/local\.filter\(\(l\) => l && !l\.user\)/.test(src) || !/user: Sim\.session\(\)\.username/.test(src)) fail('Sim.results must merge only runs tagged with the signed-in trainee, and a visitor only untagged ones');
+    {
     }
 }
 

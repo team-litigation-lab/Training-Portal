@@ -1,4 +1,4 @@
-import { json, requireSession, logActivity, generateAiReview, parseJsonList } from '../_utils.js';
+import { json, requireSession, logActivity, generateAiReview, parseJsonList, gradeAsPercent } from '../_utils.js';
 
 // Grades every objective question (mcq / truefalse / short) against the
 // answer key. Essay questions always need a human, so their presence means
@@ -50,12 +50,13 @@ export async function onRequestGet({ request, env }) {
         // A trainee never gets the answer key (api/activities.js strips correctAnswer), so their Details view and PDF can't
         // mark an objective answer right or wrong themselves: a graded submission says it here, per question (correct:
         // true / false; an essay or an unanswered question has none). Admins get the key with the activity, as before.
-        const keys = new Map();
-        if (auth.session.userType !== 'Admin') {
+        const keys = new Map(), qs = new Map();
+        {
             const ids = [...new Set((results || []).filter(s => s.status === 'Graded').map(s => s.activity_id))];
             for (const id of ids) {
                 const row = await env.TRAINING_DB.prepare('SELECT questions FROM activities WHERE id = ?').bind(id).first().catch(() => null);
-                keys.set(id, row ? parseJsonList(row.questions) : []);
+                qs.set(id, row ? parseJsonList(row.questions) : []);
+                if (auth.session.userType !== 'Admin') keys.set(id, qs.get(id));
             }
         }
         const marks = (s, answers) => {
@@ -72,6 +73,7 @@ export async function onRequestGet({ request, env }) {
         };
         const submissions = (results || []).map(s => ({
             ...s,
+            score: gradeAsPercent(s, qs.get(s.activity_id)),   // (an older all-objective grade in raw points, as a percentage)
             answers: parseJsonList(s.answers),
             ...(keys.has(s.activity_id) && s.status === 'Graded' ? { question_results: marks(s, parseJsonList(s.answers)) } : {}),
             // ai_review is stored as a JSON string (see generateAiReview in

@@ -130,7 +130,7 @@ export function callsQuery(params) {
 // who.aud: the program's topic key (or the tool's id) the ticket is for, sent as p.
 export async function makeTicket(secret, who, now = Date.now()) {
     const enc = new TextEncoder();
-    const body = who.system ? { r: 's', exp: now + TICKET_TTL_MS } : who.admin ? Object.assign({ r: 'a', exp: now + TICKET_TTL_MS }, who.name ? { n: String(who.name).slice(0, 60) } : {})
+    const body = who.system ? { r: 's', exp: now + TICKET_TTL_MS } : who.admin ? Object.assign({ r: 'a', exp: now + TICKET_TTL_MS }, who.name ? { n: String(who.name).slice(0, 60) } : {}, who.uid ? { u: String(who.uid).slice(0, 80) } : {})
         : Object.assign({ first: who.first, last: who.last, b: who.batch }, who.uid ? { u: String(who.uid).slice(0, 80) } : {},
             who.full ? { full: String(who.full).replace(/\s+/g, ' ').trim().slice(0, 120) } : {}, { exp: now + TICKET_TTL_MS });
     if (who.aud) body.p = String(who.aud);
@@ -190,7 +190,9 @@ async function launch({ request, env }) {
         // Every training program and tool opens signed in as this trainer, from a ticket that works once.
         if (!isTool || ADMIN_TICKET_TOOLS.includes(tool)) {
             const name = isMaster(auth.session) ? '' : String(auth.session.fullName || auth.session.username || 'Trainer').trim();
-            const ticket = await makeTicket(secret, { admin: true, name, aud: isTool ? tool : program });
+            // (u: the admin's Portal account id, so a tool that keeps a session can re-check that very account later: the KB)
+            const acct = isMaster(auth.session) ? null : await env.DB.prepare(`SELECT id FROM users WHERE username = ?`).bind(auth.session.username).first().catch(() => null);
+            const ticket = await makeTicket(secret, { admin: true, name, uid: acct && acct.id != null ? String(acct.id) : '', aud: isTool ? tool : program });
             // An admin in the Portal's 👁 trainee view: the program opens in its own trainee view (it only hides; the
             // admin can switch back there), so what they see matches what a trainee sees
             const view = !isTool && params.get('view') === 'trainee' ? '&view=trainee' : '';

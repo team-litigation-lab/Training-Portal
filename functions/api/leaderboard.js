@@ -1,4 +1,4 @@
-import { json, requireSession, buildFullName } from '../_utils.js';
+import { json, requireSession, buildFullName, gradeAsPercent, parseJsonList } from '../_utils.js';
 
 export async function onRequestGet({ request, env }) {
     const auth = await requireSession(request, env);
@@ -6,9 +6,12 @@ export async function onRequestGet({ request, env }) {
 
     try {
         const { results: subRows } = await env.TRAINING_DB.prepare(
-            "SELECT trainee_username, activity_id, status, score FROM submissions"
+            "SELECT trainee_username, activity_id, status, score, auto_score FROM submissions"
         ).all();
         const submissions = subRows || [];
+        // (each activity's questions, to read an older all-objective grade kept in raw points as a percentage: gradeAsPercent)
+        const { results: qRows } = await env.TRAINING_DB.prepare("SELECT id, questions FROM activities").all().catch(() => ({ results: [] }));
+        const questionsOf = new Map((qRows || []).map(a => [a.id, parseJsonList(a.questions)]));
         // "Activities completed" counts only activities that still exist and a trainee can see: archiving hard-deletes the row
         // (api/activities.js) but keeps its submissions, as api/progress.js already allows for.
         const { results: liveRows } = await env.TRAINING_DB.prepare(
@@ -42,7 +45,7 @@ export async function onRequestGet({ request, env }) {
             if (!st) continue;
             if (liveActivityIds.has(s.activity_id)) st.completedIds.add(s.activity_id);
             if (s.status === 'Graded' && s.score !== null && s.score !== undefined) {
-                st.gradedScores.push(Number(s.score));
+                st.gradedScores.push(Number(gradeAsPercent(s, questionsOf.get(s.activity_id))));
             }
         }
 

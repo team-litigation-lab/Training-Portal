@@ -1,7 +1,7 @@
 import { readList } from '../_ft-block.js';
 import { json, requireSession, logActivity } from '../_utils.js';
 import { driveConfigured, saveBatchToDrive } from '../_drive.js';
-import { courseTraineeId } from './call-results.js';
+import { personKeyOf } from './call-results.js';
 
 // All-program trainee progress and feedback for admins (/progress.html).
 //
@@ -113,7 +113,9 @@ function summarize(rec, program, fb) {
     const cfMods = Object.values((rec.caseFlow && rec.caseFlow.days) || {}).flatMap(x => Object.values((x && x.modules) || {}));
     const cfScores = cfMods.map(m => m && (num(m.c) ? m.c : num(m.a) ? m.a : null)).filter(num);
     const takeaways = Object.values(days).map(x => x.takeaway).filter(num);
-    const kc = Object.values(dp).filter(p => p && num(p.score)).map(p => p.score);
+    // (only the course's own days count: a score under any other key of dayProgress, an old Lesson 9 or one a trainee's browser
+    // wrote under a day that isn't there, never reaches the average. Security review 2026-11-19)
+    const kc = Object.values(days).map(x => x.score).filter(num);
     const tasks = Object.values(dp).filter(p => p && num(p.surpriseTaskScore)).map(p => p.surpriseTaskScore);
     const practice = Object.values(pp).filter(v => v && num(v.bestScore)).map(v => v.bestScore).concat(cfScores);
     const rp = (rec.roleplayHistory || []).filter(h => h && num(h.score)).map(h => h.score);
@@ -122,6 +124,7 @@ function summarize(rec, program, fb) {
         program: program.id,
         id: String(rec.id || ''),
         name: String(rec.name || [rec.firstName, rec.lastName].filter(Boolean).join(' ') || 'Unnamed trainee'),
+        personKey: personKeyOf(rec.name || [rec.firstName, rec.lastName].filter(Boolean).join(' '), rec.batch || ''),
         batch: String(rec.batch || ''),
         status,
         registeredAt: rec.registeredAt || null,
@@ -179,11 +182,18 @@ const nameKey = (s) => String(s || '').split(' · ')[0].trim().toLowerCase().rep
    trainee id (courseTraineeId: first + last name + batch, the id every course keys its trainee by), so two trainees with the same
    name in different batches are two people (byId). Only a result with no Portal account behind it (a visitor's "Name · Batch",
    an account since removed) is still filed by name, as before (byName). progress-records.js reads byId first. */
+// ids: username → the account's person key; names: lower-case name → every account key with that name (progress-records.js
+// uses it for a course record whose batch no longer matches the account's: a name only one account has is that account).
 async function accountIds(usersDb) {
-    const ids = new Map();
+    const ids = new Map(); ids.names = {};
     try {
         const { results } = await usersDb.prepare(`SELECT username, first_name, last_name, batch_id FROM users`).all();
-        for (const u of results || []) if (u.username && u.first_name && u.last_name) ids.set(u.username, courseTraineeId(u.first_name, u.last_name, u.batch_id || ''));
+        for (const u of results || []) if (u.username && u.first_name && u.last_name) {
+            const key = personKeyOf(`${u.first_name} ${u.last_name}`, u.batch_id || '');
+            ids.set(u.username, key);
+            const nk = nameKey(`${u.first_name} ${u.last_name}`);
+            (ids.names[nk] = ids.names[nk] || []).includes(key) || ids.names[nk].push(key);
+        }
     } catch (e) { /* no users table: everything by name */ }
     return ids;
 }
@@ -320,7 +330,7 @@ export async function onRequestGet({ request, env }) {
     }
     const ids = await accountIds(env.DB);
     const [sims, work, cal] = await Promise.all([simulatorSummary(env.TRAINING_DB, ids), portalWorkSummary(env.TRAINING_DB, ids), calsimSummary(env.TRAINING_DB, ids)]);
-    const base = { success: true, programs, program: only || null, driveConfigured: driveConfigured(env), simulators: sims, portalWork: work, calsim: cal,
+    const base = { success: true, programs, program: only || null, driveConfigured: driveConfigured(env), simulators: sims, portalWork: work, calsim: cal, accountNames: ids.names,
         archivedBatches: only ? await archivedBatches(env.TRAINING_DB, only) : [] };
     const kv = env.COURSE_KV;
     if (!kv) {

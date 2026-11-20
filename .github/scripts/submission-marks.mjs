@@ -77,5 +77,10 @@ sql.prepare('INSERT INTO activities VALUES (2, ?, ?, ?)').run('Objective quiz', 
     if (!out.success || !row || row.status !== 'Graded' || row.score !== 75 || row.auto_score !== 3) fail(`an all-objective submission should be graded 75 (%), with auto_score 3 (points): ${JSON.stringify({ out, row })}`);
 }
 
+// (data-safety review 2026-11-19) an all-objective grade stored the old way, in raw points, is read as its percentage
+sql.prepare(`INSERT INTO submissions (id, activity_id, activity_title, trainee_username, answers, status, score, auto_score, submitted_at) VALUES (9, 2, 'Objective quiz', 'ann', '[]', 'Graded', 3, 3, '2026-10-01')`).run();
+{ const old = ((await get('ann', 'Trainee')).submissions || []).find((s) => s.id === 9);
+  if (!old || old.score !== 75) fail(`an old raw-points grade (3 of 4 points) reads as 75: ${JSON.stringify(old && old.score)}`); }
+
 if (failures.length) { console.log(`\n${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
 console.log('A trainee\'s graded submission says which objective answers were right, without the answer key.');

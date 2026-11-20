@@ -624,3 +624,13 @@ export function parseJsonList(raw) {
 export function b64url(bytes) {
     return toBase64Url(new Uint8Array(bytes));
 }
+
+/* A grade, as a percentage. An all-objective submission graded before 2026-11-19 was stored in raw points (score = auto_score,
+   ten one-point questions all right = 10); it reads as its percentage of the activity's points. Anything else (a grade a trainer
+   gave, an activity with an essay, an activity since deleted) is as stored. The stored rows are not rewritten. */
+export function gradeAsPercent(sub, questions) {
+    if (!sub || sub.status !== 'Graded' || sub.score == null || sub.auto_score == null || Number(sub.score) !== Number(sub.auto_score)) return sub ? sub.score : null;
+    if (!Array.isArray(questions) || !questions.length || questions.some(q => q && q.type === 'essay')) return sub.score;
+    const total = questions.reduce((n, q) => n + ((q && q.points) || 1), 0);
+    return total > 0 ? Math.round((100 * Number(sub.score)) / total) : sub.score;
+}

@@ -16,6 +16,16 @@ const nameKey = (s) => String(s || '').split(' · ')[0].trim().toLowerCase().rep
 const slugPart = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 const personKey = (t) => { const s = slugPart(String(t.name || '').replace(/\s+/g, ' ').trim()).slice(0, 40), b = slugPart(t.batch).slice(0, 20); return s ? (b ? `${s}--${b}` : s) : ''; };
 const byPerson = (m, key, name) => (m && m.byId && m.byId[key]) || (m && m.byName && m.byName[nameKey(name)]) || null;
+// The row a course record belongs to: its person key (the server's, batch in its one form: t.personKey) when a Portal account has
+// it; else the one account with that name (a batch changed on the Portal, a typed legacy batch), so one person is one row with
+// their own results; else its own key.
+function rowKey(t, d) {
+    const k = t.personKey || personKey(t);
+    const names = (d && d.accountNames) || {}, all = Object.values(names).flat();
+    if (!k || all.includes(k)) return k;
+    const same = names[nameKey(t.name)] || [];
+    return same.length === 1 ? same[0] : k;
+}
 const avg = (xs) => { xs = xs.filter(v => v != null); return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : null; };
 const AREAS = [['platform', 'Platform & ease of use'], ['lessons', 'Lessons & content'], ['facilitator', 'Facilitator / trainer'], ['practice', 'Practice & roleplays'], ['assessment', 'Knowledge Checks & feedback']];
 const STATUS_RANK = { Approved: 0, Pending: 1, Rejected: 2, Archived: 3 };
@@ -38,7 +48,7 @@ function starAvg(items) { return avg(items.flatMap(f => Object.values(f.ratings 
 function people() {
     const d = P.data, by = {};
     for (const t of d.trainees || []) {
-        const k = personKey(t) || (t.program + ':' + t.id);
+        const k = rowKey(t, d) || (t.program + ':' + t.id);
         (by[k] = by[k] || { key: k, enrollments: [] }).enrollments.push(t);
     }
     const tfb = d.traineeFeedback || [];

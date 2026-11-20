@@ -14,7 +14,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pid-'));
 const pp = fs.readFileSync('functions/api/program-progress.js', 'utf8')
     .replace("import { json, requireSession, logActivity } from '../_utils.js';", "const json=(d,s=200,h={})=>new Response(JSON.stringify(d),{status:s,headers:{'Content-Type':'application/json',...h}});const requireSession=async()=>({ok:true,session:{username:'boss',userType:'Admin'}});const logActivity=async()=>{};")
     .replace("import { driveConfigured, saveBatchToDrive } from '../_drive.js';", "const driveConfigured=()=>false;const saveBatchToDrive=async()=>({});")
-    .replace("import { courseTraineeId } from './call-results.js';", `import { courseTraineeId } from '${pathToFileURL(path.resolve('functions/api/call-results.js')).href}';`)
+    .replace("import { personKeyOf } from './call-results.js';", `import { personKeyOf } from '${pathToFileURL(path.resolve('functions/api/call-results.js')).href}';`)
     .replace("import { readList } from '../_ft-block.js';", "const readList=async()=>({});");
 fs.writeFileSync(path.join(tmp, 'pp.mjs'), pp);
 const prog = await import(pathToFileURL(path.join(tmp, 'pp.mjs')).href);
@@ -47,6 +47,20 @@ if (rows.length !== 2) fail(`two Maria Santos in two batches should be two rows 
 const r1 = rows.find(r => r.batches.includes('B100126')), r2 = rows.find(r => r.batches.includes('B110226'));
 if (!r1 || r1.enrollments.length !== 2 || !r1.sim || r1.sim.avg !== 90 || !r1.work || r1.work.avgScore !== 100) fail(`the first Maria's row: ${JSON.stringify(r1 && { en: r1.enrollments.length, sim: r1.sim, work: r1.work })}`);
 if (!r2 || !r2.sim || r2.sim.avg !== 45 || r2.work.avgScore !== 20) fail(`the second Maria's row: ${JSON.stringify(r2 && { sim: r2.sim, work: r2.work })}`);
+// (data-safety review 2026-11-19) a course record whose batch is the account's in another form (a typed legacy B10012026),
+// or whose batch the Portal later changed, is still that account's row, with its results; one person is one row
+{
+    const ctx2 = {}; vm.createContext(ctx2);
+    vm.runInContext(src.slice(0, src.indexOf('function batchesOfProgram()')) + '\nthis.P = P; this.people = people;', ctx2);
+    sql.exec(`INSERT INTO users VALUES ('solo1', 'Uma', 'Solo', 'B100126'); INSERT INTO simulator_results (username, full_name, simulator, score, created_at) VALUES ('solo1','Uma Solo','Docket System',77,'2026-11-05');`);
+    const pr2 = await (await prog.onRequestGet({ request: new Request('https://p/api/program-progress'), env: { TRAINING_DB: d1, DB: d1 } })).json();
+    ctx2.P.data = { trainees: [{ program: 'ft', id: 'uma-solo--b10012026', name: 'Uma Solo', batch: 'B10012026', personKey: 'uma-solo--b100126', status: 'Approved', daysDone: 1, daysTotal: 8 },
+        { program: 'cm', id: 'uma-solo--b090126', name: 'Uma Solo', batch: 'B090126', status: 'Approved', daysDone: 1, daysTotal: 5 }],
+        simulators: pr2.simulators, portalWork: pr2.portalWork, calsim: pr2.calsim, accountNames: pr2.accountNames, traineeFeedback: [] };
+    const rows2 = ctx2.people();
+    if (rows2.length !== 1 || !rows2[0].sim || rows2[0].sim.avg !== 77 || rows2[0].enrollments.length !== 2) fail(`one account in two batch forms is one row with its results: ${JSON.stringify(rows2.map(r => ({ key: r.key, n: r.enrollments.length, sim: r.sim })))}`);
+}
+
 fs.rmSync(tmp, { recursive: true, force: true });
 if (failures.length) { console.log(`\n${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
 console.log('Trainee Monitoring keeps two trainees with one name in two batches apart; a visitor\'s results are still filed by name.');

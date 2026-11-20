@@ -87,10 +87,24 @@ const tProg = await post(tl.onRequestPost, ln.ticket);
 if (tProg.status !== 401 || tProg.body.code !== 'audience') fail(`/api/ticket-login must refuse a program's ticket: ${JSON.stringify(tProg)}`);
 // an old ticket with no p (a course's tool ticket not yet updated) and a course's 'tool' ticket still sign in at the Portal
 for (const extra of [{}, { p: 'tool' }, { p: 'portal' }]) {
-    const t = await launch.makeTicket(env.PORTAL_SSO_SECRET, { first: 'Maria', last: 'Santos', batch: 'B111926', aud: extra.p });
+    const t = await launch.makeTicket(env.PORTAL_SSO_SECRET, { first: 'Maria', last: 'Santos', batch: 'B111926', uid: '1', aud: extra.p });
     const r = await post(tl.onRequestPost, t);
     if (r.status !== 200 || !r.body.success) fail(`a course's tool ticket (${JSON.stringify(extra)}) should still sign the trainee in at the Portal: ${JSON.stringify(r)}`);
 }
+// 4b. /api/verify-ticket (the CMS, the KB, Ring Channel) trusts only the account id u: the names given back are the account's, a
+//     forged name on a course's tool ticket changes nothing, and a trainee ticket with no u or another kind of account is refused
+{
+    const forged = await launch.makeTicket(env.PORTAL_SSO_SECRET, { first: 'Bob', last: 'Victim', batch: 'B200000', uid: '1', aud: 'tool' });
+    const v = await post(vt.onRequestPost, forged);
+    if (v.status !== 200 || v.body.first !== 'Maria' || v.body.last !== 'Santos' || v.body.u !== '1' || v.body.full !== 'Maria L. Santos, Jr') fail(`verify-ticket answers with the account u is, never the ticket's names: ${JSON.stringify(v)}`);
+    const noU = await post(vt.onRequestPost, await launch.makeTicket(env.PORTAL_SSO_SECRET, { first: 'Maria', last: 'Santos', batch: 'B111926', aud: 'tool' }));
+    if (noU.status !== 401 || noU.body.code !== 'account') fail(`a trainee ticket with no u is refused: ${JSON.stringify(noU)}`);
+    const adminU = await post(vt.onRequestPost, await launch.makeTicket(env.PORTAL_SSO_SECRET, { first: 'Maria', last: 'Santos', batch: 'B111926', uid: '2', aud: 'kb' }));
+    if (adminU.status !== 401) fail(`a trainee ticket whose u is an admin account is refused: ${JSON.stringify(adminU)}`);
+    const a = await go(admin, 'tool=kb');
+    if (!a.body || a.body.u !== '2') fail(`an admin's ticket carries their account id: ${JSON.stringify(a.body)}`);
+}
+
 // 5. the Sign-in check's system ticket names the program it goes to
 const sent = [];
 const realFetch = globalThis.fetch;

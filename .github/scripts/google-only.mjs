@@ -133,7 +133,8 @@ const page = async (p, t, env = ON) => { let passed = false; const r = await mw.
 // 5. a course's ticket doesn't sign anyone in to the Portal while the rule is on
 {
     const b64 = (s) => Buffer.from(s).toString('base64url');
-    const body = b64(JSON.stringify({ first: 'Ann', last: 'Lee', b: 'B110326', exp: Date.now() + 60000 }));
+    const annId = sql.prepare(`SELECT id FROM users WHERE username = 'ann'`).get().id;   // (a trainee's ticket says who by their Portal account id)
+    const body = b64(JSON.stringify({ first: 'Ann', last: 'Lee', b: 'B110326', u: String(annId), exp: Date.now() + 60000 }));
     const key = await crypto.subtle.importKey('raw', new TextEncoder().encode('portal-sso:' + ON.PORTAL_SSO_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     const sig = Buffer.from(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body))).toString('base64url');
     const ticket = body + '.' + sig;

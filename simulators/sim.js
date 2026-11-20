@@ -140,7 +140,8 @@ const Sim = {
         // Trainees keep their own history in this browser (the server list is admin-only).
         try {
             const mine = JSON.parse(localStorage.getItem('LSH_SIM_HISTORY') || '[]');
-            mine.unshift({ simulator: r.simulator, scenario: r.scenario, score: r.score, summary: r.summary, created_at: new Date().toISOString() });
+            // (user: who was signed in, so another person signing in on this browser never sees these as theirs)
+            mine.unshift({ simulator: r.simulator, scenario: r.scenario, score: r.score, summary: r.summary, created_at: new Date().toISOString(), user: Sim.session().username || '' });
             localStorage.setItem('LSH_SIM_HISTORY', JSON.stringify(mine.slice(0, 50)));
         } catch (e) {}
         if (!Sim.isAdmin() && !(w.name && w.name.length >= 2)) return;   // "just practice": not sent to the trainer
@@ -154,7 +155,7 @@ const Sim = {
         await Sim.ready;
         const local = Sim.localHistory();
         const s = Sim.session();
-        if (!s.userType) return { success: true, admin: false, results: local };
+        if (!s.userType) return { success: true, admin: false, results: local.filter((l) => l && !l.user) };   // (a visitor's own runs only)
         const page = async (before) => {
             const q = new URLSearchParams({ limit: '200' });
             if (before) q.set('before', before);
@@ -169,7 +170,9 @@ const Sim = {
         try {
             do { const d = await page(before); rows = rows.concat(d.results || []); before = d.next || ''; } while (before && ++pages < 100);
         } catch (e) { if (!rows.length) return { success: true, admin: false, results: local, offline: true }; }
-        return { success: true, admin: false, results: Sim.mergeHistory(rows, local) };
+        // (only this browser's runs made while this trainee was signed in: a visitor's or someone else's are never shown as theirs)
+        const me = s.username || '';
+        return { success: true, admin: false, results: Sim.mergeHistory(rows, local.filter((l) => l && l.user && l.user === me)) };
     },
     localHistory() { try { const v = JSON.parse(localStorage.getItem('LSH_SIM_HISTORY') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } },
     // The server's rows plus the browser's that aren't among them: the same simulator, scenario and score saved within 10 minutes
@@ -178,7 +181,8 @@ const Sim = {
         const t = (r) => Date.parse(r && r.created_at) || 0;
         const left = (server || []).slice();
         const extra = (local || []).filter((l) => {
-            const i = left.findIndex((r) => r.simulator === l.simulator && String(r.scenario || '') === String(l.scenario || '') && (r.score == null ? null : Number(r.score)) === (l.score == null ? null : Number(l.score)) && Math.abs(t(r) - t(l)) <= 10 * 60 * 1000);
+            const sc = (x) => (x == null || x === '' || !Number.isFinite(Number(x)) ? null : Math.round(Number(x)));   // (the server keeps the score rounded)
+            const i = left.findIndex((r) => r.simulator === l.simulator && String(r.scenario || '') === String(l.scenario || '') && sc(r.score) === sc(l.score) && Math.abs(t(r) - t(l)) <= 10 * 60 * 1000);
             if (i < 0) return true;
             left.splice(i, 1);   // (each server row stands for one browser copy at most)
             return false;

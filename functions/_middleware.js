@@ -46,13 +46,21 @@ export function sameSitePath(next, base) {
     if (!/^\/(?![\/\\])/.test(nxt) || /[\u0000-\u001f\u007f\\]/.test(nxt)) return '';
     try {
         const here = new URL(base), u = new URL(nxt, here);
-        return u.origin === here.origin ? u.pathname + u.search : '';
+        // (resolved, a path that starts '//' or '/\' would be another site when it is sent back as a Location: '/.//evil',
+        // '/%2e//evil' and '/a/..//evil' all resolve to '//evil')
+        if (u.origin !== here.origin || /^\/[\/\\]/.test(u.pathname)) return '';
+        return u.pathname + u.search;
     } catch (e) { return ''; }
 }
 
 export async function onRequest(context) {
     const { request, env, next } = context;
-    const path = new URL(request.url).pathname;
+    // The path every gate below matches: percent-decoded and with repeated slashes collapsed, so /%61ttendance-sync.gs,
+    // /attendance-sync%2egs and //attendance-sync.gs are the same page as /attendance-sync.gs (the host serves them all).
+    const rawPath = new URL(request.url).pathname;
+    let path = rawPath;
+    try { path = decodeURIComponent(rawPath); } catch (e) { path = rawPath; }
+    path = path.replace(/[\/\\]+/g, '/');
     if (request.method === 'GET' && FRONT_DOORS.some((re) => re.test(path)) && !new URL(request.url).searchParams.has('stay')) {
         try {
             // A trainee who wants to sign in as an admin must see the admin sign-in, so only an admin is sent on from it.
@@ -94,7 +102,8 @@ export async function onRequest(context) {
         if (!(cur && cur.userType === 'Admin')) {
             try {
                 const out = await ticketSession(env, ticket);
-                if (out.cookie) return new Response(null, { status: 302, headers: { Location: url.pathname + url.search, 'Set-Cookie': out.cookie, 'Cache-Control': 'no-store' } });
+                // (back to the same page on this site: a path asked for as //x must not come back as a Location to another site)
+                if (out.cookie) return new Response(null, { status: 302, headers: { Location: '/' + url.pathname.replace(/^[\/\\]+/, '') + url.search, 'Set-Cookie': out.cookie, 'Cache-Control': 'no-store' } });
             } catch (e) { /* the usual sign-in */ }
         }
     }
