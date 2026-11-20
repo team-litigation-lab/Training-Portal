@@ -915,6 +915,27 @@ function createEvent(draft) {
     S.events.push(ev); save();
     return ev;
 }
+/* 👁 A trainer looking at a trainee's calendar (?trainee= or ?review=) gets every field of the trainee's event on its card, set or
+   not (the Google-style card leaves out what is empty), so what the trainee entered can be checked against the activity:
+   the time and its time zones, the color, the calendar, the location, the guests, the notifications, the notes. */
+function reviewRows(e, notif) {
+    const none = (t) => `<span style="color:#c5221f">${t}</span>`;
+    const tzName = zoneName(e.tz || ET);
+    const rows = [
+        ['Time', e.allDay ? 'All day (no time set)' : `${span(mins(e.start), mins(e.end))}`],
+        ['Event time zone', e.allDay ? '—' : esc(tzName)],
+        ['Calendar’s time zone', esc(zoneName(ET))],
+        ['Color', e.color ? esc(colorName(e.color)) : none('Not set (the calendar’s color)')],
+        ['Calendar', esc(calOf(e.cal).name)],
+        ['Location', e.location ? esc(e.location) : none('None')],
+        ['Google Meet', e.meet ? 'Yes' : 'No'],
+        ['Guests', (e.guests || []).length ? e.guests.map(g => esc(g.email || g)).join('<br>') : none('None')],
+        ['Notifications', notif.length ? notif.map(esc).join('<br>') : none('None')],
+        ['Notes', e.desc ? 'See above' : none('None')]
+    ];
+    return `<div class="row gc-rvf"><span></span><div class="sub" style="background:#f1f3f4;border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.5">
+        <b style="display:block;margin-bottom:2px">👁 What the trainee entered</b>${rows.map(([k, v]) => `<div><span style="color:#5f6368">${k}:</span> ${v}</div>`).join('')}</div></div>`;
+}
 function openDetail(iid, rect) {
     closeAll();
     const e = findInst(iid); if (!e) return;
@@ -924,7 +945,8 @@ function openDetail(iid, rect) {
     const el = document.createElement('div'); el.className = 'gc-pop'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', e.title || 'Event');
     el.innerHTML = `<div class="tools">${e.readOnly ? '' : `<button class="ib" data-a="d-edit" aria-label="Edit event" title="Edit event">${ic('edit')}</button><button class="ib" data-a="d-del" aria-label="Delete event" title="Delete event">${ic('del')}</button>`}
             <button class="ib" data-a="d-mail" aria-label="Email guests" title="Email guests">${ic('mail')}</button>${e.readOnly ? '' : `<button class="ib" data-a="d-more" aria-label="Options" title="Options">${ic('more')}</button>`}<button class="ib" data-a="pop-x" aria-label="Close">${ic('close')}</button></div>
-        <div class="row"><span class="sq" style="background:${colorOf(e)}"></span><div><h2>${esc(e.title || '(No title)')}</h2><div class="sub">${esc(longDate(e.date))}${e.allDay ? '' : ' · ' + span(mins(e.start), mins(e.end))}${rep ? `<br>${esc(rep)}` : ''}</div></div></div>
+        <div class="row"><span class="sq" style="background:${colorOf(e)}"></span><div><h2>${esc(e.title || '(No title)')}</h2><div class="sub">${esc(longDate(e.date))}${e.allDay ? (RV ? ' · <b>All day</b> (no start or end time set)' : '') : ' · ' + span(mins(e.start), mins(e.end))}${rep ? `<br>${esc(rep)}` : RV && !e.seed ? '<br>Does not repeat' : ''}</div></div></div>
+        ${RV && !e.seed && e.cal !== 'holidays' ? reviewRows(e, notif) : ''}
         ${e.meet ? `<div class="row">${ic('video')}<div><button class="join" data-a="join">${ic('video')}Join with Google Meet</button><div class="link">meet.google.com/${esc(e.meet)}</div><div class="link">Join by phone: (US) +1 555-010-${String(digits(e.meet).length + 4000).slice(-4)} · PIN ${(e.meet.charCodeAt(0) * 7919 % 900000 + 100000)}#</div></div></div>` : ''}
         ${e.location ? `<div class="row">${ic('place')}<div class="sub">${esc(e.location)}</div></div>` : ''}
         ${(e.guests || []).length ? `<div class="row">${ic('people')}<div class="sub">${e.guests.length} guest${e.guests.length === 1 ? '' : 's'}<br>${e.guests.map(esc).join('<br>')}</div></div>` : ''}
