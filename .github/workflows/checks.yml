@@ -80,6 +80,8 @@ jobs:
         run: node --no-warnings .github/scripts/username-case.mjs
       - name: Trainee Monitoring keeps two trainees with one name in two batches apart
         run: node --no-warnings .github/scripts/progress-identity.mjs
+      - name: Attendance names every course's days as the course does (FT's 8 lessons, EA / PA's titles, CM's Case Flow days 11-15)
+        run: node --no-warnings .github/scripts/attendance-days.mjs
       - name: Graded calls from the Call Simulator count in the trainee's course (the Portal's results and each course's store)
         run: node --no-warnings .github/scripts/call-results.mjs
       - name: Simulator results count in the trainee's own record and course (the account's name, each course's store)
