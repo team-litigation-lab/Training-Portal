@@ -96,6 +96,8 @@ export async function onRequestPost({ request, env }) {
         // a trainee whose record a course kept under an earlier id (EA / PA's linked record, a Batch ID change: every course
         // writes <prefix>trainee-alias:<new id> = <kept id>) gets the result on that record
         { const alias = await env.COURSE_KV.get(`${prefix}trainee-alias:${id}`); if (alias && /^[a-z0-9-]{1,100}$/.test(alias)) id = alias; }
+        // (or a record merged into another, 👥 Duplicate accounts: <prefix>merged:<id> = {into})
+        { let m = null; try { m = JSON.parse(await env.COURSE_KV.get(`${prefix}merged:${id}`) || 'null'); } catch (e) { m = null; } if (m && typeof m.into === 'string' && /^[a-z0-9-]{1,100}$/.test(m.into)) id = m.into; }
         const key = `${prefix}callsim:${id}`;
         let rec = null; try { rec = JSON.parse(await env.COURSE_KV.get(key) || 'null'); } catch (e) { rec = null; }
         const next = addCall(rec, id, call);

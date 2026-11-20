@@ -27,6 +27,8 @@ export async function toCourseFor(env, username, program, row) {
     let id = courseTraineeId(u.first_name, u.last_name, u.batch_id || '');
     // (a record the course kept under an earlier id: <prefix>trainee-alias:<new id>, written by every course on a Batch ID change)
     { const alias = await env.COURSE_KV.get(`${COURSES[c]}trainee-alias:${id}`); if (alias && /^[a-z0-9-]{1,100}$/.test(alias)) id = alias; }
+    // (or a record merged into another, 👥 Duplicate accounts: <prefix>merged:<id> = {into})
+    { let m = null; try { m = JSON.parse(await env.COURSE_KV.get(`${COURSES[c]}merged:${id}`) || 'null'); } catch (e) { m = null; } if (m && typeof m.into === 'string' && /^[a-z0-9-]{1,100}$/.test(m.into)) id = m.into; }
     const key = `${COURSES[c]}simresults:${id}`;
     let rec = null; try { rec = JSON.parse(await env.COURSE_KV.get(key) || 'null'); } catch (e) { rec = null; }
     rec = rec && typeof rec === 'object' ? rec : {};

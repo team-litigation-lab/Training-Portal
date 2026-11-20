@@ -57,6 +57,9 @@ else {
     if (ln.body.p !== 'LIEN NEGOTIATION') fail(`the trainee's ticket should name its program (p): ${JSON.stringify(ln.body)}`);
     if (ln.body.full !== 'Maria L. Santos, Jr') fail(`the trainee's ticket should carry the full registered name: ${JSON.stringify(ln.body)}`);
     if (ln.body.first !== 'Maria' || ln.body.last !== 'Santos' || ln.body.b !== 'B111926') fail(`first, last and batch must stay as they were: ${JSON.stringify(ln.body)}`);
+    if (ln.body.u !== '1') fail(`the trainee's ticket should carry their Portal account id (u): ${JSON.stringify(ln.body)}`);
+    const again = await go(trainee, 'program=' + encodeURIComponent('LIEN NEGOTIATION'));
+    if (!ln.body.j || !again.ticket || again.ticket === ln.ticket) fail('two tickets made for the same launch must never be the same ticket (j)');
 }
 // a program they have no access to still makes no ticket at all
 const ft = await go(trainee, 'program=' + encodeURIComponent('STANDARD TRAINING'));

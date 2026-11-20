@@ -56,6 +56,11 @@ kv.set('ft:trainee-alias:jamie-cruz--b100526', 'jamie-cruz--b010126');
 r = await post({ simulator: 'Google Calendar', score: 50, who: { program: 'FT' } }, jamie);
 if (r.data.course !== 'ft:simresults:jamie-cruz--b010126') fail(`the result should follow the course's alias: ${JSON.stringify(r.data)}`);
 kv.delete('ft:trainee-alias:jamie-cruz--b100526');
+// ... and a record merged into another (👥 Duplicate accounts: <prefix>merged:<id> = {into})
+kv.set('cm:merged:jamie-cruz--b100526', JSON.stringify({ into: 'jamie-cruz--b090126' }));
+r = await post({ simulator: 'Medical Records Requests', score: 70, who: { program: 'CM' } }, jamie);
+if (r.data.course !== 'cm:simresults:jamie-cruz--b090126') fail(`the result should follow the course's merge: ${JSON.stringify(r.data)}`);
+kv.delete('cm:merged:jamie-cruz--b100526');
 // the CM course, by its prefix
 r = await post({ simulator: 'Medical Records Requests', score: 80, who: { program: 'CM' } }, jamie);
 if (!kv.has('cm:simresults:jamie-cruz--b100526')) fail('a CM result didn\'t reach the CM course');
