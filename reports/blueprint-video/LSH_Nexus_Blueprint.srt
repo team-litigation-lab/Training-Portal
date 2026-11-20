@@ -1,0 +1,96 @@
+1
+00:00:00,000 --> 00:00:19,300
+Welcome to LSH Nexus — the master training portal for Legal Support Help. In this walkthrough we'll look at the blueprint of the whole platform: what it does, how it fits together, and exactly what a trainee and a trainer each see and do.
+
+2
+00:00:19,600 --> 00:00:50,700
+LSH Nexus is one front door. Trainees and trainers sign in once, here, and from there every training program opens — Standard Foundational, Case Management, E A and P A, P D Claims, Medsum and Demand, and Lien Negotiator. Beside the programs sit the shared tools: the Simulators, the Knowledge Base and the Ring Channel. Everything is saved to the person's account, not their browser, so they can pick up on any computer.
+
+3
+00:00:51,000 --> 00:01:12,300
+The platform has two views. The trainee view is about learning: logging in, finding a program, working through lessons, practicing on simulators and earning a certificate. The trainer view is about running training: approving people, controlling access, monitoring progress, taking attendance and grading work. Let's start with the trainee.
+
+4
+00:01:12,600 --> 00:01:16,300
+Part one: the trainee view.
+
+5
+00:01:16,600 --> 00:01:46,100
+A new trainee registers once on the portal. To sign in, they first use their at legalsupporthelp dot com Google account, then their username and password. A personal Gmail is refused, with a clear message telling them to switch Chrome profiles. Once a trainer approves the registration, the trainee receives a Batch ID — a B followed by the training start date — shared by everyone in that batch.
+
+6
+00:01:46,400 --> 00:02:14,1000
+After logging in, the trainee lands on the Training Directory. Every program is listed here. A program they can't open yet shows Request Access — one press, and it shows Awaiting Admin Approval until a trainer approves it. Approved programs show Enter Program, which opens in a new tab already signed in — no second password. Completed programs stay open, and that's where the certificate is downloaded.
+
+7
+00:02:15,300 --> 00:02:45,200
+Inside a program, lessons open one day at a time as the trainer releases them. Each lesson has slides, videos and files. Practice comes as activities, Knowledge Checks and Practice Labs, and the work saves as they go. The trainer's feedback appears right here — strengths, areas to build, and what to focus on next. Trainees can rate lessons, even anonymously, and the certificate unlocks when the program is complete.
+
+8
+00:02:45,500 --> 00:03:15,400
+The Simulators let trainees practice real legal-support work with fictional cases. Mock phone calls on the Ring Channel, with AI callers or graded calls. Calendaring in a Google Calendar style workspace, submitted to the trainer for review. An email workspace and scored email replies. And legal paperwork: docketing, medical records requests, court e-filing and drafting. Trainees are always signed in, so every run is saved under their name and batch.
+
+9
+00:03:15,700 --> 00:03:49,200
+Three simulators train the paperwork side of case management. The Docket System has trainees sort incoming notices, decide what belongs on the docket, and calendar every deadline — counting by hand before the calculator unlocks. Medical Records Requests runs a full collection on a business-day clock, with authorizations, rejections, fee disputes and planted problems, scored out of one hundred. And Court E-Filing walks through federal and state filing, including fixing documents and avoiding traps like filing a privileged memo.
+
+10
+00:03:49,500 --> 00:04:14,900
+The Knowledge Base is where L S H team members find the firm's standard operating procedures and share what they know. It opens signed in from the Directory. Trainees can browse the Library, the Glossary and official SOPs, mark team tips as helpful, comment, and contribute their own — every post is reviewed by an admin before it's published.
+
+11
+00:04:15,200 --> 00:04:46,700
+So, for a trainee, the path is simple. Bookmark LSH Nexus. Register and wait for approval. Request your program in the Directory. Enter it and start the first open lesson. Then try a simulator and explore the Knowledge Base. If anything goes wrong, message the trainer with your name, Batch ID and a screenshot. And anyone can refer a candidate to L S H using the Got a referral button on the main page.
+
+12
+00:04:46,1000 --> 00:04:50,700
+Part two: the trainer view.
+
+13
+00:04:50,1000 --> 00:05:14,300
+A trainer registers as Admin or Trainer, and only the Master Account can approve that. From then on, one sign-in opens everything: every program's admin, the Simulators, the Knowledge Base and the Ring Channel. Every main page carries the same admin bar — Blueprint, System Management, Trainee Monitoring, Attendance, Referrals, Switch view and Logout.
+
+14
+00:05:14,600 --> 00:05:39,600
+Whenever a registration is waiting, a popup appears on every portal page while a trainer is signed in. Approve issues the trainee's Batch ID; Decline turns them away. It can't be dismissed until each registration is decided, so nobody is left waiting. It never appears on the landing page or in Trainee view, so it's safe while presenting.
+
+15
+00:05:39,900 --> 00:06:08,500
+Program Access is where trainers decide who opens what. Access requests from the Directory are approved or denied. For each trainee and each program there are four actions: Grant, Revoke, Suspend — which pauses access without removing any work — and Restore. Marking a trainee passed lets them download the certificate. And Switch view shows the Directory exactly as a trainee sees it, perfect before a demo.
+
+16
+00:06:08,800 --> 00:06:35,400
+System Management gathers everything else in one menu. Master Control holds users, registrations and program access, who's online right now, and the activity logs. Broadcast and Ping sends announcements to a batch. Trainers can pause the workspace, and the Master Account can lock the whole site. There are also sign-in checks across every program, and a view of today's shared AI usage.
+
+17
+00:06:35,700 --> 00:07:02,700
+Trainee Monitoring puts every trainee on one page, with a tab per program and trainees grouped by batch. For each person: days completed, Knowledge Check and practice averages, trainer feedback, simulator scores and when they were last active. Sorting by furthest behind finds the people who need help first. When a batch finishes, it can be archived — and restored later if needed.
+
+18
+00:07:02,1000 --> 00:07:24,300
+Attendance is taken in one place for every program. Pick the batch and the day, mark each trainee, and save. The logs stay with the batch and show up in Trainee Monitoring. Tip: take attendance while the whole batch is still on the call, before opening the day's lessons.
+
+19
+00:07:24,600 --> 00:07:47,100
+Each program has its own admin area for running the day. Trainers open lessons for a batch when they're ready to teach them, run the live session in Presenter view, and check what trainees see with Trainee view. This is also where activities are graded and each trainee's written feedback is recorded.
+
+20
+00:07:47,400 --> 00:08:12,400
+Everything trainees share comes to the trainer for review. Knowledge Base posts and comments are approved, or sent back with a note. Calendar submissions are reviewed and returned with a result. Simulator scores flow automatically into Trainee Monitoring and the course scorecard. And referrals arrive with the candidate's details and CV, tracked through statuses from New to Hired.
+
+21
+00:08:12,700 --> 00:08:39,700
+When someone leaves, Revoke removes their account and their work from every program, so batch averages only count the people still training. But the backup always comes first: the whole record is filed as JSON and CSV into the batch's folder on the shared Drive — or downloaded to the trainer's computer — and only then deleted. The audit log is always kept.
+
+22
+00:08:40,000 --> 00:09:07,000
+Here's the trainer's daily routine. Approve registrations and program requests. Take attendance and open today's lessons. Send an announcement if the batch needs one. Grade activities and calendar submissions, and write feedback. Check Trainee Monitoring for anyone falling behind. And review new Knowledge Base posts and referrals. Approvals always come first, so nobody is locked out of the day you're about to open.
+
+23
+00:09:07,300 --> 00:09:29,400
+Under the hood, the platform is built to be safe by default. Only Workspace Google accounts can sign in, checked twice. Programs open with short-lived signed tickets that work for one program, once. Revoking or suspending reaches every program's scorecards. And no passwords or access codes are ever shown on screen.
+
+24
+00:09:29,700 --> 00:09:42,000
+That's the LSH Nexus blueprint: one portal, every program, every trainee. For the slide-by-slide version, open the Blueprint from the header on any page. Thanks for watching.
+
