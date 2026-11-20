@@ -272,7 +272,7 @@
     :where(html.auth-register) .auth-card-mark img { height: 46px; width: auto; display: block; }
     :where(html.auth-register) .auth-card-brand span { font-weight: 800; font-size: 14px; color: var(--navy); }
     :where(html.auth-register) .auth-card h2 { font-size: 22px; font-weight: 800; margin: 0 0 6px; color: var(--navy); }
-    :where(html.auth-register) .auth-card .sub { font-size: 13.5px; color: var(--slate); margin: 0 0 24px; }
+    :where(html.auth-register) .auth-card .sub { font-size: 13.5px; line-height: inherit; color: var(--slate); margin: 0 0 24px; }
 
     :where(html.auth-register) .auth-msg {
         font-size: 12px; font-weight: 700; padding: 10px 14px; border-radius: 10px;

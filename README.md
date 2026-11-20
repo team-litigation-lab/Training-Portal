@@ -132,7 +132,7 @@ To change the content, edit `SLIDES` in `blueprint.html` — each slide is the e
 
 One sign-in opens everything: a trainer registers on the Portal as **Admin / Trainer**, the **Master Account** approves it (only it can — `update-status.js`), and they sign in at **Admin Login** with their own username and password. **A trainer is given no Batch ID**: a batch is a group of trainees going through the course together, so approving a trainer leaves it empty and a Batch ID cannot be set on one afterwards either (`update-user.js`). Approving a *trainee* still issues theirs, dated from their start of training. That session opens the Training Directory, every program's admin, the Simulators, the Knowledge Base, the Ring Channel, Trainee Monitoring, Attendance, Referrals and **Master Control** (users, registrations, program access, logs, Broadcast & Ping) — no second password anywhere.
 
-The one exception is the **site-wide Lock**, which belongs to the master account, `LSHADMIN123`, whose password is the `MASTER_ADMIN_PASSWORD` secret in Cloudflare (it has no row in the users table). Only a session belonging to it may LOCK, and UNLOCK takes that password since a lock leaves nobody with a valid session. A site with no `MASTER_ADMIN_PASSWORD` says so (`503 MASTER_NOT_SET`) at the Admin Login instead of "incorrect password". `.github/scripts/master-control.mjs` checks this in CI.
+The one exception is the **site-wide Lock**, which belongs to the master account (username `LSHADMIN123`), whose password is the `MASTER_ADMIN_PASSWORD` secret in Cloudflare (it has no row in the users table). Only a session belonging to it may LOCK, and UNLOCK takes that password since a lock leaves nobody with a valid session. A site with no `MASTER_ADMIN_PASSWORD` says so (`503 MASTER_NOT_SET`) at the Admin Login instead of "incorrect password". `.github/scripts/master-control.mjs` checks this in CI.
 
 ### 📝 Log-in Approvals, 🙋 Access Requests and Program Access
 
@@ -344,10 +344,14 @@ Every variable the Functions read, in one table. Secrets are marked 🔒. Anythi
 code's defaults are what is in effect, whatever the dashboard shows. Bindings (`DB`, `TRAINING_DB`, `COURSE_KV`) are in
 `wrangler.toml`.
 
+Not settings: `ASSETS` is the Pages site's own files (Cloudflare provides it). `TRAINING_TRAINING_DB` is read by nothing: it
+was a misspelling of `TRAINING_DB` in `functions/api/announcement.js`, since fixed, so a `TRAINING_TRAINING_DB` binding
+left in the dashboard does nothing and can be removed.
+
 | Variable | What it does | Default |
 |---|---|---|
 | 🔒 `SESSION_SECRET` | Signs every Portal session cookie. Without it nobody can sign in. Changing it signs everyone out. | (required) |
-| 🔒 `MASTER_ADMIN_PASSWORD` | The Master Account's password (`LSHADMIN123`). | (none: the Master Account can't sign in) |
+| 🔒 `MASTER_ADMIN_PASSWORD` | The Master Account's password. (`LSHADMIN123` is that account's **username**, not its password; the password is only this secret.) | (none: the Master Account can't sign in) |
 | 🔒 `PORTAL_SSO_SECRET` | Signs the program / tool sign-in tickets (`/api/launch`); the same value on every program Worker. | (none: programs can't be opened signed in) |
 | `GOOGLE_CLIENT_ID`, 🔒 `GOOGLE_CLIENT_SECRET`, `GOOGLE_ALLOWED_DOMAIN` | The @legalsupporthelp.com Google sign-in rule (see the top of this file). | off |
 | 🔒 `AI_GATEWAY_SECRET` | The key the CMS and the program Workers send to `/api/ai-gateway`. | (gateway answers 501) |

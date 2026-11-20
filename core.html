@@ -22,12 +22,13 @@
     .grades-hint.ready { color: #166534; font-weight: 700; }
     /* On a phone (and a narrow tablet) the top bar (announcement, clock, time zone, two links, the user) is far wider than the screen, and body has
        overflow: hidden, so it used to push the dashboard off the right edge with no way to scroll to it. It wraps instead:
-       the announcement takes its own line, the clock and time-zone picker (the computer's clock is on the phone already) go. */
-    @media (max-width: 1180px) {
+       the announcement takes its own line, the clock and time-zone picker (the computer's clock is on the phone already) go.
+       (From 1080px down: the bar's own contents, with a long name, fit in one 38px line down to about 1040px; above that it stays one line.) */
+    @media (max-width: 1080px) {
         #classification-bar .top-bar-right { flex-wrap: wrap; justify-content: flex-end; gap: 8px 14px; min-width: 0; max-width: 100%; }
         #classification-bar .top-ticker-mini { flex: 1 1 100%; max-width: 100%; min-width: 0; order: 9; }
     }
-    @media (max-width: 1180px) { #classification-bar { height: auto; min-height: 38px; padding-top: 6px; padding-bottom: 6px; } }
+    @media (max-width: 1080px) { #classification-bar { height: auto; min-height: 38px; padding-top: 6px; padding-bottom: 6px; } }
     @media (max-width: 700px) {
         #classification-bar { padding: 8px 14px; gap: 8px; }
         #classification-bar .top-clock { display: none; }
