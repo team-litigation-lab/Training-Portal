@@ -23,6 +23,7 @@ const purgeUrl = put('_purge.mjs', fs.readFileSync('functions/_purge.js', 'utf8'
 const revoke = await import(put('revoke-user.mjs', fs.readFileSync('functions/api/revoke-user.js', 'utf8')
     .replace("'../_utils.js'", `'${utilsUrl}'`).replace("'../_drive.js'", `'${driveUrl}'`).replace("'../_purge.js'", `'${purgeUrl}'`).replace("'../_ft-block.js'", `'${ftBlockUrl}'`)));
 const u = await import(utilsUrl);
+const purge = await import(purgeUrl);
 
 const sql = new DatabaseSync(':memory:');
 sql.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, first_name TEXT, mi TEXT, last_name TEXT, suffix TEXT, email TEXT, status TEXT, user_type TEXT, batch_id TEXT, training_start_date TEXT, password TEXT, created_at TEXT DEFAULT (datetime('now')));
@@ -63,8 +64,17 @@ const stmt = (q) => { let a = []; const o = { bind: (...x) => { a = x; return o;
 const kvData = new Map([
     ['cm:trainee:t-ana', { id: 't-ana', name: 'Ana Reyes', batch: 'B101026', dayProgress: { 1: { done: true, score: 88 } }, lastActive: '2026-10-20T00:00:00Z' }],
     ['cm:feedback:t-ana', { days: { 1: { rating: 'Strong', status: 'sent' } } }],
-    ['cm:trainee:t-ben', { id: 't-ben', name: 'Ben Cruz', batch: 'B101026', dayProgress: { 1: { done: true, score: 75 } } }]
+    ['cm:trainee:t-ben', { id: 't-ben', name: 'Ben Cruz', batch: 'B101026', dayProgress: { 1: { done: true, score: 75 } } }],
+    // every family of hers, sub-keyed ones too (CM's actup:<id>:<activity>, backup:<id>:<time>, checkin:<date>:<id>, the -admin
+    // families, uid:<portalUid>, the alias for her id now) — and a trainee whose id merely starts like hers, whose keys stay
+    ['cm:actup:t-ana:act1', { name: 'release.pdf' }], ['cm:backup:t-ana:1700000000', { v: 1 }], ['cm:checkin:2026-11-01:t-ana', { timeIn: '9:00' }],
+    ['cm:trainee-admin:t-ana', { note: 'x' }], ['cm:feedback-admin:t-ana', { note: 'y' }], ['cm:drivework:t-ana', { g: 1 }],
+    ['cm:uid:u77', { id: 't-ana', name: 'Ana Reyes' }], ['cm:trainee-alias:ana-reyes--b101026', 't-ana'],
+    ['cm:trainee:t-ana2', { id: 't-ana2', name: 'Anna Ng', batch: 'B101026' }], ['cm:actup:t-ana2:act1', { name: 'keep.pdf' }], ['cm:uid:u88', { id: 't-ana2' }],
+    // EA / PA's prefix is '': a key of hers there would be 'feedback:t-ana'; a CM key is never read as EA's
+    ['cm:access:blocked', { ids: {} }]
 ]);
+kvData.get('cm:trainee:t-ana').portalUid = 'u77';
 const kv = {
     list: async ({ prefix, cursor }) => ({ keys: [...kvData.keys()].filter(k => k.startsWith(prefix)).map(name => ({ name })), list_complete: true, cursor: null }),
     get: async (k) => (kvData.has(k) ? kvData.get(k) : null),
@@ -90,7 +100,8 @@ check(!!one(`SELECT id FROM users WHERE username = 'ana'`), 'the account is stil
 check(count(`SELECT COUNT(*) n FROM submissions WHERE trainee_username = 'ana'`) === 1, 'and so is her work');
 const rec = r.body.records || {};
 check((rec.submissions || []).length === 1 && (rec.simulatorResults || []).length === 2, `the backup carries her submissions and both simulator results (${(rec.submissions || []).length}, ${(rec.simulatorResults || []).length})`);
-check((rec.course || []).length === 1 && (rec.course[0].keys || []).length === 2, "and the course's own progress and trainer feedback");
+check((rec.course || []).length === 1 && (rec.course[0].keys || []).length === 10, `and the course's own progress and trainer feedback, every family of hers (sub-keyed ones too): ${JSON.stringify((rec.course[0] || {}).keys && rec.course[0].keys.map(k => k.key))}`);
+check(!(rec.course[0].keys || []).some(k => /t-ana2|u88|access:blocked/.test(k.key)), 'and none of the trainee whose id starts like hers, nor the block list');
 check(!JSON.stringify(rec.course || []).includes('Ben Cruz'), "and nobody else's");
 
 // 2. With the backup saved, everything of hers goes.
@@ -108,6 +119,8 @@ for (const [what, q] of [
     ['presence', `SELECT COUNT(*) n FROM heartbeats WHERE username = 'ana'`]
 ]) check(count(q) === 0, `her ${what} are gone`);
 check(!kvData.has('cm:trainee:t-ana') && !kvData.has('cm:feedback:t-ana'), "the course's own progress and trainer feedback are gone");
+check(['cm:actup:t-ana:act1', 'cm:backup:t-ana:1700000000', 'cm:checkin:2026-11-01:t-ana', 'cm:trainee-admin:t-ana', 'cm:feedback-admin:t-ana', 'cm:drivework:t-ana', 'cm:uid:u77', 'cm:trainee-alias:ana-reyes--b101026'].every(k => !kvData.has(k)), 'every sub-keyed and -admin record of hers, her uid and her alias are gone');
+check(['cm:trainee:t-ana2', 'cm:actup:t-ana2:act1', 'cm:uid:u88', 'cm:access:blocked'].every(k => kvData.has(k)), "a trainee whose id starts like hers keeps everything, and the block list stays");
 
 // 3. Scores are not kept behind, in any shape.
 check(count(`SELECT COUNT(*) n FROM submissions WHERE trainee_name = 'Ana Reyes'`) === 0, 'no score row is kept under her name');
@@ -116,6 +129,12 @@ check(count(`SELECT COUNT(*) n FROM simulator_results WHERE full_name LIKE '%Ana
 // 4. What stays: the audit trail, and the tombstone that retires the username.
 check(count(`SELECT COUNT(*) n FROM activity_log WHERE action = 'revoke-user'`) >= 1, 'the revocation is in the activity log');
 check(count(`SELECT COUNT(*) n FROM deleted_users WHERE username = 'ana'`) === 1, 'the username is tombstoned, so it cannot be taken again');
+
+// 4b. whose key is whose (_purge.js keyOfTrainee): only a ':'-part that IS the id; EA / PA's '' prefix never takes another program's key
+for (const [name, prefix, id, want] of [['cm:feedback:t-x', 'cm:', 't-x', true], ['cm:actup:t-x:a1', 'cm:', 't-x', true], ['cm:checkin:2026-11-01:t-x', 'cm:', 't-x', true],
+    ['cm:feedback:t-x1', 'cm:', 't-x', false], ['cm:actup:t-x1:a1', 'cm:', 't-x', false], ['cm:access:blocked', 'cm:', 'blocked', false],
+    ['feedback:t-x', '', 't-x', true], ['cm:feedback:t-x', '', 't-x', false], ['ft:trainee:t-x', '', 't-x', false], ['pd:actup:t-x:a2', 'pd:', 't-x', true]])
+    check(purge.keyOfTrainee(name, prefix, id) === want, `keyOfTrainee(${name}, '${prefix}', ${id}) is ${want}`);
 
 // 5. The rest of the batch is untouched.
 check(!!one(`SELECT id FROM users WHERE username = 'ben'`), "the other trainee's account is untouched");
