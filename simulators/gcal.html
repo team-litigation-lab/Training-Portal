@@ -229,7 +229,7 @@
     /* an appointment the trainee changed: its mark keeps the 16px column, so the text gets the rest of the line */
     .res-r li.chg::before { content: '↻'; color: #5f6368; font-weight: 700; }
     /* popovers, editor, dialogs */
-    .gc-pop { position: absolute; z-index: 50; width: 448px; max-width: calc(100% - 16px); background: #fff; border-radius: 16px; box-shadow: 0 24px 38px 3px rgba(0,0,0,.14), 0 9px 46px 8px rgba(0,0,0,.12), 0 11px 15px -7px rgba(0,0,0,.2); }
+    .gc-pop { position: absolute; z-index: 50; width: 448px; max-width: calc(100% - 16px); max-height: calc(100% - 16px); overflow-y: auto; background: #fff; border-radius: 16px; box-shadow: 0 24px 38px 3px rgba(0,0,0,.14), 0 9px 46px 8px rgba(0,0,0,.12), 0 11px 15px -7px rgba(0,0,0,.2); }
     .gc-pop .tools { display: flex; justify-content: flex-end; padding: 6px 6px 0; gap: 2px; }
     .gc-pop .row { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: start; gap: 4px 12px; padding: 4px 20px 4px 18px; min-height: 32px; }
     .gc-pop .row > svg.i, .gc-pop .row > .sq { margin-top: 6px; color: var(--ink2); justify-self: center; }

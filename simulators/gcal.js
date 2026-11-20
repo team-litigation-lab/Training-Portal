@@ -931,7 +931,7 @@ function reviewRows(e, notif) {
         ['Google Meet', e.meet ? 'Yes' : 'No'],
         ['Guests', (e.guests || []).length ? e.guests.map(g => esc(g.email || g)).join('<br>') : none('None')],
         ['Notifications', notif.length ? notif.map(esc).join('<br>') : none('None')],
-        ['Notes', e.desc ? 'See above' : none('None')]
+        ['Notes', e.desc ? 'Shown below' : none('None')]
     ];
     return `<div class="row gc-rvf"><span></span><div class="sub" style="background:#f1f3f4;border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.5">
         <b style="display:block;margin-bottom:2px">👁 What the trainee entered</b>${rows.map(([k, v]) => `<div><span style="color:#5f6368">${k}:</span> ${v}</div>`).join('')}</div></div>`;
@@ -1311,7 +1311,8 @@ async function liveStart(again) {
         // (📝 the Calendaring Activity: the check run here is kept for the Foundational Training's Graders, gcal-reviews.js activity-check)
         if (BLANK && !RV.empty && S.result) Sim.fetchRetry(EV_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'activity-check', user: RV.user, score: S.result.score, met: S.result.met, total: S.result.total, right: S.result.right, entries: S.result.entries, savedAt: RV.savedAt || '' }) }).catch(() => {});
-        if (!again) { S.anchor = S.today; S.mini = S.today.slice(0, 7); }
+        if (!again) { const first = RV.empty ? null : mineAll().find(e => e.date >= addDays(S.today, -7)) || mineAll()[0];   // (on the week of their first entry, not an empty one)
+            S.anchor = first ? first.date : S.today; S.mini = S.anchor.slice(0, 7); }
         closeAll(); render(); watchScorecards();
         if (again) snack('Their calendar is up to date');
     } catch (e) { $('#app').innerHTML = `<div class="sim-card" style="margin:20px"><p>${esc(e.message)}</p></div>`; }
@@ -1355,17 +1356,47 @@ function openTrainee(u) {
 function liveScoresHTML() {
     if (BLANK) return `<h2>📝 ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>${traineePickHTML(RV.user)}
         <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on the Calendaring Activity yet.' : `Their activity calendar as they last saved it${RV.savedAt ? ', ' + esc(new Date(String(RV.savedAt).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(RV.savedAt) ? '' : 'Z')).toLocaleString()) : ''}. It’s above, read only. `}
-            <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>${S.result && !RV.empty ? checkSection(S.result, false, 'Their calendar, checked (automated): every entry against the activity') : ''}`;
+            <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>${RV.empty ? '' : enteredHTML()}${S.result && !RV.empty ? checkSection(S.result, false, 'Their calendar, checked (automated): every entry against the activity') : ''}`;
     const C = window.CalScorecard, pick = RV.pick != null && RV.cards[RV.pick] ? RV.pick : RV.cards.length - 1, last = RV.cards[pick], when = cardWhen;
     return `<h2>📊 Scores · ${esc(RV.name)}${RV.batch ? ' · ' + esc(RV.batch) : ''} · ${esc(CFG.label)}</h2>${traineePickHTML(RV.user)}
         <p class="lead" style="margin:0 0 12px">${RV.empty ? 'Nothing saved to their account on this simulator yet.' : `Their calendar as they last saved it${RV.savedAt ? ', ' + esc(when(RV.savedAt)) : ''}. It’s above, read only.`}
-            <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>
+            <button class="txt" data-a="tv-refresh">🔄 Refresh</button></p>${RV.empty ? '' : enteredHTML()}
         <div class="sc-grid wide"><div class="res-r" id="tv-card"><h5><span>📋 Your scorecard</span><span>${last ? `${esc(last.average)}/5 · ${esc(last.pct)}%${C && C.verdict ? ' · ' + esc(C.verdict(Number(last.pct) || 0)) : ''}` : 'to score'}</span></h5>
             ${last ? `${cardPickHTML(RV.cards, pick, 'tv-pick')}<p style="margin:0 0 6px;color:#70757a">${pick === RV.cards.length - 1 ? 'Last saved' : 'Saved'} ${esc(when(last.at))}${last.by ? ' by ' + esc(last.by) : ''}${last.source === 'foundational' ? ' in Graders' : ''}${RV.cards.length > 1 ? ` · ${RV.cards.length} scorecards` : ''}. Saving again adds a new one and keeps the earlier ones.</p>` : '<p style="margin:0 0 6px;color:#70757a">Score each metric 0 to 5 and add your feedback; the weighted average works itself out.</p>'}
             ${C ? C.formHTML(last, autoRows(liveResult())) : '<p>The scorecard didn’t load. Refresh the page.</p>'}
             <div style="margin-top:8px"><button class="blue" data-a="tv-save">💾 Save scorecard</button></div>
 </div>
         <div>${S.result ? liveCheckHTML() : ''}</div></div>`;
+}
+/* 📋 Everything the trainee entered, for their trainer: every event of theirs on the calendar (not the attorney's standing schedule nor
+   the holidays), in date order, with every field set or not, and 👁 Show to jump the calendar to it and open its card. */
+const mineAll = () => (BLANK ? actInstances(S) : instancesOf(S, addDays(S.today, -14), addDays(S.today, 56)).filter(e => !e.seed && e.cal !== 'holidays'))
+    .sort((a, b) => a.date.localeCompare(b.date) || (b.allDay - a.allDay) || mins(a.start || '00:00') - mins(b.start || '00:00'));
+function enteredHTML() {
+    const list = mineAll().slice(0, 200), none = '<span style="color:#c5221f">None</span>';
+    const notifs = (e) => (e.notifs || []).map(n => `${n.v} ${n.v === 1 ? n.u.replace(/s$/, '') : n.u} before${n.m === 'email' ? ', as email' : ''}`);
+    const th = 'style="text-align:left;padding:6px 8px;border-bottom:1px solid #dadce0;font-size:12px;color:#5f6368;white-space:nowrap"', td = 'style="padding:6px 8px;border-bottom:1px solid #eee;vertical-align:top"';
+    return `<details class="res-r" id="tv-entered" open><summary style="cursor:pointer;font-weight:600;font-size:15px;color:#0b1633;padding:4px 0">📋 Everything they entered (${list.length} event${list.length === 1 ? '' : 's'}) · 👁 Show opens it on the calendar</summary>
+        ${list.length ? `<div style="overflow-x:auto;margin-top:6px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th ${th}></th><th ${th}>Title · calendar</th><th ${th}>Date · time</th><th ${th}>Time zone</th><th ${th}>Color</th><th ${th}>Location / Meet</th><th ${th}>Guests</th><th ${th}>Notifications</th><th ${th}>Notes</th></tr></thead><tbody>
+        ${list.map(e => { const n = notifs(e), d = plain(e.desc || '');
+            return `<tr><td ${td}><button class="txt" data-a="tv-show" data-sid="${esc(e.iid)}" data-d="${esc(e.date)}" style="white-space:nowrap">👁 Show</button></td>
+            <td ${td}><b>${esc(e.title || '(No title)')}</b><div style="color:#5f6368;font-size:12px">${esc(calOf(e.cal).name)}</div></td>
+            <td style="padding:6px 8px;border-bottom:1px solid #eee;vertical-align:top;white-space:nowrap">${esc(longDate(e.date))}<br>${e.allDay ? '<b>All day</b> (no time set)' : esc(span(mins(e.start), mins(e.end)))}${e.repeat && e.repeat !== 'none' ? '<br><span style="color:#5f6368;font-size:12px">Repeats: ' + esc(e.repeat) + '</span>' : ''}</td>
+            <td ${td}>${e.allDay ? '—' : esc(zoneName(e.tz || ET))}</td>
+            <td ${td}>${e.color ? `<span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${colorOf(e)};margin-right:4px"></span>${esc(colorName(e.color))}` : '<span style="color:#c5221f">Not set</span>'}</td>
+            <td ${td}>${e.location ? esc(e.location) : none}${e.meet ? '<br>Google Meet' : ''}</td>
+            <td ${td}>${(e.guests || []).length ? e.guests.map(g => esc(g.email || g)).join('<br>') : none}</td>
+            <td ${td}>${n.length ? n.map(esc).join('<br>') : none}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid #eee;vertical-align:top;min-width:200px">${d ? esc(d.slice(0, 600)) : none}</td></tr>`; }).join('')}</tbody></table></div>`
+            : '<p style="margin:6px 0;color:#5f6368">No events of their own on the calendar.</p>'}</details>`;
+}
+// 👁 Show: the calendar on that event's week, scrolled into view, its card open.
+function showEntered(iid, d) {
+    if (!d) return;
+    S.anchor = d; S.mini = d.slice(0, 7); if (S.view !== 'week' && S.view !== 'day') S.view = 'week'; G.q = ''; G.searching = false; closeAll(); render();
+    const g = gc(); if (g && g.scrollIntoView) g.scrollIntoView({ behavior: 'auto', block: 'start' });
+    setTimeout(() => { const el = gc().querySelector(`[data-iid="${CSS.escape(iid)}"]`); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
+        openDetail(iid, (el || gc()).getBoundingClientRect()); }, 60);
 }
 // The trainer's view of the automated check: without the appointments they took out of the review (a sample or test appointment that isn't a caller's
 // request), the score worked out again from the rest; each removed one can be put back. Kept in the trainee's record (excluded[track]), never changed by their saves.
@@ -1636,7 +1667,7 @@ function bind() {
             reset: () => dialog('Start over?', '<p style="margin:0;color:#444746">Your events and changes are cleared and a new set of requests comes in.</p>', () => { S = fresh(); save(); closeAll(); render(); }, 'Start over'),
             create: () => createAt(S.view === 'day' ? S.anchor : null),
             panel: () => { S.panel = a.dataset.p === S.panel ? '' : a.dataset.p; save(); renderPanel(); renderRail(); },
-            check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true), 'tv-skip': () => skipItem(a.dataset.id, true), 'tv-unskip': () => skipItem(a.dataset.id, false), 'to-scores': () => { ev.preventDefault(); toScores(); },
+            check: () => doCheck(), 'rv-save': () => saveReview(), 'tv-save': () => saveScorecard(), 'tv-refresh': () => liveStart(true), 'tv-show': () => showEntered(a.dataset.sid, a.dataset.d), 'tv-skip': () => skipItem(a.dataset.id, true), 'tv-unskip': () => skipItem(a.dataset.id, false), 'to-scores': () => { ev.preventDefault(); toScores(); },
             evals: () => { if (Sim.isAdmin()) { location.href = REVIEW_PAGE; return; } S.panel = S.panel === 'evals' ? '' : 'evals'; EV.open = null; save(); renderPanel(); renderRail(); if (S.panel === 'evals') loadEvals(); },
             'submit-eval': () => submitEval(),
             'cc-open': () => { closeAll(); (RV ? colorLegend : colorDialog)(); },
