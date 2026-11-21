@@ -7,9 +7,9 @@
 // knows the Doc Hub tab the firm keeps it in; the file name is the firm's convention and is the SAME
 // name simulators/records-docs.js produces for the same inputs, so the two cannot drift apart; a
 // missing or wrong tab is refused naming the tab the firm uses, and nothing is sent; the right tab
-// and name hand the drafted letter's own PDF to the platform that opened the activity, in the CMS's
-// cms-doc-file protocol (here a stand-in that frames the page and answers it, as the CMS beside a
-// lesson does); the CMS has the last word on the name, and its refusal comes back as the grade; with
+// and name hand the drafted letter's own PDF to the platform that opened the activity, in LSH CaseWorks'
+// cms-doc-file protocol (here a stand-in that frames the page and answers it, as LSH CaseWorks beside a
+// lesson does); LSH CaseWorks has the last word on the name, and its refusal comes back as the grade; with
 // no platform listening nothing is graded and the download is the way through; and the score is what
 // the filing took to get right.
 // The page under test is a fixture served by this test: the shared drafting tool it belongs to is not
@@ -48,7 +48,7 @@ const server = http.createServer((req, res) => {
         return res.end(`<!doctype html><title>host</title><body><iframe id="f" src="/__probe?from=cm&case=${CASE}" style="width:1200px;height:800px"></iframe>
         <script>window.__filed = []; window.__reject = null;
         addEventListener('message', (e) => { const d = e.data; if (!d || d.lsh !== 'cms-doc-file') return;
-            // the CMS's own name rule, spelled out here so the page's half can be tested on its own
+            // LSH CaseWorks' own name rule, spelled out here so the page's half can be tested on its own
             const day = () => { const t = new Date(); return t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0'); };
             const want = ${JSON.stringify(CASE)} + '_Doe-John_' + String(d.category).replace(/[^A-Za-z0-9]+/g, '-') + '_' + day() + '.pdf';
             if (window.__reject || d.name !== want) return e.source.postMessage({ lsh: 'cms-doc-filed', id: d.id, ok: false,
@@ -108,7 +108,7 @@ const day = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.
     check('and is the same name records-docs.js gives the same inputs (no drift)', names.mine === names.theirs,
         `${names.mine} vs ${names.theirs}`);
     check('the pattern shown to the trainee names no file for them', /_<Last-First>_<Type>_/.test(names.pattern), names.pattern);
-    check('before a case has an ID, the name says so as the CMS does', /^NO-CASE-ID_/.test(names.noCase), names.noCase);
+    check('before a case has an ID, the name says so as LSH CaseWorks does', /^NO-CASE-ID_/.test(names.noCase), names.noCase);
 
     /* fill the answer in and file it the way a tool's button would */
     const file = (kind, tab, name) => sim.evaluate(async (a) => {
@@ -119,7 +119,7 @@ const day = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.
 
     // 4. the tab is the trainee's answer: a wrong or missing one is refused, and nothing is sent
     let out = await file('lor1p', '', '@right');
-    check('no tab chosen is refused', out.graded && /Choose the CMS tab/i.test(out.problems.join(' ')), JSON.stringify(out));
+    check('no tab chosen is refused', out.graded && /Choose the LSH CaseWorks tab/i.test(out.problems.join(' ')), JSON.stringify(out));
     out = await file('lor1p', 'Medical Records', '@right');
     check('the wrong tab is refused naming the tab the firm uses',
         out.graded && /files this letter under Others, not Medical Records/i.test(out.problems.join(' ')), JSON.stringify(out));
@@ -128,9 +128,9 @@ const day = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.
     check('no file name is refused with the convention', out.graded && /_<Last-First>_<Type>_/.test(out.problems.join(' ')), JSON.stringify(out));
     check('still nothing sent', (await page.evaluate(() => window.__filed.length)) === 0, 'something was filed');
 
-    // 5. the right tab, a wrong name: the CMS refuses it, and nothing is filed
+    // 5. the right tab, a wrong name: LSH CaseWorks refuses it, and nothing is filed
     out = await file('lor1p', 'Others', 'LOR Harbor Point.pdf');
-    check('a wrong name is refused by the CMS, with what it expects',
+    check('a wrong name is refused by LSH CaseWorks, with what it expects',
         out.ok === false && /The name should be/i.test((out.problems || []).join(' ')), JSON.stringify(out));
     check('and nothing is filed', (await page.evaluate(() => window.__filed.length)) === 0, 'something was filed');
 

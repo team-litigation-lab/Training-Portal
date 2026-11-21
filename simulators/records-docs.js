@@ -10,10 +10,10 @@
        MRDocs.download(doc)    the same as a real PDF (jsPDF), named the firm's way, so the trainee
                                can add it on the case file's Files themselves
        MRDocs.send(doc)        filed straight into the case open in the platform the trainee came
-                               from, when that platform is listening (the CMS's own cms-doc-file
+                               from, when that platform is listening (LSH CaseWorks' own cms-doc-file
                                protocol, course-bridge.js); otherwise it says to use the download
 
-   Where it goes: the trainee opens this simulator from the CMS Platform, from the Case Management
+   Where it goes: the trainee opens this simulator from LSH CaseWorks, from the Case Management
    course or from the Medical Summary & Demand course, and a request belongs to the case file on
    whichever one that is. DESTS reads it from ?from= / ?program= (the courses already open their
    tools that way), takes the Case ID from ?case= or from what the trainee types, and names every
@@ -22,7 +22,7 @@
        <Case ID>_<Last-First>_<Type>_<YYYY-MM-DD>.pdf
 
    The Type is the Doc Hub category the document is filed under (Medical Records, Bills), so the
-   name the CMS checks (caseFileName in its app.js — the one source of truth) is the name this
+   name LSH CaseWorks checks (caseFileName in its app.js — the one source of truth) is the name this
    produces. Nothing here scores: production is production. */
 const MRDocs = (function () {
 const E = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -32,15 +32,15 @@ const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(
 
 /* ---------- where the trainee came from ----------
    Each platform keeps its own case file; a request made from one belongs there. The key comes from
-   ?from= (the CMS and the courses open their tools with it) or ?program=, and nothing else changes:
+   ?from= (LSH CaseWorks and the courses open their tools with it) or ?program=, and nothing else changes:
    an unknown launcher is the Portal itself, and the download still works. */
 const DESTS = {
-    cms:    { key: 'cms',    name: 'the CMS Platform', url: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/?program=cm&from=cm',
+    cms:    { key: 'cms',    name: 'LSH CaseWorks', url: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/?program=cm&from=cm',
               files: 'the case\'s Doc Hub (records under Medical Records, bills under Bills)', wired: true },
     cm:     { key: 'cm',     name: 'Case Management Training', url: 'https://case-management-training.legalsupporthelp.workers.dev/',
-              files: 'the Doc Hub of your case in the CMS beside the lesson', wired: true },
+              files: 'the Doc Hub of your case in LSH CaseWorks beside the lesson', wired: true },
     md:     { key: 'md',     name: 'Medical Summary & Demand Training', url: 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/',
-              files: 'the Doc Hub of your case in the CMS (records under Medical Records, bills under Bills), and your case folder in Drive', wired: false },
+              files: 'the Doc Hub of your case in LSH CaseWorks (records under Medical Records, bills under Bills), and your case folder in Drive', wired: false },
     portal: { key: 'portal', name: 'LSH Nexus', url: '/simulators.html', files: 'your own case file', wired: false }
 };
 // what each program's course calls itself when it opens a tool (?program=CM, ?program=md, …)
@@ -65,8 +65,8 @@ function setCaseId(id) {
 }
 
 /* ---------- the firm's file name ----------
-   The same parts, slugged the same way, as the CMS's caseFileName: a name produced here is a name
-   the CMS accepts. The date is the real day it is produced, because that is the day it is filed. */
+   The same parts, slugged the same way, as LSH CaseWorks' caseFileName: a name produced here is a name
+   LSH CaseWorks accepts. The date is the real day it is produced, because that is the day it is filed. */
 const part = (v, max) => String(v || '').normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/&/g, ' and ')
     .replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, max || 40).replace(/-+$/, '');
 function lastFirst(name) {
@@ -218,7 +218,7 @@ function download(doc, onError) {
 
 /* ---------- filing it into the case file the trainee came from ----------
    The platform that opened this simulator frames or opens it, so it is window.parent (⧉ Side by side,
-   the course's tool frame) or window.opener (New tab). Either way it is asked in the CMS's own
+   the course's tool frame) or window.opener (New tab). Either way it is asked in LSH CaseWorks' own
    protocol — {lsh:'cms-doc-file', name, category, bytes} answered with {lsh:'cms-doc-filed'} — so a
    platform that already files the course's documents files this one with nothing new to learn.
    Nobody listening is not a failure: the trainee downloads it and adds it on Files themselves. */
