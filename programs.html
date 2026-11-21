@@ -600,17 +600,17 @@
 
     // The cards are grouped by practice area: everything personal injury is in one place.
     const TOPIC_GROUPS = [
-        { title: 'Personal Injury Law', note: '',
+        { title: 'Personal Injury Tracks', note: '',
           keys: ['STANDARD TRAINING', 'LIEN NEGOTIATION', 'MEDSUM AND DEMAND', 'CM TRAINING', 'PROPERTY DAMAGE', 'HEALTH SUBRO', 'LIEN VERIFICATION'] },
-        { title: 'Other Practice Areas', note: '',
+        { title: 'Specialized Tracks', note: '',
           keys: ['LITIGATION', 'MASS TORT', 'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'REAL ESTATE LAW'] },
         { title: 'Support & Upskill', note: '',
           keys: ['EA  PA TRAINING-OUTSOURCED MANP', 'FREE UPSKILL PROGRAMS'] }
     ];
     // How many across, so a group's last row is not a stub. Four is the default
     // and the widest the cards look right at; three when the count divides by
-    // three and not by four. Personal Injury Law's seven reads 4 + 3;
-    // Other Practice Areas' eight stays 4 + 4.
+    // three and not by four. Personal Injury Tracks' seven reads 4 + 3;
+    // Specialized Tracks' eight stays 4 + 4.
     const columnsFor = (n) => (n % 4 === 0 ? 4 : n % 3 === 0 ? 3 : 4);
 
     function groupedTopicsHtml(cardFor) {
