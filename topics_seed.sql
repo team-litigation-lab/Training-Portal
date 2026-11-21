@@ -1,6 +1,6 @@
 INSERT INTO topics (key, name, sort_order) VALUES
 ('FREE UPSKILL PROGRAMS', 'Free Upskill Programs', 0),
-('STANDARD TRAINING', 'Standard Foundational Playbook', 1),
+('STANDARD TRAINING', 'Legal VA Foundational Playbook', 1),
 ('EA  PA TRAINING-OUTSOURCED MANP', 'EA / PA Playbook - Outsourced Manpower', 2),
 ('REVISED EA PA TRAINING', 'Revised EA PA Playbook', 3),
 ('CM TRAINING', 'Case Management Playbook', 4),
