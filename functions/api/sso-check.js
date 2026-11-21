@@ -47,6 +47,6 @@ export async function onRequestGet({ request, env }) {
 ${rows.map(r => `<div style="background:#0f2148;border-radius:12px;padding:14px 16px;margin:10px 0;border-left:5px solid ${color[r.result[1]]}">
 <div style="font-weight:800">${esc(r.key)} <span style="color:${color[r.result[1]]};float:right">${esc(r.result[0])}</span></div>
 <div style="font-size:12px;color:#cbd5e1;margin-top:4px">${esc(r.url)}<br>${esc(r.result[2])}</div></div>`).join('')}
-<p><a href="/programs.html" style="color:#f97316;font-weight:700">&larr; Back to the Training Directory</a></p></body></html>`;
+<p><a href="/programs.html" style="color:#f97316;font-weight:700">&larr; Back to LSH Academy</a></p></body></html>`;
     return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=UTF-8', 'Cache-Control': 'no-store' } });
 }

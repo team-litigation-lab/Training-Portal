@@ -8,7 +8,7 @@ import { ticketSession } from './api/ticket-login.js';
 const ADMIN_PAGES = [/^\/(core|attendance|progress|referrals|system)(\.html)?\/?$/i,
     // Trainer material (model answers, finished examples): trainers only. Trainees get only what they work from.
     /^\/simulators\/drafting\/trainers\//i];
-// The Training Directory is for signed-in people: a visitor who opens it (or presses "Access Training Directory" on the main
+// LSH Academy is for signed-in people: a visitor who opens it (or presses "Access LSH Academy" on the main
 // page) is sent to the trainee sign-in, and comes back here once signed in. The main page itself stays public.
 const MEMBER_PAGES = [/^\/programs(\.html)?\/?$/i];
 const PROTECTED = [/^\/simulators(\.html)?\/?$/i, /^\/simulators\//i];
@@ -18,7 +18,7 @@ const PROTECTED = [/^\/simulators(\.html)?\/?$/i, /^\/simulators\//i];
 const CALL_SIMULATOR = /^\/simulators\/call(\.html)?\/?$/i;
 
 // The main page (/) is the Main Portal for everyone, signed in or not: it is the site's landing page and is never redirected.
-// Only the sign-in pages send a signed-in person on to the Training Directory, so nobody sees a sign-in box while already signed
+// Only the sign-in pages send a signed-in person on to LSH Academy, so nobody sees a sign-in box while already signed
 // in. This looks at the signed cookie, not the heartbeat (a person coming back from a program, with the Portal tab closed, has a
 // valid cookie and a stale heartbeat), and restarts the heartbeat so the Portal treats them as signed in again. A locked site and
 // a revoked account get the sign-in page.
@@ -45,7 +45,7 @@ export async function onRequest(context) {
             // A trainee who wants to sign in as an admin must see the admin sign-in, so only an admin is sent on from it.
             const person = await signedInPerson(request, env);
             const adminDoor = /^\/admin-login(\.html)?\/?$/i.test(path);
-            // back to the page that sent them here (a simulator a course opened), else the Training Directory
+            // back to the page that sent them here (a simulator a course opened), else LSH Academy
             const nxt = new URL(request.url).searchParams.get('next') || '';
             const to = /^\/(?!\/)[^\\]*$/.test(nxt) ? nxt : '/programs.html';
             if (person && (!adminDoor || person.userType === 'Admin')) return new Response(null, { status: 302, headers: { Location: to, 'Cache-Control': 'no-store' } });
@@ -94,6 +94,6 @@ export async function onRequest(context) {
         out.headers.set('X-Robots-Tag', 'noindex');
         return out;
     }
-    // the sign-in brings them back to this simulator, not to the Training Directory
+    // the sign-in brings them back to this simulator, not to LSH Academy
     return new Response(null, { status: 302, headers: { Location: '/trainee-login.html?next=' + encodeURIComponent(url.pathname + url.search), 'Cache-Control': 'no-store' } });
 }

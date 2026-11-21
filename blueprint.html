@@ -15,7 +15,7 @@
   slide, and the same real-text PDF — so the portal's blueprint and every program's blueprint
   read as one deck. This page is its front door: the standard portal header and the two tracks.
   Every blueprint link stays here: nothing on this page opens a deck inside a program or a tool.
-    • Trainees: the portal, the Training Directory, program sign-in, LSH Sims, LSH Atlas.
+    • Trainees: the portal, LSH Academy, program sign-in, LSH Sims, LSH Atlas.
     • Trainers & Admins: admin sign-in, the Directory's admin view, System Management,
       Trainee Monitoring, Attendance, program admin, LSH Atlas review, the daily workflow.
   Public page: nothing private is shown (no passwords, access codes or trainee data).
@@ -126,7 +126,7 @@ const SLIDES = {
 trainee: [
 { icon: '🏠', title: 'One portal for all of your LSH training', points: [
     'LSH Nexus is the master portal: the front door to every LSH training program, plus the practice tools and resources all programs share.',
-    'Main page → Log In → Training Directory → your program, with LSH Sims and LSH Atlas beside it.',
+    'Main page → Log In → LSH Academy → your program, with LSH Sims and LSH Atlas beside it.',
     'One log in: sign in once on the portal. Your programs, LSH Sims and LSH Atlas open without asking you to sign in again.',
     'Your program holds your lessons, activities, scores, feedback and certificate.',
     'LSH Sims and LSH Atlas are where you practice real work, and look up the SOPs.'],
@@ -134,20 +134,20 @@ trainee: [
   tip: 'Bookmark the main page rather than a program: everything else opens from here, already signed in.' },
 { icon: '🔑', title: 'Register once, then log in once', points: [
     'New to LSH? Press Register on the log-in page and choose a username and password. An admin approves your registration and gives you your Batch ID.',
-    'After that, press Log In on the main page and use your username and password. You land on the Training Directory.',
+    'After that, press Log In on the main page and use your username and password. You land on LSH Academy.',
     "You won't be asked to sign in again inside a Program, LSH Sims or LSH Atlas: the portal signs you in for you.",
     'Your progress is saved to your account, not your browser, so you can pick up on any computer.',
     'Log-in details for work tools (email, CMS, time tracker) are never posted on the portal. Your trainer shares them privately.'],
   where: 'Log In on the main page (/trainee-login.html).',
   tip: 'Registered already but unsure of your Batch ID? Ask your trainer — registering a second time makes a duplicate account they then have to clean up.' },
-{ icon: '📚', title: 'Find your program in the Training Directory', points: [
-    'The Training Directory lists every LSH program, with the training tools (🛠 LSH Sims, 📚 LSH Atlas, ☎ LSH Voice, 🗂 LSH CaseWorks) beside it.',
+{ icon: '📚', title: 'Find your program in LSH Academy', points: [
+    'LSH Academy lists every LSH program, with the training tools (🛠 LSH Sims, 📚 LSH Atlas, ☎ LSH Voice, 🗂 LSH CaseWorks) beside it.',
     'Request Access asks for a program; it shows Awaiting Admin Approval until a trainer approves it.',
     'Enter Program opens the program in a new tab, already signed in.',
     'Completed: a program your trainer marked passed keeps Enter Program, so you can go back into it.',
     'Coming Soon programs are listed too, and the Free Upskill Programs are pinned at the top.',
     'Programs open now: ' + PROGRAMS_LIVE + '.'],
-  where: 'Training Directory (/programs.html), straight after you log in.',
+  where: 'LSH Academy (/programs.html), straight after you log in.',
   tip: 'A program you cannot open yet shows Request Access. Press it once and carry on; your trainer sees the request.' },
 { icon: '🎓', title: 'What you do inside your program', points: [
     '📚 Lessons: slides you move through one at a time, with Full screen. Your trainer opens each lesson or day for your batch.',
@@ -156,7 +156,7 @@ trainee: [
     "🎯 Trainer Feedback: your trainer's notes on your work — strengths, areas to build and what to focus on next.",
     '💬 Your feedback: rate the lessons and the training. You can send it anonymously.',
     '🎓 Certificate: unlocks when you complete the program.'],
-  where: 'Training Directory → Enter Program, which opens in a new tab.',
+  where: 'LSH Academy → Enter Program, which opens in a new tab.',
   tip: 'Leave the portal tab open. It is what signs you in to the Program, LSH Sims and LSH Atlas.' },
 { icon: '🛠', title: 'Practice on LSH Sims', points: [
     'LSH Sims let you practice real work safely, with fictional cases, and send your scores to your trainer.',
@@ -165,15 +165,15 @@ trainee: [
     '✉️ Email Simulators: triage a practice inbox, and answer emails like you would at work.',
     '⚖️ Docket, 🗂 Records and 🏛 E-Filing: docket court deadlines, request medical records and bills, and file with the court.',
     "You're already signed in, so every run is saved under your name and batch. My recent results shows your scores."],
-  where: 'Training Directory → LSH Sims (/simulators.html).',
+  where: 'LSH Academy → LSH Sims (/simulators.html).',
   tip: 'Put your name in when a Simulator asks for it, or the run is practice only and your trainer never sees the score.' },
 { icon: '📖', title: 'Look things up in LSH Atlas', points: [
     "LSH Atlas is where LSH VAs find the firm's SOPs and share what they know. It's for the team only.",
-    'Open it from the Training Directory: the portal signs you in, so there is no access code to type.',
+    'Open it from LSH Academy: the portal signs you in, so there is no access code to type.',
     'Featured, Library, Glossary and SOPs, each official SOP with its original file to download.',
     'From the team: tips, how-to guides and templates. Mark them 👍 Helpful, or comment with your own experience.',
     'Contribute your own. An admin reviews every post before it is published; your contributor profile shows who wrote it.'],
-  where: 'Training Directory → LSH Atlas.',
+  where: 'LSH Academy → LSH Atlas.',
   tip: 'Search it before messaging your trainer: most of what gets asked is already written up there as an SOP.' },
 { icon: '✅', title: 'Tips for a smooth training', points: [
     'Use Google Chrome, and keep the portal and your program open in separate tabs.',
@@ -186,10 +186,10 @@ trainee: [
 { icon: '🚀', title: "You're ready: your first steps", points: [
     '1. Bookmark LSH Nexus.',
     '2. Log In (or Register first, and wait for approval).',
-    '3. In the Training Directory, request your program, then press Enter Program once it is approved.',
+    '3. In LSH Academy, request your program, then press Enter Program once it is approved.',
     '4. Start your first open lesson.',
     '5. Try a Simulator, and look around LSH Atlas.'],
-  where: 'Log In on the main page, then pick your program in the Training Directory.',
+  where: 'Log In on the main page, then pick your program in LSH Academy.',
   tip: 'Something not working? Message your trainer with your name, your Batch ID and a screenshot — that is everything they need to fix it.' }
 ],
 admin: [
@@ -200,12 +200,12 @@ admin: [
     "The portal signs you in to each program's admin, LSH Atlas and LSH Sims: one admin password everywhere."],
   where: 'Admin in the main page header (/admin-login.html).',
   tip: 'Sign in before you start screen sharing, never during it.' },
-{ icon: '📚', title: 'The Training Directory, admin view', points: [
+{ icon: '📚', title: 'LSH Academy, admin view', points: [
     'Every built program opens directly for you with Enter Program.',
     "Pending Topic Requests: approve or deny trainees' program requests. Approved programs turn into Enter Program for the trainee without a refresh.",
     'Mark a trainee passed in System Management → Program Access when they complete a program; they can then download its certificate from the Directory.',
     'Switch view shows the Directory exactly as a trainee sees it (this tab only); press it again to come back.'],
-  where: 'Training Directory (/programs.html), with the admin bar across the top.',
+  where: 'LSH Academy (/programs.html), with the admin bar across the top.',
   tip: 'Press Switch view before a demo so the batch sees the Directory as they will see it; press it again to get your admin view back.' },
 { icon: '🛡', title: 'System Management: everything else in one menu', points: [
     "🛡 Master Control: users, program access, who's online, activity logs, Broadcast & Ping, and pausing or locking the workspace.",

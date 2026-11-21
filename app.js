@@ -168,7 +168,7 @@ function logoutSession() {
     // event (see functions/api/logout.js). Local state is cleared
     // immediately below regardless of whether this network call succeeds —
     // the user shouldn't be stuck "logged in" locally over a network blip.
-    // The page waits for the cookie to be cleared before it leaves (the front door sends a signed-in browser to the Training Directory,
+    // The page waits for the cookie to be cleared before it leaves (the front door sends a signed-in browser to LSH Academy,
     // so it must not meet the old cookie), and ?stay=1 asks it not to redirect this once.
     const loggedOut = Promise.race([
         fetch('/api/logout', { method: 'POST', credentials: 'include' }).catch(() => {}),
@@ -3035,7 +3035,7 @@ function mcGo(tab) {
 
 // ===== Program Access: who can open which program (functions/api/topics.js) =====
 // 🙋 Access Requests first: every trainee's request to open a program, waiting for an admin, as a table with Approve / Deny
-// (the same queue the Training Directory shows an admin). Then each trainee's programs, with the four ways an admin changes
+// (the same queue LSH Academy shows an admin). Then each trainee's programs, with the four ways an admin changes
 // one: Grant (open it), Revoke (close it: the trainee can ask again), ⏸ Suspend (pause it: no opening it, no asking again)
 // and ▶ Restore (give back what they had, Completed included).
 let __paTopics = [], __paAccess = [];
@@ -3053,7 +3053,7 @@ async function loadProgramAccess() {
     }
 }
 const PA_HIDDEN = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];   // keep in step with ARCHIVED_TOPICS in programs.html (same list; a different name because programs.html loads app.js into the same global scope)
-// the programs' names as the Training Directory shows them (PROGRAM_NAMES in programs.html)
+// the programs' names as LSH Academy shows them (PROGRAM_NAMES in programs.html)
 const PA_NAMES = { 'STANDARD TRAINING': 'Standard Foundational Training', 'CM TRAINING': 'Case Management Training', 'REVISED CM TRAINING': 'Revised Case Management Training', 'PROPERTY DAMAGE': 'Property Damage Claims Training', 'MEDSUM AND DEMAND': 'Medsum & Demand Training', 'LIEN NEGOTIATION': 'Lien Negotiator Training' };
 const paName = (key) => PA_NAMES[key] || ((__paTopics.find(t => t.key === key) || {}).name) || key;
 const paIsSuspended = (st) => String(st || '').startsWith('Suspended');
@@ -3086,7 +3086,7 @@ function renderAccessRequests() {
     const pending = __paAccess.filter(a => a.status === 'Pending').sort((a, b) => String(a.requested_at || '').localeCompare(String(b.requested_at || '')));
     updateAccessRequestBadge(pending.length);
     const head = `<div class="mc-section-sub">🙋 Access Requests <span class="admin-nav-badge">${pending.length || ''}</span></div>`;
-    if (!pending.length) { box.innerHTML = head + '<p style="font-size:16px;font-weight:600;color:#334155;margin:0 0 16px;">No requests waiting. A trainee asks from the Training Directory\'s <b>Request Access</b>; it shows up here.</p>'; return; }
+    if (!pending.length) { box.innerHTML = head + '<p style="font-size:16px;font-weight:600;color:#334155;margin:0 0 16px;">No requests waiting. A trainee asks from LSH Academy\'s <b>Request Access</b>; it shows up here.</p>'; return; }
     box.innerHTML = head + `<div class="mc-table-wrap"><table class="mc-table">
         <thead><tr><th>Trainee</th><th>Username</th><th>Batch</th><th>Program / tool</th><th>Requested</th><th style="text-align:right;">Decision</th></tr></thead>
         <tbody>${pending.map(a => {
@@ -3213,7 +3213,7 @@ async function usersRevokedSweep() {
 window.usersRevokedSweep = usersRevokedSweep;
 async function paSet(username, topicKey, action) {
     const name = paName(topicKey);
-    if (action === 'DENY' && !confirm(`Revoke or deny ${username}'s access to ${name}?\n\nThey can request it again from the Training Directory.`)) return;
+    if (action === 'DENY' && !confirm(`Revoke or deny ${username}'s access to ${name}?\n\nThey can request it again from LSH Academy.`)) return;
     if (action === 'SUSPEND' && !confirm(`Suspend ${username}'s access to ${name}?\n\nThey can't open it (or ask for it again) until you restore it. Nothing of theirs is removed.`)) return;
     try {
         const r = await postJson('/api/topics', { action, topicKey, traineeUsername: username });

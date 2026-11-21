@@ -40,7 +40,7 @@ export async function onRequestPost({ request, env }) {
 
     if (portalMode === 'Trainee') {
         // Trainees sign in here once, with their username and password, and open each
-        // training program from the Training Directory (/api/launch hands them over).
+        // training program from LSH Academy (/api/launch hands them over).
         // A name alone isn't enough: it can be guessed, and two trainees can share one.
         const { username, password } = body;
         // (an empty password is let through to the lookup: an account still waiting for its first password has none to type)

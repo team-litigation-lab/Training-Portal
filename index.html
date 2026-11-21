@@ -26,7 +26,7 @@
         /* Slate on the page's own backdrop. #64748b measures 4.52 on bare
            paper — a hair over AA — and the office photo behind the wash takes
            it to 3.6. This is the lightest step that still clears 4.5 there
-           (7.9), and it is the same colour the Training Directory moved its
+           (7.9), and it is the same colour LSH Academy moved its
            on-backdrop text to when it gained a photo. Cards keep --slate:
            they are white, and it passes comfortably on white. */
         --slate-on-paper: #334155;
@@ -93,7 +93,7 @@
     @media (max-width: 760px) { .brand-logo { height: 60px; } .brand .brand-title { font-size: 26px; } .brand { gap: 20px; }
         /* Wrapped bar: the panel is held to the brand's own row, clear of the pills below. */
         nav::before { width: 186px; bottom: auto; height: 86px; } }
-    /* The standard page header (the Training Directory's): the mark, then the page's name in capitals. */
+    /* The standard page header (LSH Academy's): the mark, then the page's name in capitals. */
     .brand-title { font-size: 40px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
     /* The landing page's grand lockup, in the portal's own IBM Plex Sans: the name,
        a fine gold rule with a diamond, then NEXUS in polished gold that a slow band
@@ -696,7 +696,7 @@
             <p class="tagline reveal d2">Accelerate your growth into a high-impact Legal Support Specialist.</p>
             <p class="lead reveal d3">Master Key Practice areas with structured learning. Access guided modules and on-demand lectures with live progress tracking - guiding you from foundational basics to advanced specialization.</p>
             <div class="hero-ctas reveal d4">
-                <a href="/programs.html" class="btn-primary">Access Training Directory</a>
+                <a href="/programs.html" class="btn-primary">Access LSH Academy</a>
             </div>
         </div>
         <div class="file-stack reveal d3">
@@ -833,7 +833,7 @@
         </div>
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">📚 What's in LSH Atlas? <span class="chev">&#9660;</span></button>
-            <div class="faq-answer"><p>Official LSH SOPs and resources, plus tips, guides and lessons shared by LSH VAs. It's for our team only: open it from the Training Directory once you're logged in, and you're signed in to it already.</p></div>
+            <div class="faq-answer"><p>Official LSH SOPs and resources, plus tips, guides and lessons shared by LSH VAs. It's for our team only: open it from LSH Academy once you're logged in, and you're signed in to it already.</p></div>
         </div>
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">How long does training take? <span class="chev">&#9660;</span></button>
@@ -980,7 +980,7 @@
 <script>
 // Log In or Log Out in the header, from who is signed in on this browser (the cookie, via /api/me).
 // The 🧭 Blueprint menu is not here: the Platform Blueprint and the program and tool decks all open
-// from the Training Directory's own bar (portal-nav.js), and nowhere else.
+// from LSH Academy's own bar (portal-nav.js), and nowhere else.
 fetch('/api/me', { credentials: 'include', cache: 'no-store' }).then(r => r.json()).then(d => {
     if (!d || !d.success) return;
     document.getElementById('pill-login').hidden = true;

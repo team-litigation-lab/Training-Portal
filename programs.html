@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Training Directory — LSH Nexus</title>
+<title>LSH Academy — LSH Nexus</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +39,7 @@
     /* Announcement ticker — the same broadcast an admin sets in Master Control
        (Broadcast & Ping → /api/announcement). It used to show only on the admin
        screen (core.html's classification bar), so trainees never saw it; the
-       Training Directory is the first page they land on, so it belongs here.
+       LSH Academy is the first page they land on, so it belongs here.
        The ids are the ones app.js already fills (loadAnnouncement/refreshClock),
        and app.js is loaded further down this page. */
     .idx-ticker-bar {
@@ -242,7 +242,7 @@
 </script>
 
 <!-- Announcement ticker: the admin broadcast, now visible to trainees here on the
-     Training Directory (it used to appear only on the admin screen). Filled by
+     LSH Academy (it used to appear only on the admin screen). Filled by
      app.js: loadAnnouncement() → #ticker-text, refreshClock() → #live-clock. -->
 <div class="idx-ticker-bar no-print">
     <div class="top-ticker-mini" id="announcement-ticker">
@@ -429,7 +429,7 @@
             // 📢 the announcement is edited in Master Control → Broadcast & Ping: ✏️ Edit on the ticker goes straight there
             if (!asTrainee) { const tk = document.getElementById('announcement-ticker'); if (tk && !document.getElementById('idx-ann-edit')) tk.insertAdjacentHTML('afterend', '<a id="idx-ann-edit" href="/core.html#announce" title="Edit the announcement (Master Control → Broadcast &amp; Ping)" style="flex:none;padding:3px 10px;border:1px solid rgba(253,186,116,.6);border-radius:999px;color:#fdba74;font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap">✏️ Edit</a>'); }
             if (asTrainee) document.querySelector('.idx-top').insertAdjacentHTML('afterend',
-                `<div class="pn-trainee-view">👁 Trainee view: the Training Directory as trainees see it.<button type="button" onclick="PortalNav.switchView()">Back to the admin view</button></div>`);
+                `<div class="pn-trainee-view">👁 Trainee view: LSH Academy as trainees see it.<button type="button" onclick="PortalNav.switchView()">Back to the admin view</button></div>`);
         }
 
         if (session.userType === 'Trainee') {
