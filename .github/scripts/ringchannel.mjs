@@ -59,14 +59,14 @@ for (const q of ['tool=cms', 'tool=kb', 'tool=ringchannel']) {
     if (!/\?ticket=[^#&]+#\/blueprint$/.test(o.at || '')) fail(`an admin's ${q} blueprint link: ${o.at}`);
 }
 // The 🧭 Blueprint menu holds them all: the Platform Blueprint, then every program's and tool's deck. It lives on
-// LSH Academy's admin bar (portal-nav.js) and nowhere else — the landing page carries no Blueprint link.
+// LSH Academy Index's admin bar (portal-nav.js) and nowhere else — the landing page carries no Blueprint link.
 const nav = readFileSync(new URL('../../portal-nav.js', import.meta.url), 'utf8');
 const dir = readFileSync(new URL('../../programs.html', import.meta.url), 'utf8');
 const ix = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
-if (!/BLUEPRINT_DECKS/.test(nav)) fail('LSH Academy has no 🧭 Blueprint menu');
-if (!/blueprintMenu:\s*true/.test(dir)) fail('the LSH Academy\'s admin bar does not open the 🧭 Blueprint menu');
+if (!/BLUEPRINT_DECKS/.test(nav)) fail('LSH Academy Index has no 🧭 Blueprint menu');
+if (!/blueprintMenu:\s*true/.test(dir)) fail('the LSH Academy Index\'s admin bar does not open the 🧭 Blueprint menu');
 if (!nav.includes("'/blueprint.html?track=admin'")) fail("the 🧭 Blueprint menu has no Platform Blueprint");
-if (/blueprint\.html/.test(ix)) fail('the landing page still links to a blueprint: the menu belongs to LSH Academy only');
+if (/blueprint\.html/.test(ix)) fail('the landing page still links to a blueprint: the menu belongs to LSH Academy Index only');
 for (const q of ['tool=cms', 'tool=ringchannel', 'tool=kb', ...Object.keys(SSO_PROGRAMS).map((k) => 'program=' + encodeURIComponent(k))]) {
     if (!nav.includes(`/api/launch?${q}&to=blueprint`)) fail(`the 🧭 Blueprint menu has no ${q} blueprint`);
 }
@@ -91,7 +91,7 @@ if (/drill=1/.test(kbDrill.at)) fail(`to=drill worked on LSH Atlas: ${kbDrill.at
 const cmkb = await go(trainee, 'tool=kb&to=cmkb');
 if (!/\?ticket=[^#&]+#\/c\/case-management$/.test(cmkb.at)) fail(`the CM Training LSH Atlas link: ${cmkb.at}`);
 if (/case-management/.test((await go(trainee, 'tool=cms&to=cmkb')).at)) fail('to=cmkb worked on the CMS');
-// 4. the Portal links to it: LSH Academy's banner, where a trainee reaches it. The admin
+// 4. the Portal links to it: LSH Academy Index's banner, where a trainee reaches it. The admin
 // sidebar's link is gone on purpose — LSH Voice is the training phone's own trainer console, not a
 // screen for running a batch, and the sidebar was grouped by relevance. core.html leaving this list is
 // that change, not an oversight; the place a trainee actually reaches it from is still checked.
@@ -99,4 +99,4 @@ for (const f of ['programs.html']) if (!readFileSync(new URL('../../' + f, impor
 if (readFileSync(new URL('../../core.html', import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail('the admin sidebar links to LSH Voice again (it was taken out deliberately)');
 
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-console.log('LSH Voice test passed (trainees and admins open it signed in, admins every program, the CMS and LSH Atlas too; every blueprint reached from the LSH Academy\'s 🧭 Blueprint menu; linked from the Directory, and no longer from the admin sidebar).');
+console.log('LSH Voice test passed (trainees and admins open it signed in, admins every program, the CMS and LSH Atlas too; every blueprint reached from the LSH Academy Index\'s 🧭 Blueprint menu; linked from the Directory, and no longer from the admin sidebar).');

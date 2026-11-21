@@ -24,6 +24,6 @@ ${rows.map(r => `<tr style="border-top:1px solid #1e3a6e"><td style="padding:8px
 </tbody></table>
 <h2 style="font-size:15px;margin-top:24px">Last 7 days</h2>
 <table style="width:100%;border-collapse:collapse;font-size:13px"><tbody>${u.week.map(w => `<tr style="border-top:1px solid #1e3a6e"><td style="padding:6px">${esc(w.day)}</td><td>${(w.calls || 0).toLocaleString()} requests</td><td>${(w.tokens || 0).toLocaleString()} tokens</td></tr>`).join('') || '<tr><td style="padding:6px;color:#cbd5e1">No calls yet.</td></tr>'}</tbody></table>
-<p><a href="/programs.html" style="color:#f97316;font-weight:700">&larr; Back to LSH Academy</a></p></body></html>`;
+<p><a href="/programs.html" style="color:#f97316;font-weight:700">&larr; Back to LSH Academy Index</a></p></body></html>`;
     return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=UTF-8', 'Cache-Control': 'no-store' } });
 }

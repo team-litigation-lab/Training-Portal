@@ -25,7 +25,7 @@ The landing page, sign-in, registration, claim and referral pages, and their sha
 
 ## Portal pages and shared scripts
 
-The signed-in portal: LSH Academy, dashboard, progress, attendance, orientation, simulators hub, and the shared runtime scripts.
+The signed-in portal: LSH Academy Index, dashboard, progress, attendance, orientation, simulators hub, and the shared runtime scripts.
 
 | File | Lines | What it is |
 |---|---|---|
@@ -37,7 +37,7 @@ The signed-in portal: LSH Academy, dashboard, progress, attendance, orientation,
 | `system.html` | 120 | System Management page (admin). |
 | `portal-nav.js` | 166 | Shared nav: PortalNav.html/adminHtml top bars, System Management menu, trainee-view switch, logout, injected styles, floating Back-button safety net. |
 | `portal.js` | 835 | Public-portal runtime: registration/login, password validation, input filters, sound engine, full-screen alert, site lock/pause UI, pings, and the consolidated /api/live poller. |
-| `programs.html` | 682 | LSH Academy: grouped program cards with access request/approve flow, SSO launch wake-up, admin queue, client-side certificate PDF. |
+| `programs.html` | 682 | LSH Academy Index: grouped program cards with access request/approve flow, SSO launch wake-up, admin queue, client-side certificate PDF. |
 | `progress.html` | 136 | Admin Trainee Progress & Feedback shell: admin gate, styles and hero; all rendering lives in progress-records.js. |
 | `simulators.html` | 108 | LSH Sims hub: card grid from the SIMULATORS array plus recent results table (admin sees all trainees). |
 

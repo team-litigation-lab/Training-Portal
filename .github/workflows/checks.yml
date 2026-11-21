@@ -36,7 +36,7 @@ jobs:
         run: node --no-warnings .github/scripts/set-password.mjs
       - name: Trainer names (a trainee sees a trainer by name, never by username)
         run: node --no-warnings .github/scripts/trainer-names.mjs
-      - name: Front door (signed-in trainees and admins go straight to LSH Academy; only a signed-out browser sees a sign-in box)
+      - name: Front door (signed-in trainees and admins go straight to LSH Academy Index; only a signed-out browser sees a sign-in box)
         run: node --no-warnings .github/scripts/front-door.mjs
       - name: Only @legalsupporthelp.com Google accounts (with GOOGLE_CLIENT_ID, a personal account is refused before the password and told to switch Chrome profile; every page and API needs it)
         run: node --no-warnings .github/scripts/google-only.mjs

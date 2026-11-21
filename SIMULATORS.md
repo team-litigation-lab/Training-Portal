@@ -103,9 +103,9 @@ progress: Standard Training by lesson (Reception 4, Calendar Management 5, Intak
   `sim-chip`, `sim-table`; navy `#0f2148` + orange `#f97316`. `.sim-wrap` needs
   `width:100%` because the body is a flex container.
 - Navigation: every portal page uses `PortalNav.html(active, { back })` from `/portal-nav.js`
-  (Home · LSH Academy · Orientation, plus **← Back**, which goes to the previous portal
+  (Home · LSH Academy Index · Orientation, plus **← Back**, which goes to the previous portal
   page or to `back` when the page was opened fresh). LSH Sims and LSH Atlas aren't
-  in it; they open from the Home page and LSH Academy. Inside a course's frame it shows
+  in it; they open from the Home page and LSH Academy Index. Inside a course's frame it shows
   only **🛠 LSH Sims** (back to the hub). The simulator top bar already includes it. Portal pages open in the **same tab**; only the training programs
   (separate sites, no way back) open in a new tab.
   **Every new page must load `/portal-nav.js`** (a page without its own Back button gets a

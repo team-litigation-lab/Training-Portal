@@ -134,7 +134,7 @@ export async function makeTicket(secret, who, now = Date.now()) {
     return payload + '.' + b64url(await crypto.subtle.sign('HMAC', key, enc.encode(payload)));
 }
 
-const page = (status, title, msg, href = '/programs.html', label = '&larr; Back to LSH Academy') => new Response(
+const page = (status, title, msg, href = '/programs.html', label = '&larr; Back to LSH Academy Index') => new Response(
     `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title></head>` +
     `<body style="font-family:Arial,Helvetica,sans-serif;background:#081226;color:#fff;text-align:center;padding:60px 20px"><h1 style="font-size:20px">${title}</h1><p style="color:#cbd5e1">${msg}</p>` +
     `<p><a href="${href}" style="color:#f97316;font-weight:700">${label}</a></p></body></html>`,
@@ -166,11 +166,11 @@ async function launch({ request, env }) {
         // Say why, instead of silently sending people back to the login page (which looked like a loop).
         const info = await auth.response.json().catch(() => ({}));
         const why = {
-            NOT_AUTHENTICATED: ['Please log in', 'The Portal doesn\'t see you as logged in on this browser. Log in again, then open the program from LSH Academy.'],
-            SESSION_EXPIRED: ['Your Portal session timed out', 'The Portal stays signed in only while a Portal page is open and active. Log in again, then open the program from LSH Academy.'],
+            NOT_AUTHENTICATED: ['Please log in', 'The Portal doesn\'t see you as logged in on this browser. Log in again, then open the program from LSH Academy Index.'],
+            SESSION_EXPIRED: ['Your Portal session timed out', 'The Portal stays signed in only while a Portal page is open and active. Log in again, then open the program from LSH Academy Index.'],
             ACCESS_REVOKED: ['Your account isn\'t approved', 'Your account has been revoked or isn\'t approved yet. Please tell your trainer.'],
             SITE_LOCKED: ['The Portal is locked', 'An administrator has locked the Portal for now. Please try again later.']
-        }[info.code] || ['Please log in', 'The Portal couldn\'t confirm your session. Log in again, then open the program from LSH Academy.'];
+        }[info.code] || ['Please log in', 'The Portal couldn\'t confirm your session. Log in again, then open the program from LSH Academy Index.'];
         return page(401, why[0], why[1] + ` <span style="opacity:.6">(code: ${info.code || 'unknown'})</span>`, '/trainee-login.html', 'Go to Trainee Log In');
     }
     // Ignore any space or line break pasted around the secret (the programs do the same).
@@ -204,7 +204,7 @@ async function launch({ request, env }) {
         return page(403, 'Access suspended', 'An administrator has suspended your access to this program for now. Please talk to your trainer.');
     }
     if (!access || (access.status !== 'Approved' && access.status !== 'Passed')) {
-        return page(403, 'Access not approved', 'Request access to this program in LSH Academy first, and wait for an administrator to approve it.');
+        return page(403, 'Access not approved', 'Request access to this program in LSH Academy Index first, and wait for an administrator to approve it.');
     }
 
     const ticket = await makeTicket(secret, { first: user.first_name.trim(), last: user.last_name.trim(), batch: String(user.batch_id || '').trim(),

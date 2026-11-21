@@ -119,7 +119,7 @@ const page = async (p, t, env = ON) => { let passed = false; const r = await mw.
         if (a.ok) fail(`requireSession let ${what} through`);
         else { const j = await a.response.json(); if (a.response.status !== 401 || j.code !== 'GOOGLE_REQUIRED') fail(`requireSession on ${what}: ${a.response.status} ${JSON.stringify(j)}`); }
         const dir = await page('/programs.html', t);
-        if (dir.passed || dir.status !== 302 || !/trainee-login/.test(dir.loc)) fail(`LSH Academy let ${what} in: ${JSON.stringify(dir)}`);
+        if (dir.passed || dir.status !== 302 || !/trainee-login/.test(dir.loc)) fail(`LSH Academy Index let ${what} in: ${JSON.stringify(dir)}`);
         const sim = await page('/simulators/gcal.html', t);
         if (sim.passed) fail(`a simulator page let ${what} in`);
         const door = await page('/trainee-login.html', t);
@@ -128,7 +128,7 @@ const page = async (p, t, env = ON) => { let passed = false; const r = await mw.
         if (m.status !== 401 || (await m.json()).code !== 'GOOGLE_REQUIRED') fail(`/api/me answered for ${what}`);
     }
     const dir = await page('/programs.html', good);
-    if (!dir.passed) fail(`LSH Academy refused a @legalsupporthelp.com session: ${JSON.stringify(dir)}`);
+    if (!dir.passed) fail(`LSH Academy Index refused a @legalsupporthelp.com session: ${JSON.stringify(dir)}`);
 }
 // 5. a course's ticket doesn't sign anyone in to the Portal while the rule is on
 {
@@ -165,4 +165,4 @@ for (const p of ['trainee-login.html', 'admin-login.html']) {
 
 globalThis.fetch = realFetch;
 if (failures.length) { console.error('Google-only sign-in test FAILED:\n- ' + failures.join('\n- ')); process.exit(1); }
-console.log('Google-only sign-in test passed (/api/auth-config; no Google sign-in, a gmail account, a look-alike domain, no Workspace, an unverified address, another app\'s, an expired or an unreadable token refused before the password, saying to switch to the @legalsupporthelp.com Chrome profile; the domain\'s account signs in with the address in its session and the log; the master account needs it too; an older or gmail session refused by requireSession, LSH Academy, the simulators and /api/me, and sent to the sign-in; a course ticket signs no one in; the rule off: as before; the sign-in pages load the step).');
+console.log('Google-only sign-in test passed (/api/auth-config; no Google sign-in, a gmail account, a look-alike domain, no Workspace, an unverified address, another app\'s, an expired or an unreadable token refused before the password, saying to switch to the @legalsupporthelp.com Chrome profile; the domain\'s account signs in with the address in its session and the log; the master account needs it too; an older or gmail session refused by requireSession, LSH Academy Index, the simulators and /api/me, and sent to the sign-in; a course ticket signs no one in; the rule off: as before; the sign-in pages load the step).');
