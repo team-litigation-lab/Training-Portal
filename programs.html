@@ -359,19 +359,31 @@
     // Display names that replace the topics table's `name`, so a program can
     // be renamed without editing the live database. topics_seed.sql carries
     // the same names for new databases.
-    // The programs are called Playbooks on the cards (was "Training").
+    // Every card ends in "Track" (was "Playbook", and "Training" before that); the
+    // section badges above them say Playbooks.
     const PROGRAM_NAMES = {
-        'STANDARD TRAINING': 'Legal VA Foundational Playbook',
+        'STANDARD TRAINING': 'Legal VA Foundational Track',
         // The live topics table still carries the old "CM Training" / "Revised CM Training"
         // from before the rename; these put the full names on the cards without a migration.
-        'CM TRAINING': 'Case Management Playbook',
-        'REVISED CM TRAINING': 'Revised Case Management Playbook',
-        'EA  PA TRAINING-OUTSOURCED MANP': 'EA PA Playbook',
-        'REVISED EA PA TRAINING': 'Revised EA PA Playbook',
-        'CALENDAR MANAGEMENT TRAINING': 'Calendar Management Playbook',
-        'PROPERTY DAMAGE': 'Property Damage Claims Playbook',
-        'MEDSUM AND DEMAND': 'Medsum & Demand Playbook',
-        'LIEN NEGOTIATION': 'Lien Negotiator Playbook'
+        'CM TRAINING': 'Case Management Track',
+        'REVISED CM TRAINING': 'Revised Case Management Track',
+        'EA  PA TRAINING-OUTSOURCED MANP': 'EA PA Track',
+        'REVISED EA PA TRAINING': 'Revised EA PA Track',
+        'CALENDAR MANAGEMENT TRAINING': 'Calendar Management Track',
+        'PROPERTY DAMAGE': 'Property Damage Claims Track',
+        'MEDSUM AND DEMAND': 'Medsum & Demand Track',
+        'LIEN NEGOTIATION': 'Lien Negotiator Track',
+        'HEALTH SUBRO': 'Health Subro Track',
+        'LIEN VERIFICATION': 'Lien Verification Track',
+        'LITIGATION': 'Litigation Track',
+        'MASS TORT': 'Mass Tort Track',
+        'BUSINESS LAW': 'Business Law Track',
+        'ESTATE PLANNING': 'Estate Planning Track',
+        'FAMILY LAW': 'Family Law Track',
+        'IMMIGRATION LAW': 'Immigration Law Track',
+        'INTELLECTUAL PROPERTY LAW': 'Intellectual Property Law Track',
+        'REAL ESTATE LAW': 'Real Estate Law Track',
+        'FREE UPSKILL PROGRAMS': 'Free Upskill Track'
     };
 
     // Programs shown on the index that aren't in the live topics table yet.
@@ -380,8 +392,8 @@
     // Not in TOPIC_SEQUENCE: free programs aren't gated behind progression.
     // Give it a BUILT_PROGRAMS link once it has its own site.
     const EXTRA_PROGRAMS = [
-        { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Programs', sort_order: 0 },
-        { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Playbook', sort_order: 13 }
+        { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Track', sort_order: 0 },
+        { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Track', sort_order: 13 }
     ];
     // Shown first on the index, ahead of the progression, with a "Free" badge.
     const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
@@ -600,17 +612,17 @@
 
     // The cards are grouped by practice area: everything personal injury is in one place.
     const TOPIC_GROUPS = [
-        { title: 'Personal Injury Tracks', note: '',
+        { title: 'Personal Injury Playbooks', note: '',
           keys: ['STANDARD TRAINING', 'LIEN NEGOTIATION', 'MEDSUM AND DEMAND', 'CM TRAINING', 'PROPERTY DAMAGE', 'HEALTH SUBRO', 'LIEN VERIFICATION'] },
-        { title: 'Specialized Tracks', note: '',
+        { title: 'Specialized Playbooks', note: '',
           keys: ['LITIGATION', 'MASS TORT', 'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'REAL ESTATE LAW'] },
         { title: 'Support & Upskill', note: '',
           keys: ['EA  PA TRAINING-OUTSOURCED MANP', 'FREE UPSKILL PROGRAMS'] }
     ];
     // How many across, so a group's last row is not a stub. Four is the default
     // and the widest the cards look right at; three when the count divides by
-    // three and not by four. Personal Injury Tracks' seven reads 4 + 3;
-    // Specialized Tracks' eight stays 4 + 4.
+    // three and not by four. Personal Injury Playbooks' seven reads 4 + 3;
+    // Specialized Playbooks' eight stays 4 + 4.
     const columnsFor = (n) => (n % 4 === 0 ? 4 : n % 3 === 0 ? 3 : 4);
 
     function groupedTopicsHtml(cardFor) {
