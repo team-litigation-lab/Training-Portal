@@ -15,9 +15,9 @@
   slide, and the same real-text PDF — so the portal's blueprint and every program's blueprint
   read as one deck. This page is its front door: the standard portal header and the two tracks.
   Every blueprint link stays here: nothing on this page opens a deck inside a program or a tool.
-    • Trainees: the portal, the Training Directory, program sign-in, Nexus Sims, Nexus Atlas.
-    • Trainers & Admins: admin sign-in, the Directory's admin view, System Management,
-      Trainee Monitoring, Attendance, program admin, Nexus Atlas review, the daily workflow.
+    • Trainees: the portal, LSH Academy Index, program sign-in, LSH Sims, LSH Atlas.
+    • Trainers & Admins: admin sign-in, LSH Academy Index's admin view, System Management,
+      Trainee Monitoring, Attendance, program admin, LSH Atlas review, the daily workflow.
   Public page: nothing private is shown (no passwords, access codes or trainee data).
   Trainees read it on screen; ⬇ Download PDF is a trainer's, for sharing the deck outside the portal.
   Slides are in SLIDES below. Deep link: /blueprint.html?track=admin&slide=3 (/orientation.html forwards here)
@@ -126,28 +126,28 @@ const SLIDES = {
 trainee: [
 { icon: '🏠', title: 'One portal for all of your LSH training', points: [
     'LSH Nexus is the master portal: the front door to every LSH training program, plus the practice tools and resources all programs share.',
-    'Main page → Log In → Training Directory → your program, with Nexus Sims and Nexus Atlas beside it.',
-    'One log in: sign in once on the portal. Your programs, Nexus Sims and Nexus Atlas open without asking you to sign in again.',
+    'Main page → Log In → LSH Academy Index → your program, with LSH Sims and LSH Atlas beside it.',
+    'One log in: sign in once on the portal. Your programs, LSH Sims and LSH Atlas open without asking you to sign in again.',
     'Your program holds your lessons, activities, scores, feedback and certificate.',
-    'Nexus Sims and Nexus Atlas are where you practice real work, and look up the SOPs.'],
+    'LSH Sims and LSH Atlas are where you practice real work, and look up the SOPs.'],
   where: 'The main page of LSH Nexus — Home on any section band brings you back to it.',
   tip: 'Bookmark the main page rather than a program: everything else opens from here, already signed in.' },
 { icon: '🔑', title: 'Register once, then log in once', points: [
     'New to LSH? Press Register on the log-in page and choose a username and password. An admin approves your registration and gives you your Batch ID.',
-    'After that, press Log In on the main page and use your username and password. You land on the Training Directory.',
-    "You won't be asked to sign in again inside a Program, Nexus Sims or Nexus Atlas: the portal signs you in for you.",
+    'After that, press Log In on the main page and use your username and password. You land on LSH Academy Index.',
+    "You won't be asked to sign in again inside a Program, LSH Sims or LSH Atlas: the portal signs you in for you.",
     'Your progress is saved to your account, not your browser, so you can pick up on any computer.',
     'Log-in details for work tools (email, CMS, time tracker) are never posted on the portal. Your trainer shares them privately.'],
   where: 'Log In on the main page (/trainee-login.html).',
   tip: 'Registered already but unsure of your Batch ID? Ask your trainer — registering a second time makes a duplicate account they then have to clean up.' },
-{ icon: '📚', title: 'Find your program in the Training Directory', points: [
-    'The Training Directory lists every LSH program, with the training tools (🛠 Nexus Sims, 📚 Nexus Atlas, ☎ Nexus Voice, 🗂 Nexus CaseWorks) beside it.',
+{ icon: '📚', title: 'Find your program in LSH Academy Index', points: [
+    'LSH Academy Index lists every LSH program, with the training tools (🛠 LSH Sims, 📚 LSH Atlas, ☎ LSH Voice, 🗂 LSH CaseWorks) beside it.',
     'Request Access asks for a program; it shows Awaiting Admin Approval until a trainer approves it.',
     'Enter Program opens the program in a new tab, already signed in.',
     'Completed: a program your trainer marked passed keeps Enter Program, so you can go back into it.',
     'Coming Soon programs are listed too, and the Free Upskill Programs are pinned at the top.',
     'Programs open now: ' + PROGRAMS_LIVE + '.'],
-  where: 'Training Directory (/programs.html), straight after you log in.',
+  where: 'LSH Academy Index (/programs.html), straight after you log in.',
   tip: 'A program you cannot open yet shows Request Access. Press it once and carry on; your trainer sees the request.' },
 { icon: '🎓', title: 'What you do inside your program', points: [
     '📚 Lessons: slides you move through one at a time, with Full screen. Your trainer opens each lesson or day for your batch.',
@@ -156,29 +156,29 @@ trainee: [
     "🎯 Trainer Feedback: your trainer's notes on your work — strengths, areas to build and what to focus on next.",
     '💬 Your feedback: rate the lessons and the training. You can send it anonymously.',
     '🎓 Certificate: unlocks when you complete the program.'],
-  where: 'Training Directory → Enter Program, which opens in a new tab.',
-  tip: 'Leave the portal tab open. It is what signs you in to the Program, Nexus Sims and Nexus Atlas.' },
-{ icon: '🛠', title: 'Practice on Nexus Sims', points: [
-    'Nexus Sims let you practice real work safely, with fictional cases, and send your scores to your trainer.',
-    '📞 Call Simulator on ☎ Nexus Voice: every mock call on one training phone — a caller rings your line, you answer with a headset, and the call is graded on your line\'s Mock Calls Metrics (practice with an 🤖 AI caller, take a graded call, or answer a trainer-led mock call).',
-    '📆 Calendaring Simulators: Google Calendar for your program — book and manage the attorney’s week, then Submit to trainer for review.',
-    '✉️ Email Simulators: triage a practice inbox, and answer emails like you would at work.',
+  where: 'LSH Academy Index → Enter Program, which opens in a new tab.',
+  tip: 'Leave the portal tab open. It is what signs you in to the Program, LSH Sims and LSH Atlas.' },
+{ icon: '🛠', title: 'Practice on LSH Sims', points: [
+    'LSH Sims let you practice real work safely, with fictional cases, and send your scores to your trainer.',
+    '📞 Call Sim on ☎ LSH Voice: every mock call on one training phone — a caller rings your line, you answer with a headset, and the call is graded on your line\'s Mock Calls Metrics (practice with an 🤖 AI caller, take a graded call, or answer a trainer-led mock call).',
+    '📆 Calendaring Sims: Google Calendar for your program — book and manage the attorney’s week, then Submit to trainer for review.',
+    '✉️ Email Sims: triage a practice inbox, and answer emails like you would at work.',
     '⚖️ Docket, 🗂 Records and 🏛 E-Filing: docket court deadlines, request medical records and bills, and file with the court.',
     "You're already signed in, so every run is saved under your name and batch. My recent results shows your scores."],
-  where: 'Training Directory → Nexus Sims (/simulators.html).',
-  tip: 'Put your name in when a Simulator asks for it, or the run is practice only and your trainer never sees the score.' },
-{ icon: '📖', title: 'Look things up in Nexus Atlas', points: [
-    "Nexus Atlas is where LSH VAs find the firm's SOPs and share what they know. It's for the team only.",
-    'Open it from the Training Directory: the portal signs you in, so there is no access code to type.',
+  where: 'LSH Academy Index → LSH Sims (/simulators.html).',
+  tip: 'Put your name in when a Sim asks for it, or the run is practice only and your trainer never sees the score.' },
+{ icon: '📖', title: 'Look things up in LSH Atlas', points: [
+    "LSH Atlas is where LSH VAs find the firm's SOPs and share what they know. It's for the team only.",
+    'Open it from LSH Academy Index: the portal signs you in, so there is no access code to type.',
     'Featured, Library, Glossary and SOPs, each official SOP with its original file to download.',
     'From the team: tips, how-to guides and templates. Mark them 👍 Helpful, or comment with your own experience.',
     'Contribute your own. An admin reviews every post before it is published; your contributor profile shows who wrote it.'],
-  where: 'Training Directory → Nexus Atlas.',
+  where: 'LSH Academy Index → LSH Atlas.',
   tip: 'Search it before messaging your trainer: most of what gets asked is already written up there as an SOP.' },
 { icon: '✅', title: 'Tips for a smooth training', points: [
     'Use Google Chrome, and keep the portal and your program open in separate tabs.',
     'Most links open in a new tab, so you never lose your place. ← Back on every page takes you up one level.',
-    'Never share passwords in chat, notes or Nexus Atlas.',
+    'Never share passwords in chat, notes or LSH Atlas.',
     'Log Out when you are done on a shared computer.',
     "Can't get into a program, or something looks wrong? Message your trainer or batch administrator with your name, Batch ID and a screenshot."],
   where: 'Everywhere — your progress is saved to your account, not to the computer you used.',
@@ -186,10 +186,10 @@ trainee: [
 { icon: '🚀', title: "You're ready: your first steps", points: [
     '1. Bookmark LSH Nexus.',
     '2. Log In (or Register first, and wait for approval).',
-    '3. In the Training Directory, request your program, then press Enter Program once it is approved.',
+    '3. In LSH Academy Index, request your program, then press Enter Program once it is approved.',
     '4. Start your first open lesson.',
-    '5. Try a Simulator, and look around Nexus Atlas.'],
-  where: 'Log In on the main page, then pick your program in the Training Directory.',
+    '5. Try a Sim, and look around LSH Atlas.'],
+  where: 'Log In on the main page, then pick your program in LSH Academy Index.',
   tip: 'Something not working? Message your trainer with your name, your Batch ID and a screenshot — that is everything they need to fix it.' }
 ],
 admin: [
@@ -197,27 +197,27 @@ admin: [
     'Trainers and Admins sign in to the Portal to run every batch, monitor trainees, and review what they share.',
     'Sign in with Admin in the main page header.',
     'Every main page then has the same admin bar: Blueprint · System Management ▾ · Trainee Monitoring · Attendance · Referrals · Switch view · Logout.',
-    "The portal signs you in to each program's admin, Nexus Atlas and Nexus Sims: one admin password everywhere."],
+    "The portal signs you in to each program's admin, LSH Atlas and LSH Sims: one admin password everywhere."],
   where: 'Admin in the main page header (/admin-login.html).',
   tip: 'Sign in before you start screen sharing, never during it.' },
-{ icon: '📚', title: 'The Training Directory, admin view', points: [
+{ icon: '📚', title: 'LSH Academy Index, admin view', points: [
     'Every built program opens directly for you with Enter Program.',
     "Pending Topic Requests: approve or deny trainees' program requests. Approved programs turn into Enter Program for the trainee without a refresh.",
-    'Mark a trainee passed in System Management → Program Access when they complete a program; they can then download its certificate from the Directory.',
-    'Switch view shows the Directory exactly as a trainee sees it (this tab only); press it again to come back.'],
-  where: 'Training Directory (/programs.html), with the admin bar across the top.',
-  tip: 'Press Switch view before a demo so the batch sees the Directory as they will see it; press it again to get your admin view back.' },
+    'Mark a trainee passed in System Management → Program Access when they complete a program; they can then download its certificate from LSH Academy Index.',
+    'Switch view shows LSH Academy Index exactly as a trainee sees it (this tab only); press it again to come back.'],
+  where: 'LSH Academy Index (/programs.html), with the admin bar across the top.',
+  tip: 'Press Switch view before a demo so the batch sees LSH Academy Index as they will see it; press it again to get your admin view back.' },
 { icon: '🛡', title: 'System Management: everything else in one menu', points: [
     "🛡 Master Control: users, program access, who's online, activity logs, Broadcast & Ping, and pausing or locking the workspace.",
     "📝 Registrations: approve new sign-ups; approving issues the trainee's Batch ID.",
     '👥 Users and 🔑 Program Access: revoke access, or change which programs a trainee can open.',
-    '🛠 Nexus Sims, 📚 Nexus Atlas and ☎ Nexus Voice: open each tool already signed in as an admin.',
+    '🛠 LSH Sims, 📚 LSH Atlas and ☎ LSH Voice: open each tool already signed in as an admin.',
     '🔐 Checks and 🤖 AI Usage: sign-in and admin password checks across platforms, and today’s use of the shared AI budget.'],
   where: 'System Management ▾ in the admin bar (/system.html).',
   tip: "Approving a registration is what issues the trainee's Batch ID — clear the queue before the batch's first day, not during it." },
 { icon: '📈', title: 'Trainee Monitoring: every trainee on one page', points: [
     'A tab per program, with trainees grouped by batch, the latest batch first.',
-    'For each trainee: days completed, Knowledge Check and practice averages, Trainer Feedback, their own feedback, Simulator scores, and when they were last active.',
+    'For each trainee: days completed, Knowledge Check and practice averages, Trainer Feedback, their own feedback, Sim scores, and when they were last active.',
     'Click a trainee for the full record. Filter, sort by "furthest behind", search, and download a CSV.',
     '📦 Archive batch when a batch finishes: its records are kept and can be restored.',
     '💬 Feedback from trainees shows ratings and comments; anonymous feedback stays anonymous.'],
@@ -237,12 +237,12 @@ admin: [
     'Credentials are never posted on the platform. Share log-in details with trainees privately.'],
   where: 'The program’s own 🛡 Admin, reached with Enter Program.',
   tip: 'Open only the day you are teaching. Trainees read ahead, and a day you have opened cannot be un-seen.' },
-{ icon: '🤝', title: 'Nexus Atlas review, Referrals and Simulator reviews', points: [
-    '📚 Nexus Atlas review: approve posts, comments and profile changes, or send a post back with a note. Feature, archive, mark obsolete, edit or delete articles.',
+{ icon: '🤝', title: 'LSH Atlas review, Referrals and Sim reviews', points: [
+    '📚 LSH Atlas review: approve posts, comments and profile changes, or send a post back with a note. Feature, archive, mark obsolete, edit or delete articles.',
     '🤝 Referrals: people referred with "Got a referral?" on the main page — contact details and CV. Set a status, keep a note, delete when done.',
     "📆 Calendar Reviews: trainees' Google Calendar submissions come to you for review; your result shows at the bottom of their requests panel.",
-    "🛠 Simulator Scores: every run is saved under the trainee's name and batch, and shows in Trainee Monitoring."],
-  where: 'Nexus Atlas review inside Nexus Atlas; Referrals in the admin bar.',
+    "🛠 Sim Scores: every run is saved under the trainee's name and batch, and shows in Trainee Monitoring."],
+  where: 'LSH Atlas review inside LSH Atlas; Referrals in the admin bar.',
   tip: 'Send a post back with a note rather than deleting it — every post carries its contributor’s profile, so the author can fix it themselves.' },
 { icon: '📋', title: 'Your daily checklist', points: [
     '1. Approve new registrations and program requests.',
@@ -250,7 +250,7 @@ admin: [
     '3. Post an announcement in Broadcast & Ping if the batch needs it.',
     '4. Grade activities and Calendar submissions, and write Trainer Feedback.',
     '5. Check Trainee Monitoring for anyone falling behind.',
-    '6. Review new Nexus Atlas posts and comments, and any new referrals.'],
+    '6. Review new LSH Atlas posts and comments, and any new referrals.'],
   where: 'The admin bar, left to right: System Management, Trainee Monitoring, Attendance, Referrals.',
   tip: 'Keep this order: approvals first, so nobody is locked out of the day you are about to open.' }
 ]

@@ -1,7 +1,7 @@
-/* LSH Nexus — 👥 Your trainees' calendars (trainers): everyone who has a calendar saved on a Google Calendar Simulator, with
+/* LSH Nexus — 👥 Your trainees' calendars (trainers): everyone who has a calendar saved on a Google Calendar Sim, with
    👁 View & score on each track: their calendar in the Google Calendar look, read only, with the automated check and the CALENDAR MANAGEMENT
    MOCK CALL scorecard (gcal.html?trainee=<username>), and the last scorecard given.
-   On the Trainee Evaluations page (gcal-review.html); the Calendaring Simulators page (calsim.html) points trainers there.
+   On the Trainee Evaluations page (gcal-review.html); the Calendaring Sims page (calsim.html) points trainers there.
      TraineesCalendars.load(box, { extra })   draws it into the element (or selector) `box`.
         extra(person, trackId) → HTML added to a trainee's cell for that track (the Trainee Evaluations page adds the submission and its review there)
      TraineesCalendars.repaint()               draws the rows again (after `extra` has new things to show), keeping the search */
@@ -69,5 +69,5 @@ const TraineesCalendars = (function () {
     function repaint() { if (!S.box) return; const tb = S.box.querySelector('.cs-ttable tbody'); if (!tb) { paint(); return; } tb.innerHTML = rows(); filter(); }
     return { load, repaint, TRACKS };
 })();
-// (the Calendaring Simulators page called its search this: kept so a link or a test that does still works)
+// (the Calendaring Sims page called its search this: kept so a link or a test that does still works)
 window.csFind = function (q) { const i = document.getElementById('cs-tfind'); if (i) { i.value = q; i.dispatchEvent(new Event('input', { bubbles: true })); } };

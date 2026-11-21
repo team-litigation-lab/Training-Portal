@@ -69,9 +69,9 @@
             </div>
             <!-- ?stay=1: functions/_middleware.js sends a signed-in person who asks
                  for /index.html on to /programs.html, so without it this button would
-                 land an admin back on the Training Directory, not the landing page. -->
+                 land an admin back on LSH Academy Index, not the landing page. -->
             <a href="/index.html?stay=1" style="font-size:11.5px; font-weight:700; text-decoration:none; white-space:nowrap;" title="The LSH Nexus landing page">&#127968; Main Portal</a>
-            <a href="/programs.html" style="font-size:11.5px; font-weight:700; text-decoration:none; white-space:nowrap;" title="Back to all programs">&larr; Training Index</a>
+            <a href="/programs.html" style="font-size:11.5px; font-weight:700; text-decoration:none; white-space:nowrap;" title="Back to all programs">&larr; LSH Academy Index</a>
             <div class="top-user">
                 <div class="top-user-avatar" id="top-user-avatar">--</div>
                 <div>
@@ -119,7 +119,7 @@
                 <div class="admin-nav-group">Training Content</div>
                 <button onclick="switchView('admin-activities')" class="side-nav-btn view-nav-btn" id="nav-admin-activities"><span>📋</span> Lesson Decks &amp; Activities</button>
                 <button onclick="switchView('admin-lectures')" class="side-nav-btn view-nav-btn" id="nav-admin-lectures"><span>🎬</span> Manage Lectures</button>
-                <a class="side-nav-btn" href="/programs.html" style="text-decoration:none"><span>🎓</span> Training Directory</a>
+                <a class="side-nav-btn" href="/programs.html" style="text-decoration:none"><span>🎓</span> LSH Academy Index</a>
                 <div class="admin-nav-group">People &amp; Access</div>
                 <button onclick="mcGo('registrations')" class="side-nav-btn mc-nav-btn" data-mc="registrations"><span>📝</span> Log-in Approvals <span id="reg-pending-badge-side" class="admin-nav-badge"></span></button>
                 <button onclick="openAccessRequests()" class="side-nav-btn" title="Trainees asking to open a program or tool: approve or deny"><span>🙋</span> Access Requests <span id="access-req-badge-side" class="admin-nav-badge"></span></button>
@@ -593,7 +593,7 @@
             <button class="mc-tab active" onclick="showAdminDashTab('overview')">Overview</button>
             <a class="mc-tab" href="/progress.html" style="text-decoration:none;" title="Every trainee's progress and feedback in every program">📊 Progress &amp; Feedback</a>
             <a class="mc-tab" href="/attendance.html" style="text-decoration:none;" title="Take and review attendance: every program, batch by batch. The one place it is taken.">🕘 Attendance</a>
-            <a class="mc-tab" href="/api/launch?tool=kb" style="text-decoration:none;" title="Review VA posts and manage Nexus Atlas">📚 Nexus Atlas</a>
+            <a class="mc-tab" href="/api/launch?tool=kb" style="text-decoration:none;" title="Review VA posts and manage LSH Atlas">📚 LSH Atlas</a>
             <a class="mc-tab" href="/referrals.html" style="text-decoration:none;" title="People referred from “Got a referral?” on the home page, with their CVs">🤝 Referrals</a>
             <button class="mc-tab" onclick="showAdminDashTab('registrations')">Log-in Approvals <span id="reg-pending-badge"></span></button>
             <button class="mc-tab" onclick="showAdminDashTab('users')">Users</button>

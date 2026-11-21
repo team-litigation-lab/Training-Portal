@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Training Directory — LSH Nexus</title>
+<title>LSH Academy Index — LSH Nexus</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +39,7 @@
     /* Announcement ticker — the same broadcast an admin sets in Master Control
        (Broadcast & Ping → /api/announcement). It used to show only on the admin
        screen (core.html's classification bar), so trainees never saw it; the
-       Training Directory is the first page they land on, so it belongs here.
+       LSH Academy Index is the first page they land on, so it belongs here.
        The ids are the ones app.js already fills (loadAnnouncement/refreshClock),
        and app.js is loaded further down this page. */
     .idx-ticker-bar {
@@ -94,10 +94,18 @@
     .topic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(8px, 1.1vh, 15px) 15px; }
     .topic-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
     .topic-group { margin-bottom: clamp(8px, 1.1vh, 12px); }
-    .topic-group-head { display: flex; align-items: baseline; justify-content: center; text-align: center; gap: 12px; flex-wrap: wrap; margin: 0 0 7px; padding-bottom: 4px; border-bottom: 2px solid rgba(249,115,22,.35); }
+    .topic-group-head { display: flex; align-items: center; justify-content: center; text-align: center; gap: 14px; flex-wrap: nowrap; margin: 0 0 7px; }
+    /* The group's name sits in a navy pill with an orange edge, and the orange rule runs out
+       from both sides of it (no border under it), so it stands out on the photo without
+       making the head any taller: the pill's padding is paid for by a tighter line-height. */
+    .topic-group-head::before, .topic-group-head::after { content: ""; flex: 1 1 0; min-width: 16px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(249,115,22,0), rgba(249,115,22,.95)); }
+    .topic-group-head::after { background: linear-gradient(90deg, rgba(249,115,22,.95), rgba(249,115,22,0)); }
     /* The group's name is the page's main signpost, so it is set in capitals and
        carries a light text shadow: it sits on the photo backdrop, not on a card. */
-    .topic-group-head h2 { font-size: 19px; font-weight: 900; margin: 0; color: var(--navy); letter-spacing: .06em; text-transform: uppercase; text-shadow: 0 1px 0 rgba(255,255,255,.85); }
+    .topic-group-head h2 { display: inline-flex; align-items: center; gap: 9px; flex: 0 0 auto; font-size: 19px; line-height: 1.15; font-weight: 900; margin: 0; padding: 4px 20px; color: #fff; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
+        background: linear-gradient(135deg, #0b1633, #1e3a8a); border: 2px solid var(--orange, #f97316); border-radius: 999px;
+        box-shadow: 0 0 0 3px rgba(249,115,22,.22), 0 8px 18px -8px rgba(8,18,38,.7); text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+    .topic-group-head h2::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--orange, #f97316); box-shadow: 0 0 8px rgba(249,115,22,.9); flex-shrink: 0; }
     /* These section notes sit directly on the body backdrop, not on a card,
        so the wash behind them is all the contrast they get. The photo's
        darkest area composites to about rgb(151,149,150) under the 40% wash
@@ -156,7 +164,7 @@
     .idx-user { gap: 6px; }
     .idx-user .pn-pill { font-size: 11.5px !important; padding: 5px 10px !important; }
     .idx-user .pn-back { font-size: 12px; font-weight: 700; padding: 5px 10px !important; }
-    @media (max-width: 1400px) { .idx-title { white-space: normal; max-width: 9em; line-height: 1.1; } }
+    @media (max-width: 1400px) { .idx-title { white-space: normal; max-width: 11em; line-height: 1.1; } }
     @media (max-width: 900px) { .idx-top { flex-wrap: wrap; } .idx-title { order: 2; flex-basis: auto; } .idx-user { order: 3; width: 100%; justify-content: flex-start; } }
     .pn-trainee-view { position: relative; z-index: 5; }
 
@@ -202,8 +210,8 @@
         .sim-banner-row .sim-banner-ic { width: 32px; height: 32px; font-size: 16px; }
         .sim-banner-row .sim-banner-tx b { font-size: 14.5px; }
         .topic-group { margin-bottom: 9px; }
-        .topic-group-head { margin-bottom: 5px; padding-bottom: 3px; }
-        .topic-group-head h2 { font-size: 17px; }
+        .topic-group-head { margin-bottom: 5px; }
+        .topic-group-head h2 { font-size: 17px; padding: 3px 18px; }
         .topic-grid { gap: 8px; }
         .topic-card { padding: 7px 9px; gap: 5px; }
         .topic-card h3 { font-size: 12px; padding: 5px 7px; }
@@ -242,7 +250,7 @@
 </script>
 
 <!-- Announcement ticker: the admin broadcast, now visible to trainees here on the
-     Training Directory (it used to appear only on the admin screen). Filled by
+     LSH Academy Index (it used to appear only on the admin screen). Filled by
      app.js: loadAnnouncement() → #ticker-text, refreshClock() → #live-clock. -->
 <div class="idx-ticker-bar no-print">
     <div class="top-ticker-mini" id="announcement-ticker">
@@ -264,7 +272,7 @@
 
 <div class="idx-top">
     <span class="idx-brand"><img class="idx-logo" src="/img/logo.svg" alt="Legal Support Help"></span>
-    <h1 class="idx-title" id="idx-heading">Training <span>Directory</span></h1>
+    <h1 class="idx-title" id="idx-heading">LSH Academy <span>Index</span></h1>
     <div class="idx-user" id="idx-user">
         <script>document.write(PortalNav.traineeHtml('', { back: '/index.html?stay=1' }));</script>
         <a class="pn-pill" href="/admin-login.html" title="Admin monitoring (sign-in required)">Admin</a>
@@ -275,22 +283,22 @@
     <div class="sim-banner-row">
     <a class="sim-banner" href="/simulators.html">
         <span class="sim-banner-ic">🛠</span>
-        <span class="sim-banner-tx" title="Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>Nexus Sims</b></span>
+        <span class="sim-banner-tx" title="Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>LSH Sims</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" href="/kb.html">
         <span class="sim-banner-ic">📚</span>
-        <span class="sim-banner-tx" title="Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know."><b>Nexus Atlas</b></span>
+        <span class="sim-banner-tx" title="Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know."><b>LSH Atlas</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="ring-banner" href="/api/launch?tool=ringchannel" target="_blank" rel="noopener">
         <span class="sim-banner-ic">☎</span>
-        <span class="sim-banner-tx" title="Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal."><b>Nexus Voice</b></span>
+        <span class="sim-banner-tx" title="Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal."><b>LSH Voice</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="cms-banner" href="/api/launch?tool=cms" target="_blank" rel="noopener">
         <span class="sim-banner-ic">🗂</span>
-        <span class="sim-banner-tx" title="The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer."><b>Nexus CaseWorks</b></span>
+        <span class="sim-banner-tx" title="LSH CaseWorks, the practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer."><b>LSH CaseWorks</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     </div>
@@ -353,7 +361,7 @@
     // the same names for new databases.
     // The programs are called Playbooks on the cards (was "Training").
     const PROGRAM_NAMES = {
-        'STANDARD TRAINING': 'Standard Foundational Playbook',
+        'STANDARD TRAINING': 'Legal VA Foundational Playbook',
         // The live topics table still carries the old "CM Training" / "Revised CM Training"
         // from before the rename; these put the full names on the cards without a migration.
         'CM TRAINING': 'Case Management Playbook',
@@ -429,7 +437,7 @@
             // 📢 the announcement is edited in Master Control → Broadcast & Ping: ✏️ Edit on the ticker goes straight there
             if (!asTrainee) { const tk = document.getElementById('announcement-ticker'); if (tk && !document.getElementById('idx-ann-edit')) tk.insertAdjacentHTML('afterend', '<a id="idx-ann-edit" href="/core.html#announce" title="Edit the announcement (Master Control → Broadcast &amp; Ping)" style="flex:none;padding:3px 10px;border:1px solid rgba(253,186,116,.6);border-radius:999px;color:#fdba74;font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap">✏️ Edit</a>'); }
             if (asTrainee) document.querySelector('.idx-top').insertAdjacentHTML('afterend',
-                `<div class="pn-trainee-view">👁 Trainee view: the Training Directory as trainees see it.<button type="button" onclick="PortalNav.switchView()">Back to the admin view</button></div>`);
+                `<div class="pn-trainee-view">👁 Trainee view: LSH Academy Index as trainees see it.<button type="button" onclick="PortalNav.switchView()">Back to the admin view</button></div>`);
         }
 
         if (session.userType === 'Trainee') {
@@ -442,7 +450,7 @@
         const subheadEl = document.getElementById('idx-subhead');
         if ((session.userType !== 'Admin' || asTrainee) && subheadEl) subheadEl.textContent = 'Every LSH training program in one place. Trainees log in once here, then open each program from this page: no separate sign-in inside it.';
         if (session.userType === 'Admin' && !asTrainee) {
-            if (headingEl) headingEl.textContent = 'Training Index — Admin View';
+            if (headingEl) headingEl.innerHTML = 'LSH Academy <span>Index</span> — Admin View';
             if (subheadEl) subheadEl.style.display = 'none';
         }
 
@@ -510,7 +518,7 @@
     }
 
     // Archived — old/superseded modules kept in the database (and in any
-    // trainee's history) but hidden from the active Training Index. Purely
+    // trainee's history) but hidden from the active LSH Academy Index. Purely
     // a display-level exclusion; nothing is deleted.
     const ARCHIVED_TOPICS = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];   // keep in step with PA_HIDDEN in app.js (same list; app.js loads into this page's global scope, so the names must differ)
     // Reference cards that aren't on the index either (they were the whole "More Training &

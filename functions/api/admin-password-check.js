@@ -42,7 +42,7 @@ ${note ? `<p style="color:#fde68a;font-size:13px">${esc(note)}</p>` : ''}
 ${rows.map(r => `<div style="background:#0f2148;border-radius:12px;padding:14px 16px;margin:10px 0;border-left:5px solid ${COLOR[r.v[1]]}">
 <div style="font-weight:800">${esc(r.name)} <span style="color:${COLOR[r.v[1]]};float:right">${esc(r.v[0])}</span></div>
 <div style="font-size:12px;color:#cbd5e1;margin-top:4px">${esc(r.url)}<br>${esc(r.v[2])}</div></div>`).join('')}
-<p><a href="/programs.html" style="color:#f97316;font-weight:700">&larr; Back to the Training Directory</a></p>
+<p><a href="/programs.html" style="color:#f97316;font-weight:700">&larr; Back to LSH Academy Index</a></p>
 <script src="/show-password.js?v=1"></script></body></html>`;
 }
 const html = (body) => new Response(body, { status: 200, headers: { 'Content-Type': 'text/html; charset=UTF-8', 'Cache-Control': 'no-store' } });
@@ -80,7 +80,7 @@ export async function onRequestPost({ request, env }) {
     // the Knowledge Base (it asks the Portal, so this also tests that link)
     jobs.push((async () => {
         const url = SSO_TOOLS.kb, r = await ask(url + 'api/session', { action: 'admin-login', username: MASTER_USERNAME, password });
-        return { name: 'Nexus Atlas', url, v: verdict(r, x => x.status === 200 && x.body && x.body.success, []) };
+        return { name: 'LSH Atlas', url, v: verdict(r, x => x.status === 200 && x.body && x.body.success, []) };
     })());
     rows.push(...await Promise.all(jobs));
     return html(page(rows, ''));

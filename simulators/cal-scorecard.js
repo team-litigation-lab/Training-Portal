@@ -1,8 +1,8 @@
-/* The firm's CALENDAR MANAGEMENT MOCK CALL scorecard: the sheet on the Foundational Training's Day 6, the same one the CMS
-   Call Simulator grades the Calendar Management Mock Calls on. Each metric is rated 0 to 5 (in half points, as Graders gives them) with the trainer's feedback; the
+/* The firm's CALENDAR MANAGEMENT MOCK CALL scorecard: the sheet on the Foundational Training's Day 6, the same one LSH CaseWorks
+   Call Sim grades the Calendar Management Mock Calls on. Each metric is rated 0 to 5 (in half points, as Graders gives them) with the trainer's feedback; the
    weighted average is out of 5, and as a percentage.
-   A trainer scores a trainee's calendar with it in the Google Calendar Simulator (gcal.js, ?trainee=<username>: their calendar,
-   read only). The trainee sees it there and on the Calendaring Simulators page (calsim.html). The server keeps it in the
+   A trainer scores a trainee's calendar with it in the Google Calendar Sim (gcal.js, ?trainee=<username>: their calendar,
+   read only). The trainee sees it there and on the Calendaring Sims page (calsim.html). The server keeps it in the
    trainee's /api/calsim record (scorecards: { <track>: [card, …] }) and checks the metrics against its own list
    (functions/api/calsim.js SCORECARD_METRICS, which the checks keep the same as this one).
    The sheet is set up as the Foundational Training's (js/ft-rubrics.js): the seven call metrics and 🛠 Tools Utilization, 0 to 5
@@ -23,7 +23,7 @@
         { name: 'Calendar Creation & Attorney Reminder Setup', weight: 1, about: 'The calendar entry: the right calendar, a specific title, the day, date, time, time zone, place or video link, who attends, the description, and the reminder for the attorney.' },
         { name: 'Notes, Recap & Call Closing', weight: 1, about: 'Reads the booking back and gets the caller’s OK; closes politely with what happens next; the notes are accurate and complete.' },
         // 🛠 ends every scorecard on the Foundational Training (js/ft-rubrics.js WRITING): how the trainee used the systems and tools
-        { name: 'Tools Utilization', weight: 1, about: 'How the trainee used the systems and tools for the call: the phone’s keys on Nexus Voice, 🔎 Case lookup and the CMS, and the Google Calendar Simulator.' }
+        { name: 'Tools Utilization', weight: 1, about: 'How the trainee used the systems and tools for the call: the phone’s keys on LSH Voice, 🔎 Case lookup and LSH CaseWorks, and the Google Calendar Sim.' }
     ];
     // As on the Foundational Training: Passed at 3/5 (60%) or more, Failed below.
     const PASS_PCT = 60;

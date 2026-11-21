@@ -205,7 +205,7 @@ const pipRows = () => P().pip.rows.filter(r => r.provider || r.billed || r.pip);
 const pipTot = (k) => pipRows().reduce((a, r) => a + (isFinite(money(r[k])) ? money(r[k]) : 0), 0);
 const billDocs = () => P().sections.filter(s => s.bills).flatMap(s => s.docs);
 /* ---------- the case file: the Doc Hub tab it goes under, and the firm's one name for it ----------
-   The CMS files every document as <Case ID>_<Last-First>_<Type>_<YYYY-MM-DD>.pdf, the Type being its Doc Hub tab, and
+   LSH CaseWorks files every document as <Case ID>_<Last-First>_<Type>_<YYYY-MM-DD>.pdf, the Type being its Doc Hub tab, and
    checks that name itself; drafting-docs.js holds that rule (and the platform the trainee came from), so it is used
    from there rather than written again. A demand goes out with the carrier's correspondence (Others, where the course
    keeps the BI and UM demands); a binder is a litigation document (Litigation Documents, as the course keeps them). */
@@ -607,7 +607,7 @@ function runChecks() {
     const bad = docs.filter(d => d.err || d.lost);
     add('Every PDF opens (none password-protected or damaged)', !bad.length, bad.map(d => `${d.file}: ${d.err || 'missing'}`).join('; '));
     add('Bates numbers and bookmarks are on', pk.opts.bates && pk.opts.bookmarks, 'The firm sends every packet Bates-numbered and bookmarked.');
-    if (DD.dest().wired) add('Filed in the CMS, under the right tab and named the firm\'s way', fileRec().filed, 'File the packet into your case in the CMS (📤 File it in the CMS).');
+    if (DD.dest().wired) add('Filed in LSH CaseWorks, under the right tab and named the firm\'s way', fileRec().filed, 'File the packet into your case in LSH CaseWorks (📤 File it in LSH CaseWorks).');
     add('The packet was built after your last change', pk.builtAt && (!pk.changedAt || pk.builtAt >= pk.changedAt), 'Build the packet again: something changed since the last build.');
     const passed = out.filter(x => x.ok).length;
     return { checks: out, score: Math.round(passed / out.length * 100), passed };
@@ -619,7 +619,7 @@ const field = (k, label, ph, wide, area) => `<label class="${wide ? 'wide' : ''}
     : `<input data-case="${k}" value="${esc(P().case[k])}" placeholder="${esc(ph)}" oninput="LSHPacket.setCase('${k}', this.value)">`}</label>`;
 function caseHtml() {
     return `<div class="pk-card"><h3>The case</h3>
-        <p>What the cover letter, the index and the file name are made from. Take every detail from the case file in the CMS.</p>
+        <p>What the cover letter, the index and the file name are made from. Take every detail from the case file in LSH CaseWorks.</p>
         <div class="pk-form">
             ${field('client', 'Client', 'John Doe')}${field('caseId', 'Case ID', 'LSH-2026-MVA-…')}
             ${field('insured', 'Their insured / defendant', 'Robert Smith')}${field('dol', 'Date of loss', 'mm/dd/yyyy')}
@@ -765,7 +765,7 @@ function sideHtml() {
                 ${S.type === 'demand' ? `<li style="margin:0 0 5px;">One PDF, in this order: cover letter, index, demand letter, PIP log, bills, records, then anything else that proves the claim.</li>
                 <li style="margin:0 0 5px;">Every bill on the PIP log, and the PIP log's billed total equal to the bills'.</li>
                 <li style="margin:0 0 5px;">Records for every provider who billed, in treatment order.</li>
-                <li style="margin:0 0 5px;">Demands are e-mailed to the adjuster; log the e-mail and the deadline in the CMS the same day.</li>`
+                <li style="margin:0 0 5px;">Demands are e-mailed to the adjuster; log the e-mail and the deadline in LSH CaseWorks the same day.</li>`
                 : `<li style="margin:0 0 5px;">Numbered tabs in fixed order, each matching the master index; the binder prints from the index, never the reverse.</li>
                 <li style="margin:0 0 5px;">Exhibit numbers belong to the proceeding (4-1, 4-2): a late document takes the next number.</li>
                 <li style="margin:0 0 5px;">Bates numbers belong to the page, stamped once, starting ${esc(bates(1))}.</li>
@@ -774,26 +774,26 @@ function sideHtml() {
             </ul>
         </div>`;
 }
-/* ---------- 📤 filing the packet into the case in the CMS ----------
-   Opened from a course (its tool frame, ⧉ Side by side), the packet is filed into the case open in the CMS beside the
-   lesson: the course relays the CMS's own cms-doc-file message (Case-Management-Training js/cm-doc-filing.js) and the
+/* ---------- 📤 filing the packet into the case in LSH CaseWorks ----------
+   Opened from a course (its tool frame, ⧉ Side by side), the packet is filed into the case open in LSH CaseWorks beside the
+   lesson: the course relays LSH CaseWorks' own cms-doc-file message (Case-Management-Training js/cm-doc-filing.js) and the
    CMS checks the name and files it. The tab is the trainee's answer and is checked here first: a wrong one is refused
    with the tab the firm uses, and nothing is sent. Every graded attempt is kept, and the filing is scored the way
    drafting-docs.js scores a letter's (first time right is the whole mark). Opened on its own, there is nowhere to file
-   into: the card says so, and the download is the file to add in the CMS. */
+   into: the card says so, and the download is the file to add in LSH CaseWorks. */
 const fileRec = () => (P().filing = P().filing || { attempts: 0, filed: false });
 function fileHtml() {
     const d = DD.dest(), r = fileRec(), c = P().case;
-    if (!d.wired) return `<div class="pk-card"><h3>📤 File it in the CMS</h3>
-        <p style="margin:0;">Opened on its own, this page has no case to file into. Download the packet and add it to your client's case in the CMS, under the right tab, named the firm's way: <span class="pk-name" style="display:inline;">&lt;Case ID&gt;_&lt;Last-First&gt;_&lt;Type&gt;_${esc(DD.today())}.pdf</span>. Open it from your course to file it from here.</p></div>`;
-    return `<div class="pk-card" id="pk-file"><h3>📤 File it in the CMS</h3>
-        <p>Into your case in ${esc(d.name === 'Case Management Training' ? 'the CMS beside the lesson' : d.name)}: choose the Doc Hub tab and write the file name, the firm's way. Graded: first time right is the whole mark.</p>
+    if (!d.wired) return `<div class="pk-card"><h3>📤 File it in LSH CaseWorks</h3>
+        <p style="margin:0;">Opened on its own, this page has no case to file into. Download the packet and add it to your client's case in LSH CaseWorks, under the right tab, named the firm's way: <span class="pk-name" style="display:inline;">&lt;Case ID&gt;_&lt;Last-First&gt;_&lt;Type&gt;_${esc(DD.today())}.pdf</span>. Open it from your course to file it from here.</p></div>`;
+    return `<div class="pk-card" id="pk-file"><h3>📤 File it in LSH CaseWorks</h3>
+        <p>Into your case in ${esc(d.name === 'Case Management Training' ? 'LSH CaseWorks beside the lesson' : d.name)}: choose the Doc Hub tab and write the file name, the firm's way. Graded: first time right is the whole mark.</p>
         <div class="pk-form" style="grid-template-columns:1fr;">
             <label>Case ID<input data-file="case" value="${esc(c.caseId)}" placeholder="LSH-2026-…" oninput="LSHPacket.setCase('caseId', this.value)"></label>
             <label>Doc Hub tab<select data-file="tab"><option value="">Choose the tab…</option>${DD.TABS.map(t => `<option ${r.tab === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></label>
             <label>File name<input data-file="name" value="${esc(r.typed || '')}" placeholder="${esc(`${c.caseId || '<Case ID>'}_<Last-First>_<Type>_${DD.today()}.pdf`)}"></label>
         </div>
-        <div class="pk-actions" style="margin-top:10px;"><button class="sim-btn orange" type="button" onclick="LSHPacket.file()">📤 File it in the CMS</button></div>
+        <div class="pk-actions" style="margin-top:10px;"><button class="sim-btn orange" type="button" onclick="LSHPacket.file()">📤 File it in LSH CaseWorks</button></div>
         <div data-file-msg>${r.filed ? `<p class="pk-ok">✔ Filed as <b>${esc(r.name)}</b> under ${esc(r.category)}${r.attempts === 1 ? ' — first time right' : ` in ${r.attempts} attempts`}.</p>` : r.last ? `<p class="pk-bad">${r.last}</p>` : ''}</div>
     </div>`;
 }
@@ -805,7 +805,7 @@ async function fileIt() {
     // the card is looked up each time: building the packet draws the page again
     const say = (html) => { r.last = html; save(false); const m = document.querySelector('#pk-file [data-file-msg]'); if (m) m.innerHTML = html ? `<p class="${/^✔/.test(html) ? 'pk-ok' : 'pk-bad'}">${html}</p>` : ''; };
     const problems = [];
-    if (!String(P().case.caseId || '').trim()) problems.push('Enter the Case ID of your client\'s case in the CMS.');
+    if (!String(P().case.caseId || '').trim()) problems.push('Enter the Case ID of your client\'s case in LSH CaseWorks.');
     if (!tab) problems.push('Choose the Doc Hub tab you would file the packet under.');
     else if (tab !== category()) problems.push(`The firm files a ${TYPES[S.type].short.toLowerCase()} under <b>${esc(category())}</b>, not ${esc(tab)}. A packet in the wrong tab is a packet nobody finds.`);
     if (!name) problems.push(`Write the file name, the firm's way: ${esc(`${P().case.caseId || '<Case ID>'}_<Last-First>_<Type>_${DD.today()}.pdf`)}`);
@@ -823,8 +823,8 @@ async function fileIt() {
     const to = [];
     try { if (window.parent && window.parent !== window) to.push(window.parent); } catch (e) { /* cross-origin */ }
     try { if (window.opener && window.opener !== window) to.push(window.opener); } catch (e) { /* cross-origin */ }
-    if (!to.length) { say(`This page wasn't opened from ${esc(d.name)}, so there is nowhere to file it. Download the packet and add it in the CMS yourself.`); return { ok: false, reason: DD.NO_LISTENER }; }
-    say('Sending it to the CMS…');
+    if (!to.length) { say(`This page wasn't opened from ${esc(d.name)}, so there is nowhere to file it. Download the packet and add it in LSH CaseWorks yourself.`); return { ok: false, reason: DD.NO_LISTENER }; }
+    say('Sending it to LSH CaseWorks…');
     const out = await new Promise(res => {
         let done = false;
         const on = (e) => { if (!e.data || e.data.lsh !== 'cms-doc-filed' || e.data.id !== id) return; done = true; window.removeEventListener('message', on); res(e.data); };
@@ -834,12 +834,12 @@ async function fileIt() {
         setTimeout(() => { if (done) return; window.removeEventListener('message', on); res({ ok: false, reason: DD.NO_LISTENER }); }, 30000);
     });
     if (out.reason === DD.NO_LISTENER || (!out.ok && !(out.problems && out.problems.length) && out.error)) {
-        // nobody answered, or the CMS couldn't be reached: not the trainee's mistake, so not an attempt
-        say(esc(out.error || `${d.name} didn't answer. Is your own case open in the CMS beside the lesson?`) + ' You can download the packet and add it in the CMS yourself.');
+        // nobody answered, or LSH CaseWorks couldn't be reached: not the trainee's mistake, so not an attempt
+        say(esc(out.error || `${d.name} didn't answer. Is your own case open in LSH CaseWorks beside the lesson?`) + ' You can download the packet and add it in LSH CaseWorks yourself.');
         return out;
     }
     r.attempts++;
-    if (!out.ok) { say('The CMS refused the name:<br>' + (out.problems || []).map(esc).join('<br>') + (out.expected ? `<br>It expects: ${esc(out.expected)}` : '')); return out; }
+    if (!out.ok) { say('LSH CaseWorks refused the name:<br>' + (out.problems || []).map(esc).join('<br>') + (out.expected ? `<br>It expects: ${esc(out.expected)}` : '')); return out; }
     Object.assign(r, { filed: true, name: out.name || name, category: out.category || tab, at: new Date().toISOString() });
     say(`✔ Filed as <b>${esc(r.name)}</b> under ${esc(r.category)}${r.attempts === 1 ? ' — first time right' : ` in ${r.attempts} attempts`}.`);
     const score = DD.score({ filed: true, attempts: r.attempts });
@@ -1032,7 +1032,7 @@ const API = {
             details: { type: S.type, fileName: fileName() + '.pdf', checks: res.checks.map(c => ({ check: c.label, ok: c.ok, detail: c.detail })),
                 index: S.built && S.built.type === S.type ? S.built.rows : null, sections: pk.sections.map(s => ({ title: s.title, documents: s.docs.length })) }
         });
-        alert(fileRec().filed ? 'Sent to your trainer.' : 'Sent to your trainer. File the packet itself into the case in the CMS too.');
+        alert(fileRec().filed ? 'Sent to your trainer.' : 'Sent to your trainer. File the packet itself into the case in LSH CaseWorks too.');
     },
     reset() {
         if (!confirm(`Start the ${TYPES[S.type].short} over? Every document and everything typed in it is removed.`)) return;
