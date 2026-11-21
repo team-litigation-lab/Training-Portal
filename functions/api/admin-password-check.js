@@ -80,7 +80,7 @@ export async function onRequestPost({ request, env }) {
     // the Knowledge Base (it asks the Portal, so this also tests that link)
     jobs.push((async () => {
         const url = SSO_TOOLS.kb, r = await ask(url + 'api/session', { action: 'admin-login', username: MASTER_USERNAME, password });
-        return { name: 'Nexus Atlas', url, v: verdict(r, x => x.status === 200 && x.body && x.body.success, []) };
+        return { name: 'LSH Atlas', url, v: verdict(r, x => x.status === 200 && x.body && x.body.success, []) };
     })());
     rows.push(...await Promise.all(jobs));
     return html(page(rows, ''));
