@@ -1,5 +1,5 @@
 /* ============================================================
-   Calendaring Simulators: the tracks, the weeks and the automated review (no page code here, so it can be tested
+   Calendaring Sims: the tracks, the weeks and the automated review (no page code here, so it can be tested
    with node). Loaded before js/ft-calendar.js, which is the drag-and-drop page.
      • Times are minutes from midnight (Eastern Time); days are 0 (Mon) to 4 (Fri); the grid works in 15-minute steps.
      • Three tracks, each a set up like a Google Calendar: Standard Training (the Foundational / Calendar Management

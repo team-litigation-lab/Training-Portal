@@ -293,7 +293,7 @@ function tfbCard(f, withName) {
 function detail(p) {
     const d = P.data || {};
     const cal = (t) => { const c = ((d.calsim && d.calsim.byName || {})[p.key] || {})[t.program]; if (!c) return '';
-        return `<h5>📅 Calendaring Simulators</h5>` + c.weeks.map(w => `<div class="pg-muted"><b>${esc(w.label)}</b> · 🤖 ${w.auto ?? '—'}${w.auto != null ? '%' : ''} · ${w.score != null ? '👤 ' + w.score + '/100' : 'to review'} · ${esc(date(w.at))}${w.comment ? '<br>' + esc(w.comment) : ''}</div>`).join(''); };
+        return `<h5>📅 Calendaring Sims</h5>` + c.weeks.map(w => `<div class="pg-muted"><b>${esc(w.label)}</b> · 🤖 ${w.auto ?? '—'}${w.auto != null ? '%' : ''} · ${w.score != null ? '👤 ' + w.score + '/100' : 'to review'} · ${esc(date(w.at))}${w.comment ? '<br>' + esc(w.comment) : ''}</div>`).join(''); };
     const enr = p.enrollments.map(t => `<div class="pg-enr">
         <h4><span class="pg-prog ${esc(t.program)}">${esc(progLabel(t.program))}</span><span class="pg-st ${esc(t.status)}">${esc(t.status)}</span>
             <span class="pg-muted">${t.batch ? esc(t.batch) + ' · ' : ''}registered ${esc(date(t.registeredAt))} · last active ${esc(ago(t.lastActive))}</span></h4>
@@ -447,7 +447,7 @@ function download(name, lines) {
 const csvq = (v) => { const s = String(v == null ? '' : v); return `"${(/^[=+\-@\t\r]/.test(s) ? `'${s}` : s).replace(/"/g, '""')}"`; };
 function exportCsv() {
     const head = ['Name', 'Program', 'Batch', 'Status', 'Days done', 'Days total', 'Knowledge Check avg', 'Practice avg', 'Practice done', 'Random task avg', 'Roleplay avg',
-        'Trainer feedback sent', 'Trainer feedback drafts', 'Latest trainer rating', 'Feedback they sent', 'Their avg stars', 'Simulator runs', 'Simulator avg', 'Portal activities', 'Portal avg', 'Last active', 'Registered'];
+        'Trainer feedback sent', 'Trainer feedback drafts', 'Latest trainer rating', 'Feedback they sent', 'Their avg stars', 'Sim runs', 'Sim avg', 'Portal activities', 'Portal avg', 'Last active', 'Registered'];
     const lines = [head.map(csvq).join(',')];
     rows().forEach(p => p.enrollments.filter(t => t.program === P.program).forEach(t => {
         const fb = t.feedback || {}, sent = p.sent.filter(f => f.program === t.program), st = starAvg(sent);
@@ -463,7 +463,7 @@ function exportCsv() {
 // each of that trainee's lines rather than getting a row of their own.
 function exportScoresCsv() {
     const head = ['Program', 'Batch', 'Trainee', 'Status', 'Module', 'Knowledge Check %', 'Random task %', 'Module completed',
-        'Modules scored', 'Modules completed', 'Module average %', 'Simulator avg %', 'Simulator runs', 'Portal activity avg %', 'Portal activities submitted'];
+        'Modules scored', 'Modules completed', 'Module average %', 'Sim avg %', 'Sim runs', 'Portal activity avg %', 'Portal activities submitted'];
     const lines = [head.map(csvq).join(',')];
     moduleRows().forEach(r => {
         const p = r.person;
