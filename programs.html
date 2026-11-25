@@ -122,7 +122,8 @@
         display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "title title" "status action"; align-items: center; gap: clamp(5px, 1vh - 2px, 11px) 10px; }
     .topic-card h3 { grid-area: title; }
     .topic-card .topic-status { grid-area: status; }
-    .topic-card .topic-action-btn { grid-area: action; margin-top: 0; }
+    /* The action is a compact pill at the card's right, not a full-width bar: the track's title is what the eye should land on. */
+    .topic-card .topic-action-btn { grid-area: action; margin-top: 0; justify-self: end; width: fit-content; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     /* Centered, so the title reads as the card's headline rather than being pinned to one side. */
     .topic-card h3 { font-size: 16px; font-weight: 800; margin: 0; color: var(--navy); border: 2px solid var(--navy); border-radius: 10px; padding: clamp(6px, 0.9vh - 1px, 10px) 11px; line-height: 1.25; text-align: center; }
     /* 🎨 Track identity: the card's top edge, its title frame and its name take the track's colour (--tk); the emblem
@@ -152,7 +153,7 @@
     .topic-status.denied { background: #fef2f2; color: #b91c1c; }
     .topic-status.suspended, .topic-status.suspended-passed { background: #eef2ff; color: #3730a3; }
     .topic-action-btn {
-        margin-top: auto; padding: 9px; border-radius: 999px; border: none; font-weight: 800; font-size: 11.5px;
+        margin-top: auto; padding: 5px 14px; border-radius: 999px; border: none; font-weight: 700; font-size: 10.5px;
         text-transform: uppercase; letter-spacing: 0.03em; text-align: center; text-decoration: none; cursor: pointer;
     }
     .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
@@ -235,7 +236,7 @@
            clipped by the body's overflow:hidden instead of the rows giving up their spare air. */
         #idx-topics .topic-card { grid-template-rows: minmax(0, 1fr) auto; align-content: center; min-height: 0; overflow: hidden; }
         #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: clamp(12px, 1.95vh, 21px); }
-        #idx-topics .topic-action-btn { font-size: clamp(10.5px, 1.25vh, 13.5px); padding: clamp(6px, 1vh, 12px); }
+        #idx-topics .topic-action-btn { font-size: clamp(9.5px, 1.05vh, 11.5px); padding: clamp(4px, 0.6vh, 7px) clamp(11px, 1vw, 16px); }
         #idx-topics .topic-status { font-size: clamp(9.5px, 1.1vh, 12px); padding: 3px 10px; }
     }
 
@@ -268,7 +269,7 @@
         .topic-grid { gap: 8px; }
         .topic-card { padding: 7px 9px; gap: 5px; }
         .topic-card h3 { font-size: 12px; padding: 5px 7px; }
-        .topic-action-btn { padding: 6px; font-size: 10px; }
+        .topic-action-btn { padding: 4px 11px; font-size: 9.5px; }
         .topic-status { font-size: 9.5px; padding: 3px 8px; }
     }
     @media (max-height: 730px) {
