@@ -139,10 +139,22 @@
     .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
     .topic-action-btn.request { background: var(--orange); color: #0f172a; }
     .topic-action-btn.disabled { background: #f1f5f9; color: #334155; cursor: default; }
-    /* 🃏 Flash Cards: one pill per Daily Digest deck instead of a single button */
-    .topic-action-btn.digest { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; padding: 4px; background: #eef2ff; cursor: default; }
-    .topic-action-btn.digest a { flex: 1 1 auto; padding: 4px 6px; border-radius: 999px; background: var(--navy); color: var(--orange); text-decoration: none; font-size: .86em; white-space: nowrap; }
-    .topic-action-btn.digest a:hover, .topic-action-btn.digest a:focus-visible { background: var(--orange); color: #0f172a; }
+    /* 🃏 Flash Cards: the card itself shows the day's one flash card (no buttons). It spans the status and action
+       row and flips to the answer on a click or Enter (and back again). A new card every day (flashcards-data.js). */
+    .tool-card .fc-mini { grid-column: 1 / -1; grid-row: 2; position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr);
+        align-items: center; gap: 4px 10px; min-height: 0; padding: 5px 10px; border-radius: 10px; cursor: pointer; text-align: left;
+        background: #fff; color: var(--navy-deep); border: 2px solid var(--navy-deep); box-shadow: inset 4px 0 0 var(--orange); transition: background .25s ease, color .25s ease; }
+    .tool-card .fc-mini:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+    .tool-card .fc-mini.flip { background: var(--navy-deep); color: #fff; border-color: var(--orange); }
+    .fc-mini-deck { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #c2410c; white-space: nowrap; }
+    .fc-mini.flip .fc-mini-deck { color: var(--orange); }
+    .fc-mini-deck b { font-weight: inherit; }
+    @media (max-width: 1500px) { .fc-mini-deck b { display: none; } .tool-card .fc-mini { gap: 4px 8px; padding: 5px 8px; } }   /* narrower cards: the deck's icon alone, so the card's text has the room */
+    .fc-mini-text { font-size: 12.5px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+    .fc-mini.flip .fc-mini-text { font-weight: 600; }
+    .fc-mini-text.in { animation: fcMiniIn .45s ease; }
+    @keyframes fcMiniIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .fc-mini-text.in { animation: none; } .tool-card .fc-mini { transition: none; } }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
     .sim-banner-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
@@ -269,6 +281,7 @@
     }
 </style>
 <script src="/portal-nav.js"></script>
+<script src="/flashcards-data.js"></script>
 <link rel="stylesheet" href="/theme.css">
 </head>
 <body>
@@ -403,8 +416,8 @@
         'STANDARD TRAINING': 'Legal VA Foundational Track',
         // The live topics table still carries the old "CM Training" / "Revised CM Training"
         // from before the rename; these put the full names on the cards without a migration.
-        'CM TRAINING': 'Case Management Track',
-        'REVISED CM TRAINING': 'Revised Case Management Track',
+        'CM TRAINING': 'Case Management Playbook',
+        'REVISED CM TRAINING': 'Revised Case Management Playbook',
         'EA  PA TRAINING-OUTSOURCED MANP': 'EA PA Track',
         'REVISED EA PA TRAINING': 'Revised EA PA Track',
         'CALENDAR MANAGEMENT TRAINING': 'Calendar Management Track',
@@ -440,15 +453,33 @@
         { key: 'FLASH CARDS', name: 'Flash Cards', sort_order: 0 }
     ];
     // Portal pages anyone can open from a card, with no access request: they live on this site.
-    // 🃏 Flash Cards: the Daily Digest (flashcards.html), one card a day from each deck; the deck links jump straight to it.
+    // 🃏 Flash Cards: one flash card a day on its own card (decks in flashcards-data.js); flashcards.html has the full digest.
     const PORTAL_TOOLS = { 'FLASH CARDS': '/flashcards.html' };
-    const DIGEST_DECKS = [['rules', 'Rules'], ['trivia', 'Trivia'], ['terms', 'Terminologies'], ['process', 'Process'], ['faqs', 'FAQs']];
     const toolCard = (t) => `
                 <div class="topic-card tool-card">
                     <h3>${escapeHtml(t.name)} <span class="topic-free">Daily</span></h3>
-                    <span class="topic-status approved">Daily Digest</span>
-                    <span class="topic-action-btn digest">${DIGEST_DECKS.map(([id, label]) => `<a href="${PORTAL_TOOLS[t.key]}#${id}" title="Today's ${label} card">${label}</a>`).join('')}</span>
+                    <div class="fc-mini" role="button" tabindex="0" aria-live="polite" aria-pressed="false" title="Today's flash card: click to flip">
+                        <span class="fc-mini-deck"></span><span class="fc-mini-text"></span>
+                    </div>
                 </div>`;
+    // 🃏 The Flash Cards card shows one flash card a day (flashcards-data.js one()); a click or Enter flips it to the answer.
+    function startFlashCards() {
+        const box = document.querySelector('.tool-card .fc-mini'), F = window.LSH_FLASHCARDS;
+        if (!box || !F || box.dataset.ready) return;
+        box.dataset.ready = '1';
+        const { deck, i } = F.one(), [q, a] = deck.cards[i], deckEl = box.querySelector('.fc-mini-deck'), textEl = box.querySelector('.fc-mini-text');
+        const show = () => {
+            const back = box.classList.contains('flip');
+            deckEl.innerHTML = escapeHtml(deck.icon) + '<b>' + escapeHtml(' ' + deck.label) + '</b>'; deckEl.title = deck.label + (back ? ': the answer' : '');
+            textEl.textContent = back ? a : q; box.title = (back ? a : q) + (back ? '\n\nClick to see the question' : '\n\nClick for the answer');
+            box.setAttribute('aria-pressed', back ? 'true' : 'false');
+            textEl.classList.remove('in'); void textEl.offsetWidth; textEl.classList.add('in');
+        };
+        const flip = () => { box.classList.toggle('flip'); show(); };
+        box.addEventListener('click', flip);
+        box.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); flip(); } });
+        show();
+    }
     // Shown first on the index, ahead of the progression, with a "Free" badge.
     const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
 
@@ -663,6 +694,7 @@
         };
         grid.className = 'topic-groups';
         grid.innerHTML = groupedTopicsHtml(cardFor);
+        startFlashCards();
     }
 
     // The cards are grouped by practice area: everything personal injury is in one place.
