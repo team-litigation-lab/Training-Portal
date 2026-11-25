@@ -1,4 +1,4 @@
-// The Calendaring Simulators' saved work (functions/api/calsim.js) on SQLite: a trainee saves and reads their own calendar, nobody but an admin
+// The Calendaring Sims' saved work (functions/api/calsim.js) on SQLite: a trainee saves and reads their own calendar, nobody but an admin
 // writes feedback (and a later save by the trainee keeps it), admins list everyone with name and batch, a trainer's preview saves nothing;
 // a trainer's CALENDAR MANAGEMENT MOCK CALL scorecard (each metric 0-5, the weighted average), on the same metrics as simulators/cal-scorecard.js.
 // Run: node --no-warnings .github/scripts/calsim.mjs   (from the repository root)

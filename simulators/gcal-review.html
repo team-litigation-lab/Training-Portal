@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trainee Evaluations — Legal Skills Hub</title>
+<title>Trainee Evaluations — LSH Nexus</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,8 +11,9 @@
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/simulators/sim.css">
 <style>
-    /* Trainee evaluations: the trainer's live review of calendars submitted from the Google Calendar Simulator (gcal.html) */
-    .rv-trainees { grid-column: 1 / -1; min-width: 0; } .rv-tsub { margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e5e7eb; } .rv-tsub .btn { margin-top: 4px; padding: 5px 10px; font-size: 12.5px; }
+    /* Trainee evaluations: the trainer's live review of calendars submitted from the Google Calendar Sim (gcal.html) */
+    .sim-wrap.rv-wide { max-width: 1760px; padding-top: 22px; } .rv-wide .sim-hero { padding: 20px 28px; margin-bottom: 18px; }   /* wider, one screen: the trainees' table and the review side by side */
+    .rv-trainees { grid-column: 1 / -1; min-width: 0; } .cs-ttable tbody.tc-person:hover .tc-trow { background: #fafbff; } .rv-tsub { margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e5e7eb; } .rv-tsub .btn { margin-top: 4px; padding: 5px 10px; font-size: 12.5px; }
     .rv { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
     .rv > * { min-width: 0; }
     .rv-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px 16px; min-width: 0; overflow-wrap: anywhere; }   /* a long address or link in a description wraps instead of widening the page */
@@ -70,11 +71,11 @@
 </head>
 <body>
 <div id="topbar"></div>
-<div class="sim-wrap">
+<div class="sim-wrap rv-wide">
     <section class="sim-hero">
         <div class="eyebrow">Trainers · Calendar Management</div>
         <h1>Trainee Evaluations</h1>
-        <p>Calendars your trainees submit from the Google Calendar Simulator, with the AI review written from the attorney’s rules and your own rules and notes. Open one, go through the feedback with the trainee as it comes in, add what the AI missed and your own insights, then <b>send the final report to the trainee</b>: they see it under <b>My Evaluations</b> (in the Portal and in the simulator) and can download it.</p>
+        <p>Calendars your trainees submit from the Google Calendar Sim, with the AI review written from the attorney’s rules and your own rules and notes. Open one, go through the feedback with the trainee as it comes in, add what the AI missed and your own insights, then <b>send the final report to the trainee</b>: they see it under <b>My Evaluations</b> (in the Portal and in the simulator) and can download it.</p>
     </section>
     <div id="app"><div class="sim-loading" style="padding:40px;text-align:center;">Loading…</div></div>
 </div>
@@ -367,15 +368,16 @@ function page() {
             <div id="rv-list" class="rv-list" role="group" aria-label="Submitted calendars"></div></div>
         <div><div id="rv-rules"></div><div id="rv-main"><div class="rv-card"><p class="rv-none">Open a submission on the left to review it with the trainee.</p></div></div></div></div>`;
     paintList();
-    if (typeof TraineesCalendars !== 'undefined') TraineesCalendars.load('#rv-trainees', { extra: traineeExtra });
+    if (typeof TraineesCalendars !== 'undefined') TraineesCalendars.load('#rv-trainees', { cols: TRAINEE_COLS });
 }
-// In the trainees' table (👥 Your trainees' calendars): each trainee's latest submission on the track, its AI review state, and a way into the review.
-function traineeExtra(p, trackId) {
-    const r = (R.list || []).filter(x => x.username === p.username && x.track === trackId).sort((a, b) => String(b.submittedAt).localeCompare(String(a.submittedAt)))[0];
-    if (!r) return '';
-    return `<div class="rv-tsub"><span class="rv-sub">📤 Submitted ${esc(when(r.submittedAt))}${r.checkScore != null ? ' · check ' + esc(r.checkScore) + '%' : ''}</span><div>${chip(r)}</div>
-        <button type="button" class="btn btn-navy" data-sub="${esc(r.id)}">${r.status === 'final' ? '📤 Open the sent report' : '👁 Open review'}</button></div>`;
-}
+// In the trainees' table (👥 Your trainees' calendars): each trainee's latest submission on the track, its AI review state, and a way into the review,
+// as three columns of that track's row.
+const latestSub = (p, trackId) => (R.list || []).filter(x => x.username === p.username && x.track === trackId).sort((a, b) => String(b.submittedAt).localeCompare(String(a.submittedAt)))[0];
+const TRAINEE_COLS = [
+    { title: '📤 Submitted', cell: (p, t) => { const r = latestSub(p, t); return r ? `<span class="rv-sub" style="white-space:nowrap">${esc(when(r.submittedAt))}${r.checkScore != null ? ' · check <b>' + esc(r.checkScore) + '%</b>' : ''}</span>` : ''; } },
+    { title: 'Review status', cell: (p, t) => { const r = latestSub(p, t); return r ? chip(r) : ''; } },
+    { title: 'Action', cell: (p, t) => { const r = latestSub(p, t); return r ? `<button type="button" class="btn btn-navy" style="padding:5px 10px;font-size:12.5px;white-space:nowrap" data-sub="${esc(r.id)}">${r.status === 'final' ? '📤 Open sent report' : '👁 Open review'}</button>` : ''; } }
+];
 const tsig = () => (R.list || []).map(r => [r.id, r.status, r.aiStatus].join(':')).join('|');
 async function openRow(id) {
     if (id === R.open && R.row) { const h = $('#rv-title'); if (h) h.focus(); return; }

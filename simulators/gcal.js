@@ -1,4 +1,4 @@
-/* Google Calendar Simulator (simulators/gcal.html; data in simulators/gcal-data.js).
+/* Google Calendar Sim (simulators/gcal.html; data in simulators/gcal-data.js).
    The Foundational Training's Calendar Management practice (Day 6): callers ask for appointments, and the
    trainee puts them on the attorney's calendar in a Google Calendar look-alike, then checks the calendar.
 
@@ -137,7 +137,7 @@ const isNewConsult = (e) => Object.keys(GCAL_TYPES).some(t => GCAL_TYPES[t].newC
 const nmins = (n) => (+n.v || 0) * ({ minutes: 1, hours: 60, days: 1440, weeks: 10080 }[n.u] || 1);
 const reqDef = (id) => GCAL_REQUESTS.find(r => r.id === id);
 // The track this page runs (gcal.html?track=standard|cm|ea; gcal-data.js GCAL_TRACKS): "standard" is the original Google Calendar
-// Simulator, and its numbers below are the ones it always had. The Case Management and EA / PA clones change the week, the callers,
+// Sim, and its numbers below are the ones it always had. The Case Management and EA / PA clones change the week, the callers,
 // the rules and these numbers, nothing else.
 const CFG = GCAL_CFG;
 // 📝 The blank calendar (gcal.html?track=activity, gcal-data.js GCAL_ACT_*): Standard Training's calendar with no attorney's week, no callers
@@ -150,7 +150,7 @@ const BLANK = !!CFG.blank;
    requests panel. Scores also reach the Progress page (functions/api/program-progress.js). */
 const GT = GCAL_TRACK;                                    // standard | cm | ea
 const RVQ = new URLSearchParams(location.search).get('review') || '';
-// A trainer looking at a trainee's calendar as they last saved it (gcal.html?trainee=<username>, from the Calendaring Simulators
+// A trainer looking at a trainee's calendar as they last saved it (gcal.html?trainee=<username>, from the Calendaring Sims
 // page): read only like a review, with the automated check and the CALENDAR MANAGEMENT MOCK CALL scorecard (cal-scorecard.js).
 const TVQ = String(new URLSearchParams(location.search).get('trainee') || '').trim().slice(0, 80);
 const RV = RVQ.indexOf('|') > 0 ? { user: RVQ.slice(0, RVQ.indexOf('|')), at: RVQ.slice(RVQ.indexOf('|') + 1), sub: null, review: null, name: '', batch: '' }
@@ -521,7 +521,7 @@ async function cloudLoad(force) {
 function cloudText() {
     const t = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     return ({ pending: 'Unsaved changes…', saving: 'Saving…', saved: CLOUD.at ? `✓ Saved to your account ${t(CLOUD.at)}` : '✓ Saved to your account',
-        error: '⚠ Not saved to your account yet (kept in this browser). Try 💾 Save again.', newer: '⚠ A newer copy of this calendar is saved to your account (another tab or device). Your changes here are kept in this browser, not sent.', off: 'Sign in to the Legal Skills Hub to save your calendar to your account (it’s kept in this browser for now).' })[CLOUD.state] || 'Your calendar saves to your account as you work.';
+        error: '⚠ Not saved to your account yet (kept in this browser). Try 💾 Save again.', newer: '⚠ A newer copy of this calendar is saved to your account (another tab or device). Your changes here are kept in this browser, not sent.', off: 'Sign in to LSH Nexus to save your calendar to your account (it’s kept in this browser for now).' })[CLOUD.state] || 'Your calendar saves to your account as you work.';
 }
 function cloudHtml() {
     if (!cloudOn() || RV) return '';   // (a trainer looking at a trainee's calendar saves nothing)
@@ -1263,7 +1263,7 @@ async function reviewStart() {
 /* ---------- 👁 a trainee's calendar, for their trainer (?trainee=<username>) ----------
    Their calendar as they last saved it to their account (gcal_drafts), read only; the automated check run on it now; and the
    trainer's CALENDAR MANAGEMENT MOCK CALL scorecard (each metric 0-5 with feedback, the weighted average), saved in the trainee's
-   /api/calsim record. The trainee sees the scorecard in their requests panel and on the Calendaring Simulators page. */
+   /api/calsim record. The trainee sees the scorecard in their requests panel and on the Calendaring Sims page. */
 async function liveStart(again) {
     if (!again) { S = fresh(); S.panel = 'result'; render(); }
     try {
@@ -1286,6 +1286,9 @@ async function liveStart(again) {
         S = Object.assign(fresh(), RV.empty ? {} : c, { panel: 'result', side: false }, again ? keep : {});
         if (OPEN) S.reqs = []; else if (!Array.isArray(S.reqs)) S.reqs = [];
         S.result = Object.assign(checkNow(), { at: new Date().toISOString() });
+        // (📝 the Calendaring Activity: the check run here is kept for the Foundational Training's Graders, gcal-reviews.js activity-check)
+        if (BLANK && !RV.empty && S.result) Sim.fetchRetry(EV_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'activity-check', user: RV.user, score: S.result.score, met: S.result.met, total: S.result.total, right: S.result.right, entries: S.result.entries, savedAt: RV.savedAt || '' }) }).catch(() => {});
         if (!again) { S.anchor = S.today; S.mini = S.today.slice(0, 7); }
         closeAll(); render(); watchScorecards();
         if (again) snack('Their calendar is up to date');
@@ -1537,7 +1540,7 @@ async function submitEval() {
         try {
             const res = await Sim.fetchRetry(EV_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ action: 'submit' }, p)) });
             const d = await res.json().catch(() => ({}));
-            if (res.status === 401) { snack('Sign in to the Legal Skills Hub to submit.'); return; }
+            if (res.status === 401) { snack('Sign in to LSH Nexus to submit.'); return; }
             if (!res.ok || !d.success) { snack(d.error || 'Could not submit. Try again.'); return; }
             S.panel = 'evals'; EV.open = null; save(); renderPanel(); renderRail(); snack('Submitted to your trainer'); loadEvals();
         } catch (e) { snack('Could not submit: check your connection.'); }
@@ -1773,8 +1776,8 @@ async function start() {
     fitScreen();
     await Sim.restore();   // opened in a new tab: the cookie says who is signed in (an admin must not be treated as a trainee), and the heartbeat starts
     const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal');
-    if (TRK) document.title = 'Basic Calendaring · ' + CFG.label + ' — Legal Skills Hub';
-    if (TRK) { const eb = document.querySelector('.eyebrow'); if (eb) eb.textContent = 'Simulator · ' + CFG.scenario; }
+    if (TRK) document.title = 'Basic Calendaring · ' + CFG.label + ' — LSH Nexus';
+    if (TRK) { const eb = document.querySelector('.eyebrow'); if (eb) eb.textContent = 'Sim · ' + CFG.scenario; }
     heroRules();
     if (RV) { if (RV.live) liveStart(); else reviewStart(); return; }
     S = load() || fresh(); save(true);   // (local only: the copy saved to their account may be newer, cloudLoad below)

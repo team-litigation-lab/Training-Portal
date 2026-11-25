@@ -36,7 +36,7 @@ jobs:
         run: node --no-warnings .github/scripts/set-password.mjs
       - name: Trainer names (a trainee sees a trainer by name, never by username)
         run: node --no-warnings .github/scripts/trainer-names.mjs
-      - name: Front door (signed-in trainees and admins go straight to the Training Directory; only a signed-out browser sees a sign-in box)
+      - name: Front door (signed-in trainees and admins go straight to LSH Academy Index; only a signed-out browser sees a sign-in box)
         run: node --no-warnings .github/scripts/front-door.mjs
       - name: Only @legalsupporthelp.com Google accounts (with GOOGLE_CLIENT_ID, a personal account is refused before the password and told to switch Chrome profile; every page and API needs it)
         run: node --no-warnings .github/scripts/google-only.mjs
@@ -52,9 +52,9 @@ jobs:
         run: node --no-warnings .github/scripts/pending-registrations.mjs
       - name: Revoking an account files their records to their batch folder first, then leaves nothing of their work (any trainer revokes another trainer, never themselves or the master account)
         run: node --no-warnings .github/scripts/revoke-purge.mjs
-      - name: Simulator SSO (a simulator framed beside a lesson keeps its session; another site cannot spend it)
+      - name: Sim SSO (a simulator framed beside a lesson keeps its session; another site cannot spend it)
         run: node --no-warnings .github/scripts/sso-frame.mjs
-      - name: Calendaring Simulators' saved work (trainee saves, admin-only feedback)
+      - name: Calendaring Sims' saved work (trainee saves, admin-only feedback)
         run: node --no-warnings .github/scripts/calsim.mjs
       - name: Calendar Management Mock Call scorecard shared with the Foundational Training
         run: node --no-warnings .github/scripts/calsim-scorecard.mjs
@@ -66,9 +66,9 @@ jobs:
         run: node --no-warnings .github/scripts/gcal-schedule.mjs
       - name: AI gateway (one shared budget for every call flow; per-flow share, per-minute and per-person limits)
         run: node --no-warnings .github/scripts/ai-gateway.mjs
-      - name: The Call Simulator opens LSH Ring Channel's practice phone (signed in, on the link's line, graded when it asks)
+      - name: The Call Sim opens LSH Voice's practice phone (signed in, on the link's line, graded when it asks)
         run: node --no-warnings .github/scripts/calls-route.mjs
-      - name: LSH Ring Channel opens from the Portal (signed in; admins to its trainer sign-in; linked on the Portal)
+      - name: LSH Voice opens from the Portal (signed in; admins to its trainer sign-in; linked on the Portal)
         run: node --no-warnings .github/scripts/ringchannel.mjs
       - name: A sign-in ticket names the one program or tool it is for, and the tools' check refuses a program's ticket
         run: node --no-warnings .github/scripts/sso-audience.mjs
@@ -82,9 +82,9 @@ jobs:
         run: node --no-warnings .github/scripts/progress-identity.mjs
       - name: Attendance names every course's days as the course does (FT's 8 lessons, EA / PA's titles, CM's Case Flow days 11-15)
         run: node --no-warnings .github/scripts/attendance-days.mjs
-      - name: Graded calls from the Call Simulator count in the trainee's course (the Portal's results and each course's store)
+      - name: Graded calls from the Call Sim count in the trainee's course (the Portal's results and each course's store)
         run: node --no-warnings .github/scripts/call-results.mjs
-      - name: Simulator results count in the trainee's own record and course (the account's name, each course's store)
+      - name: Sim results count in the trainee's own record and course (the account's name, each course's store)
         run: node --no-warnings .github/scripts/sim-results.mjs
       - name: Backup Drive (the CM course's structure, graded automatically and scored; built in the trainee's own Google Drive; tokens sealed; trainers read only)
         run: node --no-warnings .github/scripts/drive-backup.mjs
@@ -118,7 +118,7 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/email-targeting.cjs
-      - name: Simulator pages keep a signed-in person (a trainee's session and heartbeat, a new tab asks /api/me once, retry on SESSION_EXPIRED, a second trainee starts clean)
+      - name: Sim pages keep a signed-in person (a trainee's session and heartbeat, a new tab asks /api/me once, retry on SESSION_EXPIRED, a second trainee starts clean)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/sim-session.cjs
@@ -126,11 +126,11 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/sim-identity.cjs
-      - name: Google Calendar Simulator (the week, every request doable, the check, the page, an Admin's schedule)
+      - name: Google Calendar Sim (the week, every request doable, the check, the page, an Admin's schedule)
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/gcal.cjs
-      - name: Google Calendar Simulator submit and trainer review
+      - name: Google Calendar Sim submit and trainer review
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node .github/scripts/gcal-review.cjs

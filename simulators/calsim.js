@@ -1,5 +1,5 @@
 /* ============================================================
-   📅 Calendaring Simulators on the Main Portal (/simulators/calsim.html): drag-and-drop, Google Calendar style, with an automated
+   📅 Calendaring Sims on the Main Portal (/simulators/calsim.html): drag-and-drop, Google Calendar style, with an automated
    review and trainer feedback. Three tracks (FTCalCore.TRACKS in calsim-core.js): Standard Training, Litigation Week (Case
    Management) and Executive Week (EA / PA).
      • The week is a Monday to Friday grid in 15-minute steps (Eastern Time). The attorney's fixed events are locked. The brief lists
@@ -149,7 +149,7 @@ function historyHTML(){
     const r = S.data.reviews[subKey(last)], au = C.review(s, last.events);
     return `<div class="cs-hist-row"><span class="cs-pill ok">📤 ${e(s.short)} submitted ${e(new Date(last.at).toLocaleString())}</span><span class="cs-pill ${au.passed ? "ok" : ""}">🤖 Automated: ${au.pct}%</span>${autoPill}${r ? "" : `<span class="cs-pill">Waiting for your trainer’s feedback</span>`}${reviewBox(r)}</div>`;
   }).join("");
-  const ext = S.data.external.slice(-3).reverse().map(x => `<span class="cs-pill">${e(x.title || "Simulator")}: ${Math.round(x.score)}/${Math.round(x.max)}</span>`).join("");
+  const ext = S.data.external.slice(-3).reverse().map(x => `<span class="cs-pill">${e(x.title || "Sim")}: ${Math.round(x.score)}/${Math.round(x.max)}</span>`).join("");
   return `<div class="cs-hist">${rows}${ext}</div>`;
 }
 function renderPage(){
@@ -159,12 +159,12 @@ function renderPage(){
   const trackTabs = C.TRACKS.map(x => `<button class="cs-tab ${x.id === tk.id ? "active" : ""}" onclick="FTCalSim.open('${x.id}')">${x.icon} ${e(x.title)} <i>${e(x.where)}</i></button>`).join("");
   // the week tabs are their own balanced row (splicing a bare </div> into the string left single-week tracks with a stray close)
   const weekTabs = C.SCENARIOS.filter(x => x.track === tk.id).length > 1 ? `<div class="cs-tabs cs-weeks">` + C.SCENARIOS.map((x, i) => x.track === tk.id ? `<button class="cs-tab cs-wk ${i === S.scn ? "active" : ""}" onclick="FTCalSim.pick(${i})">${e(x.title)} <i>${e(x.level)}</i></button>` : "").join("") + `</div>` : "";
-  return `<div class="cs-wrap"><div class="cs-top"><div><h1>📅 Calendaring Simulators</h1>
+  return `<div class="cs-wrap"><div class="cs-top"><div><h1>📅 Calendaring Sims</h1>
       <p class="cs-lead">Build the week in a Google Calendar style, run the automated review, then submit it to your trainer.</p></div>
-      <div><button class="btn btn-ghost btn-sm" onclick="location.href='/simulators.html'">← Simulators</button></div></div>
+      <div><button class="btn btn-ghost btn-sm" onclick="location.href='/simulators.html'">← LSH Sims</button></div></div>
     <div class="cs-tabs">${trackTabs}</div>${weekTabs}
     <p class="cs-blurb">${e(tk.blurb)}</p>
-    <p class="cs-also">Also in Calendaring: <a href="/simulators/gcal.html${carry}">📞 Google Calendar Simulator</a> (book callers’ appointments) · <a href="/simulators/calendar.html${carry}">🗓 Conflicts week</a> (CM · EA/PA)</p>
+    <p class="cs-also">Also in Calendaring: <a href="/simulators/gcal.html${carry}">📞 Google Calendar Sim</a> (book callers’ appointments) · <a href="/simulators/calendar.html${carry}">🗓 Conflicts week</a> (CM · EA/PA)</p>
     <div class="card cs-brief">${e(s.brief)}</div>
     ${S.err ? `<div class="cs-err">${e(S.err)}</div>` : ""}
     <div class="cs-main">${tasksHTML()}<div><div class="cs-gridwrap">${gridHTML()}</div><p class="cs-hint cs-legend">Eastern Time. Drag on an empty spot to add an event · drag to move · drag the bottom edge to resize · double-click to edit its details · ✕ deletes. Red means a clash, missing travel time or outside 9 to 5.</p></div></div>
@@ -176,8 +176,8 @@ function renderPage(){
     <p class="cs-hint">The automated review checks your calendar against the attorney’s rules (conflicts, travel time, business hours, each task’s days and times) and tells you what to fix. Your trainer then adds their own feedback to what you submit.</p>
     <div id="csResultBox">${resultHTML()}</div>
     ${historyHTML()}
-    <div class="card cs-more"><b>🔗 Also graded for your trainer</b><p>The Portal’s Calendaring Simulator is another week of scheduling conflicts. It opens in its own tab with your name and batch, so its score is saved for your trainer too.</p>
-      <a class="btn btn-ghost btn-sm" href="${e(portalHref())}" target="_blank" rel="noopener">Open the Portal’s Calendaring Simulator ↗</a></div></div>`;
+    <div class="card cs-more"><b>🔗 Also graded for your trainer</b><p>The Portal’s Calendaring Sim is another week of scheduling conflicts. It opens in its own tab with your name and batch, so its score is saved for your trainer too.</p>
+      <a class="btn btn-ghost btn-sm" href="${e(portalHref())}" target="_blank" rel="noopener">Open the Portal’s Calendaring Sim ↗</a></div></div>`;
 }
 function portalHref(){ return PORTAL + "calendar.html"; }
 function repaint(){
@@ -392,7 +392,7 @@ function renderAdminScores(){
   const groups = {}; A.rows.forEach(x => { (groups[x.batch] = groups[x.batch] || []).push(x); });
   const keys = Object.keys(groups).sort((a, b) => (a === "") - (b === "") || b.localeCompare(a, undefined, {numeric:true}));
   return `<div class="card cs-admin"><h3>📅 Calendar Scores${FILT ? ` · ${e(C.trackOf(FILT).title)} (${e(C.trackOf(FILT).where)})` : ""}</h3>
-    <p class="cs-hint">Each trainee’s calendars, with scores per trainee. Open a submission to see exactly what they built, the automated review against the attorney’s rules, and add your own feedback: a score out of 100, an overall comment and a comment on each task. They see your feedback on their Calendar Scheduler page. Scores from the Portal’s Calendaring Simulator are saved on the Portal under program FT; any result it posts back shows here too.</p>
+    <p class="cs-hint">Each trainee’s calendars, with scores per trainee. Open a submission to see exactly what they built, the automated review against the attorney’s rules, and add your own feedback: a score out of 100, an overall comment and a comment on each task. They see your feedback on their Calendar Scheduler page. Scores from the Portal’s Calendaring Sim are saved on the Portal under program FT; any result it posts back shows here too.</p>
     ${A.rows.length ? keys.map(b => `<section class="fp-batch"><div class="fp-batch-hd" onclick="FTCalAdmin.batch(${e(JSON.stringify(b))})">${A.closed[b] ? "▸" : "▾"} <b>📁 ${e(b ? "Batch " + b : "No batch set")}</b> <span class="fp-muted">${groups[b].length} trainee${groups[b].length === 1 ? "" : "s"}</span></div>
       ${A.closed[b] ? "" : groups[b].map(x => { const n = subsOf(x).length, u = unreviewed(x); return `<div class="fp-arow"><div class="fp-arow-hd" onclick="FTCalAdmin.row('${e(x.id)}')">${A.open[x.id] ? "▾" : "▸"} <b>${e(x.name)}</b>
         ${n ? `<span class="cs-pill ok">📤 ${n} submitted</span>` : `<span class="cs-pill">Not submitted</span>`}${scoresOf(x)}${u ? `<span class="cs-pill warn">${u} to review</span>` : n ? `<span class="cs-pill ok">All reviewed</span>` : ""}</div>

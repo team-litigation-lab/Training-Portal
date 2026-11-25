@@ -1,4 +1,4 @@
-/* Legal Skills Hub — Email Workspace (universal Gmail-style simulator).
+/* LSH Nexus — Email Workspace (universal Gmail-style simulator).
    Packs: built-in (EMAIL_PACKS) or generated for any program. Each email leaves the
    Inbox through one decision; every email gets a label (folders + nested sub-labels).
    Grades: filing, security (phishing), triage decisions and reply writing. */
@@ -119,7 +119,7 @@ function render(){
     app.innerHTML = `${saved && saved.pack ? `<div class="sim-card" style="margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><div style="flex:1;"><b>Continue where you left off</b><div class="sim-muted" style="font-size:13px;">${esc(saved.pack.title)} · ${Object.keys(saved.meta||{}).length}/${(saved.emails||[]).length} handled</div></div><button class="sim-btn primary" onclick="wsResume()">Continue →</button></div>` : ''}
     <div class="pk-grid">
       ${(WS_START==='ea' ? ['ea','cm'] : ['cm','ea']).map(k=>{ const p = EMAIL_PACKS[k]; return `<div class="sim-card pk"><span class="sim-chip ${k==='cm'?'next':'input'}" style="align-self:flex-start;">${esc(p.program)}</span><h3>${esc(p.title)}</h3><p>${esc(p.role)}</p><div class="sim-muted" style="font-size:12.5px;">${p.emails.length} emails · ${p.labels.length} starter labels · includes a phishing attempt</div><button class="sim-btn primary" onclick="wsStart(EMAIL_PACKS['${k}'])">Open this inbox →</button></div>`; }).join('')}
-      <div class="sim-card pk"><span class="sim-chip live" style="align-self:flex-start;">Any program</span><h3>Generate an inbox for any program</h3><p>Pick a program from the Training Index. A fresh inbox is written for that program’s role — its own labels, senders, deadlines and a phishing attempt. Different every time.</p>
+      <div class="sim-card pk"><span class="sim-chip live" style="align-self:flex-start;">Any program</span><h3>Generate an inbox for any program</h3><p>Pick a program from LSH Academy Index. A fresh inbox is written for that program’s role — its own labels, senders, deadlines and a phishing attempt. Different every time.</p>
         <select id="pkProgram">${WS_PROGRAMS.map(p=>`<option>${esc(p)}</option>`).join('')}</select>
         <button class="sim-btn orange" id="pkGen" onclick="wsGenerate()">Generate inbox →</button><div id="pkStatus"></div></div>
     </div>`;

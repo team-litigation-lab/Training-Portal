@@ -92,6 +92,13 @@ const count = (q, ...a) => Number(one(q, ...a).n);
 const idOf = (username) => one(`SELECT id FROM users WHERE username = ?`, username).id;
 
 const trainer = await cookieFor('matt', 'Admin');
+// (a revoke runs in steps — revoke-user.js: collect → account → course → block — that the page chains: so does this)
+const steps = [];
+const revokeAll = async (cookie, body) => {
+    let r = await read(await revoke.onRequestPost({ request: req(cookie, body), env }));
+    for (let n = 0; r.status === 200 && r.body.more && n < 50; n++) { steps.push(r.body.step); r = await read(await revoke.onRequestPost({ request: req(cookie, { userId: body.userId }), env })); }
+    return r;
+};
 
 // 1. No Drive configured: the first call hands the records back and deletes nothing.
 let r = await read(await revoke.onRequestPost({ request: req(trainer, { userId: idOf('ana') }), env }));
@@ -105,7 +112,7 @@ check(!(rec.course[0].keys || []).some(k => /t-ana2|u88|access:blocked/.test(k.k
 check(!JSON.stringify(rec.course || []).includes('Ben Cruz'), "and nobody else's");
 
 // 2. With the backup saved, everything of hers goes.
-r = await read(await revoke.onRequestPost({ request: req(trainer, { userId: idOf('ana'), backupSaved: true }), env }));
+r = await revokeAll(trainer, { userId: idOf('ana'), backupSaved: true });
 check(r.status === 200 && r.body.success, `the second call does the deleting: ${r.status} ${r.body.error || ''}`);
 check(!one(`SELECT id FROM users WHERE username = 'ana'`), 'the account is gone');
 for (const [what, q] of [
@@ -151,7 +158,7 @@ sql.exec(`INSERT INTO users (username, first_name, mi, last_name, email, status,
 kvData.set('ft:trainee:mark-christian-lucban--b103026', { id: 'mark-christian-lucban--b103026', name: 'Mark Christian Lucban', fullName: 'Mark Christian D. Lucban', batch: 'B103026' });
 kvData.set('ft:feedback:mark-christian-lucban--b103026', { days: {} });
 kvData.set('ft:trainee:mark-christian-lucban--b010125', { id: 'mark-christian-lucban--b010125', name: 'Mark Christian Lucban', batch: 'B010125' });
-r = await read(await revoke.onRequestPost({ request: req(trainer, { userId: idOf('mark'), backupSaved: true }), env }));
+r = await revokeAll(trainer, { userId: idOf('mark'), backupSaved: true });
 check(r.status === 200 && r.body.success, `revoking a trainee with a middle initial: ${r.status} ${r.body.error || ''}`);
 check(!kvData.has('ft:trainee:mark-christian-lucban--b103026') && !kvData.has('ft:feedback:mark-christian-lucban--b103026'),
     "his Foundational Training record (first + last name, the short Batch ID) is gone, so he leaves its Scorecard");
@@ -160,13 +167,45 @@ check(kvData.has('ft:trainee:mark-christian-lucban--b010125'), 'the same name in
 // 7. A trainer revokes another trainer; never their own account, and nobody the Master Account.
 sql.exec(`INSERT INTO users (username, first_name, last_name, email, status, user_type, batch_id) VALUES
  ('jo','Jo','Lim','j@x','Approved','Admin',NULL), ('LSHADMIN123','System','Administrator','s@x','Approved','Admin','MASTER-ADMIN')`);
-r = await read(await revoke.onRequestPost({ request: req(trainer, { userId: idOf('jo'), backupSaved: true }), env }));
+r = await revokeAll(trainer, { userId: idOf('jo'), backupSaved: true });
 check(r.status === 200 && r.body.success, `a trainer revokes another trainer: ${r.status} ${r.body.error || ''}`);
 check(!one(`SELECT id FROM users WHERE username = 'jo'`), "the other trainer's account is gone");
-r = await read(await revoke.onRequestPost({ request: req(trainer, { userId: idOf('matt'), backupSaved: true }), env }));
+r = await revokeAll(trainer, { userId: idOf('matt'), backupSaved: true });
 check(r.status === 403 && !!one(`SELECT id FROM users WHERE username = 'matt'`), `a trainer cannot revoke their own account: ${r.status}`);
-r = await read(await revoke.onRequestPost({ request: req(trainer, { userId: idOf('LSHADMIN123'), backupSaved: true }), env }));
+r = await revokeAll(trainer, { userId: idOf('LSHADMIN123'), backupSaved: true });
 check(r.status === 403 && !!one(`SELECT id FROM users WHERE username = 'LSHADMIN123'`), `nobody revokes the Master Account: ${r.status}`);
+
+// 8. ⚙ In steps, and never left half-done. The revoke goes collect → account → course → block, each its own request
+//    (a Cloudflare request allows about 1,000 storage operations; the course search alone takes up to 800).
+check(['account', 'course', 'block'].every(x => steps.includes(x)), `a revoke runs in its steps: ${[...new Set(steps)].join(' → ')}`);
+const reqGet = (cookie) => new Request('https://p/api/revoke-user', { headers: { cookie } });
+sql.exec(`INSERT INTO users (username, first_name, last_name, email, status, user_type, batch_id) VALUES ('zed','Zed','Ocampo','z@x','Approved','Trainee','B101026')`);
+kvData.set('cm:trainee:t-zed', { id: 't-zed', name: 'Zed Ocampo', batch: 'B101026' });
+kvData.set('cm:feedback:t-zed', { days: {} });
+const zed = idOf('zed');
+//    a. a step that fails (the course storage unreachable) keeps the job where it was; the account is already gone
+r = await read(await revoke.onRequestPost({ request: req(trainer, { userId: zed, backupSaved: true }), env }));   // collect
+r = await read(await revoke.onRequestPost({ request: req(trainer, { userId: zed }), env }));                      // account
+check(r.status === 200 && r.body.step === 'course' && !one(`SELECT id FROM users WHERE username = 'zed'`), `the account step: the account gone, the course records next (${r.body.step})`);
+const del = kv.delete; kv.delete = async () => { throw new Error('KV down'); };
+r = await read(await revoke.onRequestPost({ request: req(trainer, { userId: zed }), env }));
+kv.delete = del;
+check(r.status === 500 && /revoke them again to carry on/i.test(r.body.error || '') && kvData.has('cm:trainee:t-zed'), `a failed step says so and keeps the job: ${r.status} ${r.body.error || ''}`);
+//    b. the tab closed: the account isn't on the list to click again, but the Users page finds the job and finishes it
+let g = await read(await revoke.onRequestGet({ request: reqGet(trainer), env }));
+check(g.status === 200 && (g.body.jobs || []).some(j => String(j.userId) === String(zed) && j.username === 'zed' && j.step === 'course'), `the unfinished revoke is listed for the Users page: ${JSON.stringify(g.body)}`);
+r = await revokeAll(trainer, { userId: zed });
+check(r.status === 200 && r.body.done, `revoking again carries on from there, not "User not found": ${r.status} ${r.body.error || ''}`);
+check(!kvData.has('cm:trainee:t-zed') && !kvData.has('cm:feedback:t-zed'), 'and their course records are gone');
+check(count(`SELECT COUNT(*) n FROM deleted_users WHERE username = 'zed'`) === 1, 'tombstoned once, though the steps ran more than once');
+g = await read(await revoke.onRequestGet({ request: reqGet(trainer), env }));
+check(g.status === 200 && !(g.body.jobs || []).length, 'and the job is closed');
+//    c. nothing is left half-done before the backup: a revoke stopped at its backup leaves the account and its work
+sql.exec(`INSERT INTO users (username, first_name, last_name, email, status, user_type, batch_id) VALUES ('kim','Kim','Sy','k@x','Approved','Trainee','B101026')`);
+r = await read(await revoke.onRequestPost({ request: req(trainer, { userId: idOf('kim') }), env }));
+check(r.body.needsBackup && !!one(`SELECT id FROM users WHERE username = 'kim'`), 'a revoke waiting on its backup has deleted nothing');
+g = await read(await revoke.onRequestGet({ request: reqGet(trainer), env }));
+check(!(g.body.jobs || []).some(j => j.username === 'kim'), 'and is not finished on its own: she is still on the list to revoke again');
 
 if (failures.length) { console.log(`\n${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
 console.log('\nRevoke test passed (the records are filed before anything is deleted, then nothing of theirs is left, scores included; the audit trail and the tombstone stay; the rest of the batch is untouched).');

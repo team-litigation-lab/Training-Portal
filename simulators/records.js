@@ -1,4 +1,4 @@
-/* Legal Skills Hub — Medical Records Requests simulator.
+/* LSH Nexus — Medical Records Requests simulator.
    A records request center: check the HIPAA authorization, request records and itemized bills
    from providers, move the simulated calendar forward, and handle what comes back: rejections,
    invoices, silence, partial records. Review what arrives, flag problems, log it to the case
@@ -7,7 +7,7 @@
    What a provider produces is a document, not a summary: when a request is produced, the records
    and the itemized bill are built as real files (records-docs.js) the trainee reads, downloads as
    a PDF named the firm's way, and files into the case file on the platform they came from — the
-   CMS Platform, the Case Management course or the Medical Summary & Demand course. Logging to the
+   LSH CaseWorks, the Case Management course or the Medical Summary & Demand course. Logging to the
    case file is what the objectives score; producing and filing the document is the work it stands
    for, so the two sit side by side on each delivery.
 
@@ -370,7 +370,7 @@ function renderFile() {
 }
 /* Where these documents belong: the platform the trainee is requesting from, the Case ID on that
    case, and the one naming convention every file goes in under. Nothing is guessed — a Case ID the
-   launcher didn't pass is typed here, and until it is, files are named NO-CASE-ID_… as the CMS
+   launcher didn't pass is typed here, and until it is, files are named NO-CASE-ID_… as LSH CaseWorks
    itself names a file uploaded before the case has its ID. */
 function destCard() {
     const id = String(DEST.caseId || '').trim(), real = /\d/.test(id) && /^[A-Za-z0-9-]+$/.test(id);
@@ -382,11 +382,11 @@ function destCard() {
             ${real ? `<span class="mrd-eg ok">Files named <code>${E(MRDocs.fileName({ caseId: id, patient: SC.client, kind: 'records' }))}</code></span>`
                 : '<span class="mrd-eg warn">Without it, files are named <code>NO-CASE-ID_…</code> — open your case and copy its Case ID in</span>'}</label>
         <p style="margin:8px 0 0">${DEST.key === 'portal'
-            ? 'Opened on its own, from the Portal rather than from a case, so there is no case to file into: <b>⬇ Download PDF</b> each document and add it on your own case file. Open this platform from the CMS or from your course and <b>📤 File it</b> files them for you.'
+            ? 'Opened on its own, from the Portal rather than from a case, so there is no case to file into: <b>⬇ Download PDF</b> each document and add it on your own case file. Open this platform from LSH CaseWorks or from your course and <b>📤 File it</b> files them for you.'
             : DEST.wired
                 ? `<b>📤 File it</b> puts the document straight into the case you have open in ${E(DEST.name)} — keep it open beside this platform. Otherwise <b>⬇ Download PDF</b> and add it on ${E(DEST.files)} yourself.
                    <br><a href="${E(DEST.fromUrl)}" target="_blank" rel="noopener">Open ${E(DEST.name)} ↗</a>`
-                : `<b>⬇ Download PDF</b> each document and add it on ${E(DEST.files)}. <b>📤 File it</b> works when you open this platform from the CMS itself, with your case open in it.
+                : `<b>⬇ Download PDF</b> each document and add it on ${E(DEST.files)}. <b>📤 File it</b> works when you open this platform from LSH CaseWorks itself, with your case open in it.
                    <br><a href="${E(DEST.fromUrl)}" target="_blank" rel="noopener">Open ${E(DEST.name)} ↗</a>`}</p>
     </div></div>`;
 }

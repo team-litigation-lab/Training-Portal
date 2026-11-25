@@ -1,5 +1,5 @@
-/* Legal Skills Hub — the final feedback report of a calendar evaluation (gcal_reviews, functions/api/gcal-reviews.js).
-   Shared by the trainee's My Evaluations page (simulators/my-evaluations.html) and the Google Calendar Simulator's My evaluations panel.
+/* LSH Nexus — the final feedback report of a calendar evaluation (gcal_reviews, functions/api/gcal-reviews.js).
+   Shared by the trainee's My Evaluations page (simulators/my-evaluations.html) and the Google Calendar Sim's My evaluations panel.
    EvalReport.html(r)  the report as HTML (overview, done correctly, needs improvement, missed, the trainer's feedback)
    EvalReport.pdf(r, label, onError)  the same as a PDF download (needs jsPDF on the page)
    `r` is a finalized review as the API gives it to its trainee: { submittedAt, checkScore, finalizedAt, finalizedBy, name, batch, ai, trainer, calendar }. */
@@ -33,8 +33,8 @@ const EvalReport = (function () {
         const bullets = (items) => { if (!(items || []).length) { line('None.', 10.5, false, [112, 117, 122]); return; }
             items.forEach(x => { doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); const ls = doc.splitTextToSize(ascii(x), W - 2 * M - 14); page(ls.length * 14.5); doc.setTextColor(31, 31, 31); doc.text('-', M, y); ls.forEach(l => { doc.text(l, M + 14, y); y += 14.5; }); y += 2; }); };
         const h = (s) => { y += 8; page(30); line(s, 13, true, [11, 87, 208]); y += 2; };
-        line('Legal Skills Hub - Calendar Evaluation', 18, true, [20, 33, 61]);
-        line(`${label || 'Standard Training'} - Google Calendar Simulator`, 11, false, [68, 71, 70]); y += 6;
+        line('LSH Nexus - Calendar Evaluation', 18, true, [20, 33, 61]);
+        line(`${label || 'Standard Training'} - Google Calendar Sim`, 11, false, [68, 71, 70]); y += 6;
         line(`Trainee: ${r.name || ''}${r.batch ? ' (' + r.batch + ')' : ''}`, 10.5);
         line(`Submitted: ${when(r.submittedAt)}   Sent: ${when(r.finalizedAt)} by ${r.finalizedBy || 'the trainer'}`, 10.5);
         line(`Automated check: ${r.checkScore == null ? '-' : r.checkScore + '%'}${t.score != null ? `   Trainer's score: ${t.score}/100` : ''}`, 10.5);

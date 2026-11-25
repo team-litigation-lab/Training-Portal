@@ -53,7 +53,7 @@
     <circle cx="1330" cy="75" r="2.5"/><circle cx="1300" cy="140" r="2.5"/>
     <circle cx="1360" cy="170" r="2.5"/><circle cx="1400" cy="55" r="2.2"/>
   </g>
-  <!-- a faint dotted grid, the same device the Training Directory's own hero uses for
+  <!-- a faint dotted grid, the same device LSH Academy Index's own hero uses for
        a "data" texture, kept sparse and low-contrast so it reads as ambient, not pattern -->
   <g fill="#ffffff" fill-opacity=".08">
     <circle cx="1440" cy="690" r="1"/><circle cx="1470" cy="690" r="1"/><circle cx="1500" cy="690" r="1"/>

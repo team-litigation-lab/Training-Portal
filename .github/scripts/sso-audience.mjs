@@ -4,7 +4,7 @@
 //   - /api/launch puts p = the program's topic key (or the tool's id) in every ticket it makes, a trainee's and an admin's,
 //     and the trainee's full name (middle initial, suffix) as `full`; the first and last name stay as they were.
 //   - /api/sso-check's system ticket names the program it is sent to.
-//   - /api/verify-ticket (the CMS, the KB, Ring Channel) and the Portal's own ticket sign-in refuse a ticket made for a
+//   - /api/verify-ticket (the CMS, the KB, LSH Voice) and the Portal's own ticket sign-in refuse a ticket made for a
 //     program (code 'audience'), and still take a tool's ticket and an old ticket with no p.
 // Run: node --no-warnings .github/scripts/sso-audience.mjs   (from the repository root)
 import { DatabaseSync } from 'node:sqlite';

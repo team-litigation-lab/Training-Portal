@@ -771,7 +771,7 @@ async function showSaved(t) {
 }
 function titleHtml() {
     return `<div class="dr-titlecard">
-        <div class="eyebrow">Simulator · Drafting</div>
+        <div class="eyebrow">Sim · Drafting</div>
         <h1>✍ Drafting — Letters of Representation</h1>
         <p>The firm's own documents. Edit one here (<b>✎ Edit here</b>) or download it as Word, then save it as PDF and upload it to be checked.</p>
     </div>`;

@@ -158,7 +158,7 @@ function attemptLogin(switched) {
             // by topic access) rather than straight into core.html — the
             // CM Training dashboard is just one entry a trainee clicks
             // into from there, not the only destination this login serves.
-            // ?next= : the page they asked for before signing in (the Training Directory sends visitors here).
+            // ?next= : the page they asked for before signing in (LSH Academy Index sends visitors here).
             let next = '/programs.html';
             // (a page on this site only, its query kept: a simulator a course opened, e.g. /simulators/gcal.html?program=FT&track=activity)
             try { const n = new URLSearchParams(location.search).get('next'); const u = n ? new URL(n, location.origin) : null;
@@ -947,7 +947,7 @@ async function pollLive() {
    ⏳ NEW REGISTRATION POPUP — trainers approve from any page
    ---------------------------------------------------------------------
    While a trainer (any Admin account, the Master Account included) is signed in, every registration waiting
-   for approval opens a popup on every Portal page: the Training Directory, Master Control, attendance,
+   for approval opens a popup on every Portal page: LSH Academy Index, Master Control, attendance,
    progress, the simulators and the rest. Never on the public landing page (index.html, which trainees see;
    it doesn't load this file, and the path is checked too) and never in 👁 Trainee view (a trainer may be
    presenting it). Each registration has ✓ Approve and ✕ Decline (POST /api/update-status, the same as

@@ -1,7 +1,7 @@
 // The front door: the main page (/) is the Main Portal for everyone; a browser that is already signed in (trainee or admin) goes from
-// the Portal's sign-in pages straight to the Training Directory, and only a signed-out one sees a sign-in box. Also /api/me (who is signed in on this browser).
+// the Portal's sign-in pages straight to LSH Academy Index, and only a signed-out one sees a sign-in box. Also /api/me (who is signed in on this browser).
 // Checks: the main page is never redirected; a valid cookie is redirected from /trainee-login.html and (an admin's only) /admin-login.html; a signed-out
-// visitor on the Training Directory goes to the sign-in and back after it (even with no live heartbeat, and the heartbeat
+// visitor on LSH Academy Index goes to the sign-in and back after it (even with no live heartbeat, and the heartbeat
 // is restarted); no cookie, a revoked account, a locked site and ?stay=1 all get the page; a tampered cookie gets the page.
 // A simulator page opened with a course's ticket (?ticket=) signs the trainee in first, and a named trainer's their own admin account
 // (a bad, expired or revoked ticket, a nameless admin's or the system's, doesn't).
@@ -68,19 +68,19 @@ check(!/^\/attendance-sync\.gs\s/m.test(fs.readFileSync('_redirects', 'utf8')), 
 check(fs.existsSync('attendance-sync.gs') && /function\s/.test(fs.readFileSync('attendance-sync.gs', 'utf8')), 'attendance-sync.gs is a script');
 tr = await hit('/simulators/drafting/hipaa/INTAKE%20-%20HIPAA%202.0%20for%20training%20purposes.pdf', ann); check(tr.passed, 'a trainee gets the HIPAA they work from');
 let rr = await hit('/trainee-login.html', ann);
-check(rr.status === 302 && rr.loc === '/programs.html', 'a signed-in trainee on the sign-in page goes to the Training Directory');
+check(rr.status === 302 && rr.loc === '/programs.html', 'a signed-in trainee on the sign-in page goes to LSH Academy Index');
 let r = await hit('/admin-login.html', ann); check(r.passed && r.status === 200, 'a signed-in trainee gets the admin sign-in (to sign in as an admin)');
 r = await hit('/admin-login', ann); check(r.passed, 'the same at /admin-login (no .html)');
-r = await hit('/admin-login.html', boss); check(r.status === 302 && r.loc === '/programs.html', 'a signed-in admin on the admin sign-in goes to the Training Directory');
+r = await hit('/admin-login.html', boss); check(r.status === 302 && r.loc === '/programs.html', 'a signed-in admin on the admin sign-in goes to LSH Academy Index');
 check(!!sql.prepare(`SELECT 1 FROM heartbeats WHERE username = 'ann'`).get(), 'the heartbeat is restarted (the cookie was valid, the heartbeat had lapsed)');
 r = await hit('/trainee-login.html', ''); check(r.passed && r.status === 200, 'signed out: the sign-in page shows');
 r = await hit('/trainee-login.html', 'lsh_session=abc.def'); check(r.passed, 'a tampered cookie gets the sign-in page');
 r = await hit('/trainee-login.html', ann, '?stay=1'); check(r.passed, '?stay=1 shows the sign-in page (used right after logging out)');
 r = await hit('/trainee-login.html', await cookieFor('gone', 'Trainee')); check(r.passed, 'a revoked account gets the sign-in page');
-r = await hit('/programs.html', ann); check(r.passed, 'the Training Directory itself is not redirected for a signed-in trainee');
-r = await hit('/programs.html', ''); check(r.status === 302 && r.loc === '/trainee-login.html?next=%2Fprograms.html', `a signed-out visitor on the Training Directory goes to the sign-in: ${r.status} ${r.loc}`);
+r = await hit('/programs.html', ann); check(r.passed, 'LSH Academy Index itself is not redirected for a signed-in trainee');
+r = await hit('/programs.html', ''); check(r.status === 302 && r.loc === '/trainee-login.html?next=%2Fprograms.html', `a signed-out visitor on LSH Academy Index goes to the sign-in: ${r.status} ${r.loc}`);
 r = await hit('/programs', ''); check(r.status === 302 && /trainee-login/.test(r.loc || ''), 'the same at /programs (no .html)');
-r = await hit('/programs.html', boss); check(r.passed, 'an admin opens the Training Directory');
+r = await hit('/programs.html', boss); check(r.passed, 'an admin opens LSH Academy Index');
 sql.exec(`UPDATE site_state SET locked = 1`);
 r = await hit('/trainee-login.html', ann); check(r.passed, 'a locked site shows the sign-in page');
 sql.exec(`UPDATE site_state SET locked = 0`);
@@ -133,13 +133,13 @@ r = await withTicket(await ticketFor({ r: 's', exp: soon() }));
 check(/^\/trainee-login\.html\?next=/.test(r.loc), 'the Portal\'s system ticket signs no one in');
 r = await withTicket(await ticketFor({ first: 'Ann', last: 'Lee', b: 'B1', u: '1', exp: soon() }), boss);
 check(!/lsh_session=/.test(r.cookie), 'a signed-in admin keeps their own session');
-// the sign-in brings a trainee back to the simulator they were sent from, never to the Training Directory
+// the sign-in brings a trainee back to the simulator they were sent from, never to LSH Academy Index
 r = await hit('/simulators/email.html', '', '?program=CM&inbox=1');
 check(r.status === 302 && r.loc === '/trainee-login.html?next=' + encodeURIComponent('/simulators/email.html?program=CM&inbox=1'), 'a signed-out simulator visit goes to the sign-in with the page to return to');
 r = await hit('/trainee-login.html', ann, '?next=' + encodeURIComponent('/simulators/email.html?program=CM'));
 check(r.status === 302 && r.loc === '/simulators/email.html?program=CM', 'a signed-in trainee on the sign-in page goes back to that page');
 r = await hit('/trainee-login.html', ann, '?next=' + encodeURIComponent('//evil.example/x'));
-check(r.status === 302 && r.loc === '/programs.html', 'a next address on another site is ignored (the Training Directory instead)');
+check(r.status === 302 && r.loc === '/programs.html', 'a next address on another site is ignored (LSH Academy Index instead)');
 // ... in every spelling a browser turns into another site: a tab or line break (browsers drop them), a backslash, //, a scheme
 for (const bad of ['/\t/evil.example/x', '/\n/evil.example', '/\r\n/evil.example', '/\\evil.example', '/\t\\evil.example', '\\\\evil.example', '///evil.example',
     '//evil.example', 'https://evil.example/', 'javascript:alert(1)', ' /\t/evil.example', '/\u0000/evil.example',
@@ -169,7 +169,7 @@ m = await getMe(await cookieFor('gone', 'Trainee')); check(m.status === 401 && m
 
 // Every link and Back target that points at the main page must carry ?stay=1.
 // Without it the redirect checked above sends a signed-in person who presses
-// "Home" or "Back" straight back to the Training Directory they just left, so
+// "Home" or "Back" straight back to LSH Academy Index they just left, so
 // the button looks broken. Static check, because that is how it went wrong.
 const LANDING = /(?:href=["']|["'`]|encodeURIComponent\(['"])(\/index(?:\.html)?)(["'`#?])/g;
 // href="/" is the landing page too, and reads as innocent, so it gets its own pattern

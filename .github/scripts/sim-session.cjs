@@ -183,5 +183,5 @@ const server = http.createServer(async (req, res) => {
 
     await browser.close(); server.close();
     if (failures.length) { console.error('FAILED:\n- ' + failures.join('\n- ')); process.exit(1); }
-    console.log('Simulator session test passed (a trainee keeps their session and heartbeat, a new tab asks /api/me once, fetchRetry, a second trainee starts clean).');
+    console.log('Sim session test passed (a trainee keeps their session and heartbeat, a new tab asks /api/me once, fetchRetry, a second trainee starts clean).');
 })().catch(e => { console.error('FAILED:\n- ' + failures.concat('the test stopped: ' + e.message).join('\n- ')); process.exit(1); });

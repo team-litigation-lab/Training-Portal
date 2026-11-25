@@ -7,6 +7,11 @@ import { ensure, SCORECARD_TITLE, scorecardRows, scorecardResult } from './calsi
 //
 //   GET  /api/calsim-scorecard?name=<full name>&batch=<Batch ID>   → { success, username, cards }  (the trainee's Google
 //        Calendar Simulator scorecards on the Standard Training track, newest last; username '' when no Portal account matches)
+//   GET  /api/calsim-scorecard?activity=1&name=<full name>&batch=<Batch ID>   → { success, username, activity }  (📝 the trainee's
+//        latest Standard Training - Calendaring Activity submission — the Day 5 Attorney Calendar Management Activity on the blank
+//        calendar, gcal_reviews track 'activity': { id, submittedAt, checkScore (the automated check, %), status ('submitted' |
+//        'final'), trainerScore (the trainer's, % — only once finalized), finalizedAt, finalizedBy }, or null), for its scoresheet
+//        on 🧑‍🏫 Graders → 📝 Assessments (the Foundational Training's worker.js syncSimScores fills it from this)
 //   POST /api/calsim-scorecard { name, batch, rows: [{ score 0-5 in half points, feedback }] (the seven call metrics, and Tools Utilization
 //        when sent: the Foundational Training's eighth), by }  → { success, card }  (a scorecard saved on
 //        the Foundational Training: kept with the Portal's own under scorecards.standard, so the trainee and the trainers see it
@@ -38,6 +43,31 @@ export async function onRequestGet({ request, env }) {
     const no = allowed(request, env); if (no) return no;
     const url = new URL(request.url), db = env.TRAINING_DB;
     const username = await findUser(env, url.searchParams.get('name'), url.searchParams.get('batch'));
+    if (url.searchParams.get('activity') != null) {
+        if (!username) return json({ success: true, username: '', activity: null });
+        let row = null;
+        try {
+            row = await db.prepare(`SELECT id, submitted_at, check_score, status, trainer, finalized_at, finalized_by FROM gcal_reviews
+                WHERE username = ? AND track = 'activity' ORDER BY submitted_at DESC, id DESC LIMIT 1`).bind(username).first();
+        } catch (e) { row = null; }   // (no gcal_reviews table yet: nothing submitted)
+        // (a calendar saved but never submitted has its automated check too: the one a trainer's view ran — gcal_activity_checks — and the
+        //  trainee's own last ✔ Check, saved with their calendar — gcal_drafts .result; the newest of those and the submitted one counts,
+        //  and a trainer's finalized score always wins)
+        let saved = null;
+        try { const c = await db.prepare(`SELECT score, saved_at, checked_at, checked_by FROM gcal_activity_checks WHERE username = ?`).bind(username).first();
+            if (c && c.score != null) saved = { at: c.checked_at || c.saved_at || '', checkScore: Number(c.score), by: c.checked_by || '' }; } catch (e) { /* no table yet */ }
+        try { const d = await db.prepare(`SELECT data, updated_at FROM gcal_drafts WHERE username = ? AND track = 'activity'`).bind(username).first();
+            const r = d && (parse(d.data) || {}).result;
+            if (r && r.score != null && isFinite(Number(r.score)) && (!saved || String(r.at || d.updated_at) > String(saved.at))) saved = { at: r.at || d.updated_at || '', checkScore: Math.round(Number(r.score)), by: '' }; } catch (e) { /* no table yet */ }
+        const t = row ? parse(row.trainer) || {} : {}, ts = t.score == null || t.score === '' || !isFinite(Number(t.score)) ? null : Math.max(0, Math.min(100, Math.round(Number(t.score))));
+        const final = !!row && row.status === 'final';
+        if (row && (final || !saved || String(row.submitted_at) >= String(saved.at)))
+            return json({ success: true, username, activity: { id: row.id, submittedAt: row.submitted_at, checkScore: row.check_score == null ? null : Number(row.check_score),
+                status: row.status, trainerScore: final ? ts : null, finalizedAt: final ? row.finalized_at : null, finalizedBy: final ? clean(row.finalized_by, 80) : null } });
+        if (!saved) return json({ success: true, username, activity: null });
+        return json({ success: true, username, activity: { id: null, submittedAt: saved.at, checkScore: Math.max(0, Math.min(100, saved.checkScore)), status: 'saved',
+            trainerScore: null, finalizedAt: null, finalizedBy: null, checkedBy: clean(saved.by, 80) || null } });
+    }
     if (!username) return json({ success: true, username: '', cards: [] });
     await ensure(db);
     const row = await db.prepare(`SELECT data FROM calsim_records WHERE username = ?`).bind(username).first();

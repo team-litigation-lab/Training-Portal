@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Training Directory — Legal Skills Hub</title>
+<title>LSH Academy Index — LSH Nexus</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +39,7 @@
     /* Announcement ticker — the same broadcast an admin sets in Master Control
        (Broadcast & Ping → /api/announcement). It used to show only on the admin
        screen (core.html's classification bar), so trainees never saw it; the
-       Training Directory is the first page they land on, so it belongs here.
+       LSH Academy Index is the first page they land on, so it belongs here.
        The ids are the ones app.js already fills (loadAnnouncement/refreshClock),
        and app.js is loaded further down this page. */
     .idx-ticker-bar {
@@ -94,10 +94,18 @@
     .topic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(8px, 1.1vh, 15px) 15px; }
     .topic-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
     .topic-group { margin-bottom: clamp(8px, 1.1vh, 12px); }
-    .topic-group-head { display: flex; align-items: baseline; justify-content: center; text-align: center; gap: 12px; flex-wrap: wrap; margin: 0 0 7px; padding-bottom: 4px; border-bottom: 2px solid rgba(249,115,22,.35); }
+    .topic-group-head { display: flex; align-items: center; justify-content: center; text-align: center; gap: 14px; flex-wrap: nowrap; margin: 0 0 7px; }
+    /* The group's name sits in a navy pill with an orange edge, and the orange rule runs out
+       from both sides of it (no border under it), so it stands out on the photo without
+       making the head any taller: the pill's padding is paid for by a tighter line-height. */
+    .topic-group-head::before, .topic-group-head::after { content: ""; flex: 1 1 0; min-width: 16px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(249,115,22,0), rgba(249,115,22,.95)); }
+    .topic-group-head::after { background: linear-gradient(90deg, rgba(249,115,22,.95), rgba(249,115,22,0)); }
     /* The group's name is the page's main signpost, so it is set in capitals and
        carries a light text shadow: it sits on the photo backdrop, not on a card. */
-    .topic-group-head h2 { font-size: 19px; font-weight: 900; margin: 0; color: var(--navy); letter-spacing: .06em; text-transform: uppercase; text-shadow: 0 1px 0 rgba(255,255,255,.85); }
+    .topic-group-head h2 { display: inline-flex; align-items: center; gap: 9px; flex: 0 0 auto; font-size: 19px; line-height: 1.15; font-weight: 900; margin: 0; padding: 4px 20px; color: #fff; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
+        background: linear-gradient(135deg, #0b1633, #1e3a8a); border: 2px solid var(--orange, #f97316); border-radius: 999px;
+        box-shadow: 0 0 0 3px rgba(249,115,22,.22), 0 8px 18px -8px rgba(8,18,38,.7); text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+    .topic-group-head h2::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--orange, #f97316); box-shadow: 0 0 8px rgba(249,115,22,.9); flex-shrink: 0; }
     /* These section notes sit directly on the body backdrop, not on a card,
        so the wash behind them is all the contrast they get. The photo's
        darkest area composites to about rgb(151,149,150) under the 40% wash
@@ -131,6 +139,10 @@
     .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
     .topic-action-btn.request { background: var(--orange); color: #0f172a; }
     .topic-action-btn.disabled { background: #f1f5f9; color: #334155; cursor: default; }
+    /* 🃏 Flash Cards: one pill per Daily Digest deck instead of a single button */
+    .topic-action-btn.digest { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; padding: 4px; background: #eef2ff; cursor: default; }
+    .topic-action-btn.digest a { flex: 1 1 auto; padding: 4px 6px; border-radius: 999px; background: var(--navy); color: var(--orange); text-decoration: none; font-size: .86em; white-space: nowrap; }
+    .topic-action-btn.digest a:hover, .topic-action-btn.digest a:focus-visible { background: var(--orange); color: #0f172a; }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
     .sim-banner-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
@@ -141,6 +153,39 @@
     .sim-banner-row .sim-banner-ic { width: 38px; height: 38px; border-radius: 10px; font-size: 19px; }
     .sim-banner-row .sim-banner-tx b { font-size: 16px; line-height: 1.25; }
     .sim-banner-row .sim-banner-go { font-size: 10.5px; padding: 6px 10px; }
+    /* Bigger names and a little life: the tool's name grows (it still fits inside the
+       icon's height, so the banner is no taller and the page keeps its one-screen fit), a
+       light sweep crosses each banner in turn, the icon breathes with an orange glow, and
+       hovering lifts the banner, lights its edge and nudges the Open arrow. All motion
+       stops for anyone who asks their system for reduced motion. */
+    .sim-banner-row .sim-banner { position: relative; overflow: hidden; isolation: isolate;
+        outline: 1px solid rgba(253,186,116,.28); outline-offset: -1px;
+        transition: transform .22s ease, box-shadow .22s ease, outline-color .22s ease; }
+    .sim-banner-row .sim-banner::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+        background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.13) 48%, rgba(253,186,116,.18) 52%, transparent 65%);
+        background-size: 250% 100%; background-position: 130% 0; animation: sb-sweep 7s ease-in-out infinite; }
+    .sim-banner-row .sim-banner:nth-child(2)::before { animation-delay: 1.75s; }
+    .sim-banner-row .sim-banner:nth-child(3)::before { animation-delay: 3.5s; }
+    .sim-banner-row .sim-banner:nth-child(4)::before { animation-delay: 5.25s; }
+    @keyframes sb-sweep { 0%, 55% { background-position: 130% 0; } 85%, 100% { background-position: -30% 0; } }
+    .sim-banner-row .sim-banner-tx b { font-size: 21px; font-weight: 900; letter-spacing: .09em; line-height: 1.15;
+        text-shadow: 0 0 14px rgba(253,186,116,.35), 0 2px 3px rgba(0,0,0,.45); }
+    .sim-banner-row .sim-banner-go { font-size: 12.5px; font-weight: 900; padding: 6px 12px;
+        box-shadow: 0 0 0 0 rgba(249,115,22,.55); animation: sb-go 2.8s ease-out infinite; transition: transform .2s ease; }
+    @keyframes sb-go { 0% { box-shadow: 0 0 0 0 rgba(249,115,22,.55); } 70%, 100% { box-shadow: 0 0 0 9px rgba(249,115,22,0); } }
+    .sim-banner-row .sim-banner-ic { font-size: 21px; box-shadow: 0 0 0 rgba(249,115,22,0); animation: sb-ic 3.2s ease-in-out infinite; }
+    .sim-banner-row .sim-banner:nth-child(2) .sim-banner-ic { animation-delay: .8s; }
+    .sim-banner-row .sim-banner:nth-child(3) .sim-banner-ic { animation-delay: 1.6s; }
+    .sim-banner-row .sim-banner:nth-child(4) .sim-banner-ic { animation-delay: 2.4s; }
+    @keyframes sb-ic { 0%, 100% { transform: translateY(0) scale(1); box-shadow: 0 0 0 rgba(249,115,22,0); }
+        50% { transform: translateY(-2px) scale(1.06); box-shadow: 0 0 16px rgba(249,115,22,.55); } }
+    .sim-banner-row .sim-banner:hover, .sim-banner-row .sim-banner:focus-visible { transform: translateY(-3px);
+        outline-color: rgba(253,186,116,.9); box-shadow: 0 16px 30px -14px rgba(8,18,38,.75), 0 0 0 2px rgba(249,115,22,.45), 0 0 22px rgba(249,115,22,.35); }
+    .sim-banner-row .sim-banner:hover .sim-banner-go { transform: translateX(3px); }
+    @media (prefers-reduced-motion: reduce) {
+        .sim-banner-row .sim-banner::before, .sim-banner-row .sim-banner-go, .sim-banner-row .sim-banner-ic { animation: none; }
+        .sim-banner-row .sim-banner, .sim-banner-row .sim-banner-go { transition: none; }
+    }
     @media (max-width: 1150px) { .sim-banner-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 620px) { .sim-banner-row { grid-template-columns: 1fr; } }
     .sim-banner-ic { width: 48px; height: 48px; border-radius: 14px; background: rgba(249,115,22,.18); border: 1px solid rgba(253,186,116,.45); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
@@ -156,7 +201,7 @@
     .idx-user { gap: 6px; }
     .idx-user .pn-pill { font-size: 11.5px !important; padding: 5px 10px !important; }
     .idx-user .pn-back { font-size: 12px; font-weight: 700; padding: 5px 10px !important; }
-    @media (max-width: 1400px) { .idx-title { white-space: normal; max-width: 9em; line-height: 1.1; } }
+    @media (max-width: 1400px) { .idx-title { white-space: normal; max-width: 11em; line-height: 1.1; } }
     @media (max-width: 900px) { .idx-top { flex-wrap: wrap; } .idx-title { order: 2; flex-basis: auto; } .idx-user { order: 3; width: 100%; justify-content: flex-start; } }
     .pn-trainee-view { position: relative; z-index: 5; }
 
@@ -200,10 +245,11 @@
         .sim-banner-row { gap: 8px; margin-bottom: 8px; }
         .sim-banner-row .sim-banner { padding: 7px 10px; gap: 9px; }
         .sim-banner-row .sim-banner-ic { width: 32px; height: 32px; font-size: 16px; }
-        .sim-banner-row .sim-banner-tx b { font-size: 14.5px; }
+        .sim-banner-row .sim-banner-tx b { font-size: 18px; }
+        .sim-banner-row .sim-banner-go { font-size: 11.5px; padding: 5px 10px; }
         .topic-group { margin-bottom: 9px; }
-        .topic-group-head { margin-bottom: 5px; padding-bottom: 3px; }
-        .topic-group-head h2 { font-size: 17px; }
+        .topic-group-head { margin-bottom: 5px; }
+        .topic-group-head h2 { font-size: 17px; padding: 3px 18px; }
         .topic-grid { gap: 8px; }
         .topic-card { padding: 7px 9px; gap: 5px; }
         .topic-card h3 { font-size: 12px; padding: 5px 7px; }
@@ -242,13 +288,13 @@
 </script>
 
 <!-- Announcement ticker: the admin broadcast, now visible to trainees here on the
-     Training Directory (it used to appear only on the admin screen). Filled by
+     LSH Academy Index (it used to appear only on the admin screen). Filled by
      app.js: loadAnnouncement() → #ticker-text, refreshClock() → #live-clock. -->
 <div class="idx-ticker-bar no-print">
     <div class="top-ticker-mini" id="announcement-ticker">
         <span class="tag" id="announcement-tag">Announcement:</span>
         <div class="ticker-viewport">
-            <div class="ticker-track" id="ticker-track"><span id="ticker-text">Welcome to the Legal Skills Hub.</span></div>
+            <div class="ticker-track" id="ticker-track"><span id="ticker-text">Welcome to LSH Nexus.</span></div>
         </div>
     </div>
     <div class="top-clock">
@@ -264,7 +310,7 @@
 
 <div class="idx-top">
     <span class="idx-brand"><img class="idx-logo" src="/img/logo.svg" alt="Legal Support Help"></span>
-    <h1 class="idx-title" id="idx-heading">Training <span>Directory</span></h1>
+    <h1 class="idx-title" id="idx-heading">LSH Academy <span>Index</span></h1>
     <div class="idx-user" id="idx-user">
         <script>document.write(PortalNav.traineeHtml('', { back: '/index.html?stay=1' }));</script>
         <a class="pn-pill" href="/admin-login.html" title="Admin monitoring (sign-in required)">Admin</a>
@@ -275,22 +321,22 @@
     <div class="sim-banner-row">
     <a class="sim-banner" href="/simulators.html">
         <span class="sim-banner-ic">🛠</span>
-        <span class="sim-banner-tx" title="Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>Simulators</b></span>
+        <span class="sim-banner-tx" title="Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>LSH Sims</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" href="/kb.html">
         <span class="sim-banner-ic">📚</span>
-        <span class="sim-banner-tx" title="Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know."><b>Knowledge Base</b></span>
+        <span class="sim-banner-tx" title="Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know."><b>LSH Atlas</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="ring-banner" href="/api/launch?tool=ringchannel" target="_blank" rel="noopener">
         <span class="sim-banner-ic">☎</span>
-        <span class="sim-banner-tx" title="Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal."><b>LSH Ring Channel</b></span>
+        <span class="sim-banner-tx" title="Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal."><b>LSH Voice</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="cms-banner" href="/api/launch?tool=cms" target="_blank" rel="noopener">
         <span class="sim-banner-ic">🗂</span>
-        <span class="sim-banner-tx" title="The practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer."><b>Case Management System</b></span>
+        <span class="sim-banner-tx" title="LSH CaseWorX, the practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer."><b>LSH CaseWorX</b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     </div>
@@ -333,14 +379,34 @@
     // Display names that replace the topics table's `name`, so a program can
     // be renamed without editing the live database. topics_seed.sql carries
     // the same names for new databases.
+    // Every card ends in "Track" (was "Playbook", and "Training" before that); the
+    // section badges above them say Playbooks.
     const PROGRAM_NAMES = {
-        'STANDARD TRAINING': 'Standard Foundational Training',
+        'STANDARD TRAINING': 'Legal VA Foundational Track',
         // The live topics table still carries the old "CM Training" / "Revised CM Training"
         // from before the rename; these put the full names on the cards without a migration.
-        'CM TRAINING': 'Case Management Training',
-        'REVISED CM TRAINING': 'Revised Case Management Training',
-        'PROPERTY DAMAGE': 'Property Damage Claims Training',
-        'MEDSUM AND DEMAND': 'Medsum & Demand Training'
+        'CM TRAINING': 'Case Management Track',
+        'REVISED CM TRAINING': 'Revised Case Management Track',
+        'EA  PA TRAINING-OUTSOURCED MANP': 'EA PA Track',
+        'REVISED EA PA TRAINING': 'Revised EA PA Track',
+        'CALENDAR MANAGEMENT TRAINING': 'Calendar Management Track',
+        'PROPERTY DAMAGE': 'Property Damage Claims Track',
+        'MEDSUM AND DEMAND': 'Medsum & Demand Track',
+        'LIEN NEGOTIATION': 'Lien Negotiator Track',
+        'HEALTH SUBRO': 'Health Subro Track',
+        'LIEN VERIFICATION': 'Lien Verification Track',
+        'LITIGATION': 'Litigation Track',
+        'MASS TORT': 'Mass Tort Track',
+        'BUSINESS LAW': 'Business Law Track',
+        'ESTATE PLANNING': 'Estate Planning Track',
+        'FAMILY LAW': 'Family Law Track',
+        'IMMIGRATION LAW': 'Immigration Law Track',
+        'INTELLECTUAL PROPERTY LAW': 'Intellectual Property Law Track',
+        'REAL ESTATE LAW': 'Real Estate Law Track',
+        'FREE UPSKILL PROGRAMS': 'Free Upskill Track',
+        'SETTLEMENTS CLOSING': 'Settlements / Closing Specialist Track',
+        'CLIENT INTERVIEW PREP': 'Client Interview Prep',
+        'FLASH CARDS': 'Flash Cards'
     };
 
     // Programs shown on the index that aren't in the live topics table yet.
@@ -349,9 +415,22 @@
     // Not in TOPIC_SEQUENCE: free programs aren't gated behind progression.
     // It opens once it is in functions/_programs.js and launch.js (its own site).
     const EXTRA_PROGRAMS = [
-        { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Programs', sort_order: 0 },
-        { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Training', sort_order: 13 }
+        { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Track', sort_order: 0 },
+        { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Track', sort_order: 13 },
+        { key: 'SETTLEMENTS CLOSING', name: 'Settlements / Closing Specialist Track', sort_order: 13 },
+        { key: 'CLIENT INTERVIEW PREP', name: 'Client Interview Prep', sort_order: 0 },
+        { key: 'FLASH CARDS', name: 'Flash Cards', sort_order: 0 }
     ];
+    // Portal pages anyone can open from a card, with no access request: they live on this site.
+    // 🃏 Flash Cards: the Daily Digest (flashcards.html), one card a day from each deck; the deck links jump straight to it.
+    const PORTAL_TOOLS = { 'FLASH CARDS': '/flashcards.html' };
+    const DIGEST_DECKS = [['rules', 'Rules'], ['trivia', 'Trivia'], ['terms', 'Terminologies'], ['process', 'Process'], ['faqs', 'FAQs']];
+    const toolCard = (t) => `
+                <div class="topic-card tool-card">
+                    <h3>${escapeHtml(t.name)} <span class="topic-free">Daily</span></h3>
+                    <span class="topic-status approved">Daily Digest</span>
+                    <span class="topic-action-btn digest">${DIGEST_DECKS.map(([id, label]) => `<a href="${PORTAL_TOOLS[t.key]}#${id}" title="Today's ${label} card">${label}</a>`).join('')}</span>
+                </div>`;
     // Shown first on the index, ahead of the progression, with a "Free" badge.
     const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
 
@@ -364,7 +443,7 @@
         'STANDARD TRAINING', 'LITIGATION', 'MEDSUM AND DEMAND', 'CM TRAINING',
         'EA  PA TRAINING-OUTSOURCED MANP', 'REVISED EA PA TRAINING', 'REVISED CM TRAINING',
         'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW',
-        'HEALTH SUBRO', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'LIEN VERIFICATION', 'LIEN NEGOTIATION',
+        'HEALTH SUBRO', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'LIEN VERIFICATION', 'LIEN NEGOTIATION', 'SETTLEMENTS CLOSING',
         'MASS TORT', 'PROPERTY DAMAGE', 'REAL ESTATE LAW'
     ];
 
@@ -406,7 +485,7 @@
             // 📢 the announcement is edited in Master Control → Broadcast & Ping: ✏️ Edit on the ticker goes straight there
             if (!asTrainee) { const tk = document.getElementById('announcement-ticker'); if (tk && !document.getElementById('idx-ann-edit')) tk.insertAdjacentHTML('afterend', '<a id="idx-ann-edit" href="/core.html#announce" title="Edit the announcement (Master Control → Broadcast &amp; Ping)" style="flex:none;padding:3px 10px;border:1px solid rgba(253,186,116,.6);border-radius:999px;color:#fdba74;font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap">✏️ Edit</a>'); }
             if (asTrainee) document.querySelector('.idx-top').insertAdjacentHTML('afterend',
-                `<div class="pn-trainee-view">👁 Trainee view: the Training Directory as trainees see it.<button type="button" onclick="PortalNav.switchView()">Back to the admin view</button></div>`);
+                `<div class="pn-trainee-view">👁 Trainee view: LSH Academy Index as trainees see it.<button type="button" onclick="PortalNav.switchView()">Back to the admin view</button></div>`);
         }
 
         if (session.userType === 'Trainee') {
@@ -419,7 +498,7 @@
         const subheadEl = document.getElementById('idx-subhead');
         if ((session.userType !== 'Admin' || asTrainee) && subheadEl) subheadEl.textContent = 'Every LSH training program in one place. Trainees log in once here, then open each program from this page: no separate sign-in inside it.';
         if (session.userType === 'Admin' && !asTrainee) {
-            if (headingEl) headingEl.textContent = 'Training Index — Admin View';
+            if (headingEl) headingEl.innerHTML = 'LSH Academy <span>Index</span> — Admin View';
             if (subheadEl) subheadEl.style.display = 'none';
         }
 
@@ -488,7 +567,7 @@
     }
 
     // Archived — old/superseded modules kept in the database (and in any
-    // trainee's history) but hidden from the active Training Index. Purely
+    // trainee's history) but hidden from the active LSH Academy Index. Purely
     // a display-level exclusion; nothing is deleted.
     const ARCHIVED_TOPICS = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];   // keep in step with PA_HIDDEN in app.js (same list; app.js loads into this page's global scope, so the names must differ)
     // Reference cards that aren't on the index either (they were the whole "More Training &
@@ -523,6 +602,7 @@
         const isAdmin = session.userType === 'Admin';
 
         const cardFor = (t) => {
+            if (PORTAL_TOOLS[t.key]) return toolCard(t);
             const built = SSO_PROGRAMS.includes(t.key);
             const myAccess = isAdmin ? null : __accessCache.find(a => a.topic_key === t.key);
             const status = isAdmin ? 'approved' : (myAccess ? myAccess.status.toLowerCase() : 'locked');
@@ -568,17 +648,17 @@
 
     // The cards are grouped by practice area: everything personal injury is in one place.
     const TOPIC_GROUPS = [
-        { title: 'Personal Injury Law', note: '',
-          keys: ['STANDARD TRAINING', 'LIEN NEGOTIATION', 'MEDSUM AND DEMAND', 'CM TRAINING', 'PROPERTY DAMAGE', 'HEALTH SUBRO', 'LIEN VERIFICATION'] },
-        { title: 'Other Practice Areas', note: '',
+        { title: 'Personal Injury Playbooks', note: '',
+          keys: ['STANDARD TRAINING', 'LIEN NEGOTIATION', 'MEDSUM AND DEMAND', 'CM TRAINING', 'PROPERTY DAMAGE', 'HEALTH SUBRO', 'LIEN VERIFICATION', 'SETTLEMENTS CLOSING'] },
+        { title: 'Specialized Playbooks', note: '',
           keys: ['LITIGATION', 'MASS TORT', 'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'REAL ESTATE LAW'] },
         { title: 'Support & Upskill', note: '',
-          keys: ['EA  PA TRAINING-OUTSOURCED MANP', 'FREE UPSKILL PROGRAMS'] }
+          keys: ['EA  PA TRAINING-OUTSOURCED MANP', 'FREE UPSKILL PROGRAMS', 'CLIENT INTERVIEW PREP', 'FLASH CARDS'] }
     ];
     // How many across, so a group's last row is not a stub. Four is the default
     // and the widest the cards look right at; three when the count divides by
-    // three and not by four. Personal Injury Law's seven reads 4 + 3;
-    // Other Practice Areas' eight stays 4 + 4.
+    // three and not by four. Personal Injury Playbooks' eight reads 4 + 4;
+    // Specialized Playbooks' eight stays 4 + 4.
     const columnsFor = (n) => (n % 4 === 0 ? 4 : n % 3 === 0 ? 3 : 4);
 
     function groupedTopicsHtml(cardFor) {

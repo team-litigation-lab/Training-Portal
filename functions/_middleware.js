@@ -11,9 +11,9 @@ const ADMIN_PAGES = [/^\/(core|attendance|progress|referrals|system)(\.html)?\/?
     // The attendance Google Sheet's Apps Script (attendance.html's 📋 Copy the sheet script): for the trainers who set the sheet up.
     // It holds no secret (the feed key is typed into the sheet), but it is trainer material and stays off the public site.
     /^\/attendance-sync\.gs$/i];
-// The Training Directory is for signed-in people: a visitor who opens it (or presses "Access Training Directory" on the main
+// LSH Academy Index is for signed-in people: a visitor who opens it (or presses "Access LSH Academy Index" on the main
 // page) is sent to the trainee sign-in, and comes back here once signed in. The main page itself stays public.
-const MEMBER_PAGES = [/^\/programs(\.html)?\/?$/i];
+const MEMBER_PAGES = [/^\/programs(\.html)?\/?$/i, /^\/flashcards(\.html)?\/?$/i];   // 🃏 Flash Cards (Daily Digest) too
 const PROTECTED = [/^\/simulators(\.html)?\/?$/i, /^\/simulators\//i];
 // The Call Simulator is LSH Ring Channel's (the training phone itself): a link to the Portal's opens it there, through the
 // Portal's sign-in (/api/launch?tool=ringchannel&to=calls), on the line the link names and with a graded call ringing at
@@ -21,7 +21,7 @@ const PROTECTED = [/^\/simulators(\.html)?\/?$/i, /^\/simulators\//i];
 const CALL_SIMULATOR = /^\/simulators\/call(\.html)?\/?$/i;
 
 // The main page (/) is the Main Portal for everyone, signed in or not: it is the site's landing page and is never redirected.
-// Only the sign-in pages send a signed-in person on to the Training Directory, so nobody sees a sign-in box while already signed
+// Only the sign-in pages send a signed-in person on to LSH Academy Index, so nobody sees a sign-in box while already signed
 // in. This looks at the signed cookie, not the heartbeat (a person coming back from a program, with the Portal tab closed, has a
 // valid cookie and a stale heartbeat), and restarts the heartbeat so the Portal treats them as signed in again. A locked site and
 // a revoked account get the sign-in page.
@@ -66,7 +66,7 @@ export async function onRequest(context) {
             // A trainee who wants to sign in as an admin must see the admin sign-in, so only an admin is sent on from it.
             const person = await signedInPerson(request, env);
             const adminDoor = /^\/admin-login(\.html)?\/?$/i.test(path);
-            // back to the page that sent them here (a simulator a course opened), else the Training Directory
+            // back to the page that sent them here (a simulator a course opened), else LSH Academy Index
             // (only a path on this site: the browser drops tabs and line breaks from an address, so '/<TAB>/evil' would be
             // '//evil', another site; the address is resolved here as the browser will and must stay on this origin)
             const nxt = new URL(request.url).searchParams.get('next') || '';
@@ -119,6 +119,6 @@ export async function onRequest(context) {
         out.headers.set('X-Robots-Tag', 'noindex');
         return out;
     }
-    // the sign-in brings them back to this simulator, not to the Training Directory
+    // the sign-in brings them back to this simulator, not to LSH Academy Index
     return new Response(null, { status: 302, headers: { Location: '/trainee-login.html?next=' + encodeURIComponent(url.pathname + url.search), 'Cache-Control': 'no-store' } });
 }
