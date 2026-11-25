@@ -29,13 +29,15 @@
     .fc-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
     @media (max-width: 1100px) { .fc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 620px) { .fc-grid { grid-template-columns: 1fr; } .fc-band { margin-top: -22px; } }
-    .fc-card { perspective: 1200px; min-height: 280px; cursor: pointer; border: 0; padding: 0; background: none; font: inherit; text-align: left; width: 100%; }
-    .fc-card:focus-visible { outline: 3px solid var(--orange); outline-offset: 3px; border-radius: 16px; }
-    .fc-in { position: relative; width: 100%; height: 100%; min-height: 280px; transition: transform .5s; transform-style: preserve-3d; }
-    .fc-card.flip .fc-in { transform: rotateY(180deg); }
-    .fc-face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; overflow: auto; }
+    /* A plain show/hide flip (no 3D transforms, no <button> wrapper): some browsers drew the 3D version blank. */
+    .fc-card { position: relative; display: block; min-height: 280px; cursor: pointer; text-align: left; width: 100%; border-radius: 16px; }
+    .fc-card:focus-visible { outline: 3px solid var(--orange); outline-offset: 3px; }
+    .fc-face { min-height: 280px; height: 100%; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; animation: fcIn .35s ease; }
+    @keyframes fcIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+    .fc-back, .fc-card.flip .fc-front { display: none; }
+    .fc-card.flip .fc-back { display: flex; }
     .fc-front { background: #fff; color: var(--navy-deep); border: 3px solid var(--navy-deep); box-shadow: 0 14px 28px -16px rgba(0,0,0,.7); }
-    .fc-back { background: var(--navy-deep); color: #fff; border: 3px solid var(--orange); transform: rotateY(180deg); }
+    .fc-back { background: var(--navy-deep); color: #fff; border: 3px solid var(--orange); }
     .fc-deck { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--orange); }
     .fc-front .fc-deck { color: #c2410c; }
     .fc-q { font-size: 17px; font-weight: 800; line-height: 1.35; flex: 1; }
@@ -160,22 +162,24 @@
             `<button type="button" role="tab" class="fc-tab" aria-selected="${d.id === deck}" data-deck="${d.id}">${d.icon} ${esc(d.label)}</button>`).join('');
         document.getElementById('fc-grid').innerHTML = picks().map(({ d, i }) => {
             const [q, a] = d.cards[i], key = d.id + ':' + i;
-            return `<button type="button" class="fc-card${got[key] ? ' got' : ''}" data-key="${key}" aria-label="${esc(d.label)} card. ${esc(q)} Press to flip.">
-                <div class="fc-in"><div class="fc-face fc-front"><span class="fc-deck">${d.icon} ${esc(d.label)}</span><div class="fc-q">${esc(q)}</div><span class="fc-hint">Flip for the answer ↻</span></div>
-                <div class="fc-face fc-back" aria-live="polite"><span class="fc-deck">${d.icon} ${esc(d.label)} · answer</span><div class="fc-a">${esc(a)}</div><span class="fc-hint">Flip back ↻</span></div></div></button>`;
+            return `<div role="button" tabindex="0" aria-pressed="false" class="fc-card${got[key] ? ' got' : ''}" data-key="${key}" title="Flip the card">
+                <div class="fc-face fc-front"><span class="fc-deck">${d.icon} ${esc(d.label)}</span><div class="fc-q">${esc(q)}</div><span class="fc-hint">Flip for the answer ↻</span></div>
+                <div class="fc-face fc-back"><span class="fc-deck">${d.icon} ${esc(d.label)} · answer</span><div class="fc-a">${esc(a)}</div><span class="fc-hint">Flip back ↻</span></div></div>`;
         }).join('');
         document.getElementById('fc-more').disabled = !deck;
         document.getElementById('fc-more').title = deck ? 'Five more cards from this deck' : 'Pick a deck first';
     }
+    function flip(c) { const on = c.classList.toggle('flip'); c.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+    document.addEventListener('keydown', (ev) => { const c = ev.target.closest && ev.target.closest('.fc-card'); if (c && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); flip(c); } });
     document.addEventListener('click', (ev) => {
-        const c = ev.target.closest('.fc-card'); if (c) { c.classList.toggle('flip'); return; }
+        const c = ev.target.closest('.fc-card'); if (c) { flip(c); return; }
         const t = ev.target.closest('[data-deck]'); if (t) { deck = t.dataset.deck; extra = 0; history.replaceState(null, '', deck ? '#' + deck : location.pathname); paint(); return; }
         if (ev.target.closest('#fc-today')) { deck = ''; extra = 0; history.replaceState(null, '', location.pathname); paint(); return; }
         if (ev.target.closest('#fc-more')) { extra++; paint(); return; }
         if (ev.target.closest('#fc-got')) { document.querySelectorAll('.fc-card').forEach(x => { got[x.dataset.key] = DAY; x.classList.add('got'); }); store.set('LSH_FC_GOT', got); }
     });
     const h = location.hash.slice(1); if (DECKS.some(d => d.id === h)) deck = h;
-    paint();
+    try { paint(); } catch (e) { console.error('flashcards', e); document.getElementById('fc-grid').innerHTML = '<p style="grid-column:1/-1;color:#fff;text-align:center">The cards couldn’t be shown. Reload the page; if it stays empty, tell your trainer.</p>'; }
 })();
 </script>
 </body>
