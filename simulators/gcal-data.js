@@ -1,4 +1,4 @@
-/* Google Calendar Simulator: its data (simulators/gcal.html, gcal.js).
+/* Google Calendar Sim: its data (simulators/gcal.html, gcal.js).
    • GCAL_ATTORNEY: the attorney's week for the Foundational Training's Calendar Management practice, the same
      every week (Monday to Friday): the firm's Google Calendar week (the owner's list), with the daily blocks
      (no schedule before 8 AM or after 5 PM, the daily case and email review, lunch). An Admin can change it for
@@ -456,7 +456,7 @@ const GCAL_ACT_INSTRUCTIONS = {
         ['John Michael Dela Cruz', 'john.delacruz@legalsupporthelp.com'], ['Lei Lee Abut', 'team-litigation@legalsupporthelp.com']]
 };
 
-// The track this page runs (gcal.html?track=standard|cm|ea|activity): the original Google Calendar Simulator is "standard".
+// The track this page runs (gcal.html?track=standard|cm|ea|activity): the original Google Calendar Sim is "standard".
 const GCAL_TRACKS = {
     standard: { attorney: GCAL_STD_ATTORNEY, requests: GCAL_STD_REQUESTS, rules: GCAL_STD_RULES, types: GCAL_STD_TYPES, office: GCAL_STD_OFFICE, cfg: GCAL_STD_CFG },
     activity: { attorney: [], requests: [], rules: GCAL_STD_RULES, types: GCAL_STD_TYPES, office: GCAL_STD_OFFICE, cfg: GCAL_ACT_CFG },

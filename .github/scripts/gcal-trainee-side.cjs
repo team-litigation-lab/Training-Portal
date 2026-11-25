@@ -1,11 +1,11 @@
-// The trainee's side of the Google Calendar Simulator and its evaluations (simulators/gcal.js, my-evaluations.html, calsim.html, eval-report.js):
+// The trainee's side of the Google Calendar Sim and its evaluations (simulators/gcal.js, my-evaluations.html, calsim.html, eval-report.js):
 //  - the calendar saved to their account never overwrites a newer copy (another tab or device): the save carries the copy it was made from, a 409 says
 //    so and offers the newer one; opening a panel or a view is not a change and is not sent;
 //  - Standard Training's "today" is today, not the day the calendar was first made;
 //  - a big calendar is trimmed so it still submits (the automated check stays);
 //  - the evaluations list and the report say which track they are for, and the PDF is stamped with it;
 //  - the PDF keeps accented letters and turns thin/non-breaking spaces into spaces;
-//  - the Calendaring Simulators cards show the track's evaluation and its state;
+//  - the Calendaring Sims cards show the track's evaluation and its state;
 //  - a trainer opening a trainee's calendar in a NEW TAB (no copy of the session in the tab) sees it.
 // Usage: node .github/scripts/gcal-trainee-side.cjs   (from the repository root; needs `npm i playwright`)
 const { chromium } = require('playwright');
@@ -85,7 +85,7 @@ const server = http.createServer((req, res) => {
         EvalReport.pdf({ name: 'José Muñoz', batch: 'B1', submittedAt: '2026-10-06T12:00:00.000Z', finalizedAt: '2026-10-06T14:00:00.000Z', finalizedBy: 'Trainer', checkScore: 70, ai: { summary: 'Mon 9:00 AM – 10:00 AM, café', correct: [], improve: [], missed: [] }, trainer: { notes: '', points: [] } }, 'Litigation Week · Case Management', alert); return out.join('\n'); });
     if (!/José Muñoz/.test(pdf) || !/9:00 AM - 10:00 AM, café/.test(pdf) || !/Litigation Week/.test(pdf)) fail('the PDF text lost accents or spaces, or the track: ' + pdf.slice(0, 300));
     await page.close();
-    // 7. the Calendaring Simulators cards show the track's evaluation
+    // 7. the Calendaring Sims cards show the track's evaluation
     page = await open('/simulators/calsim.html');
     const cards = await page.evaluate(() => [...document.querySelectorAll('.cs-review')].map(e => e.innerText.replace(/\s+/g, ' ').trim()));
     if (!cards.some(c => /Evaluation: submitted/.test(c) && /with your trainer/.test(c)) || !cards.some(c => /Evaluation: submitted/.test(c) && /final report sent/.test(c) && /88\/100/.test(c))) fail('the cards do not show each track’s evaluation: ' + JSON.stringify(cards));
@@ -96,12 +96,12 @@ const server = http.createServer((req, res) => {
     const t = await page.evaluate(() => document.body.innerText);   // (the trainer's scorecard and the check are in the scores section below the calendar)
     if (!/Trainee’s calendar|read only/i.test(t)) fail('a trainee’s calendar opened in a new tab shows no content: ' + t.slice(0, 200));
     await page.close();
-    // the Calendaring Simulators page has one Trainee Evaluations link for a trainer, in the foot line and in the same
+    // the Calendaring Sims page has one Trainee Evaluations link for a trainer, in the foot line and in the same
     // tab (no buttons row above the cards: it repeated that line)
     who = 'admin';
     page = await open('/simulators/calsim.html');
     const eb = await page.$$eval('#cs-evals', as => as.map(a => ({ href: a.getAttribute('href'), target: a.getAttribute('target'), text: a.innerText.trim() })));
-    if (eb.length !== 1 || eb[0].href !== '/simulators/gcal-review.html' || eb[0].target || !/Trainee Evaluations/.test(eb[0].text)) fail('the Calendaring Simulators page has no Trainee Evaluations link for a trainer: ' + JSON.stringify(eb));
+    if (eb.length !== 1 || eb[0].href !== '/simulators/gcal-review.html' || eb[0].target || !/Trainee Evaluations/.test(eb[0].text)) fail('the Calendaring Sims page has no Trainee Evaluations link for a trainer: ' + JSON.stringify(eb));
     const pills = await page.$$eval('#cs-root .sim-btn', as => as.map(a => a.innerText.trim()).filter(x => /Trainee Evaluations|Earlier scheduler scores/.test(x)));
     if (pills.length) fail('the buttons row above the cards is back (it repeats the foot line): ' + JSON.stringify(pills));
     await page.click('#cs-evals'); await page.waitForURL(/gcal-review\.html/, { timeout: 5000 }).catch(() => fail('the Trainee Evaluations link did not open the page: ' + page.url()));

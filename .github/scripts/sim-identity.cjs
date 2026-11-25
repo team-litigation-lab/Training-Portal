@@ -51,14 +51,14 @@ const server = http.createServer(async (req, res) => {
 // Every page that shows who is practicing and saves a score.
 const PAGES = [
     ['Calendaring', '/simulators/calendar.html'],
-    ['Google Calendar Simulator', '/simulators/gcal.html'],
-    ['Calendaring Simulators', '/simulators/calsim.html'],
+    ['Google Calendar Sim', '/simulators/gcal.html'],
+    ['Calendaring Sims', '/simulators/calsim.html'],
     ['Email Workspace', '/simulators/email.html'],
     ['Email Replies', '/simulators/email-replies.html'],
     ['Docket System', '/simulators/docket.html'],
     ['Medical Records Requests', '/simulators/records.html'],
     ['Court E-Filing', '/simulators/efiling.html'],
-    ['Simulators hub', '/simulators.html']
+    ['LSH Sims hub', '/simulators.html']
 ];
 (async () => {
     await new Promise(r => server.listen(0, r));
@@ -163,5 +163,5 @@ const PAGES = [
     }
     await browser.close(); server.close();
     if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-    console.log(`Simulator identity test passed (${PAGES.length} pages): a signed-in trainee practices as their own account — the name is fixed, nobody is asked who is practicing, the heartbeat beats, and the score is recorded under the account and not under a name from the link or this browser; a shared browser is taken over from the previous trainee; a signed-out visitor is never asked, and a name the link carries still reaches the trainer.`);
+    console.log(`Sim identity test passed (${PAGES.length} pages): a signed-in trainee practices as their own account — the name is fixed, nobody is asked who is practicing, the heartbeat beats, and the score is recorded under the account and not under a name from the link or this browser; a shared browser is taken over from the previous trainee; a signed-out visitor is never asked, and a name the link carries still reaches the trainer.`);
 })();

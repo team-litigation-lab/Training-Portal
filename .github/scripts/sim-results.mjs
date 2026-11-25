@@ -40,7 +40,7 @@ await post({ simulator: 'Google Calendar', scenario: 'Attorney Rivera', score: 6
 const rec = JSON.parse(kv.get('ft:simresults:jamie-cruz--b100526') || 'null');
 if (!rec || rec.results.length !== 3 || rec.best['Google Calendar'].score !== 90 || rec.best['Google Calendar'].count !== 3) fail(`the course record: ${JSON.stringify(rec)}`);
 // read back under the same identity it was written under: the trainee's own rows, the trainer's list, and the course id a
-// graded call from the Call Simulator (Ring Channel) uses for the same person (so a score and a call meet on one trainee record).
+// graded call from the Call Sim (LSH Voice) uses for the same person (so a score and a call meet on one trainee record).
 {
     const mine = await onRequestGet({ request: new Request('https://portal.test/api/sim-results', { headers: { cookie: jamie } }), env });
     const d = await mine.json();
@@ -61,4 +61,4 @@ await post({ simulator: 'Docket System', score: 50, who: { program: 'FT' } }, aw
 if (kv.size !== before) fail('a result with no course, or an admin\'s, was written to a course');
 
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-console.log('Simulator results test passed (the signed-in trainee\'s own account, each course\'s store by its prefix and id with the best per simulator, nothing for a Portal-only or an admin\'s result).');
+console.log('Sim results test passed (the signed-in trainee\'s own account, each course\'s store by its prefix and id with the best per simulator, nothing for a Portal-only or an admin\'s result).');

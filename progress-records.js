@@ -21,7 +21,10 @@ function ago(iso) {
     const d = Math.round(h / 24); return d < 60 ? d + ' d ago' : new Date(iso).toLocaleDateString();
 }
 const date = (iso) => iso ? new Date(iso).toLocaleDateString() : '—';
-function progLabel(id) { const p = (P.data.programs || []).find(x => x.id === id); return p ? p.label : id; }
+// The programs' shown names (as on LSH Academy Index's cards). The server's labels stay as they were: they name
+// the Drive archive folders and the Attendance sheet's program column.
+const TRACK_NAMES = { ft: 'Legal VA Foundational Track', eapa: 'EA PA Track', cm: 'Case Management Track', pd: 'Property Damage Claims Track', md: 'Medsum & Demand Track', ln: 'Lien Negotiator Track' };
+function progLabel(id) { if (TRACK_NAMES[id]) return TRACK_NAMES[id]; const p = (P.data.programs || []).find(x => x.id === id); return p ? p.label : id; }
 function score(n) { if (n == null) return '<span class="pg-muted">—</span>'; const c = n >= 85 ? 'good' : n >= 70 ? 'mid' : 'low'; return `<span class="sim-score ${c}">${n}%</span>`; }
 function rating(r) { return r ? `<span class="pg-rt ${esc(String(r).split(' ')[0])}">${esc(r)}</span>` : ''; }
 function stars(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
@@ -97,7 +100,7 @@ function cards() {
         const drafts = act.reduce((a, t) => a + ((t.feedback || {}).drafts || 0), 0);
         const sentFb = act.reduce((a, t) => a + ((t.feedback || {}).sent || 0), 0);
         const theirs = tfb.filter(f => f.program === p.id), st = starAvg(theirs);
-        return `<div class="sim-card pg-card"><div class="k">${esc(p.label)} · ${p.days} days</div><div class="v">${act.length}</div>
+        return `<div class="sim-card pg-card"><div class="k">${esc(TRACK_NAMES[p.id] || p.label)} · ${p.days} days</div><div class="v">${act.length}</div>
             <div class="s">${act.length === 1 ? 'approved trainee' : 'approved trainees'} in ${nBatches} batch${nBatches === 1 ? '' : 'es'} · ${recent} active this week${pending ? ` · <b>${pending} pending approval</b>` : ''}${nArch ? ` · ${nArch} archived batch${nArch === 1 ? '' : 'es'}` : ''}</div>
             <div class="s" style="margin-top:6px;">Avg completion ${done == null ? '—' : done + '%'} · Knowledge Checks ${avg(act.map(t => t.kcAvg)) == null ? '—' : avg(act.map(t => t.kcAvg)) + '%'}</div>
             <div class="s" style="margin-top:6px;">Trainer feedback: ${sentFb} sent${drafts ? ` · <b>${drafts} draft${drafts === 1 ? '' : 's'} to review</b>` : ''} · From trainees: ${theirs.length}${st != null ? ` (avg ${(st / 20).toFixed(1)}★)` : ''}</div>
@@ -106,9 +109,9 @@ function cards() {
 }
 
 function programTabs() {
-    const progs = P.programs || PROGRAM_ORDER.map(id => ({ id, label: { ft: 'Standard Foundational Training', eapa: 'EA / PA Training', cm: 'Case Management Training', pd: 'PD Claims Training', md: 'Medsum & Demand Training', ln: 'Lien Negotiator Training' }[id] || id }));
+    const progs = P.programs || PROGRAM_ORDER.map(id => ({ id, label: id }));
     return `<div class="pg-ptabs" role="tablist">${PROGRAM_ORDER.map(id => progs.find(p => p.id === id)).filter(Boolean).map(p =>
-        `<button role="tab" class="${P.program === p.id ? 'on' : ''}" onclick="switchProgram('${p.id}')">${esc(p.label)}</button>`).join('')}</div>`;
+        `<button role="tab" class="${P.program === p.id ? 'on' : ''}" onclick="switchProgram('${p.id}')">${esc(TRACK_NAMES[p.id] || p.label)}</button>`).join('')}</div>`;
 }
 function switchProgram(id) {
     if (id === P.program) return;
@@ -166,7 +169,7 @@ function traineeRows(list) {
             <td>${esc(ago(p.lastActive))}</td></tr>
             ${open ? `<tr class="pg-detail"><td colspan="11"><div class="pg-detail-in">${detail(p)}</div></td></tr>` : ''}`; }).join('');
 }
-const TABLE_HEAD = `<thead><tr><th>Trainee</th><th>Progress</th><th>Completion</th><th>Knowledge Checks</th><th>Practice</th><th>Random tasks</th><th>Trainer feedback</th><th>Their feedback</th><th>Simulators</th><th>Portal activities</th><th>Last active</th></tr></thead>`;
+const TABLE_HEAD = `<thead><tr><th>Trainee</th><th>Progress</th><th>Completion</th><th>Knowledge Checks</th><th>Practice</th><th>Random tasks</th><th>Trainer feedback</th><th>Their feedback</th><th>LSH Sims</th><th>Portal activities</th><th>Last active</th></tr></thead>`;
 function renderTable() {
     const el = document.getElementById('tbl'); if (!el) return;
     const list = rows(), groups = {};
@@ -293,7 +296,7 @@ function tfbCard(f, withName) {
 function detail(p) {
     const d = P.data || {};
     const cal = (t) => { const c = ((d.calsim && d.calsim.byName || {})[p.key] || {})[t.program]; if (!c) return '';
-        return `<h5>📅 Calendaring Simulators</h5>` + c.weeks.map(w => `<div class="pg-muted"><b>${esc(w.label)}</b> · 🤖 ${w.auto ?? '—'}${w.auto != null ? '%' : ''} · ${w.score != null ? '👤 ' + w.score + '/100' : 'to review'} · ${esc(date(w.at))}${w.comment ? '<br>' + esc(w.comment) : ''}</div>`).join(''); };
+        return `<h5>📅 Calendaring Sims</h5>` + c.weeks.map(w => `<div class="pg-muted"><b>${esc(w.label)}</b> · 🤖 ${w.auto ?? '—'}${w.auto != null ? '%' : ''} · ${w.score != null ? '👤 ' + w.score + '/100' : 'to review'} · ${esc(date(w.at))}${w.comment ? '<br>' + esc(w.comment) : ''}</div>`).join(''); };
     const enr = p.enrollments.map(t => `<div class="pg-enr">
         <h4><span class="pg-prog ${esc(t.program)}">${esc(progLabel(t.program))}</span><span class="pg-st ${esc(t.status)}">${esc(t.status)}</span>
             <span class="pg-muted">${t.batch ? esc(t.batch) + ' · ' : ''}registered ${esc(date(t.registeredAt))} · last active ${esc(ago(t.lastActive))}</span></h4>
@@ -412,7 +415,7 @@ function renderScoresTable() {
     const list = moduleRows(), n = moduleCount(), groups = {};
     list.forEach(r => { (groups[batchOf(r.person)] = groups[batchOf(r.person)] || []).push(r); });
     const keys = Object.keys(groups).sort((a, b) => (a === '') - (b === '') || b.localeCompare(a, undefined, { numeric: true }));
-    const head = `<thead><tr><th>Trainee</th>${Array.from({ length: n }, (_, i) => `<th title="Module ${i + 1} — day ${i + 1}">M${i + 1}</th>`).join('')}<th>Modules scored</th><th>Module avg</th><th>Simulators</th><th>Portal activities</th></tr></thead>`;
+    const head = `<thead><tr><th>Trainee</th>${Array.from({ length: n }, (_, i) => `<th title="Module ${i + 1} — day ${i + 1}">M${i + 1}</th>`).join('')}<th>Modules scored</th><th>Module avg</th><th>LSH Sims</th><th>Portal activities</th></tr></thead>`;
     el.innerHTML = keys.length ? keys.map((b, i) => {
         const rs = groups[b], closed = P.closed['mx:' + b] !== undefined ? !!P.closed['mx:' + b] : (i > 0 && !P.q);
         const batchAvg = Array.from({ length: n }, (_, k) => avg(rs.map(r => r.mods[k].score)));
@@ -447,7 +450,7 @@ function download(name, lines) {
 const csvq = (v) => { const s = String(v == null ? '' : v); return `"${(/^[=+\-@\t\r]/.test(s) ? `'${s}` : s).replace(/"/g, '""')}"`; };
 function exportCsv() {
     const head = ['Name', 'Program', 'Batch', 'Status', 'Days done', 'Days total', 'Knowledge Check avg', 'Practice avg', 'Practice done', 'Random task avg', 'Roleplay avg',
-        'Trainer feedback sent', 'Trainer feedback drafts', 'Latest trainer rating', 'Feedback they sent', 'Their avg stars', 'Simulator runs', 'Simulator avg', 'Portal activities', 'Portal avg', 'Last active', 'Registered'];
+        'Trainer feedback sent', 'Trainer feedback drafts', 'Latest trainer rating', 'Feedback they sent', 'Their avg stars', 'Sim runs', 'Sim avg', 'Portal activities', 'Portal avg', 'Last active', 'Registered'];
     const lines = [head.map(csvq).join(',')];
     rows().forEach(p => p.enrollments.filter(t => t.program === P.program).forEach(t => {
         const fb = t.feedback || {}, sent = p.sent.filter(f => f.program === t.program), st = starAvg(sent);
@@ -463,7 +466,7 @@ function exportCsv() {
 // each of that trainee's lines rather than getting a row of their own.
 function exportScoresCsv() {
     const head = ['Program', 'Batch', 'Trainee', 'Status', 'Module', 'Knowledge Check %', 'Random task %', 'Module completed',
-        'Modules scored', 'Modules completed', 'Module average %', 'Simulator avg %', 'Simulator runs', 'Portal activity avg %', 'Portal activities submitted'];
+        'Modules scored', 'Modules completed', 'Module average %', 'Sim avg %', 'Sim runs', 'Portal activity avg %', 'Portal activities submitted'];
     const lines = [head.map(csvq).join(',')];
     moduleRows().forEach(r => {
         const p = r.person;
