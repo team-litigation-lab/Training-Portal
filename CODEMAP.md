@@ -35,6 +35,8 @@ The signed-in portal: LSH Academy Index, dashboard, progress, attendance, orient
 | `blueprint.html` | 328 | Platform Blueprint: the two tracks, with the deck itself drawn by `lsh-blueprint.js` (the shared Blueprint engine) — the former Platform Orientation. |
 | `orientation.html` | 15 | Stub pointing the old Orientation URL at /blueprint.html. |
 | `system.html` | 120 | System Management page (admin). |
+| `mc-directory.js` | 150 | Master Control 🧭 Dashboard & Directory (core.html): every admin feature in one grouped table with live status, Open and ⓘ How to use pop-outs; adds the same How to use bar to every panel. |
+| `flashcards.html` | 150 | 🃏 Flash Cards Daily Digest (Support & Upskill card): one card a day from Rules, Trivia, Terminologies, Process and FAQs decks; signed-in only. |
 | `portal-nav.js` | 166 | Shared nav: PortalNav.html/adminHtml top bars, System Management menu, trainee-view switch, logout, injected styles, floating Back-button safety net. |
 | `portal.js` | 835 | Public-portal runtime: registration/login, password validation, input filters, sound engine, full-screen alert, site lock/pause UI, pings, and the consolidated /api/live poller. |
 | `programs.html` | 682 | LSH Academy Index: grouped program cards with access request/approve flow, SSO launch wake-up, admin queue, client-side certificate PDF. |
