@@ -125,6 +125,25 @@
     .topic-card .topic-action-btn { grid-area: action; margin-top: 0; }
     /* Centered, so the title reads as the card's headline rather than being pinned to one side. */
     .topic-card h3 { font-size: 16px; font-weight: 800; margin: 0; color: var(--navy); border: 2px solid var(--navy); border-radius: 10px; padding: clamp(6px, 0.9vh - 1px, 10px) 11px; line-height: 1.25; text-align: center; }
+    /* 🎨 Track identity: the card's top edge, its title frame and its name take the track's colour (--tk); the emblem
+       sits before the name. A light shimmer passes over every name; an available track's frame also glows softly and
+       its emblem bobs, so open programs are easy to spot. Nothing here changes a card's size; all motion stops for
+       anyone whose system asks for reduced motion. */
+    .topic-card.tk { box-shadow: inset 0 4px 0 var(--tk), 0 14px 28px -18px rgba(15,33,72,.35); }
+    .topic-card.tk h3 { border-color: var(--tk); }
+    .tk-ic { display: inline-block; margin-right: .32em; }
+    .topic-card.tk h3.tk-long { white-space: nowrap; font-size: .84em; letter-spacing: -.01em; }   /* a long name (Settlements / Closing Specialist Track, Intellectual Property Law Track) stays on one line beside its emblem */
+    #idx-topics .topic-card.tk h3.tk-long { font-size: clamp(11px, 1.6vh, 17.5px); }
+    .tk-name { background: linear-gradient(100deg, var(--tk) 0%, var(--tk) 38%, color-mix(in srgb, var(--tk) 45%, #fff) 50%, var(--tk) 62%, var(--tk) 100%);
+        background-size: 260% 100%; background-position: 100% 0; -webkit-background-clip: text; background-clip: text; color: transparent;
+        animation: tkShine 6s ease-in-out infinite; animation-delay: var(--tkd, 0s); }
+    @keyframes tkShine { 0%, 45% { background-position: 100% 0; } 85%, 100% { background-position: 0 0; } }
+    .topic-card.tk.live h3 { animation: tkGlow 3.2s ease-in-out infinite; animation-delay: var(--tkd, 0s); }
+    @keyframes tkGlow { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--tk) 22%, transparent), 0 0 16px color-mix(in srgb, var(--tk) 40%, transparent); } }
+    .topic-card.tk.live .tk-ic { animation: tkBob 3.2s ease-in-out infinite; animation-delay: var(--tkd, 0s); }
+    @keyframes tkBob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-2px) rotate(-6deg); } }
+    .topic-card.tk:not(.live) .tk-name { animation-duration: 9s; }
+    @media (prefers-reduced-motion: reduce) { .tk-name, .topic-card.tk.live h3, .topic-card.tk.live .tk-ic { animation: none; } .tk-name { background-position: 0 0; } }
     .topic-status { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 999px; display: inline-block; width: fit-content; }
     .topic-status.approved { background: #f0fdf4; color: #166534; }
     .topic-status.passed { background: #fff7ed; color: #9a3412; }
@@ -422,6 +441,19 @@
         'CLIENT INTERVIEW PREP': 'Client Interview Prep'
     };
 
+    // 🎨 Each track's identity on the LSH Academy Index: [emblem, colour]. The colours are dark enough to read as text
+    // on the white card (the name is drawn in its track's colour, with a light shimmer passing over it).
+    const TRACK_LOOK = {
+        'STANDARD TRAINING': ['🧭', '#1d4ed8'], 'LIEN NEGOTIATION': ['🤝', '#b45309'], 'MEDSUM AND DEMAND': ['🩺', '#be123c'],
+        'CM TRAINING': ['🗂', '#0f766e'], 'REVISED CM TRAINING': ['🗂', '#0f766e'], 'PROPERTY DAMAGE': ['🏠', '#c2410c'],
+        'HEALTH SUBRO': ['💊', '#7e22ce'], 'LIEN VERIFICATION': ['🔎', '#0369a1'], 'SETTLEMENTS CLOSING': ['💰', '#15803d'],
+        'LITIGATION': ['⚖️', '#334155'], 'MASS TORT': ['🏭', '#9f1239'], 'BUSINESS LAW': ['💼', '#1e40af'],
+        'ESTATE PLANNING': ['📜', '#92400e'], 'FAMILY LAW': ['👪', '#be185d'], 'IMMIGRATION LAW': ['🌎', '#0e7490'],
+        'INTELLECTUAL PROPERTY LAW': ['💡', '#6d28d9'], 'REAL ESTATE LAW': ['🏢', '#166534'],
+        'EA  PA TRAINING-OUTSOURCED MANP': ['🗓', '#a16207'], 'REVISED EA PA TRAINING': ['🗓', '#a16207'],
+        'FREE UPSKILL PROGRAMS': ['🚀', '#0e7490'], 'CLIENT INTERVIEW PREP': ['🎙', '#4338ca'], 'CALENDAR MANAGEMENT TRAINING': ['📅', '#1d4ed8']
+    };
+
     // Programs shown on the index that aren't in the live topics table yet.
     // Added to the list only when the database doesn't already have the key,
     // so seeding it later (topics_seed.sql carries it) changes nothing here.
@@ -603,6 +635,10 @@
         if (!grid) return;
         const isAdmin = session.userType === 'Admin';
 
+        // 🎨 Each track's own identity on its card: an emblem and a colour, with the name in that colour (TRACK_LOOK).
+        const tkOpen = (t, live) => { const k = TRACK_LOOK[t.key]; return k ? `<div class="topic-card tk${live ? ' live' : ''}" style="--tk:${k[1]};--tkd:${(t.key.length * 0.37) % 3}s">` : '<div class="topic-card">'; };
+        const tkTitle = (t) => { const k = TRACK_LOOK[t.key], free = PINNED_PROGRAMS.includes(t.key) ? ' <span class="topic-free">Free</span>' : '';
+            return k ? `<h3${t.name.length > 30 ? ' class="tk-long"' : ''}><span class="tk-ic" aria-hidden="true">${k[0]}</span><span class="tk-name">${escapeHtml(t.name)}</span>${free}</h3>` : `<h3>${escapeHtml(t.name)}${free}</h3>`; };
         const cardFor = (t) => {
             const built = BUILT_PROGRAMS[t.key];
             const myAccess = isAdmin ? null : __accessCache.find(a => a.topic_key === t.key);
@@ -610,8 +646,8 @@
 
             if (session.userType === 'Public') {
                 return `
-                <div class="topic-card">
-                    <h3>${escapeHtml(t.name)}${PINNED_PROGRAMS.includes(t.key) ? ' <span class="topic-free">Free</span>' : ''}</h3>
+                ${tkOpen(t, !!built)}
+                    ${tkTitle(t)}
                     <span class="topic-status ${built ? 'approved' : 'locked'}">${built ? 'Available' : 'Coming Soon'}</span>
                     ${built ? (SSO_PROGRAMS.includes(t.key)
                         ? `<a class="topic-action-btn primary" href="/trainee-login.html">Log in to open &rarr;</a>`
@@ -638,8 +674,8 @@
             }
 
             return `
-                <div class="topic-card">
-                    <h3>${escapeHtml(t.name)}${PINNED_PROGRAMS.includes(t.key) ? ' <span class="topic-free">Free</span>' : ''}</h3>
+                ${tkOpen(t, !!built)}
+                    ${tkTitle(t)}
                     <span class="topic-status ${status}">${isAdmin ? (built ? 'Available' : 'Coming Soon') : statusLabel}</span>
                     ${actionHtml}
                 </div>
