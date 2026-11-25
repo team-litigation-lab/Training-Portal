@@ -21,7 +21,10 @@ function ago(iso) {
     const d = Math.round(h / 24); return d < 60 ? d + ' d ago' : new Date(iso).toLocaleDateString();
 }
 const date = (iso) => iso ? new Date(iso).toLocaleDateString() : '—';
-function progLabel(id) { const p = (P.data.programs || []).find(x => x.id === id); return p ? p.label : id; }
+// The programs' shown names (as on LSH Academy Index's cards). The server's labels stay as they were: they name
+// the Drive archive folders and the Attendance sheet's program column.
+const TRACK_NAMES = { ft: 'Legal VA Foundational Track', eapa: 'EA PA Track', cm: 'Case Management Track', pd: 'Property Damage Claims Track', md: 'Medsum & Demand Track', ln: 'Lien Negotiator Track' };
+function progLabel(id) { if (TRACK_NAMES[id]) return TRACK_NAMES[id]; const p = (P.data.programs || []).find(x => x.id === id); return p ? p.label : id; }
 function score(n) { if (n == null) return '<span class="pg-muted">—</span>'; const c = n >= 85 ? 'good' : n >= 70 ? 'mid' : 'low'; return `<span class="sim-score ${c}">${n}%</span>`; }
 function rating(r) { return r ? `<span class="pg-rt ${esc(String(r).split(' ')[0])}">${esc(r)}</span>` : ''; }
 function stars(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
@@ -97,7 +100,7 @@ function cards() {
         const drafts = act.reduce((a, t) => a + ((t.feedback || {}).drafts || 0), 0);
         const sentFb = act.reduce((a, t) => a + ((t.feedback || {}).sent || 0), 0);
         const theirs = tfb.filter(f => f.program === p.id), st = starAvg(theirs);
-        return `<div class="sim-card pg-card"><div class="k">${esc(p.label)} · ${p.days} days</div><div class="v">${act.length}</div>
+        return `<div class="sim-card pg-card"><div class="k">${esc(TRACK_NAMES[p.id] || p.label)} · ${p.days} days</div><div class="v">${act.length}</div>
             <div class="s">${act.length === 1 ? 'approved trainee' : 'approved trainees'} in ${nBatches} batch${nBatches === 1 ? '' : 'es'} · ${recent} active this week${pending ? ` · <b>${pending} pending approval</b>` : ''}${nArch ? ` · ${nArch} archived batch${nArch === 1 ? '' : 'es'}` : ''}</div>
             <div class="s" style="margin-top:6px;">Avg completion ${done == null ? '—' : done + '%'} · Knowledge Checks ${avg(act.map(t => t.kcAvg)) == null ? '—' : avg(act.map(t => t.kcAvg)) + '%'}</div>
             <div class="s" style="margin-top:6px;">Trainer feedback: ${sentFb} sent${drafts ? ` · <b>${drafts} draft${drafts === 1 ? '' : 's'} to review</b>` : ''} · From trainees: ${theirs.length}${st != null ? ` (avg ${(st / 20).toFixed(1)}★)` : ''}</div>
@@ -106,9 +109,9 @@ function cards() {
 }
 
 function programTabs() {
-    const progs = P.programs || PROGRAM_ORDER.map(id => ({ id, label: { ft: 'Standard Foundational Training', eapa: 'EA / PA Training', cm: 'Case Management Training', pd: 'PD Claims Training', md: 'Medsum & Demand Training', ln: 'Lien Negotiator Training' }[id] || id }));
+    const progs = P.programs || PROGRAM_ORDER.map(id => ({ id, label: id }));
     return `<div class="pg-ptabs" role="tablist">${PROGRAM_ORDER.map(id => progs.find(p => p.id === id)).filter(Boolean).map(p =>
-        `<button role="tab" class="${P.program === p.id ? 'on' : ''}" onclick="switchProgram('${p.id}')">${esc(p.label)}</button>`).join('')}</div>`;
+        `<button role="tab" class="${P.program === p.id ? 'on' : ''}" onclick="switchProgram('${p.id}')">${esc(TRACK_NAMES[p.id] || p.label)}</button>`).join('')}</div>`;
 }
 function switchProgram(id) {
     if (id === P.program) return;
