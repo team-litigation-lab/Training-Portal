@@ -139,38 +139,6 @@
     .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
     .topic-action-btn.request { background: var(--orange); color: #0f172a; }
     .topic-action-btn.disabled { background: #f1f5f9; color: #334155; cursor: default; }
-    /* 🃏 Flash Cards: the day's one flash card fills its whole card (no title, no buttons): the deck at the top, then
-       the question, or the answer once flipped by a click or Enter. A new card every day (flashcards-data.js). The card
-       keeps the size of its neighbours, so the page still fits one screen. */
-    .tool-card { padding: clamp(6px, 1vh - 2px, 12px); }
-    .tool-card .fc-mini { grid-column: 1 / -1; grid-row: 1 / -1; align-self: stretch; position: relative; display: flex; flex-direction: column; gap: 4px;
-        min-height: 0; padding: 7px 12px 8px; border-radius: 10px; cursor: pointer; text-align: left; overflow: hidden;
-        background: #fff; color: var(--navy-deep); border: 2px solid var(--navy-deep); box-shadow: inset 5px 0 0 var(--orange); transition: background .25s ease, color .25s ease; }
-    .fc-mini-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .fc-mini-flip { font-size: 15px; font-weight: 900; color: #c2410c; line-height: 1; }
-    .fc-mini.flip .fc-mini-flip { color: var(--orange); }
-    /* The text sizes itself to the card (fitFlashCard below): as large as fits, centred; trimmed at a whole line only
-       when even the smallest size would not fit. */
-    .tool-card .fc-mini .fc-mini-body { flex: 1; min-height: 0; display: flex; align-items: center; overflow: hidden; }
-    .tool-card .fc-mini .fc-mini-text { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; font-size: 16px; font-weight: 800; line-height: 1.28; }
-    .tool-card .fc-mini.flip .fc-mini-text { font-weight: 600; }
-    /* short screens (up to 940px tall): the deck becomes a small corner badge (its icon and ↻), so the card's text gets the whole card */
-    @media (max-height: 940px) {
-        .tool-card .fc-mini { padding: 4px 30px 4px 10px; gap: 0; }
-        .fc-mini-top { position: absolute; top: 3px; right: 6px; flex-direction: column; gap: 2px; }
-        .fc-mini-deck b { display: none; }
-        .fc-mini-flip { font-size: 12px; }
-    }
-    .tool-card .fc-mini:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
-    .tool-card .fc-mini.flip { background: var(--navy-deep); color: #fff; border-color: var(--orange); }
-    .fc-mini-deck { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #c2410c; white-space: nowrap; }
-    .fc-mini.flip .fc-mini-deck { color: var(--orange); }
-    .fc-mini-deck b { font-weight: inherit; }
-    .fc-mini-text { font-size: 12.5px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-    .fc-mini.flip .fc-mini-text { font-weight: 600; }
-    .fc-mini-text.in { animation: fcMiniIn .45s ease; }
-    @keyframes fcMiniIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-    @media (prefers-reduced-motion: reduce) { .fc-mini-text.in { animation: none; } .tool-card .fc-mini { transition: none; } }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
     .sim-banner-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
@@ -297,7 +265,6 @@
     }
 </style>
 <script src="/portal-nav.js"></script>
-<script src="/flashcards-data.js"></script>
 <link rel="stylesheet" href="/theme.css">
 </head>
 <body>
@@ -452,8 +419,7 @@
         'REAL ESTATE LAW': 'Real Estate Law Track',
         'FREE UPSKILL PROGRAMS': 'Free Upskill Track',
         'SETTLEMENTS CLOSING': 'Settlements / Closing Specialist Track',
-        'CLIENT INTERVIEW PREP': 'Client Interview Prep',
-        'FLASH CARDS': 'Flash Cards'
+        'CLIENT INTERVIEW PREP': 'Client Interview Prep'
     };
 
     // Programs shown on the index that aren't in the live topics table yet.
@@ -465,50 +431,9 @@
         { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Track', sort_order: 0 },
         { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Track', sort_order: 13 },
         { key: 'SETTLEMENTS CLOSING', name: 'Settlements / Closing Specialist Track', sort_order: 13 },
-        { key: 'CLIENT INTERVIEW PREP', name: 'Client Interview Prep', sort_order: 0 },
-        { key: 'FLASH CARDS', name: 'Flash Cards', sort_order: 0 }
+        { key: 'CLIENT INTERVIEW PREP', name: 'Client Interview Prep', sort_order: 0 }
     ];
     // Portal pages anyone can open from a card, with no access request: they live on this site.
-    // 🃏 Flash Cards: one flash card a day on its own card (decks in flashcards-data.js); flashcards.html has the full digest.
-    const PORTAL_TOOLS = { 'FLASH CARDS': '/flashcards.html' };
-    const toolCard = (t) => `
-                <div class="topic-card tool-card">
-                    <div class="fc-mini" role="button" tabindex="0" aria-pressed="false" aria-label="${escapeHtml(t.name)}: today's flash card" title="Today's flash card: click to flip">
-                        <span class="fc-mini-top"><span class="fc-mini-deck"></span><span class="fc-mini-flip" aria-hidden="true">↻</span></span>
-                        <span class="fc-mini-body"><span class="fc-mini-text"></span></span>
-                    </div>
-                </div>`;
-    // The flash card's text as large as its card allows: from 26px (a short question) down to 11px; if even 11px
-    // overflows, it is cut at the last whole line that fits (with an ellipsis) and the full text stays on hover.
-    function fitFlashCard(box) {
-        const body = box.querySelector('.fc-mini-body'), t = box.querySelector('.fc-mini-text');
-        if (!body || !t || !body.clientHeight) return;
-        t.style.webkitLineClamp = 'unset';
-        let px = 26;
-        for (; px > 11; px -= 1) { t.style.fontSize = px + 'px'; if (t.scrollHeight <= body.clientHeight && t.scrollWidth <= body.clientWidth + 1) break; }
-        t.style.fontSize = px + 'px';
-        if (t.scrollHeight > body.clientHeight) t.style.webkitLineClamp = String(Math.max(1, Math.floor(body.clientHeight / (px * 1.28))));
-    }
-    // 🃏 The Flash Cards card shows one flash card a day (flashcards-data.js one()); a click or Enter flips it to the answer.
-    function startFlashCards() {
-        const box = document.querySelector('.tool-card .fc-mini'), F = window.LSH_FLASHCARDS;
-        if (!box || !F || box.dataset.ready) return;
-        box.dataset.ready = '1';
-        const { deck, i } = F.one(), [q, a] = deck.cards[i], deckEl = box.querySelector('.fc-mini-deck'), textEl = box.querySelector('.fc-mini-text');
-        const show = () => {
-            const back = box.classList.contains('flip');
-            deckEl.innerHTML = escapeHtml(deck.icon) + '<b>' + escapeHtml(' ' + deck.label) + '</b>'; deckEl.title = deck.label + (back ? ': the answer' : '');
-            textEl.textContent = back ? a : q; box.title = (back ? a : q) + (back ? '\n\nClick to see the question' : '\n\nClick for the answer');
-            box.setAttribute('aria-pressed', back ? 'true' : 'false');
-            fitFlashCard(box);
-            textEl.classList.remove('in'); void textEl.offsetWidth; textEl.classList.add('in');
-        };
-        const flip = () => { box.classList.toggle('flip'); show(); };
-        window.addEventListener('resize', () => fitFlashCard(box));
-        box.addEventListener('click', flip);
-        box.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); flip(); } });
-        show();
-    }
     // Shown first on the index, ahead of the progression, with a "Free" badge.
     const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
 
@@ -649,7 +574,7 @@
     const ARCHIVED_TOPICS = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];   // keep in step with PA_HIDDEN in app.js (same list; app.js loads into this page's global scope, so the names must differ)
     // Reference cards that aren't on the index either (they were the whole "More Training &
     // Resources" section, all Coming Soon). A program added later still shows up there.
-    const HIDDEN_TOPICS = ['HANDOUTS', 'TRAINING TOOLS AND RESOURCES', 'OTHER RESOURCES'];
+    const HIDDEN_TOPICS = ['HANDOUTS', 'TRAINING TOOLS AND RESOURCES', 'OTHER RESOURCES', 'FLASH CARDS'];   // Flash Cards: off the index (its page, /flashcards.html, stays)
 
     // TOPIC_SEQUENCE was only being used for gating logic below, never for
     // the actual card order — so the grid was still showing the database's
@@ -679,7 +604,6 @@
         const isAdmin = session.userType === 'Admin';
 
         const cardFor = (t) => {
-            if (PORTAL_TOOLS[t.key]) return toolCard(t);
             const built = BUILT_PROGRAMS[t.key];
             const myAccess = isAdmin ? null : __accessCache.find(a => a.topic_key === t.key);
             const status = isAdmin ? 'approved' : (myAccess ? myAccess.status.toLowerCase() : 'locked');
@@ -723,7 +647,6 @@
         };
         grid.className = 'topic-groups';
         grid.innerHTML = groupedTopicsHtml(cardFor);
-        startFlashCards();
     }
 
     // The cards are grouped by practice area: everything personal injury is in one place.
@@ -733,7 +656,7 @@
         { title: 'Specialized Playbooks', note: '',
           keys: ['LITIGATION', 'MASS TORT', 'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'REAL ESTATE LAW'] },
         { title: 'Support & Upskill', note: '',
-          keys: ['EA  PA TRAINING-OUTSOURCED MANP', 'FREE UPSKILL PROGRAMS', 'CLIENT INTERVIEW PREP', 'FLASH CARDS'] }
+          keys: ['EA  PA TRAINING-OUTSOURCED MANP', 'FREE UPSKILL PROGRAMS', 'CLIENT INTERVIEW PREP'] }
     ];
     // How many across, so a group's last row is not a stub. Four is the default
     // and the widest the cards look right at; three when the count divides by
