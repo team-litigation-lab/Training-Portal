@@ -18,7 +18,12 @@ program's scorecards. This file is the contract that makes that work. **A new pr
 
 1. **Keys.** Keep the trainee at `<prefix>trainee:<id>`, where `<id>` is their name and batch slugged as `name--batch`
    (`candidateIds` in every course's `worker.js`). Keep everything else of theirs at `<prefix><kind>:<id>`, so the last
-   `:`-part of a key is always the trainee id.
+   `:`-part of a key is always the trainee id. A record kept per item (an upload per activity, a backup per save) is
+   **sub-keyed**: `<prefix><kind>:<id>:<suffix>` (the id right after the kind, as CM's and PD's `actup:<id>:<activity>`), or
+   `<prefix><kind>:<anything>:<id>` (the id last, as `checkin:<date>:<id>`). Revoke (`_purge.js` `keyOfTrainee`) takes every key
+   where one of those parts is exactly the trainee's id, whatever its kind; any other shape is left behind. A course that
+   moves a trainee's record to another id writes `<prefix>trainee-alias:<new id>` = `<kept id>` (or `<prefix>merged:<id>` =
+   `{into}`): the Portal's graded results follow both.
 2. **Portal: the program list.** Add the program to `functions/_programs.js` (`topic`, `id`, `label`, `prefix`). That
    alone makes Revoke and Program Access reach it. Also add it to `functions/api/launch.js` (its URL),
    `programs.html`, `functions/api/program-progress.js` and `functions/_attendance.js` as for the others.
@@ -27,10 +32,13 @@ program's scorecards. This file is the contract that makes that work. **A new pr
    screen, not an error (see Lien Negotiator's `index.html` `api()` and `viewPending()`).
 5. **The program's Worker checks a ticket's audience and takes it once.** A Portal ticket (`/api/launch`, `makeTicket`)
    carries `p`, the topic key of the program it was made for (or the tool id). `readPortalTicket` refuses a ticket whose `p`
-   is not this program's own topic key (`code: "audience"`, also when `p` is missing), and `/api/auth/portal` passes every
+   is set and is not this program's own topic key (`code: "audience"`; a ticket with no `p` is still taken, so nobody is
+   locked out whichever side deploys first), and `/api/auth/portal` passes every
    ticket, trainee, admin and system, through `useTicketOnce` (a KV nonce kept 10 minutes, longer than a ticket lives). A
    ticket the program signs for a tool (`/api/auth/tool-ticket`) carries `p: "tool"` / the tool id, never a program's key.
-   The trainee's whole registered name comes as `full` (display only; the id stays first + last + batch).
+   The trainee's whole registered name comes as `full` (display only; the id stays first + last + batch), and their Portal
+   account id as `u` (it stays the same when the name or batch is corrected). `SSO_REQUIRE_AUDIENCE=1` on the program refuses
+   a ticket with no `p` as well: **set it on every program once the Portal and all programs are deployed.**
 6. Check it: put `{"ids": {"<a test trainee id>": {"why": "offboarded"}}}` at `<prefix>access:blocked`. The test trainee
    should be gone from the program's admin lists and `/api/storage/list`, and the trainee's own sign-in should be refused.
 

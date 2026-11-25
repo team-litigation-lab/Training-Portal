@@ -119,7 +119,7 @@ const page = async (p, t, env = ON) => { let passed = false; const r = await mw.
         if (a.ok) fail(`requireSession let ${what} through`);
         else { const j = await a.response.json(); if (a.response.status !== 401 || j.code !== 'GOOGLE_REQUIRED') fail(`requireSession on ${what}: ${a.response.status} ${JSON.stringify(j)}`); }
         const dir = await page('/programs.html', t);
-        if (dir.passed || dir.status !== 302 || !/trainee-login/.test(dir.loc)) fail(`the Training Directory let ${what} in: ${JSON.stringify(dir)}`);
+        if (dir.passed || dir.status !== 302 || !/trainee-login/.test(dir.loc)) fail(`LSH Academy Index let ${what} in: ${JSON.stringify(dir)}`);
         const sim = await page('/simulators/gcal.html', t);
         if (sim.passed) fail(`a simulator page let ${what} in`);
         const door = await page('/trainee-login.html', t);
@@ -128,12 +128,13 @@ const page = async (p, t, env = ON) => { let passed = false; const r = await mw.
         if (m.status !== 401 || (await m.json()).code !== 'GOOGLE_REQUIRED') fail(`/api/me answered for ${what}`);
     }
     const dir = await page('/programs.html', good);
-    if (!dir.passed) fail(`the Training Directory refused a @legalsupporthelp.com session: ${JSON.stringify(dir)}`);
+    if (!dir.passed) fail(`LSH Academy Index refused a @legalsupporthelp.com session: ${JSON.stringify(dir)}`);
 }
 // 5. a course's ticket doesn't sign anyone in to the Portal while the rule is on
 {
     const b64 = (s) => Buffer.from(s).toString('base64url');
-    const body = b64(JSON.stringify({ first: 'Ann', last: 'Lee', b: 'B110326', exp: Date.now() + 60000 }));
+    const annId = sql.prepare(`SELECT id FROM users WHERE username = 'ann'`).get().id;   // (a trainee's ticket says who by their Portal account id)
+    const body = b64(JSON.stringify({ first: 'Ann', last: 'Lee', b: 'B110326', u: String(annId), exp: Date.now() + 60000 }));
     const key = await crypto.subtle.importKey('raw', new TextEncoder().encode('portal-sso:' + ON.PORTAL_SSO_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     const sig = Buffer.from(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body))).toString('base64url');
     const ticket = body + '.' + sig;
@@ -165,4 +166,4 @@ for (const p of ['trainee-login.html', 'admin-login.html']) {
 
 globalThis.fetch = realFetch;
 if (failures.length) { console.error('Google-only sign-in test FAILED:\n- ' + failures.join('\n- ')); process.exit(1); }
-console.log('Google-only sign-in test passed (/api/auth-config; no Google sign-in, a gmail account, a look-alike domain, no Workspace, an unverified address, another app\'s, an expired or an unreadable token refused before the password, saying to switch to the @legalsupporthelp.com Chrome profile; the domain\'s account signs in with the address in its session and the log; the master account needs it too; an older or gmail session refused by requireSession, the Training Directory, the simulators and /api/me, and sent to the sign-in; a course ticket signs no one in; the rule off: as before; the sign-in pages load the step).');
+console.log('Google-only sign-in test passed (/api/auth-config; no Google sign-in, a gmail account, a look-alike domain, no Workspace, an unverified address, another app\'s, an expired or an unreadable token refused before the password, saying to switch to the @legalsupporthelp.com Chrome profile; the domain\'s account signs in with the address in its session and the log; the master account needs it too; an older or gmail session refused by requireSession, LSH Academy Index, the simulators and /api/me, and sent to the sign-in; a course ticket signs no one in; the rule off: as before; the sign-in pages load the step).');

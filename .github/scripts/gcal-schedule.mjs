@@ -1,4 +1,4 @@
-// The Google Calendar Simulators' weekly schedule (functions/api/gcal-schedule.js) on SQLite: the Standard Training week keeps its own table exactly as it
+// The Google Calendar Sims' weekly schedule (functions/api/gcal-schedule.js) on SQLite: the Standard Training week keeps its own table exactly as it
 // was (no ?track), the Case Management (?track=cm) and EA / PA (?track=ea) clones are kept apart, an unknown or empty track is refused (and never reaches
 // the database), and only an Admin changes any of them.
 // Run: node --no-warnings .github/scripts/gcal-schedule.mjs   (from the repository root)

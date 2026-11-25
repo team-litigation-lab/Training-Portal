@@ -326,9 +326,12 @@ async function viaKeys(env, names, { system, messages, json, maxTokens, signal, 
 }
 
 // The whole path for one request: budget → model → ledger. → { status, body }
-export async function runAi(db, env, { module, user, system, messages, json, maxTokens, signal, fast, grading }) {
+// review: whether the AI-review reserve is open to this request. A server-side caller's json request (an AI review, grading:
+// gcal-reviews.js, the gateway's own callers behind AI_GATEWAY_SECRET) is one by default; the Portal's browser endpoint
+// (api/sim-ai.js) passes review: false, because a browser can set json itself and would otherwise claim the reserve.
+export async function runAi(db, env, { module, user, system, messages, json, maxTokens, signal, fast, grading, review }) {
     module = normModule(module);
-    const gate = await admit(db, env, { module, user, review: !!json });
+    const gate = await admit(db, env, { module, user, review: review === undefined ? !!json : !!review });
     if (!gate.ok) {
         await record(db, { module, refused: true });
         return { status: 429, body: { success: false, error: gate.reason, scope: gate.scope } };

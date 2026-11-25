@@ -1,4 +1,4 @@
-/* Google Calendar Simulator (simulators/gcal.html; data in simulators/gcal-data.js).
+/* Google Calendar Sim (simulators/gcal.html; data in simulators/gcal-data.js).
    The Foundational Training's Calendar Management practice (Day 6): callers ask for appointments, and the
    trainee puts them on the attorney's calendar in a Google Calendar look-alike, then checks the calendar.
 
@@ -137,7 +137,7 @@ const isNewConsult = (e) => Object.keys(GCAL_TYPES).some(t => GCAL_TYPES[t].newC
 const nmins = (n) => (+n.v || 0) * ({ minutes: 1, hours: 60, days: 1440, weeks: 10080 }[n.u] || 1);
 const reqDef = (id) => GCAL_REQUESTS.find(r => r.id === id);
 // The track this page runs (gcal.html?track=standard|cm|ea; gcal-data.js GCAL_TRACKS): "standard" is the original Google Calendar
-// Simulator, and its numbers below are the ones it always had. The Case Management and EA / PA clones change the week, the callers,
+// Sim, and its numbers below are the ones it always had. The Case Management and EA / PA clones change the week, the callers,
 // the rules and these numbers, nothing else.
 const CFG = GCAL_CFG;
 // 📝 The blank calendar (gcal.html?track=activity, gcal-data.js GCAL_ACT_*): Standard Training's calendar with no attorney's week, no callers
@@ -150,7 +150,7 @@ const BLANK = !!CFG.blank;
    requests panel. Scores also reach the Progress page (functions/api/program-progress.js). */
 const GT = GCAL_TRACK;                                    // standard | cm | ea
 const RVQ = new URLSearchParams(location.search).get('review') || '';
-// A trainer looking at a trainee's calendar as they last saved it (gcal.html?trainee=<username>, from the Calendaring Simulators
+// A trainer looking at a trainee's calendar as they last saved it (gcal.html?trainee=<username>, from the Calendaring Sims
 // page): read only like a review, with the automated check and the CALENDAR MANAGEMENT MOCK CALL scorecard (cal-scorecard.js).
 const TVQ = String(new URLSearchParams(location.search).get('trainee') || '').trim().slice(0, 80);
 const RV = RVQ.indexOf('|') > 0 ? { user: RVQ.slice(0, RVQ.indexOf('|')), at: RVQ.slice(RVQ.indexOf('|') + 1), sub: null, review: null, name: '', batch: '' }
@@ -1285,7 +1285,7 @@ async function reviewStart() {
 /* ---------- 👁 a trainee's calendar, for their trainer (?trainee=<username>) ----------
    Their calendar as they last saved it to their account (gcal_drafts), read only; the automated check run on it now; and the
    trainer's CALENDAR MANAGEMENT MOCK CALL scorecard (each metric 0-5 with feedback, the weighted average), saved in the trainee's
-   /api/calsim record. The trainee sees the scorecard in their requests panel and on the Calendaring Simulators page. */
+   /api/calsim record. The trainee sees the scorecard in their requests panel and on the Calendaring Sims page. */
 async function liveStart(again) {
     if (!again) { S = fresh(); S.panel = 'result'; render(); }
     try {
@@ -1830,7 +1830,7 @@ async function start() {
     await Sim.restore();   // opened in a new tab: the cookie says who is signed in (an admin must not be treated as a trainee), and the heartbeat starts
     const tb = document.getElementById('topbar'); if (tb) tb.innerHTML = Sim.topbar('gcal');
     if (TRK) document.title = 'Basic Calendaring · ' + CFG.label + ' — LSH Nexus';
-    if (TRK) { const eb = document.querySelector('.eyebrow'); if (eb) eb.textContent = 'Simulator · ' + CFG.scenario; }
+    if (TRK) { const eb = document.querySelector('.eyebrow'); if (eb) eb.textContent = 'Sim · ' + CFG.scenario; }
     heroRules();
     if (RV) { if (RV.live) liveStart(); else reviewStart(); return; }
     S = load() || fresh(); save(true);   // (local only: the copy saved to their account may be newer, cloudLoad below)

@@ -39,15 +39,27 @@ const server = http.createServer((req, res) => {
     page.on('pageerror', e => fail('page error: ' + e.message)); page.on('dialog', x => x.dismiss());
     await page.goto(base + '/simulators/gcal-review.html', { waitUntil: 'load' });
     await page.waitForSelector('#rv-trainees .cs-ttable', { timeout: 6000 }).catch(async () => { fail('Trainee Evaluations has no list of the trainees’ calendars: ' + (await page.evaluate(() => (document.getElementById('app') || {}).innerText.slice(0, 300))).replace(/\n/g, ' ')); console.error(failures.join('\n')); process.exit(1); });
-    const tl = await page.evaluate(() => ({ heads: [...document.querySelectorAll('#rv-trainees .cs-ttable th')].map(h => h.innerText.trim()), rows: [...document.querySelectorAll('#rv-trainees .cs-ttable tbody tr')].map(tr => tr.innerText.replace(/\s+/g, ' ').trim()),
+    // The table is segregated per trainee (#304): one <tbody class="tc-person"> each, a heading row (name · batch ·
+    // username · calendars saved), then one row per track with Calendar, Last saved, Scorecard, Submitted, Review status and Action.
+    const tl = await page.evaluate(() => ({ heads: [...document.querySelectorAll('#rv-trainees .cs-ttable thead th')].map(h => h.innerText.trim()),
+        people: [...document.querySelectorAll('#rv-trainees .cs-ttable tbody.tc-person')].map(tb => ({
+            head: ((tb.querySelector('.tc-phead') || {}).innerText || '').replace(/\s+/g, ' ').trim(),
+            tracks: [...tb.querySelectorAll('tr.tc-trow')].map(tr => [...tr.children].map(c => c.innerText.replace(/\s+/g, ' ').trim())) })),
         links: [...document.querySelectorAll('#rv-trainees a.cs-view')].map(a => a.getAttribute('href')), above: !!document.querySelector('#rv-trainees') && document.querySelector('#rv-trainees').compareDocumentPosition(document.querySelector('#rv-list')) & Node.DOCUMENT_POSITION_FOLLOWING }));
-    if (tl.heads.length !== 5 || !/calendaring activity/i.test(tl.heads[4]) || !/standard training/i.test(tl.heads[1]) || !/litigation week/i.test(tl.heads[2]) || !/executive week/i.test(tl.heads[3])) fail('the table has no column for each track: ' + JSON.stringify(tl.heads));
-    if (tl.rows.length !== 2 || !/^Ci Trainee B1/.test(tl.rows[0]) || !/Zed Other/.test(tl.rows[1])) fail('the trainees are not listed: ' + JSON.stringify(tl.rows));
+    const want = ['track', 'calendar', 'last saved', 'scorecard', 'submitted', 'review status', 'action'];
+    if (tl.heads.length !== want.length || want.some((w, i) => !(tl.heads[i] || '').toLowerCase().includes(w))) fail('the table has no Track, Calendar, Last saved, Scorecard, Submitted, Review status and Action columns: ' + JSON.stringify(tl.heads));
+    const TRACKS = [/standard training/i, /litigation week/i, /executive week/i, /calendaring activity/i];
+    if (tl.people.length !== 2 || !/Ci Trainee · B1 · ci/.test(tl.people[0].head) || !/Zed Other · B2 · zed/.test(tl.people[1].head)
+        || tl.people.some(p => p.tracks.length !== TRACKS.length || TRACKS.some((re, i) => !re.test((p.tracks[i] || [])[0] || ''))))
+        fail('the trainees are not listed, each with a row for every track: ' + JSON.stringify(tl.people));
     if (JSON.stringify(tl.links) !== JSON.stringify(['/simulators/gcal.html?trainee=ci', '/simulators/gcal.html?track=cm&trainee=zed'])) fail('View & score does not open each trainee’s calendar: ' + JSON.stringify(tl.links));
     if (!tl.above) fail('the trainees’ table should sit above the submissions');
-    if (!/Submitted/.test(tl.rows[0]) || !/Sent/.test(tl.rows[0]) || /Submitted/.test(tl.rows[1])) fail('a trainee’s submission and its state are not shown in their row: ' + JSON.stringify(tl.rows));
+    // Ci submitted Standard Training and the review was sent; Zed has submitted nothing (Submitted is column 5, Review status 6)
+    const ciStd = (tl.people[0] || { tracks: [] }).tracks[0] || [], zed = (tl.people[1] || { tracks: [] }).tracks;
+    if (!/\d/.test(ciStd[4] || '') || !/Sent/.test(ciStd[5] || '') || zed.some(r => /\d/.test(r[4] || '') || /Sent/.test(r[5] || '')))
+        fail('a trainee’s submission and its state are not shown in their row: ' + JSON.stringify(tl.people));
     await page.fill('#cs-tfind', 'b2');
-    const shown = await page.$$eval('#rv-trainees .cs-ttable tbody tr', trs => trs.map(t => t.style.display));
+    const shown = await page.$$eval('#rv-trainees .cs-ttable tbody.tc-person', tbs => tbs.map(t => t.style.display));
     if (JSON.stringify(shown) !== '["none",""]') fail('finding a trainee by batch doesn’t narrow the list: ' + JSON.stringify(shown));
     await page.fill('#cs-tfind', '');
     await page.click('#rv-trainees [data-sub="6"]'); await page.waitForTimeout(700);

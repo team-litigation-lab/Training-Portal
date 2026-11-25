@@ -1,7 +1,7 @@
 // The trainer's review inside the Google Calendar look (simulators/gcal.js ?review=, calsim.html's list of submissions) of the submissions
 // made with 📤 Submit to my trainer (kept in the trainee's /api/calsim record): a trainer opens one read only, scores it and comments,
 // the trainee sees the feedback, and the trainer's list shows it. And 👁 View & score (from 👥 Your trainees' calendars on Trainee
-// Evaluations; the Calendaring Simulators page only points there): a trainer opens a trainee's
+// Evaluations; the Calendaring Sims page only points there): a trainer opens a trainee's
 // calendar as they last saved it (gcal.html?trainee=), read only, with the automated check, scores it on the CALENDAR
 // MANAGEMENT MOCK CALL scorecard (simulators/cal-scorecard.js), and the trainee sees the scorecard on their card and in the simulator.
 // Usage: node .github/scripts/gcal-review.cjs   (from the repository root; needs `npm i playwright`)
@@ -106,14 +106,14 @@ const server = http.createServer((req, res) => {
     if (!/Ci Trainee/.test(list) || !/77\/100/.test(list)) fail('the trainer’s list does not show the submission: ' + list.slice(0, 160));
     if (!href.some(h => /track=cm/.test(h) && /review=ci%7C/.test(h))) fail('the list has no link to review it: ' + JSON.stringify(href));
     await page.close();
-    // 5. the Calendaring Simulators page: the tracks (Standard Training's two calendars, Litigation Week, Executive Week). The Calendar Management Mock Calls aren't on it any more: they are part of
+    // 5. the Calendaring Sims page: the tracks (Standard Training's two calendars, Litigation Week, Executive Week). The Calendar Management Mock Calls aren't on it any more: they are part of
     //    the Foundational Training's Calendaring Practice Lab, in the course.
     page = await open('/simulators/calsim.html?name=Ci%20Trainee&batch=B300926');
     const cs = await page.evaluate(() => { const r = document.getElementById('cs-root');
         return { h: r.querySelector('h1').textContent.trim(), cards: [...r.querySelectorAll('.card h3')].map(h => h.textContent.trim()),
             calls: r.querySelectorAll('.cs-calls').length, also: /Conflicts week/.test(r.textContent) }; });
     // (Standard Training has two cards: its Mock Calls calendar and the blank one for the offline Calendaring Activity)
-    if (cs.h !== '📅 Calendaring Simulators' || cs.cards.join('|') !== '🎓 Standard Training - Mock Calls|📝 Standard Training - Calendaring Activity|⚖️ Litigation Week|🏢 Executive Week' || cs.calls || /Calendar Management Mock Calls/.test(cs.cards.join(' ')) || cs.also) fail('the Calendaring Simulators page should be the tracks, without the Calendar Management Mock Calls: ' + JSON.stringify(cs));
+    if (cs.h !== '📅 Calendaring Sims' || cs.cards.join('|') !== '🎓 Standard Training - Mock Calls|📝 Standard Training - Calendaring Activity|⚖️ Litigation Week|🏢 Executive Week' || cs.calls || /Calendar Management Mock Calls/.test(cs.cards.join(' ')) || cs.also) fail('the Calendaring Sims page should be the tracks, without the Calendar Management Mock Calls: ' + JSON.stringify(cs));
     if (await page.$('.cs-review')) fail('an Admin\'s page shows a trainee\'s automated review');
     await page.close();
     // 6. a trainee's page: each track's 🤖 automated calendar review (the last Check my calendar in this browser), what they
@@ -126,14 +126,14 @@ const server = http.createServer((req, res) => {
     // (the cards: Standard Training's two calendars, the mock calls' and the blank Calendaring Activity, then Litigation Week and Executive Week)
     if (rev.length !== 4 || !/Automated review: 90% · 4 of 5 right · 2026-10-06/.test(rev[0]) || !/^🤖 No automated review yet\.$/.test(rev[1]) || !/Submitted · its review 40% · 👤 trainer 77\/100/.test(rev[2]) || !/No automated review yet/.test(rev[3])) fail('the trainee\'s cards should show each track\'s automated review: ' + JSON.stringify(rev));
     await page.close();
-    // 7. 👥 Your trainees' calendars are on Trainee Evaluations (trainees-on-evaluations.cjs), not on the Calendaring Simulators page:
+    // 7. 👥 Your trainees' calendars are on Trainee Evaluations (trainees-on-evaluations.cjs), not on the Calendaring Sims page:
     // a trainer's page has no table there, only a line pointing to Trainee Evaluations
     role = 'admin';
     page = await open('/simulators/calsim.html');
-    await page.waitForSelector('#cs-evals', { timeout: 5000 }).catch(() => fail('the trainer\'s Calendaring Simulators page did not load'));
+    await page.waitForSelector('#cs-evals', { timeout: 5000 }).catch(() => fail('the trainer\'s Calendaring Sims page did not load'));
     const tl = await page.evaluate(() => ({ table: !!document.querySelector('.cs-ttable, #cs-trainees'), heads: [...document.querySelectorAll('#cs-root h2')].map(h => h.textContent.trim()),
         note: [...document.querySelectorAll('#cs-root p a[href="/simulators/gcal-review.html"]')].map(a => a.closest('p').innerText.replace(/\s+/g, ' ').trim()) }));
-    if (tl.table || tl.heads.some(h => /trainees/i.test(h))) fail('the Calendaring Simulators page still has the trainees\' calendars table: ' + JSON.stringify(tl));
+    if (tl.table || tl.heads.some(h => /trainees/i.test(h))) fail('the Calendaring Sims page still has the trainees\' calendars table: ' + JSON.stringify(tl));
     if (tl.note.length !== 1 || !/Your trainees’ calendars, to view and score, are under 📋 Trainee Evaluations/.test(tl.note[0])) fail('the trainer\'s page doesn\'t point to Trainee Evaluations for the trainees\' calendars: ' + JSON.stringify(tl.note));
     await page.close();
     // the trainee's calendar, read only, with the automated check and the scorecard to fill in
@@ -197,7 +197,7 @@ const server = http.createServer((req, res) => {
     await page.click('#gc-scores [data-a="tv-unskip"]'); await page.waitForTimeout(500);
     if (!excl || excl.ids.length !== 0 || !(await page.$('#gc-scores [data-a="tv-skip"]'))) fail('putting it back did not work: ' + JSON.stringify(excl));
     await page.close();
-    // the trainee sees it: on their card on the Calendaring Simulators page and in the simulator
+    // the trainee sees it: on their card on the Calendaring Sims page and in the simulator
     role = 'trainee';
     page = await open('/simulators/calsim.html');
     const mine = await page.$$eval('#cs-root .cs-review', els => els.map(e => e.innerText.replace(/\s+/g, ' ').trim()));
@@ -234,7 +234,7 @@ const server = http.createServer((req, res) => {
     page = await open('/simulators/calsim.html');
     graders([5, 5, 5, 5, 5, 5, 5]);
     await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); await page.waitForTimeout(800);
-    if (!/Trainer’s scorecard: 5\/5 \(100%\)/.test(await page.innerText('#cs-rv-standard'))) fail('the Calendaring Simulators card doesn\'t take a scorecard saved in Graders: ' + await page.innerText('#cs-rv-standard'));
+    if (!/Trainer’s scorecard: 5\/5 \(100%\)/.test(await page.innerText('#cs-rv-standard'))) fail('the Calendaring Sims card doesn\'t take a scorecard saved in Graders: ' + await page.innerText('#cs-rv-standard'));
     await page.close();
     // a trainee can't open someone's calendar
     page = await open('/simulators/gcal.html?trainee=zed');
@@ -242,5 +242,5 @@ const server = http.createServer((req, res) => {
     await page.close();
     await browser.close(); server.close();
     if (failures.length) { console.error('Google Calendar submit and review test FAILED:\n- ' + failures.join('\n- ')); process.exit(1); }
-    console.log('Google Calendar submit and review test passed (submit keeps the calendar and check; the trainer opens it read only and gives feedback; the trainee sees it; the trainer’s list links to it; the Calendaring Simulators page (three tracks, no mock calls), pointing trainers to Trainee Evaluations for the trainees’ calendars; a trainee’s calendar, read only, scored on the scorecard, which the trainee sees).');
+    console.log('Google Calendar submit and review test passed (submit keeps the calendar and check; the trainer opens it read only and gives feedback; the trainee sees it; the trainer’s list links to it; the Calendaring Sims page (three tracks, no mock calls), pointing trainers to Trainee Evaluations for the trainees’ calendars; a trainee’s calendar, read only, scored on the scorecard, which the trainee sees).');
 })();

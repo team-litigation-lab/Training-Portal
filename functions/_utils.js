@@ -126,19 +126,14 @@ export function originAllowed(request) {
 }
 
 /**
- * Client heartbeat interval is 2s, but this window needs to survive
- * realistic browser behavior, not just the nominal interval: most
- * browsers throttle setInterval() timers in backgrounded tabs — often
- * down to once every several seconds, and much further after a few
- * minutes backgrounded. A trainee alt-tabbing to check something else for
- * under a minute is completely normal, not a dead session. A 6-second
- * window (3x the nominal interval) died on exactly that, intermittently,
- * which is why this looked like "sometimes it just doesn't work" rather
- * than a consistent failure. Widened to comfortably outlast normal
- * backgrounding while still catching a genuinely closed/crashed tab
- * reasonably quickly.
+ * The client beats every 30 s (app.js HEARTBEAT_INTERVAL_MS) and once more when a tab comes back into view. The window
+ * must outlast realistic browser behaviour, not just the nominal interval: a backgrounded tab's timers are throttled to
+ * once a minute or less, so one throttled beat plus network jitter crossed the old 90 s (exactly 3x the interval) and a
+ * trainee who had only switched tabs read as signed out (SESSION_EXPIRED, e.g. on /api/launch from an idle tab).
+ * 150 s is 5x the interval: two throttled beats can be late without ending the session, and a closed or crashed tab still
+ * reads as gone within a few minutes. (Code inventory 2026-10-16 #8.)
  */
-export const HEARTBEAT_GRACE_SECONDS = 90;
+export const HEARTBEAT_GRACE_SECONDS = 150;
 
 /**
  * True when the user's heartbeats row was touched within the grace window.
@@ -436,8 +431,31 @@ export async function tombstoneUser(db, user, deletedByUsername) {
     ).bind(user.username, user.user_type, user.batch_id || null, user.email || null, fullName, deletedByUsername || null).run();
 }
 
+// (any capitalisation: a retired jsmith can't come back as JSmith)
 export async function isUsernameTombstoned(db, username) {
-    const row = await db.prepare(`SELECT 1 AS ok FROM deleted_users WHERE username = ? LIMIT 1`).bind(username).first();
+    const row = await db.prepare(`SELECT 1 AS ok FROM deleted_users WHERE lower(username) = lower(?) LIMIT 1`).bind(username).first();
+    return !!row;
+}
+
+/* Usernames are matched without regard to capitals (the users table's own collation isn't relied on, and isn't changed):
+   the account whose username is exactly what was typed, else the one account that matches it in any capitalisation.
+   Two accounts that differ only in capitals (made before this rule) and neither typed exactly: { ambiguous: true }, and the
+   sign-in is refused with AMBIGUOUS_USERNAME_MESSAGE rather than guessing between them. */
+export const AMBIGUOUS_USERNAME_MESSAGE = 'More than one account has this username with different capital letters. Type it exactly as it was registered (capitals included), or ask your trainer to tell the accounts apart.';
+export async function findUserByUsername(db, username) {
+    const name = String(username == null ? '' : username);
+    if (!name) return { user: null };
+    const exact = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(name).first();
+    if (exact) return { user: exact };
+    const { results } = await db.prepare(`SELECT * FROM users WHERE lower(username) = lower(?) LIMIT 2`).bind(name).all();
+    const rows = results || [];
+    return rows.length > 1 ? { user: null, ambiguous: true } : { user: rows[0] || null };
+}
+// Is a username (any capitalisation) taken by another account than exceptId?
+export async function usernameTaken(db, username, exceptId = null) {
+    const row = exceptId == null
+        ? await db.prepare(`SELECT id FROM users WHERE lower(username) = lower(?) LIMIT 1`).bind(username).first()
+        : await db.prepare(`SELECT id FROM users WHERE lower(username) = lower(?) AND id != ? LIMIT 1`).bind(username, exceptId).first();
     return !!row;
 }
 
@@ -605,4 +623,14 @@ export function parseJsonList(raw) {
 // base64url of bytes (tickets and signatures).
 export function b64url(bytes) {
     return toBase64Url(new Uint8Array(bytes));
+}
+
+/* A grade, as a percentage. An all-objective submission graded before 2026-11-19 was stored in raw points (score = auto_score,
+   ten one-point questions all right = 10); it reads as its percentage of the activity's points. Anything else (a grade a trainer
+   gave, an activity with an essay, an activity since deleted) is as stored. The stored rows are not rewritten. */
+export function gradeAsPercent(sub, questions) {
+    if (!sub || sub.status !== 'Graded' || sub.score == null || sub.auto_score == null || Number(sub.score) !== Number(sub.auto_score)) return sub ? sub.score : null;
+    if (!Array.isArray(questions) || !questions.length || questions.some(q => q && q.type === 'essay')) return sub.score;
+    const total = questions.reduce((n, q) => n + ((q && q.points) || 1), 0);
+    return total > 0 ? Math.round((100 * Number(sub.score)) / total) : sub.score;
 }

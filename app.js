@@ -5,7 +5,7 @@
 const SESSION_KEY = 'LSH_SESSION_V1';
 // Every request that runs a Function counts toward the Cloudflare account's monthly requests (shared by
 // every LSH site), so open pages ask sparingly. The heartbeat keeps the session alive: the server allows
-// HEARTBEAT_GRACE_SECONDS (90) between beats, and one is sent when the tab comes back into view.
+// HEARTBEAT_GRACE_SECONDS (150) between beats, and one is sent when the tab comes back into view.
 const HEARTBEAT_INTERVAL_MS = 30000;
 // Progress and the leaderboard: once a minute, only on a page that shows them and only while it's in view.
 const LIVE_DATA_INTERVAL_MS = 60000;
@@ -168,7 +168,7 @@ function logoutSession() {
     // event (see functions/api/logout.js). Local state is cleared
     // immediately below regardless of whether this network call succeeds —
     // the user shouldn't be stuck "logged in" locally over a network blip.
-    // The page waits for the cookie to be cleared before it leaves (the front door sends a signed-in browser to the Training Directory,
+    // The page waits for the cookie to be cleared before it leaves (the front door sends a signed-in browser to LSH Academy Index,
     // so it must not meet the old cookie), and ?stay=1 asks it not to redirect this once.
     const loggedOut = Promise.race([
         fetch('/api/logout', { method: 'POST', credentials: 'include' }).catch(() => {}),
@@ -211,7 +211,7 @@ function stopLiveDataPolling() {
 // 2b. SESSION HEARTBEAT
 // Keeps the server-side `heartbeats` row fresh so requireSession() (see
 // _utils.js) keeps treating this tab as logged in. If this stops ticking,
-// the session is treated as expired within HEARTBEAT_GRACE_SECONDS (90 s)
+// the session is treated as expired within HEARTBEAT_GRACE_SECONDS (150 s)
 // even if the signed session cookie itself hasn't expired yet.
 function startHeartbeat() {
     stopHeartbeat(); // idempotent — never run two intervals at once
@@ -632,9 +632,9 @@ async function renderActivityLogs() {
 // =========================================================
 // Same layout as Users and Program Access: the trainers online in a section of their own, then one retractable
 // table per batch (newest first). Each row says what the person is viewing and when their page last checked in:
-// a heartbeat older than the server's grace window (HEARTBEAT_GRACE_SECONDS in functions/_utils.js, 90s) means the
+// a heartbeat older than the server's grace window (HEARTBEAT_GRACE_SECONDS in functions/_utils.js, 150 s) means the
 // tab was closed or went to sleep without logging out, so that row reads Away rather than Online.
-const MON_GRACE_SECONDS = 90;
+const MON_GRACE_SECONDS = 150;
 function monSecondsAgo(v) {
     if (!v) return null;
     const d = new Date(String(v).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(v)) ? '' : 'Z'));
@@ -1154,6 +1154,16 @@ function openAnswerActivityModal(activityId) {
     document.getElementById('modal-answer-activity').classList.add('open');
 }
 
+// Was this objective answer right? An admin has the answer key (q.correctAnswer); a trainee doesn't (it is stripped from what
+// they get), so a graded submission carries the server's verdict per question (sub.question_results[id].correct).
+// null: not known (a trainee's submission not graded yet).
+function answerIsCorrect(sub, q, given) {
+    const r = sub && sub.question_results && sub.question_results[q.id];
+    if (r && typeof r.correct === 'boolean') return r.correct;
+    if (q.correctAnswer === undefined) return null;
+    return given !== undefined && String(given).trim().toLowerCase() === String(q.correctAnswer || '').trim().toLowerCase();
+}
+
 // Builds the per-question answer breakdown HTML for a submission — shared
 // by the admin grade modal, the trainee's own read-only detail view, and
 // the PDF report generator, so all three always show the same thing.
@@ -1171,12 +1181,14 @@ function renderSubmissionAnswersHtml(sub, activity) {
             const given = answerByQ.get(q.id);
             let correctness = '';
             if (q.type !== 'essay') {
-                const isCorrect = given !== undefined && String(given).trim().toLowerCase() === String(q.correctAnswer || '').trim().toLowerCase();
+                const isCorrect = answerIsCorrect(sub, q, given);
                 correctness = given === undefined
                     ? `<span style="color:#94a3b8;font-weight:800;font-size:10px;">NOT ANSWERED</span>`
+                    : isCorrect === null
+                        ? `<span style="color:#94a3b8;font-weight:800;font-size:10px;">AWAITING GRADING</span>`
                     : isCorrect
                         ? `<span style="color:#166534;font-weight:800;font-size:10px;">\u2713 CORRECT</span>`
-                        : `<span style="color:#b91c1c;font-weight:800;font-size:10px;">\u2717 INCORRECT &middot; Answer key: ${escapeHtml(q.correctAnswer || '')}</span>`;
+                        : `<span style="color:#b91c1c;font-weight:800;font-size:10px;">\u2717 INCORRECT${q.correctAnswer !== undefined ? ` &middot; Answer key: ${escapeHtml(q.correctAnswer || '')}` : ''}</span>`;
             }
             return `
                 <div class="admin-tile" style="text-align:left;margin-bottom:8px;">
@@ -1213,10 +1225,11 @@ function buildSubmissionReportLines(sub, activity) {
             if (q.scenario) lines.push({ type: 'scenario', text: q.scenario });
             lines.push({ type: 'body', text: `Answer: ${given !== undefined ? given : '(no response)'}` });
             if (q.type !== 'essay') {
-                const isCorrect = given !== undefined && String(given).trim().toLowerCase() === String(q.correctAnswer || '').trim().toLowerCase();
+                const isCorrect = answerIsCorrect(sub, q, given);
                 if (given === undefined) lines.push({ type: 'status-neutral', text: 'NOT ANSWERED' });
+                else if (isCorrect === null) lines.push({ type: 'status-neutral', text: 'AWAITING GRADING' });
                 else if (isCorrect) lines.push({ type: 'status-good', text: 'CORRECT' });
-                else lines.push({ type: 'status-bad', text: `INCORRECT \u2014 Answer key: ${q.correctAnswer || ''}` });
+                else lines.push({ type: 'status-bad', text: q.correctAnswer !== undefined ? `INCORRECT \u2014 Answer key: ${q.correctAnswer || ''}` : 'INCORRECT' });
             }
             lines.push({ type: 'spacer' });
         });
@@ -1315,9 +1328,10 @@ async function openGradeModal(submissionId) {
     }
 
     document.getElementById('grade-modal-subtitle').innerText = `${sub.trainee_name} - ${sub.activity_title}`;
-    document.getElementById('grade-score-input').value = sub.status === 'Graded'
-        ? sub.score
-        : (sub.auto_score !== null && sub.auto_score !== undefined ? sub.auto_score : '');
+    // (the grade is a percentage; auto_score is the objective questions' raw points, so it is a hint here, not the grade)
+    const scoreInput = document.getElementById('grade-score-input');
+    scoreInput.value = sub.status === 'Graded' ? sub.score : '';
+    scoreInput.placeholder = sub.status !== 'Graded' && sub.auto_score !== null && sub.auto_score !== undefined ? `Objective part: ${sub.auto_score} pt — enter the overall %` : '';
     document.getElementById('grade-feedback-input').value = sub.feedback || '';
     document.getElementById('modal-grade-submission').dataset.submissionId = submissionId;
 
@@ -3035,7 +3049,7 @@ function mcGo(tab) {
 
 // ===== Program Access: who can open which program (functions/api/topics.js) =====
 // 🙋 Access Requests first: every trainee's request to open a program, waiting for an admin, as a table with Approve / Deny
-// (the same queue the Training Directory shows an admin). Then each trainee's programs, with the four ways an admin changes
+// (the same queue LSH Academy Index shows an admin). Then each trainee's programs, with the four ways an admin changes
 // one: Grant (open it), Revoke (close it: the trainee can ask again), ⏸ Suspend (pause it: no opening it, no asking again)
 // and ▶ Restore (give back what they had, Completed included).
 let __paTopics = [], __paAccess = [];
@@ -3053,8 +3067,8 @@ async function loadProgramAccess() {
     }
 }
 const PA_HIDDEN = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];   // keep in step with ARCHIVED_TOPICS in programs.html (same list; a different name because programs.html loads app.js into the same global scope)
-// the programs' names as the Training Directory shows them (PROGRAM_NAMES in programs.html)
-const PA_NAMES = { 'STANDARD TRAINING': 'Standard Foundational Training', 'CM TRAINING': 'Case Management Training', 'REVISED CM TRAINING': 'Revised Case Management Training', 'PROPERTY DAMAGE': 'Property Damage Claims Training', 'MEDSUM AND DEMAND': 'Medsum & Demand Training', 'LIEN NEGOTIATION': 'Lien Negotiator Training' };
+// the programs' names as LSH Academy Index shows them (PROGRAM_NAMES in programs.html)
+const PA_NAMES = { 'STANDARD TRAINING': 'Legal VA Foundational Track', 'CM TRAINING': 'Case Management Training', 'REVISED CM TRAINING': 'Revised Case Management Training', 'PROPERTY DAMAGE': 'Property Damage Claims Track', 'MEDSUM AND DEMAND': 'Medsum & Demand Track', 'LIEN NEGOTIATION': 'Lien Negotiator Track', 'EA  PA TRAINING-OUTSOURCED MANP': 'EA PA Track' };
 const paName = (key) => PA_NAMES[key] || ((__paTopics.find(t => t.key === key) || {}).name) || key;
 const paIsSuspended = (st) => String(st || '').startsWith('Suspended');
 const paPillClass = (st) => paIsSuspended(st) ? 'suspended' : String(st || '').toLowerCase();
@@ -3086,7 +3100,7 @@ function renderAccessRequests() {
     const pending = __paAccess.filter(a => a.status === 'Pending').sort((a, b) => String(a.requested_at || '').localeCompare(String(b.requested_at || '')));
     updateAccessRequestBadge(pending.length);
     const head = `<div class="mc-section-sub">🙋 Access Requests <span class="admin-nav-badge">${pending.length || ''}</span></div>`;
-    if (!pending.length) { box.innerHTML = head + '<p style="font-size:16px;font-weight:600;color:#334155;margin:0 0 16px;">No requests waiting. A trainee asks from the Training Directory\'s <b>Request Access</b>; it shows up here.</p>'; return; }
+    if (!pending.length) { box.innerHTML = head + '<p style="font-size:16px;font-weight:600;color:#334155;margin:0 0 16px;">No requests waiting. A trainee asks from LSH Academy Index\'s <b>Request Access</b>; it shows up here.</p>'; return; }
     box.innerHTML = head + `<div class="mc-table-wrap"><table class="mc-table">
         <thead><tr><th>Trainee</th><th>Username</th><th>Batch</th><th>Program / tool</th><th>Requested</th><th style="text-align:right;">Decision</th></tr></thead>
         <tbody>${pending.map(a => {
@@ -3180,7 +3194,7 @@ async function paFtSweep() {
     const btn = document.getElementById('pa-ft-sweep-btn'); if (btn) btn.disabled = true;
     try {
         const r = await postJson('/api/topics', { action: 'FT_SWEEP' });
-        const list = (r.blocked || []).map(x => x.name + (x.batch ? ' (' + batchLabel(x.batch) + ')' : '') + ': Standard Foundational Training')
+        const list = (r.blocked || []).map(x => x.name + (x.batch ? ' (' + batchLabel(x.batch) + ')' : '') + ': Legal VA Foundational Track')
             .concat((r.programs || []).map(x => x.name + (x.batch ? ' (' + batchLabel(x.batch) + ')' : '') + ': ' + (PA_NAMES[x.program] || x.program)));
         showToast(list.length ? `Taken off the program's sheets and scorecards: ${list.join('; ')}.` : 'Nobody to take off: every revoked trainee is already off every program\'s sheets.', 'success');
     } catch (e) { showToast(e.message, 'error'); }
@@ -3190,7 +3204,7 @@ window.paFtSweep = paFtSweep;
 // 🧹 Users: everyone revoked before Revoke reached every program is wiped from all six (revoked-sweep.js). Like a revocation,
 // nothing goes until a copy is safe: filed to the Drive, or (no Drive) downloaded here first and then the second call deletes.
 async function usersRevokedSweep() {
-    if (!confirm('Wipe every revoked trainee from every training program?\n\nAnyone whose account was revoked and who still has records in Foundational, EA / PA, Case Management, PD Claims, Medsum & Demand or Lien Negotiator Training is taken off every sheet and scorecard there. A copy is filed to their batch\'s folder (or downloaded) first. This cannot be undone.')) return;
+    if (!confirm('Wipe every revoked trainee from every training program?\n\nAnyone whose account was revoked and who still has records in the Legal VA Foundational Track, EA PA Track, Case Management Training, Property Damage Claims Track, Medsum & Demand Track or Lien Negotiator Track is taken off every sheet and scorecard there. A copy is filed to their batch\'s folder (or downloaded) first. This cannot be undone.')) return;
     const btn = document.getElementById('users-revoked-sweep-btn'); if (btn) btn.disabled = true;
     try {
         let r = await postJson('/api/revoked-sweep', {});
@@ -3213,13 +3227,13 @@ async function usersRevokedSweep() {
 window.usersRevokedSweep = usersRevokedSweep;
 async function paSet(username, topicKey, action) {
     const name = paName(topicKey);
-    if (action === 'DENY' && !confirm(`Revoke or deny ${username}'s access to ${name}?\n\nThey can request it again from the Training Directory.`)) return;
+    if (action === 'DENY' && !confirm(`Revoke or deny ${username}'s access to ${name}?\n\nThey can request it again from LSH Academy Index.`)) return;
     if (action === 'SUSPEND' && !confirm(`Suspend ${username}'s access to ${name}?\n\nThey can't open it (or ask for it again) until you restore it. Nothing of theirs is removed.`)) return;
     try {
         const r = await postJson('/api/topics', { action, topicKey, traineeUsername: username });
         const ft = r && r.ft;
-        showToast((PA_DONE[action] || 'Saved.') + (ft && ft.blocked && ft.blocked.length ? ' They are off the Standard Foundational Training sheets.' : ft && ft.unblocked && ft.unblocked.length ? ' They are back on the Standard Foundational Training sheets.' : ''), 'success');
-        if (ft && ft.error) showToast('Standard Foundational Training wasn’t told: ' + ft.error, 'error');
+        showToast((PA_DONE[action] || 'Saved.') + (ft && ft.blocked && ft.blocked.length ? ' They are off the Legal VA Foundational Track sheets.' : ft && ft.unblocked && ft.unblocked.length ? ' They are back on the Legal VA Foundational Track sheets.' : ''), 'success');
+        if (ft && ft.error) showToast('Legal VA Foundational Track wasn’t told: ' + ft.error, 'error');
         loadProgramAccess();
     } catch (e) { showToast(e.message, 'error'); }
 }

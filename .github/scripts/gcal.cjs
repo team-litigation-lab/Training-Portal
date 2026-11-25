@@ -1,4 +1,4 @@
-// Google Calendar Simulator (simulators/gcal.html, gcal.js, gcal-data.js; functions/api/gcal-schedule.js),
+// Google Calendar Sim (simulators/gcal.html, gcal.js, gcal-data.js; functions/api/gcal-schedule.js),
 // in a browser, with the APIs answered in memory.
 // Checks:
 //   - the attorney's week: the owner's Monday–Friday list (Gerald Anderson … Aretha Franklin) with the daily blocks,
@@ -587,5 +587,5 @@ const server = http.createServer(async (req, res) => {
 
     await browser.close(); server.close();
     if (failures.length) { console.log(`\n${failures.length} failure(s):`); failures.forEach((m, i) => console.log(`${i + 1}. ${m}`)); process.exit(1); }
-    console.log('Google Calendar Simulator test passed (the week and its blocks; every request doable; the check right and wrong; create, edit, Meet, drag, delete and undo, move one week, views, search, rules, check and save; phone; an Admin\'s schedule for everyone; the blank Calendaring Activity calendar).');
+    console.log('Google Calendar Sim test passed (the week and its blocks; every request doable; the check right and wrong; create, edit, Meet, drag, delete and undo, move one week, views, search, rules, check and save; phone; an Admin\'s schedule for everyone; the blank Calendaring Activity calendar).');
 })().catch(e => { console.error(e); process.exit(1); });

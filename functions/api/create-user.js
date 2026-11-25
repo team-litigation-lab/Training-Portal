@@ -1,4 +1,4 @@
-import { json, requireSession, hashPassword, isUsernameTombstoned, logActivity, MASTER_USERNAME, buildFullName } from '../_utils.js';
+import { json, requireSession, hashPassword, isUsernameTombstoned, logActivity, MASTER_USERNAME, buildFullName, usernameTaken } from '../_utils.js';
 
 // POST /api/create-user { firstName, mi?, lastName?, suffix?, email, userType, username, password, trainingStartDate? }
 //
@@ -81,7 +81,7 @@ export async function onRequestPost({ request, env }) {
     if (username.toLowerCase() === MASTER_USERNAME.toLowerCase()) {
         return json({ success: false, error: 'That username is reserved.' }, 409);
     }
-    if (await db.prepare(`SELECT id FROM users WHERE username = ?`).bind(username).first()) {
+    if (await usernameTaken(db, username)) {   // (any capitalisation)
         return json({ success: false, error: 'That username is already taken.' }, 409);
     }
     if (await isUsernameTombstoned(db, username)) {

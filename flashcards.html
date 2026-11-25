@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flash Cards — LSH Nexus</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/simulators/sim.css">
+<!-- 🃏 Flash Cards: the Daily Digest. One card a day from each of five decks (Rules, Trivia, Terminologies, Process, FAQs),
+     the same card for everyone on the same day, so a batch can talk about it. Opened from the Flash Cards card under
+     Support & Upskill on the LSH Academy Index (programs.html); a deck link there lands on that deck (#rules, #trivia …).
+     Signed-in people only (functions/_middleware.js MEMBER_PAGES). Nothing is saved on the server: "Got it" marks live
+     in this browser only. To add cards, add them to DECKS below; the daily pick moves through each deck in order. -->
+<style>
+    body { background: var(--navy); }
+    html, body { overflow-x: clip; }
+    .fc-wrap { max-width: 1500px; }
+    .fc-band { margin: -34px calc(50% - 50vw) 20px; padding: 18px 24px; background: var(--navy-mid); border-bottom: 3px solid var(--orange); text-align: center; color: #fff; }
+    .fc-band h1 { margin: 0; font-size: clamp(20px, 2.4vw, 28px); font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+    .fc-band p { margin: 6px 0 0; color: rgba(255,255,255,.75); font-size: 13.5px; }
+    .fc-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 16px; }
+    .fc-tab { font: inherit; font-weight: 800; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; padding: 8px 16px; border-radius: 999px; border: 2px solid rgba(253,186,116,.5); background: var(--navy-deep); color: var(--orange); cursor: pointer; }
+    .fc-tab[aria-selected="true"] { background: var(--orange); color: var(--navy-deep); border-color: var(--orange); }
+    .fc-tab .done { margin-left: 4px; }
+    .fc-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+    @media (max-width: 1100px) { .fc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 620px) { .fc-grid { grid-template-columns: 1fr; } .fc-band { margin-top: -22px; } }
+    /* A plain show/hide flip (no 3D transforms, no <button> wrapper): some browsers drew the 3D version blank. */
+    .fc-card { position: relative; display: block; min-height: 280px; cursor: pointer; text-align: left; width: 100%; border-radius: 16px; }
+    .fc-card:focus-visible { outline: 3px solid var(--orange); outline-offset: 3px; }
+    .fc-face { min-height: 280px; height: 100%; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; animation: fcIn .35s ease; }
+    @keyframes fcIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+    .fc-back, .fc-card.flip .fc-front { display: none; }
+    .fc-card.flip .fc-back { display: flex; }
+    .fc-front { background: #fff; color: var(--navy-deep); border: 3px solid var(--navy-deep); box-shadow: 0 14px 28px -16px rgba(0,0,0,.7); }
+    .fc-back { background: var(--navy-deep); color: #fff; border: 3px solid var(--orange); }
+    .fc-deck { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--orange); }
+    .fc-front .fc-deck { color: #c2410c; }
+    .fc-q { font-size: 17px; font-weight: 800; line-height: 1.35; flex: 1; }
+    .fc-a { font-size: 14.5px; line-height: 1.55; flex: 1; }
+    .fc-hint { font-size: 12px; color: #64748b; } .fc-back .fc-hint { color: rgba(255,255,255,.6); }
+    .fc-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 18px 0 6px; }
+    .fc-bar button { font: inherit; font-weight: 800; font-size: 13px; padding: 8px 16px; border-radius: 999px; border: 0; cursor: pointer; background: var(--navy-deep); color: var(--orange); box-shadow: 0 0 0 2px rgba(253,186,116,.4) inset; }
+    .fc-bar button.main { background: var(--orange); color: var(--navy-deep); box-shadow: none; }
+    .fc-note { text-align: center; color: rgba(255,255,255,.6); font-size: 12.5px; margin: 8px 0 0; }
+    .fc-card.got .fc-front { border-color: #16a34a; }
+    .fc-card.got .fc-front::after { content: "✓ Got it"; position: absolute; top: 12px; right: 14px; font-size: 11px; font-weight: 800; color: #166534; background: #dcfce7; padding: 2px 8px; border-radius: 999px; }
+</style>
+<script src="/portal-nav.js"></script>
+<script src="/flashcards-data.js"></script>
+<link rel="stylesheet" href="/theme.css">
+</head>
+<body class="portal-bg-dark">
+<div class="sim-top">
+    <a class="sim-brand" href="/programs.html"><img src="/img/logo.svg" alt="Legal Support Help" width="75" height="46"><span>LSH Nexus<small>Flash Cards</small></span></a>
+    <div class="sim-nav" id="fc-nav"></div>
+</div>
+<div class="sim-wrap fc-wrap">
+    <section class="fc-band"><h1>🃏 Daily Digest</h1><p id="fc-date">Five cards a day: Rules, Trivia, Terminologies, Process and FAQs. Click a card (or press Enter) to flip it.</p></section>
+    <div class="fc-tabs" role="tablist" aria-label="Decks" id="fc-tabs"></div>
+    <div class="fc-grid" id="fc-grid"></div>
+    <div class="fc-bar">
+        <button type="button" class="main" id="fc-today">📅 Today’s digest</button>
+        <button type="button" id="fc-more">🔀 More from this deck</button>
+        <button type="button" id="fc-got">✓ Mark the shown cards “Got it”</button>
+    </div>
+    <p class="fc-note">Practice material for LSH trainees. Deadlines, rules and terms vary by state and by firm: your attorney’s and firm’s rules always come first.</p>
+</div>
+<script>
+(function () {
+    // Who is signed in: the same admin / trainee bar as the other Portal pages
+    try {
+        const raw = sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1');
+        const s = raw && raw !== 'null' ? JSON.parse(raw) : null;
+        const nav = document.getElementById('fc-nav');
+        if (s && s.userType === 'Admin') nav.innerHTML = PortalNav.adminHtml('', { back: '/programs.html' });
+        else if (s && s.userType === 'Trainee') nav.innerHTML = PortalNav.traineeHtml('', { back: '/programs.html', signedIn: true });
+        else nav.innerHTML = '<a class="pn-pill" href="/programs.html">← LSH Academy Index</a>';
+    } catch (e) { /* the page works without the bar */ }
+
+    const { DECKS } = window.LSH_FLASHCARDS;   // the decks live in /flashcards-data.js (shared with the LSH Academy Index card)
+
+    const DAY = window.LSH_FLASHCARDS.day();   // today, in the viewer's own time zone
+    const store = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* not saved */ } } };
+    const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const got = store.get('LSH_FC_GOT') || {};
+    let deck = '', extra = 0;
+
+    document.getElementById('fc-date').textContent = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) + ' · five cards a day: Rules, Trivia, Terminologies, Process and FAQs. Click a card (or press Enter) to flip it.';
+
+    function picks() {
+        if (!deck) return DECKS.map((d, i) => ({ d, i: (DAY + i * 3) % d.cards.length }));   // today's digest: one from each deck
+        const d = DECKS.find(x => x.id === deck), start = (DAY + DECKS.indexOf(d) * 3 + extra * 5) % d.cards.length;
+        return Array.from({ length: Math.min(5, d.cards.length) }, (_, k) => ({ d, i: (start + k) % d.cards.length }));
+    }
+    function paint() {
+        document.getElementById('fc-tabs').innerHTML = [{ id: '', label: 'Today’s digest', icon: '📅' }].concat(DECKS).map(d =>
+            `<button type="button" role="tab" class="fc-tab" aria-selected="${d.id === deck}" data-deck="${d.id}">${d.icon} ${esc(d.label)}</button>`).join('');
+        document.getElementById('fc-grid').innerHTML = picks().map(({ d, i }) => {
+            const [q, a] = d.cards[i], key = d.id + ':' + i;
+            return `<div role="button" tabindex="0" aria-pressed="false" class="fc-card${got[key] ? ' got' : ''}" data-key="${key}" title="Flip the card">
+                <div class="fc-face fc-front"><span class="fc-deck">${d.icon} ${esc(d.label)}</span><div class="fc-q">${esc(q)}</div><span class="fc-hint">Flip for the answer ↻</span></div>
+                <div class="fc-face fc-back"><span class="fc-deck">${d.icon} ${esc(d.label)} · answer</span><div class="fc-a">${esc(a)}</div><span class="fc-hint">Flip back ↻</span></div></div>`;
+        }).join('');
+        document.getElementById('fc-more').disabled = !deck;
+        document.getElementById('fc-more').title = deck ? 'Five more cards from this deck' : 'Pick a deck first';
+    }
+    function flip(c) { const on = c.classList.toggle('flip'); c.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+    document.addEventListener('keydown', (ev) => { const c = ev.target.closest && ev.target.closest('.fc-card'); if (c && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); flip(c); } });
+    document.addEventListener('click', (ev) => {
+        const c = ev.target.closest('.fc-card'); if (c) { flip(c); return; }
+        const t = ev.target.closest('[data-deck]'); if (t) { deck = t.dataset.deck; extra = 0; history.replaceState(null, '', deck ? '#' + deck : location.pathname); paint(); return; }
+        if (ev.target.closest('#fc-today')) { deck = ''; extra = 0; history.replaceState(null, '', location.pathname); paint(); return; }
+        if (ev.target.closest('#fc-more')) { extra++; paint(); return; }
+        if (ev.target.closest('#fc-got')) { document.querySelectorAll('.fc-card').forEach(x => { got[x.dataset.key] = DAY; x.classList.add('got'); }); store.set('LSH_FC_GOT', got); }
+    });
+    const h = location.hash.slice(1); if (DECKS.some(d => d.id === h)) deck = h;
+    try { paint(); } catch (e) { console.error('flashcards', e); document.getElementById('fc-grid').innerHTML = '<p style="grid-column:1/-1;color:#fff;text-align:center">The cards couldn’t be shown. Reload the page; if it stays empty, tell your trainer.</p>'; }
+})();
+</script>
+</body>
+</html>

@@ -8,7 +8,6 @@
 /SIMULATORS.md / 302
 /CODEMAP.md / 302
 /topics_seed.sql / 302
-/attendance-sync.gs / 302
 /.github/* / 302
 /functions/* / 302
 /simulators/drafting/make-drafting-data.py / 302
@@ -19,8 +18,9 @@
 /node_modules/* / 302
 /img/README.md / 302
 /img/make-logo-svg.py / 302
+# (/attendance-sync.gs is not here: functions/_middleware.js serves it to signed-in admins only, ADMIN_PAGES.)
 
-# The Knowledge Base is its own site now: the old address opens it (signed in, no second sign-in).
+# LSH Atlas is its own site now: the old address opens it (signed in, no second sign-in).
 /kb.html /api/launch?tool=kb 302
 /kb /api/launch?tool=kb 302
 /kb-files/* /api/launch?tool=kb 302

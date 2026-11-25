@@ -45,7 +45,7 @@ check(calls.includes('KEY-A') && calls.includes('KEY-B') || calls.length >= 1, '
 r = await ask('cms', 'bo'); r = await ask('reception', 'cy'); r = await ask('intake', 'di'); r = await ask('calendaring', 'ed');
 const rows = sql.prepare(`SELECT module, calls, tokens FROM ai_usage_day ORDER BY module`).all();
 check(rows.map(x => x.module).join() === 'calendaring,cms,intake,reception,standard' && rows.every(x => x.calls === 1 && x.tokens === 321), 'Standard, CMS, Reception, Intake and Calendaring are all counted in the one ledger');
-check(gw.normModule('Reception') === 'reception' && gw.normModule('ringchannel') === 'ringchannel' && gw.normModule('anything') === 'portal', 'an unknown flow is counted as the Portal, never as a new budget; LSH Ring Channel has its own line');
+check(gw.normModule('Reception') === 'reception' && gw.normModule('ringchannel') === 'ringchannel' && gw.normModule('anything') === 'portal', 'an unknown flow is counted as the Portal, never as a new budget; LSH Voice has its own line');
 
 // a rate-limited key rests: the next calls skip it
 calls.length = 0;
@@ -195,6 +195,10 @@ check(noSecret.status === 501, 'with no gateway secret set the gateway says so')
     const rev = await gw.runAi(db, renv, { module: 'calendaring', user: 'b', system: 's', messages: [{ role: 'user', text: 'x' }], json: true });
     check(chat.status === 429 && chat.body.scope === 'daily', `a practice chat stops at the reviews' reserve (${chat.status} ${chat.body.scope})`);
     check(rev.status === 200, `a review still goes through, over its flow's share of the day too (${rev.status} ${rev.body.error || ''})`);
+    // ... but a browser's request (api/sim-ai.js: review: false) can't claim the reserve by sending json: true (code inventory 2026-10-16 #4)
+    const forged = await gw.runAi(db, renv, { module: 'cms', user: 'c', system: 's', messages: [{ role: 'user', text: 'x' }], json: true, review: false });
+    check(forged.status === 429 && forged.body.scope === 'daily', `a browser's json request stops at the reviews' reserve like a chat (${forged.status} ${forged.body.scope})`);
+    check(/review:\s*false/.test(fs.readFileSync('functions/api/sim-ai.js', 'utf8')), 'api/sim-ai.js (the browser endpoint) passes review: false');
     check(gw.limits({ AI_REVIEW_RESERVE: '0.2' }).reviewReserve === 0.2 && gw.limits({}).reviewReserve === 0.1 && gw.limits({ AI_REVIEW_RESERVE: '0' }).reviewReserve === 0, 'AI_REVIEW_RESERVE sets the reserve (10% unless set)');
 }
 

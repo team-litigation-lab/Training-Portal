@@ -1,7 +1,6 @@
-/* Shared chrome of the two sign-in pages (trainee-login.html, admin-login.html): the split card,
-   the visual panel and the form styles. The blocks were byte-identical copies in each page's <style>.
-   registration.html keeps its own tuned variant (wider card, selects, field rows). Loads AFTER
-   styles.css: the body rules below undo its app-shell height lock. */
+/* The sign-in card's CSS, in one place: the two sign-in pages (trainee-login.html, admin-login.html) and the
+   registration page (registration.html, its tuned variant scoped to html.auth-register at the end). The split card,
+   the visual panel and the form styles. Loads AFTER styles.css: the body rules below undo its app-shell height lock. */
     :root {
         --navy: #0f2148; --navy-deep: #081226; --navy-mid: #132a5c;
         --orange: #f97316; --orange-soft: #fb923c; --slate: #334155; --paper: #faf8f4;
@@ -75,9 +74,10 @@
         font-size: 12px; font-weight: 700; padding: 10px 14px; border-radius: 10px;
         margin-bottom: 16px; display: none;
     }
-    .auth-msg.error { display: block; background: #fef2f2; color: #b91c1c; }
-    .auth-msg.success { display: block; background: #f0fdf4; color: #166534; }
-    .auth-msg.info { display: block; background: #eff6ff; color: #1d4ed8; }
+    .auth-msg.error { display: block; background: #fef2f2; color: #b91c1c; animation: msgPop .25s ease; }
+    .auth-msg.success { display: block; background: #f0fdf4; color: #166534; animation: msgPop .25s ease; }
+    .auth-msg.info { display: block; background: #eff6ff; color: #1d4ed8; animation: msgPop .25s ease; }
+    @keyframes msgPop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 
     .field { margin-bottom: 12px; }
     .field label { display: block; font-size: 11.5px; font-weight: 700; color: var(--navy); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.03em; }
@@ -202,3 +202,119 @@
        the moment the button toggles the box to type="text". */
     body.auth-compact-right .field > span > input { padding-right: 50px !important; }
     body.auth-compact-right .field > span > button { font-size: 10px !important; padding: 3px 7px !important; right: 5px !important; }
+
+/* ---------------------------------------------------------------------------
+   The registration page (<html class="auth-register">): its own tuned variant of the card (wider, selects, field rows),
+   moved here from the page's inline <style> so the sign-in card's CSS lives in one file (code inventory 2026-10-16 #9).
+   Every rule is scoped with :where(html.auth-register): on that page only, and with no added specificity, so each rule
+   wins over the shared rules above by coming after them and still loses to theme.css (loaded later) exactly as the inline
+   copy did. The page looks as it did; the two sign-in pages are untouched.
+   --------------------------------------------------------------------------- */
+    html:where(.auth-register), :where(html.auth-register) body { overflow-x: hidden; overflow-y: auto; height: auto; }
+    :where(html.auth-register) body {
+        margin: 0; font-family: 'IBM Plex Sans', Arial, Helvetica, sans-serif;
+        background: var(--paper); color: var(--navy); -webkit-font-smoothing: antialiased;
+    }
+    :where(html.auth-register) .auth-shell {
+        min-height: 100vh; display: grid; grid-template-columns: 1fr 1.3fr;
+    }
+    @media (max-width: 900px) { :where(html.auth-register) .auth-shell { grid-template-columns: 1fr; } :where(html.auth-register) .auth-visual { display: none; } }
+
+    :where(html.auth-register) .auth-visual {
+        position: relative; background: var(--navy-deep); overflow: hidden;
+        display: flex; flex-direction: column; justify-content: space-between; padding: 40px;
+    }
+    :where(html.auth-register) .auth-rings { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 520px; height: 520px; opacity: 0.85; pointer-events: none; }
+    :where(html.auth-register) .back-link {
+        position: relative; z-index: 1; color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 600;
+        text-decoration: none; display: inline-flex; align-items: center; gap: 6px; width: fit-content;
+        transition: color 0.15s ease;
+    }
+    :where(html.auth-register) .back-link:hover { color: #fff; }
+    :where(html.auth-register) .visual-copy { position: relative; z-index: 1; }
+    :where(html.auth-register) .visual-copy .badge {
+        display: inline-flex; align-items: center; gap: 8px; background: rgba(249,115,22,0.15);
+        color: var(--orange-soft); font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+        text-transform: uppercase; padding: 6px 14px; border-radius: 999px; margin-bottom: 20px;
+    }
+    :where(html.auth-register) .visual-copy h1 { color: #fff; font-size: 32px; font-weight: 800; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.01em; }
+    :where(html.auth-register) .visual-copy p { color: rgba(255,255,255,0.55); font-size: 14px; line-height: 1.6; max-width: 340px; margin: 0; }
+    /* 35% white on the navy panel is 3.19:1; 60% is 7.14:1 and still reads
+       as fine print rather than body copy. */
+    :where(html.auth-register) .visual-foot { position: relative; z-index: 1; font-size: 12px; color: rgba(255,255,255,0.6); }
+
+    :where(html.auth-register) .auth-form-side {
+        display: flex; align-items: flex-start; justify-content: center; padding: 48px 24px;
+        /* flex-start, not center: centering a flex item taller than its
+           container can strand the overflow above the visible area in some
+           browsers, reachable only by zooming out (shrinking content to
+           fit) rather than by scrolling — exactly the bug this fixes. The
+           registration form is long enough to hit this; the shorter login
+           cards never did, which is why this only showed up here. */
+    }
+    /* The form is the one thing on the portal that sits straight on the
+       backdrop with no panel of its own, and it is all small labels and
+       hint text — so it brings a surface. Translucent, like every other
+       panel: the photo still reads behind the form, but each label is read
+       off a near-paper tone instead of off the picture. */
+    :where(html.auth-register) .auth-card {
+        width: 100%; max-width: 480px;
+        background: rgba(250, 248, 244, .82); border-radius: 22px; padding: 28px 30px;
+        box-shadow: 0 24px 60px -28px rgba(8, 18, 38, .55);
+        backdrop-filter: var(--surface-blur, saturate(118%) blur(10px));
+        -webkit-backdrop-filter: var(--surface-blur, saturate(118%) blur(10px));
+    }
+    :where(html.auth-register) .auth-card-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+    :where(html.auth-register) .auth-card-mark {
+        width: auto; height: auto; border-radius: 10px; background: var(--navy-deep); padding: 6px 12px; box-sizing: border-box;
+        display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
+    }
+    :where(html.auth-register) .auth-card-mark img { height: 46px; width: auto; display: block; }
+    :where(html.auth-register) .auth-card-brand span { font-weight: 800; font-size: 14px; color: var(--navy); }
+    :where(html.auth-register) .auth-card h2 { font-size: 22px; font-weight: 800; margin: 0 0 6px; color: var(--navy); }
+    :where(html.auth-register) .auth-card .sub { font-size: 13.5px; line-height: inherit; color: var(--slate); margin: 0 0 24px; }
+
+    :where(html.auth-register) .auth-msg {
+        font-size: 12px; font-weight: 700; padding: 10px 14px; border-radius: 10px;
+        margin-bottom: 16px; display: none;
+    }
+    :where(html.auth-register) .auth-msg.error { display: block; background: #fef2f2; color: #b91c1c; }
+    :where(html.auth-register) .auth-msg.success { display: block; background: #f0fdf4; color: #166534; }
+    :where(html.auth-register) .auth-msg.info { display: block; background: #eff6ff; color: #1d4ed8; }
+
+    :where(html.auth-register) .field { margin-bottom: 14px; }
+    :where(html.auth-register) .field label { display: block; font-size: 11.5px; font-weight: 700; color: var(--navy); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.03em; }
+    :where(html.auth-register) .field label span { text-transform: none; font-weight: 500; color: var(--slate); }
+    :where(html.auth-register) .field input, :where(html.auth-register) .field select {
+        width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 12px;
+        font-size: 14px; font-family: 'IBM Plex Sans', sans-serif; outline: none; color: var(--navy);
+        transition: border-color 0.15s ease, box-shadow 0.15s ease; background: #fff;
+    }
+    :where(html.auth-register) .field input:focus, :where(html.auth-register) .field select:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(249,115,22,0.12); }
+    :where(html.auth-register) .field input::placeholder { color: #cbd5e1; }
+    :where(html.auth-register) .field input[disabled] { background: #f8fafc; color: #334155; cursor: not-allowed; }
+    :where(html.auth-register) .field-row { display: grid; gap: 12px; }
+    :where(html.auth-register) .field-hint { font-size: 11px; color: #334155; margin: 6px 0 0; line-height: 1.4; }
+
+    :where(html.auth-register) .auth-submit {
+        width: 100%; padding: 13px; border-radius: 999px; border: none; background: var(--navy);
+        color: #fdba74; font-weight: 800; font-size: 13px; text-transform: uppercase;
+        letter-spacing: 0.04em; cursor: pointer; margin-top: 8px;
+        transition: background 0.2s ease, transform 0.12s ease;
+    }
+    :where(html.auth-register) .auth-submit:hover { background: var(--navy-mid); transform: translateY(-1px); }
+    :where(html.auth-register) .auth-submit:active { transform: translateY(0) scale(0.98); }
+
+    :where(html.auth-register) .auth-switch { text-align: center; font-size: 12.5px; color: var(--slate); margin-top: 20px; }
+    /* A link on the near-paper form card: --orange is 2.6:1 there. Same
+       darkened orange as the sign-in pages. */
+    :where(html.auth-register) .auth-switch a { color: #c2410c; font-weight: 700; text-decoration: none; cursor: pointer; }
+    :where(html.auth-register) .auth-switch a:hover { text-decoration: underline; }
+
+    /* ===== Lock-restricted state (site-wide Lock is active) ===== */
+    :where(html.auth-register) #auth-locked-notice { text-align: center; padding: 24px 4px; }   /* hidden inline below, like trainee-login: portal.js unhides it by clearing style.display, which a stylesheet display:none would defeat */
+    :where(html.auth-register) #auth-locked-notice .icon { font-size: 34px; margin-bottom: 10px; }
+    :where(html.auth-register) #auth-locked-notice p { font-size: 13.5px; color: var(--slate); line-height: 1.6; }
+
+    /* (the shared rules above put the form first; the registration page keeps its own order) */
+    :where(html.auth-register) .auth-form-side { order: 0; }

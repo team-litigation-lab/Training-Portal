@@ -24,6 +24,8 @@ export async function onRequestPost({ request, env }) {
     const total = (body.system || '').length + messages.reduce((a, m) => a + String(m.text || '').length, 0);
     if (total > MAX_CHARS) return json({ success: false, error: 'Request is too long.' }, 413);
     const user = auth.ok ? auth.session.username : (request.headers.get('CF-Connecting-IP') || 'anonymous');
-    const r = await runAi(env.TRAINING_DB, env, { module: body.module, user, system: body.system, messages, json: !!body.json, maxTokens: body.maxTokens });
+    // (json is the answer's format only: a browser's request never opens the AI-review reserve, which the browser could otherwise
+    // claim for any practice chat by sending json: true; the server's own reviews and grading keep it)
+    const r = await runAi(env.TRAINING_DB, env, { module: body.module, user, system: body.system, messages, json: !!body.json, maxTokens: body.maxTokens, review: false });
     return json(r.body, r.status);
 }

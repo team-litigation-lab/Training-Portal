@@ -20,6 +20,64 @@
     .grades-toolbar .grades-danger[disabled] { opacity: .45; cursor: not-allowed; }
     .grades-hint { font-size: 11.5px; color: #475569; }
     .grades-hint.ready { color: #166534; font-weight: 700; }
+    /* On a phone (and a narrow tablet) the top bar (announcement, clock, time zone, two links, the user) is far wider than the screen, and body has
+       overflow: hidden, so it used to push the dashboard off the right edge with no way to scroll to it. It wraps instead:
+       the announcement takes its own line, the clock and time-zone picker (the computer's clock is on the phone already) go.
+       (From 1080px down: the bar's own contents, with a long name, fit in one 38px line down to about 1040px; above that it stays one line.) */
+    @media (max-width: 1080px) {
+        #classification-bar .top-bar-right { flex-wrap: wrap; justify-content: flex-end; gap: 8px 14px; min-width: 0; max-width: 100%; }
+        #classification-bar .top-ticker-mini { flex: 1 1 100%; max-width: 100%; min-width: 0; order: 9; }
+    }
+    @media (max-width: 1080px) { #classification-bar { height: auto; min-height: 38px; padding-top: 6px; padding-bottom: 6px; } }
+    @media (max-width: 700px) {
+        #classification-bar { padding: 8px 14px; gap: 8px; }
+        #classification-bar .top-clock { display: none; }
+        /* and the 280px side menu sits above the dashboard (its own scroll) instead of beside it, so the cards get the width */
+        #app-shell { flex-direction: column; }
+        #app-shell > aside.custom-sidebar-panel { width: 100% !important; max-height: 38vh; overflow-y: auto; flex-shrink: 0; border-right: none !important; border-bottom: 1px solid #0d1c3d; }
+        #app-shell > aside.custom-sidebar-panel > div:first-child { display: none !important; }   /* (the logo: the top bar already says where they are) */
+        #app-shell > aside.custom-sidebar-panel { max-height: 46vh; }
+        #app-shell > main { min-height: 0; }
+    }
+
+    /* 🧭 Dashboard & Directory (Master Control → Overview) and the ⓘ How to use pop-outs (mc-directory.js).
+       Built to fit one wide screen: one line of live counts, then every admin feature in one table. */
+    body.admin-merged .mc-body { padding: 16px 22px; }
+    .ov-kpis { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+    @media (max-width: 1500px) { .ov-kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+    @media (max-width: 900px) { .ov-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .ov-kpi { background: #fff; border: 1px solid #e2e8f0; border-left: 4px solid var(--navy); border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .ov-kpi.good { border-left-color: #16a34a; } .ov-kpi.warn { border-left-color: var(--orange); }
+    .ov-kpi span { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #admin-dash-overview .ov-kpi .admin-stat { font-size: 22px; font-weight: 900; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ov-dir-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 8px; }
+    #ov-dir-find { flex: 0 1 340px; padding: 7px 11px; border: 1.5px solid #94a3b8; border-radius: 8px; font-size: 14px; font-weight: 600; color: #0f172a; }
+    .ov-dir-tip { font-size: 12.5px; color: #475569; }
+    .ov-dir { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; font-size: 13.5px; }
+    .ov-dir th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #475569; background: #f1f5f9; padding: 7px 12px; border-bottom: 1px solid #e2e8f0; }
+    .ov-dir td { padding: 6px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #0f172a; }
+    .ov-dir tr.ov-grp td { background: var(--navy-deep, #0b1633); color: #fff; font-size: 11.5px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; padding: 6px 12px; }
+    .ov-dir tr.ov-grp td small { font-weight: 600; text-transform: none; letter-spacing: 0; color: #cbd5e1; margin-left: 8px; font-size: 12px; }
+    .ov-dir tr.ov-row:hover td { background: #fff7ed; }
+    .ov-dir .ov-feat { font-weight: 800; white-space: nowrap; }
+    .ov-dir .ov-what { color: #334155; }
+    .ov-dir .ov-stat { white-space: nowrap; font-family: 'IBM Plex Mono', monospace; font-weight: 700; color: #0f172a; }
+    .ov-dir .ov-stat .hot { background: var(--orange); color: #fff; border-radius: 999px; padding: 1px 8px; }
+    .ov-dir .ov-act { white-space: nowrap; text-align: right; }
+    .ov-open, .ov-info, .mc-howto, .mc-home { font: inherit; font-size: 12px; font-weight: 800; border-radius: 999px; padding: 4px 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+    .ov-open { background: var(--navy); color: var(--orange); border: 0; }
+    .ov-open:hover { background: var(--orange); color: var(--navy-deep, #0b1633); }
+    .ov-info, .mc-howto, .mc-home { background: #fff; color: var(--navy); border: 1.5px solid #94a3b8; margin-left: 6px; }
+    .ov-info:hover, .mc-howto:hover, .mc-home:hover, .ov-info[aria-expanded="true"], .mc-howto[aria-expanded="true"] { border-color: var(--orange); color: #c2410c; }
+    .mc-pane-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -4px 0 12px; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0; }
+    .mc-pane-bar h3 { margin: 0 auto 0 0; font-size: 18px; font-weight: 900; color: var(--navy); }
+    #mc-guide-pop { position: fixed; z-index: 5000; width: min(420px, calc(100vw - 24px)); background: #fff; border: 2px solid var(--navy); border-radius: 14px; box-shadow: 0 20px 44px -12px rgba(11,22,51,.45); padding: 14px 16px; display: none; }
+    #mc-guide-pop.open { display: block; animation: viewFadeInGlow .25s ease; }
+    #mc-guide-pop h4 { margin: 0 28px 4px 0; font-size: 15px; font-weight: 900; color: var(--navy); }
+    #mc-guide-pop p { margin: 0 0 8px; font-size: 13px; color: #334155; }
+    #mc-guide-pop ol { margin: 0 0 10px; padding-left: 20px; font-size: 13px; line-height: 1.5; color: #0f172a; } #mc-guide-pop li { margin: 3px 0; }
+    #mc-guide-pop .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 18px; cursor: pointer; color: #475569; }
+    #mc-guide-pop .where { font-size: 12px; color: #475569; margin-bottom: 10px; }
 </style>
 </head>
 <body>
@@ -69,9 +127,9 @@
             </div>
             <!-- ?stay=1: functions/_middleware.js sends a signed-in person who asks
                  for /index.html on to /programs.html, so without it this button would
-                 land an admin back on the Training Directory, not the landing page. -->
+                 land an admin back on LSH Academy Index, not the landing page. -->
             <a href="/index.html?stay=1" style="font-size:11.5px; font-weight:700; text-decoration:none; white-space:nowrap;" title="The LSH Nexus landing page">&#127968; Main Portal</a>
-            <a href="/programs.html" style="font-size:11.5px; font-weight:700; text-decoration:none; white-space:nowrap;" title="Back to all programs">&larr; Training Index</a>
+            <a href="/programs.html" style="font-size:11.5px; font-weight:700; text-decoration:none; white-space:nowrap;" title="Back to all programs">&larr; LSH Academy Index</a>
             <div class="top-user">
                 <div class="top-user-avatar" id="top-user-avatar">--</div>
                 <div>
@@ -112,29 +170,32 @@
                 </div>
             </div>
             <div class="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-2" id="admin-nav">
-                <div class="admin-nav-group">Grading &amp; Progress</div>
-                <button onclick="switchView('admin-grades')" class="side-nav-btn active view-nav-btn" id="nav-admin-grades"><span>📊</span> Check &amp; Release Grades</button>
-                <a class="side-nav-btn" href="/progress.html" style="text-decoration:none"><span>📈</span> Progress &amp; Feedback</a>
-                <a class="side-nav-btn" href="/attendance.html" style="text-decoration:none"><span>🕘</span> Attendance</a>
-                <div class="admin-nav-group">Training Content</div>
-                <button onclick="switchView('admin-activities')" class="side-nav-btn view-nav-btn" id="nav-admin-activities"><span>📋</span> Lesson Decks &amp; Activities</button>
-                <button onclick="switchView('admin-lectures')" class="side-nav-btn view-nav-btn" id="nav-admin-lectures"><span>🎬</span> Manage Lectures</button>
-                <a class="side-nav-btn" href="/programs.html" style="text-decoration:none"><span>🎓</span> Training Directory</a>
-                <div class="admin-nav-group">People &amp; Access</div>
-                <button onclick="mcGo('registrations')" class="side-nav-btn mc-nav-btn" data-mc="registrations"><span>📝</span> Log-in Approvals <span id="reg-pending-badge-side" class="admin-nav-badge"></span></button>
+                <!-- Grouped by job, in the order an admin's day goes. The 🧭 Dashboard lists every one of these in a table with a ⓘ How to use pop-out (mc-directory.js). -->
+                <div class="admin-nav-group">Start Here</div>
+                <button onclick="mcGo('overview')" class="side-nav-btn mc-nav-btn" data-mc="overview" title="Live counts and the Control Directory: every admin feature, with how to use it"><span>🧭</span> Dashboard &amp; Directory</button>
+                <div class="admin-nav-group">1 · People &amp; Access</div>
+                <button onclick="mcGo('registrations')" class="side-nav-btn mc-nav-btn" data-mc="registrations" title="New sign-ups waiting: approve to issue a Batch ID"><span>📝</span> Log-in Approvals <span id="reg-pending-badge-side" class="admin-nav-badge"></span></button>
                 <button onclick="openAccessRequests()" class="side-nav-btn" title="Trainees asking to open a program or tool: approve or deny"><span>🙋</span> Access Requests <span id="access-req-badge-side" class="admin-nav-badge"></span></button>
-                <button onclick="mcGo('users')" class="side-nav-btn mc-nav-btn" data-mc="users"><span>👥</span> Users: Suspend, Restore &amp; Revoke</button>
-                <button onclick="mcGo('program-access')" class="side-nav-btn mc-nav-btn" data-mc="program-access"><span>🔑</span> Program Access</button>
-                <div class="admin-nav-group">Monitoring</div>
-                <button onclick="mcGo('overview')" class="side-nav-btn mc-nav-btn" data-mc="overview"><span>🧭</span> Overview</button>
-                <button onclick="mcGo('monitoring')" class="side-nav-btn mc-nav-btn" data-mc="monitoring"><span>🟢</span> Who&rsquo;s Online</button>
-                <button onclick="mcGo('activity-logs')" class="side-nav-btn mc-nav-btn" data-mc="activity-logs"><span>🗂</span> Activity Logs</button>
-                <button onclick="mcGo('announce')" class="side-nav-btn mc-nav-btn" data-mc="announce"><span>📢</span> Broadcast &amp; Ping</button>
-                <a class="side-nav-btn" href="/api/ai-usage" style="text-decoration:none"><span>🤖</span> AI Usage</a>
-                <div class="admin-nav-group">System</div>
-                <button onclick="mcGo('access')" class="side-nav-btn mc-nav-btn" data-mc="access"><span>🔒</span> Site Lock</button>
-                <a class="side-nav-btn" href="/api/admin-password-check" style="text-decoration:none"><span>🔐</span> Admin Password Check</a>
-                <a class="side-nav-btn" href="/referrals.html" style="text-decoration:none"><span>🤝</span> Referrals</a>
+                <button onclick="mcGo('program-access')" class="side-nav-btn mc-nav-btn" data-mc="program-access" title="Grant, suspend, restore or revoke one program for one trainee"><span>🔑</span> Program Access</button>
+                <button onclick="mcGo('users')" class="side-nav-btn mc-nav-btn" data-mc="users" title="Whole accounts: edit, suspend, restore, revoke"><span>👥</span> Users &amp; Accounts</button>
+                <a class="side-nav-btn" href="/referrals.html" style="text-decoration:none" title="People referred from the home page, with their CVs"><span>🤝</span> Referrals</a>
+                <div class="admin-nav-group">2 · Grading &amp; Progress</div>
+                <button onclick="switchView('admin-grades')" class="side-nav-btn active view-nav-btn" id="nav-admin-grades" title="Grade submissions, then release the grades to trainees"><span>📊</span> Check &amp; Release Grades</button>
+                <a class="side-nav-btn" href="/progress.html" style="text-decoration:none" title="Every trainee's progress and feedback in every program"><span>📈</span> Progress &amp; Feedback</a>
+                <a class="side-nav-btn" href="/attendance.html" style="text-decoration:none" title="Take and review attendance, batch by batch"><span>🕘</span> Attendance</a>
+                <div class="admin-nav-group">3 · Training Content</div>
+                <button onclick="switchView('admin-activities')" class="side-nav-btn view-nav-btn" id="nav-admin-activities" title="Add, publish and archive lesson decks and activities"><span>📋</span> Lesson Decks &amp; Activities</button>
+                <button onclick="switchView('admin-lectures')" class="side-nav-btn view-nav-btn" id="nav-admin-lectures" title="Embed and manage recorded lectures"><span>🎬</span> Manage Lectures</button>
+                <a class="side-nav-btn" href="/programs.html" style="text-decoration:none" title="Every program as trainees see it"><span>🎓</span> LSH Academy Index</a>
+                <a class="side-nav-btn" href="/api/launch?tool=kb" style="text-decoration:none" title="Review VA posts and manage LSH Atlas"><span>📚</span> LSH Atlas</a>
+                <div class="admin-nav-group">4 · Monitoring &amp; Comms</div>
+                <button onclick="mcGo('monitoring')" class="side-nav-btn mc-nav-btn" data-mc="monitoring" title="Who is signed in right now, and the server logs"><span>🟢</span> Who&rsquo;s Online</button>
+                <button onclick="mcGo('activity-logs')" class="side-nav-btn mc-nav-btn" data-mc="activity-logs" title="Audit trail of uploads, gradings and submissions"><span>🗂</span> Activity Logs</button>
+                <button onclick="mcGo('announce')" class="side-nav-btn mc-nav-btn" data-mc="announce" title="Ticker announcement, full-screen alert, ping"><span>📢</span> Broadcast &amp; Ping</button>
+                <a class="side-nav-btn" href="/api/ai-usage" style="text-decoration:none" title="How much the AI reviews are being used"><span>🤖</span> AI Usage</a>
+                <div class="admin-nav-group">5 · System</div>
+                <button onclick="mcGo('access')" class="side-nav-btn mc-nav-btn" data-mc="access" title="Pause or lock the whole site"><span>🔒</span> Site Lock</button>
+                <a class="side-nav-btn" href="/api/admin-password-check" style="text-decoration:none" title="Check admin passwords"><span>🔐</span> Admin Password Check</a>
             </div>
             <div id="session-footer-admin" style="margin:16px;"></div>
         </aside>
@@ -265,6 +326,9 @@
 
                 <!-- 6. ADMIN LESSON DECKS & ACTIVITIES -->
                 <div id="view-admin-activities" class="portal-view-section hidden">
+                    <div class="admin-tile" role="note" style="text-align:left;margin-bottom:16px;border-left:4px solid #d97706;background:#fffbeb;font-size:12px;color:#78350f;">
+                        <b>Trainees don't see the activities and decks published here right now.</b> This dashboard is for administrators only, and the trainees' navigation has no link to the Portal's own activities or lectures, so nothing published here reaches a trainee. Put trainee work in the training programs (the Training Directory) instead.
+                    </div>
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-xl font-black uppercase tracking-wide text-navy">Manage Decks &amp; Activities</h2>
                         <div class="flex gap-2">
@@ -297,6 +361,9 @@
 
                 <!-- 7. ADMIN LECTURES -->
                 <div id="view-admin-lectures" class="portal-view-section hidden">
+                    <div class="admin-tile" role="note" style="text-align:left;margin-bottom:16px;border-left:4px solid #d97706;background:#fffbeb;font-size:12px;color:#78350f;">
+                        <b>Trainees don't see the lectures added here right now.</b> This dashboard is for administrators only, and the trainees' navigation has no link to the Portal's own activities or lectures, so nothing published here reaches a trainee. Put trainee work in the training programs (the Training Directory) instead.
+                    </div>
                     <div class="flex justify-between items-center mb-6">
                         <div>
                             <h2 class="text-xl font-black uppercase tracking-wide text-navy">Recorded Lectures</h2>
@@ -593,7 +660,7 @@
             <button class="mc-tab active" onclick="showAdminDashTab('overview')">Overview</button>
             <a class="mc-tab" href="/progress.html" style="text-decoration:none;" title="Every trainee's progress and feedback in every program">📊 Progress &amp; Feedback</a>
             <a class="mc-tab" href="/attendance.html" style="text-decoration:none;" title="Take and review attendance: every program, batch by batch. The one place it is taken.">🕘 Attendance</a>
-            <a class="mc-tab" href="/api/launch?tool=kb" style="text-decoration:none;" title="Review VA posts and manage the Knowledge Base">📚 Knowledge Base</a>
+            <a class="mc-tab" href="/api/launch?tool=kb" style="text-decoration:none;" title="Review VA posts and manage LSH Atlas">📚 LSH Atlas</a>
             <a class="mc-tab" href="/referrals.html" style="text-decoration:none;" title="People referred from “Got a referral?” on the home page, with their CVs">🤝 Referrals</a>
             <button class="mc-tab" onclick="showAdminDashTab('registrations')">Log-in Approvals <span id="reg-pending-badge"></span></button>
             <button class="mc-tab" onclick="showAdminDashTab('users')">Users</button>
@@ -604,58 +671,27 @@
         </div>
         <div class="mc-body">
 
-            <!-- OVERVIEW -->
+            <!-- OVERVIEW: the admin dashboard. A KPI strip (every live count on one line), then the Control Directory:
+                 every admin feature in one table, grouped by job, with its live status, an Open button and a
+                 ⓘ How to use pop-out (mc-directory.js). The ids on the KPI strip are the ones app.js fills. -->
             <div class="mc-pane active" id="admin-dash-overview">
-                <div class="admin-panel-grid">
-                    <div class="admin-tile">
-                        <h4>Total Assigned Activities</h4>
-                        <div class="admin-stat" id="admin-stat-total-activities">0</div>
-                        <div class="admin-stat-label">Active Modules Assigned</div>
-                    </div>
-                    <div class="admin-tile">
-                        <h4>Total Submissions</h4>
-                        <div class="admin-stat" id="admin-stat-submissions">0</div>
-                        <div class="admin-stat-label">Total Trainee Uploads</div>
-                    </div>
-                    <div class="admin-tile">
-                        <h4>Total Users</h4>
-                        <div class="admin-stat" id="admin-stat-total-users">0</div>
-                        <div class="admin-stat-label">Approved Admin + Trainee Accounts</div>
-                    </div>
-                    <div class="admin-tile">
-                        <h4>Online Users</h4>
-                        <div class="admin-stat" id="admin-stat-online">0</div>
-                        <div class="admin-stat-label">Active in the last 60 seconds</div>
-                    </div>
-                    <div class="admin-tile">
-                        <h4>Offline Users</h4>
-                        <div class="admin-stat" id="admin-stat-offline">0</div>
-                        <div class="admin-stat-label">Approved accounts not currently active</div>
-                    </div>
-                    <div class="admin-tile">
-                        <h4>Pending Registration</h4>
-                        <div class="admin-stat" id="admin-stat-pending">0</div>
-                        <div class="admin-stat-label">Awaiting review</div>
-                    </div>
+                <div class="ov-kpis" role="list" aria-label="Live counts">
+                    <div class="ov-kpi" role="listitem" title="Published activities trainees can see"><span>Assigned Activities</span><b class="admin-stat" id="admin-stat-total-activities">0</b></div>
+                    <div class="ov-kpi" role="listitem" title="Every trainee upload"><span>Submissions</span><b class="admin-stat" id="admin-stat-submissions">0</b></div>
+                    <div class="ov-kpi" role="listitem" title="Approved admin + trainee accounts"><span>Total Users</span><b class="admin-stat" id="admin-stat-total-users">0</b></div>
+                    <div class="ov-kpi good" role="listitem" title="Active in the last 60 seconds"><span>Online</span><b class="admin-stat" id="admin-stat-online">0</b></div>
+                    <div class="ov-kpi" role="listitem" title="Approved accounts not currently active"><span>Offline</span><b class="admin-stat" id="admin-stat-offline">0</b></div>
+                    <div class="ov-kpi warn" role="listitem" title="Registrations awaiting review (Log-in Approvals)"><span>Pending Registration</span><b class="admin-stat" id="admin-stat-pending">0</b></div>
+                    <div class="ov-kpi" role="listitem" title="Pause / Resume from Site Lock &amp; Access Control"><span>Activity State</span><b class="admin-stat" id="ov-pause-state">Active</b></div>
+                    <div class="ov-kpi" role="listitem" title="Lock / Unlock from Site Lock &amp; Access Control"><span>Access State</span><b class="admin-stat" id="ov-lock-state">Unlocked</b></div>
+                    <div class="ov-kpi" role="listitem" title="Manage from Broadcast &amp; Ping"><span>Current Alert</span><b class="admin-stat" id="ov-alert-state">None Active</b></div>
                 </div>
-                <div class="mc-section-title">Site-Wide Status</div>
-                <div class="admin-panel-grid">
-                    <div class="admin-tile">
-                        <h4>Activity State</h4>
-                        <div class="admin-stat" id="ov-pause-state" style="font-size:22px;">Active</div>
-                        <div class="admin-stat-label">Pause / Resume from Access Control</div>
-                    </div>
-                    <div class="admin-tile">
-                        <h4>Access State</h4>
-                        <div class="admin-stat" id="ov-lock-state" style="font-size:22px;">Unlocked</div>
-                        <div class="admin-stat-label">Lock / Unlock from Access Control</div>
-                    </div>
-                    <div class="admin-tile">
-                        <h4>Current Alert</h4>
-                        <div class="admin-stat" id="ov-alert-state" style="font-size:22px;">None Active</div>
-                        <div class="admin-stat-label">Manage from Broadcast &amp; Ping</div>
-                    </div>
+                <div class="ov-dir-head">
+                    <div class="mc-section-title" style="margin:0">🧭 Control Directory</div>
+                    <input type="search" id="ov-dir-find" placeholder="Find a feature (e.g. grades, revoke, alert)…" aria-label="Find a feature" autocomplete="off">
+                    <span class="ov-dir-tip">Click <b>Open</b> to go there, or <b>ⓘ</b> for step-by-step instructions. Every panel has the same ⓘ How to use button at its top.</span>
                 </div>
+                <div id="ov-directory"></div>
             </div>
 
             <!-- REGISTRATIONS -->
@@ -1068,10 +1104,11 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js"></script>
     <script src="/portal-nav.js"></script>
 <script src="app.js"></script>
     <script src="portal.js"></script>
+    <script src="/mc-directory.js"></script>
 <script>
 // /core.html#master, #registrations, #users, #access, #access-requests, #monitoring and #announce (📢 Broadcast & Ping) open Master Control (the admin screen, not the trainee workspace) on that tab:
 // the admin bar's System Management menu (portal-nav.js) uses them.

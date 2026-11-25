@@ -1,7 +1,7 @@
 /* LSH Nexus — shared navigation.
-   Every portal page shows the same links (Home, Training Directory, Blueprint)
-   plus a Back button. The Simulators and the Knowledge Base aren't in the top bar:
-   they open from the Home page and the Training Directory. Portal pages open in the
+   Every portal page shows the same links (Home, LSH Academy Index, Blueprint)
+   plus a Back button. LSH Sims and LSH Atlas aren't in the top bar:
+   they open from the Home page and LSH Academy Index. Portal pages open in the
    same tab; only the training programs themselves (separate sites) open in a new tab.
    The Home / 🏠 Main Portal button is left out where the page's own Back button already
    goes to the landing page: two buttons for one destination is one too many.
@@ -10,22 +10,22 @@
    Referrals · Switch view · Logout. Everything else is on the System Management page (system.html).
    Every link to the landing page carries ?stay=1 (.github/scripts/front-door.mjs checks it). The landing
    page itself is never redirected now: functions/_middleware.js sends a signed-in person on to the
-   Training Directory only from the two sign-in pages, and ?stay=1 is what keeps a sign-in page on
+   LSH Academy Index only from the two sign-in pages, and ?stay=1 is what keeps a sign-in page on
    screen (right after logging out). */
 const PortalNav = {
     LINKS: [
         ['home', '/index.html?stay=1', 'Home'],
-        ['directory', '/programs.html', 'Training Directory'],
+        ['directory', '/programs.html', 'LSH Academy Index'],
         ['orient', '/blueprint.html', '🧭 Blueprint']
     ],
-    // Inside a course's frame, only the way back to the Simulators hub makes sense.
+    // Inside a course's frame, only the way back to the LSH Sims hub makes sense.
     EMBEDDED_LINKS: [
-        ['sims', '/simulators.html', '🛠 Simulators']
+        ['sims', '/simulators.html', '🛠 LSH Sims']
     ],
     embedded() { try { return window.self !== window.top; } catch (e) { return true; } },
     // Back to the previous portal page; a page opened fresh (new tab, bookmark) goes to its parent instead.
     // Except when that parent IS the main page: there "Back" means up to the Main Portal, and it goes
-    // straight there. Replaying history from the Training Directory took you to whichever portal page
+    // straight there. Replaying history from LSH Academy Index took you to whichever portal page
     // you happened to come from, which is not where the button says it goes.
     back(fallback) {
         const target = fallback || '/index.html?stay=1';
@@ -40,7 +40,7 @@ const PortalNav = {
         try { return /^\/(index(\.html)?)?$/.test(new URL(href, location.origin).pathname); } catch (e) { return false; }
     },
     // opts: { back: fallback URL or false, cls: extra class for each link, blueprint: false to leave 🧭 Blueprint out }
-    // The No Blueprint rule: the Blueprint lives on the Main Portal's own pages (the Training Directory's bar, the
+    // The No Blueprint rule: the Blueprint lives on the Main Portal's own pages (LSH Academy Index's bar, the
     // admin bar, blueprint.html); a simulator, a program or a tool never links to it.
     html(active, opts) {
         opts = opts || {};
@@ -54,31 +54,31 @@ const PortalNav = {
     },
     // Everything an admin uses less often, collated under ⚙ System Management: [href, label, title, opens in a new tab].
     // One entry per destination: Master Control's tabs (users, access, who's online) open from Master Control itself,
-    // and the Knowledge Base and Ring Channel are banners on the Training Directory.
+    // and LSH Atlas and LSH Voice are banners on LSH Academy Index.
     SYSTEM_LINKS: [
         ['/index.html?stay=1', '🏠 Main Portal', 'The LSH Nexus landing page'],
-        ['/programs.html', '🎓 Training Directory', 'Every training program, plus the Simulators, Knowledge Base, Ring Channel and CMS'],
+        ['/programs.html', '🎓 LSH Academy Index', 'Every training program, plus 🛠 LSH Sims, 📚 LSH Atlas, ☎ LSH Voice and 🗂 LSH CaseWorks'],
         ['/core.html#master', '🛡 Master Control', "Users & revoke access, program access, who's online, activity logs and broadcasts: all on one screen"],
         ['/core.html#registrations', '📝 Log-in Approvals <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Approve new trainee registrations'],
         ['/core.html#access-requests', '🙋 Access Requests <b class="pn-reg-badge" id="idx-access-badge"></b>', 'Trainees asking to open a program or tool: approve or deny, suspend or restore'],
-        ['/core.html#announce', '📢 Announcement', 'The scrolling announcement on the Training Directory and every program, and the full-screen alert (Broadcast & Ping)'],
-        ['/simulators.html', '🛠 Simulators', ''],
+        ['/core.html#announce', '📢 Announcement', 'The scrolling announcement on LSH Academy Index and every program, and the full-screen alert (Broadcast & Ping)'],
+        ['/simulators.html', '🛠 LSH Sims', ''],
         ['/api/admin-password-check', '🔑 Admin Password Check', 'Does every platform accept the admin password?'],
         ['/api/ai-usage', '🤖 AI Usage', "Today's use of the shared AI budget, flow by flow"]
     ],
     // 🧭 Blueprint: the Platform Blueprint, then (for an admin) every program's and tool's own blueprint.
     // Those decks have no link of their own, so this menu is the only way in — and it lives on the
-    // Training Directory alone, never on the landing page. /api/launch opens each one signed in.
+    // LSH Academy Index alone, never on the landing page. /api/launch opens each one signed in.
     BLUEPRINT_DECKS: [
-        ['Standard Foundational Training', '/api/launch?program=STANDARD%20TRAINING&to=blueprint'],
-        ['EA/PA Upskill Program', '/api/launch?program=EA%20%20PA%20TRAINING-OUTSOURCED%20MANP&to=blueprint'],
+        ['Legal VA Foundational Track', '/api/launch?program=STANDARD%20TRAINING&to=blueprint'],
+        ['EA PA Track', '/api/launch?program=EA%20%20PA%20TRAINING-OUTSOURCED%20MANP&to=blueprint'],
         ['Case Management Training', '/api/launch?program=CM%20TRAINING&to=blueprint'],
-        ['Property Damage Claims Training', '/api/launch?program=PROPERTY%20DAMAGE&to=blueprint'],
-        ['Medsum & Demand Training', '/api/launch?program=MEDSUM%20AND%20DEMAND&to=blueprint'],
-        ['Lien Negotiator Training', '/api/launch?program=LIEN%20NEGOTIATION&to=blueprint'],
-        ['Case Management System', '/api/launch?tool=cms&to=blueprint'],
-        ['LSH Ring Channel', '/api/launch?tool=ringchannel&to=blueprint'],
-        ['Knowledge Base', '/api/launch?tool=kb&to=blueprint']
+        ['Property Damage Claims Track', '/api/launch?program=PROPERTY%20DAMAGE&to=blueprint'],
+        ['Medsum & Demand Track', '/api/launch?program=MEDSUM%20AND%20DEMAND&to=blueprint'],
+        ['Lien Negotiator Track', '/api/launch?program=LIEN%20NEGOTIATION&to=blueprint'],
+        ['🗂 LSH CaseWorks', '/api/launch?tool=cms&to=blueprint'],
+        ['☎ LSH Voice', '/api/launch?tool=ringchannel&to=blueprint'],
+        ['📚 LSH Atlas', '/api/launch?tool=kb&to=blueprint']
     ],
     // The Blueprint pill as a drop-down: the Platform Blueprint first, the program and tool decks under it.
     blueprintMenuHtml(active, href) {
@@ -86,7 +86,7 @@ const PortalNav = {
             + PortalNav.BLUEPRINT_DECKS.map(([name, url]) => `<a href="${url}" target="_blank" rel="noopener">${name}</a>`).join('');
         return `<button type="button" class="pn-pill${active === 'orient' ? ' on' : ''}" aria-haspopup="true" aria-expanded="false" onclick="PortalNav.toggleMenu(this, event)" title="The Platform Blueprint, and every program's and tool's own blueprint">Blueprint ▾</button><div class="pn-menu">${items}</div>`;
     },
-    // 👁 Switch view: an admin sees the Training Directory as a trainee does (this tab only).
+    // 👁 Switch view: an admin sees LSH Academy Index as a trainee does (this tab only).
     traineeView() { try { return sessionStorage.getItem('LSH_VIEW_AS') === 'trainee'; } catch (e) { return false; } },
     switchView() {
         const tv = PortalNav.traineeView();
@@ -112,10 +112,10 @@ const PortalNav = {
             + pill('monitor', '/progress.html', 'Trainee Monitoring', "Every trainee's progress and feedback in every program")
             + pill('attendance', '/attendance.html', 'Attendance', 'Take and review attendance: every program, batch by batch. The one place it is taken.')
             + pill('referrals', '/referrals.html', 'Referrals', 'People referred from “Got a referral?” on the home page')
-            + `<button type="button" class="pn-pill${tv ? ' on' : ''}" onclick="PortalNav.switchView()" title="${tv ? 'Back to the admin view' : 'See the Training Directory as a trainee does'}"${tv ? ' aria-pressed="true"' : ''}>Switch view</button>`
+            + `<button type="button" class="pn-pill${tv ? ' on' : ''}" onclick="PortalNav.switchView()" title="${tv ? 'Back to the admin view' : 'See LSH Academy Index as a trainee does'}"${tv ? ' aria-pressed="true"' : ''}>Switch view</button>`
             + `<button type="button" class="pn-pill" onclick="PortalNav.logout()">Logout</button>`;
     },
-    // The trainee top bar on the Training Directory: Blueprint · My Evaluations · Logout (signed out: Log In).
+    // The trainee top bar on LSH Academy Index: Blueprint · My Evaluations · Logout (signed out: Log In).
     traineeHtml(active, opts) {
         opts = opts || {};
         const pill = (id, href, label, title) => `<a class="pn-pill${active === id ? ' on' : ''}" href="${href}"${active === id ? ' aria-current="page"' : ''} title="${title}">${label}</a>`;
