@@ -40,7 +40,7 @@ function ago(iso) {
 const date = (iso) => iso ? new Date(iso).toLocaleDateString() : '—';
 // The programs' shown names (as on LSH Academy Index's cards). The server's labels stay as they were: they name
 // the Drive archive folders and the Attendance sheet's program column.
-const TRACK_NAMES = { ft: 'Legal VA Foundational Track', eapa: 'EA PA Track', cm: 'Case Management Track', pd: 'Property Damage Claims Track', md: 'Medsum & Demand Track', ln: 'Lien Negotiator Track' };
+const TRACK_NAMES = { ft: 'Legal VA Foundational Track', eapa: 'EA PA Track', cm: 'Case Management Training', pd: 'Property Damage Claims Track', md: 'Medsum & Demand Track', ln: 'Lien Negotiator Track' };
 function progLabel(id) { if (TRACK_NAMES[id]) return TRACK_NAMES[id]; const p = (P.data.programs || []).find(x => x.id === id); return p ? p.label : id; }
 function score(n) { if (n == null) return '<span class="pg-muted">—</span>'; const c = n >= 85 ? 'good' : n >= 70 ? 'mid' : 'low'; return `<span class="sim-score ${c}">${n}%</span>`; }
 function rating(r) { return r ? `<span class="pg-rt ${esc(String(r).split(' ')[0])}">${esc(r)}</span>` : ''; }
