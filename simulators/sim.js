@@ -4,7 +4,7 @@ const Sim = {
     session() { try { return (typeof getSession === 'function' ? getSession() : JSON.parse(sessionStorage.getItem('LSH_SESSION_V1') || localStorage.getItem('LSH_SESSION_V1') || 'null')) || {}; } catch (e) { return {}; } },
     isAdmin() { return Sim.session().userType === 'Admin'; },
     // Everyone signs in on the Portal (Admin and Trainee alike), and the tab's copy of who is what keeps the heartbeat going (app.js beats
-    // only for a person it knows); with no beat for 90 s the Portal's APIs answer 401. A page opened in a new tab (a link that opens
+    // only for a person it knows); with no beat for 150 s the Portal's APIs answer 401. A page opened in a new tab (a link that opens
     // with noopener, a bookmark, the trainer's live review) has the signed cookie but no copy in the tab's own storage, so isAdmin()
     // reads false for a signed-in admin and nothing beats. Ask /api/me once, as programs.html does, keep the answer for the tab and start
     // the heartbeat. Resolves to the session ({} when signed out). A page awaits it before its first render.
@@ -51,7 +51,7 @@ const Sim = {
             return !!(d && d.success && (d.access || []).some(a => Sim.PACKET_TOPICS.includes(a.topic_key) && /^(Approved|Passed)$/i.test(a.status || '')));
         } catch (e) { return false; }
     },
-    // The portal's own APIs refuse a session whose heartbeat is more than 90 s old (401, code SESSION_EXPIRED): a laptop that slept, a tab
+    // The portal's own APIs refuse a session whose heartbeat is more than 150 s old (401, code SESSION_EXPIRED): a laptop that slept, a tab
     // the browser throttled. /api/me re-seeds it, so ask once and send the request again once. Returns the Response either way. (opts
     // are used twice: pass a string body, not a stream.)
     async fetchRetry(url, opts) {
@@ -140,22 +140,54 @@ const Sim = {
         // Trainees keep their own history in this browser (the server list is admin-only).
         try {
             const mine = JSON.parse(localStorage.getItem('LSH_SIM_HISTORY') || '[]');
-            mine.unshift({ simulator: r.simulator, scenario: r.scenario, score: r.score, summary: r.summary, created_at: new Date().toISOString() });
+            // (user: who was signed in, so another person signing in on this browser never sees these as theirs)
+            mine.unshift({ simulator: r.simulator, scenario: r.scenario, score: r.score, summary: r.summary, created_at: new Date().toISOString(), user: Sim.session().username || '' });
             localStorage.setItem('LSH_SIM_HISTORY', JSON.stringify(mine.slice(0, 50)));
         } catch (e) {}
         if (!Sim.isAdmin() && !(w.name && w.name.length >= 2)) return;   // "just practice": not sent to the trainer
         try { await Sim.fetchRetry('/api/sim-results', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({}, r, { who: { name: w.name, batch: w.batch, program: r.program || w.program } })) }); } catch (e) { /* best effort */ }
     },
-    async results() {
-        if (!Sim.isAdmin()) {
-            let rows = [];
-            try { rows = JSON.parse(localStorage.getItem('LSH_SIM_HISTORY') || '[]'); } catch (e) {}
-            return { success: true, admin: false, results: rows };
-        }
-        const res = await Sim.fetchRetry('/api/sim-results', { credentials: 'include' });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.success) throw new Error(data.error || 'Could not load results.');
-        return data;
+    // The results a person sees as their history. A signed-in trainee: every result saved to their account, from any device
+    // (GET /api/sim-results, read page by page), with what this browser kept that the server doesn't have ("just practice" runs),
+    // the same run never twice. A visitor (not signed in): this browser's own list. An administrator: everyone's latest 200, as before.
+    // opts.since (an ISO date) limits a trainee's to results from then on.
+    async results(opts) {
+        await Sim.ready;
+        const local = Sim.localHistory();
+        const s = Sim.session();
+        if (!s.userType) return { success: true, admin: false, results: local.filter((l) => l && !l.user) };   // (a visitor's own runs only)
+        const page = async (before) => {
+            const q = new URLSearchParams({ limit: '200' });
+            if (before) q.set('before', before);
+            if (opts && opts.since) q.set('since', opts.since);
+            const res = await Sim.fetchRetry('/api/sim-results?' + q, { credentials: 'include' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) throw new Error(data.error || 'Could not load results.');
+            return data;
+        };
+        if (Sim.isAdmin()) return page('');
+        let rows = [], before = '', pages = 0;
+        try {
+            do { const d = await page(before); rows = rows.concat(d.results || []); before = d.next || ''; } while (before && ++pages < 100);
+        } catch (e) { if (!rows.length) return { success: true, admin: false, results: local, offline: true }; }
+        // (only this browser's runs made while this trainee was signed in: a visitor's or someone else's are never shown as theirs)
+        const me = s.username || '';
+        return { success: true, admin: false, results: Sim.mergeHistory(rows, local.filter((l) => l && l.user && l.user === me)) };
+    },
+    localHistory() { try { const v = JSON.parse(localStorage.getItem('LSH_SIM_HISTORY') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } },
+    // The server's rows plus the browser's that aren't among them: the same simulator, scenario and score saved within 10 minutes
+    // of each other is one run (the browser's copy carries the browser's clock, the server's its own). Newest first.
+    mergeHistory(server, local) {
+        const t = (r) => Date.parse(r && r.created_at) || 0;
+        const left = (server || []).slice();
+        const extra = (local || []).filter((l) => {
+            const sc = (x) => (x == null || x === '' || !Number.isFinite(Number(x)) ? null : Math.round(Number(x)));   // (the server keeps the score rounded)
+            const i = left.findIndex((r) => r.simulator === l.simulator && String(r.scenario || '') === String(l.scenario || '') && sc(r.score) === sc(l.score) && Math.abs(t(r) - t(l)) <= 10 * 60 * 1000);
+            if (i < 0) return true;
+            left.splice(i, 1);   // (each server row stands for one browser copy at most)
+            return false;
+        });
+        return (server || []).concat(extra).sort((a, b) => t(b) - t(a));
     },
     scoreChip(n) { if (n == null) return '<span class="sim-score">—</span>'; const c = n >= 85 ? 'good' : n >= 70 ? 'mid' : 'low'; return `<span class="sim-score ${c}">${n}%</span>`; },
     fmtDate(iso) { try { return new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return iso; } }

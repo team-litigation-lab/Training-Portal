@@ -1,4 +1,4 @@
-import { json, requireSession, buildFullName } from '../_utils.js';
+import { json, requireSession, buildFullName, gradeAsPercent, parseJsonList } from '../_utils.js';
 
 export async function onRequestGet({ request, env }) {
     const auth = await requireSession(request, env);
@@ -6,9 +6,12 @@ export async function onRequestGet({ request, env }) {
 
     try {
         // Only "Activity" type items count toward completion — lesson decks
-        // are reference material, not gradable work.
+        // are reference material, not gradable work — and only ones a trainee can
+        // see (api/activities.js shows them Published and Closed only): a Draft or
+        // Unpublished activity an admin is still writing would otherwise hold every
+        // trainee below 100% with nothing they could do about it.
         const { results: activityRows } = await env.TRAINING_DB.prepare(
-            "SELECT id FROM activities WHERE type = 'Activity'"
+            "SELECT id FROM activities WHERE type = 'Activity' AND status IN ('Published', 'Closed')"
         ).all();
         const totalActivities = (activityRows || []).length;
         // Archiving an activity hard-deletes its row (api/activities.js), but its
@@ -18,9 +21,12 @@ export async function onRequestGet({ request, env }) {
         const liveActivityIds = new Set((activityRows || []).map(a => a.id));
 
         const { results: subRows } = await env.TRAINING_DB.prepare(
-            "SELECT trainee_username, activity_id, status, score FROM submissions"
+            "SELECT trainee_username, activity_id, status, score, auto_score FROM submissions"
         ).all();
         const submissions = subRows || [];
+        // (each activity's questions, to read an older all-objective grade kept in raw points as a percentage: gradeAsPercent)
+        const { results: qRows } = await env.TRAINING_DB.prepare("SELECT id, questions FROM activities").all().catch(() => ({ results: [] }));
+        const questionsOf = new Map((qRows || []).map(a => [a.id, parseJsonList(a.questions)]));
 
         const { results: userRows } = await env.DB.prepare(`
             SELECT id, first_name, mi, last_name, suffix, user_type, batch_id, username, status
@@ -50,7 +56,7 @@ export async function onRequestGet({ request, env }) {
             if (liveActivityIds.has(s.activity_id)) st.completedIds.add(s.activity_id);
             if (s.status === 'Needs Review') st.pendingChecks++;
             if (s.status === 'Graded' && s.score !== null && s.score !== undefined) {
-                st.gradedScores.push(Number(s.score));
+                st.gradedScores.push(Number(gradeAsPercent(s, questionsOf.get(s.activity_id))));
             }
         }
 

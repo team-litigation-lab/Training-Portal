@@ -18,14 +18,18 @@ export const PROGRAMS = [
         before: ['Onboarding', 'Setting of Expectations & Tech Set-up'], orientation: 'Training Orientation and Rules',
         days: ['Virtual Assistant Essentials', 'Law Firm Communication', 'Personal Injury Process Flow', 'Receptionist Training',
             'Calendaring & Appointment Setting Training', 'Intake Specialist Training', 'Claims Specialist Training',
-            'Medical Records Specialist Training', 'Lien Negotiator Training'] },
+            'Medical Records Specialist Training'] },   // (8 lessons: the old Lesson 9, Lien Negotiator, left the programme)
     { id: 'eapa', label: 'EA / PA Training', prefix: '',
-        days: ['Foundations of the Legal Executive Assistant Role', 'Managing Up & How to Leverage AI with Precision', 'Time, Calendar & Travel Management',
-            'Data & Outreach', 'Household, Risk & Lifestyle Support', 'Business Setup, Compliance & Project Leadership', 'Financial Operations Support',
-            'Access, Confidentiality & Crisis Management', 'Events, Compliance Tracking & Reputation', 'Digital Presence & Social Media Support'] },
-    { id: 'cm', label: 'Case Management Training', prefix: 'cm:',
-        days: ['Case Management Fundamentals, Intake & Treatment', 'Pre-Demand, BI Demand & BI Settlement', 'UM Demand, UM Settlement, Lien Reduction & Disbursement',
-            'Mediation, Arbitration & Their Bottlenecks', 'Litigation, Property Damage, Liability Disputes & MIA Clients'] },
+        // (the course's own day titles, js/days/day<n>/lessons.js "title")
+        days: ['The Legal EA/PA Role, Communication & Managing Up', 'Force Multiplier, Leveraging AI & Email Management', 'Calendar, Legal Calendaring & Travel Management',
+            'Time Management, Data, Sales & Outreach', 'Household Operations, Vendors & Risk Management', 'Business Formation, Compliance, Projects & SOPs',
+            'Finance: Invoicing, Billing & QuickBooks', 'Access, Data Security & Crisis Management', 'Events, Meetings, CLE & Reputation',
+            'Digital Presence & Social Media Management'] },
+    // (the course keeps its five Case Flow days as dayProgress 11-15, js/cm-case-flow-data.js, and its automatic Time In names
+    // them "Case Flow Day N: <title>", js/checkin.js: the same names here, so the sheet has one name per day. CM QA finding 6.)
+    { id: 'cm', label: 'Case Management Training', prefix: 'cm:', dayIds: [11, 12, 13, 14, 15], dayLabel: 'Case Flow Day',
+        days: ['Fundamentals, Intake, Claim Set Up & Treatment', 'Pre-Demand, the BI Demand & BI Settlement', 'Lien Negotiation & Disbursement',
+            'Mediation & Arbitration', 'Litigation & Property Damage'] },
     { id: 'pd', label: 'PD Claims Training', prefix: 'pd:',
         days: ['PD Claims Foundations & Setting Up the Claim', 'Coverage: Reading the Policy & Spotting Coverages', 'Rental, Storage, Inspections & Repairs',
             'Total Loss, Valuation & Negotiation', 'Releases, Payment, Subrogation & Closing the PD Claim'] },
@@ -45,7 +49,7 @@ export const str = (v, n) => String(v == null ? '' : v).slice(0, n);
 export const cleanBatch = (b) => { const v = String(b || '').trim(); return /^[A-Za-z0-9][A-Za-z0-9 _\-]{0,23}$/.test(v) ? v : ''; };
 const slugPart = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 export const batchKeyOf = (label) => slugPart(cleanBatch(label)) || '_none';
-const lessonName = (p, i) => p.named ? p.days[i] : `Day ${i + 1}: ${p.days[i]}`;
+const lessonName = (p, i) => p.named ? p.days[i] : `${p.dayLabel || 'Day'} ${i + 1}: ${p.days[i]}`;
 export const lessons = (p) => [...(p.before || []), ...(p.orientation ? [p.orientation] : []), ...p.days.map((_, i) => lessonName(p, i))];
 
 // A batch's training for the day, as the course picks it: Foundational's latest open lesson
@@ -62,7 +66,8 @@ export function defaultTraining(p, label, members, opendays) {
     const tally = {};
     members.forEach(r => {
         const dp = r.dayProgress || {};
-        let i = p.days.findIndex((_, j) => !(dp[j + 1] && dp[j + 1].done)); if (i < 0) i = p.days.length - 1;
+        const idOf = (j) => (p.dayIds ? p.dayIds[j] : j + 1);   // (a course's own day ids: CM's are 11-15)
+        let i = p.days.findIndex((_, j) => !(dp[idOf(j)] && dp[idOf(j)].done)); if (i < 0) i = p.days.length - 1;
         tally[i] = (tally[i] || 0) + 1;
     });
     const top = Object.keys(tally).map(Number).sort((a, b) => tally[b] - tally[a] || a - b)[0];

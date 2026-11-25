@@ -1,4 +1,4 @@
-import { json, logActivity, hashPassword, isUsernameTombstoned, MASTER_USERNAME } from '../_utils.js';
+import { json, logActivity, hashPassword, isUsernameTombstoned, MASTER_USERNAME, usernameTaken } from '../_utils.js';
 
 // Eight characters or more, and whatever characters they want. The rule used to be letters and digits ONLY
 // (and at least one of each), which quietly refused the password most people and every password manager
@@ -51,8 +51,8 @@ export async function onRequestPost({ request, env }) {
         return json({ success: false, error: 'That username is reserved.' }, 409);
     }
 
-    const existing = await db.prepare(`SELECT id FROM users WHERE username = ?`).bind(username).first();
-    if (existing) {
+    // (any capitalisation: JSmith is taken when jsmith is)
+    if (await usernameTaken(db, username)) {
         return json({ success: false, error: 'That username is already taken.' }, 409);
     }
 

@@ -357,7 +357,9 @@ window.At = {
     },
     async copyScript() {
         try {
-            const text = await fetch('/attendance-sync.gs', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(); return r.text(); });
+            // (a signed-out or expired session is sent to the admin sign-in: that page's HTML must never be copied as the script)
+            const text = await fetch('/attendance-sync.gs', { cache: 'no-store' }).then(r => { if (!r.ok || r.redirected) throw new Error(); return r.text(); });
+            if (/^\s*</.test(text) || !/function\s/.test(text)) throw new Error('not the script');
             await navigator.clipboard.writeText(text);
             alert('Copied. Paste it into the sheet’s Apps Script editor (Extensions → Apps Script) and save.');
         } catch (e) { window.open('/attendance-sync.gs', '_blank', 'noopener'); }

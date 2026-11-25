@@ -396,23 +396,8 @@
 
     /* Keep browser autofill from flashing white over dark auth/repo inputs */
 
-    .auth-submit {
-        width:100%; padding:12px; border-radius:10px; border:none; background: var(--auth-accent); color:#0f2148;
-        font-weight:900; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; cursor:pointer; margin-top:6px;
-        transition: background 0.25s ease, transform 0.12s ease;
-    }
-    .auth-submit:hover { background: var(--auth-accent-hover); transform: translateY(-1px); }
-    .auth-submit:active { transform: translateY(0) scale(0.98); }
-    .auth-switch { text-align:center; margin-top:16px; font-size:11px; color:#334155; }
-    .auth-switch a { color: var(--auth-accent); cursor:pointer; font-weight:700; text-decoration:underline; }
-    .auth-msg { font-size:11px; font-weight:700; margin-bottom:12px; padding:10px 14px; border-radius:10px; display:none; }
-    .auth-msg.error { background:rgba(185,28,28,0.15); color:#fca5a5; display:block; animation: msgPop .25s ease; }
-    .auth-msg.success { background:rgba(22,101,52,0.2); color:#86efac; display:block; animation: msgPop .25s ease; }
-    .auth-msg.info { background:rgba(249,115,22,0.15); color:#fdba74; display:block; animation: msgPop .25s ease; }
-    @keyframes msgPop {
-        from { opacity: 0; transform: translateY(-6px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+    /* (.auth-submit, .auth-switch, .auth-msg: the sign-in card's styles live in auth.css only; the copy that was here was
+       overridden on every page that uses them) */
 
     /* ===== TOAST NOTIFICATIONS ===== */
     #toast-container {

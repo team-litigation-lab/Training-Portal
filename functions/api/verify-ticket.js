@@ -36,19 +36,37 @@ export async function verifyTicket(secret, ticket, { audiences } = {}) {
     const exp = Number(t && t.exp);
     if (!exp || Date.now() > exp || exp - Date.now() > MAX_AHEAD_MS) return { ok: false, code: 'expired' };
     const aud = t.p == null ? '' : String(t.p);
+    const u = t.u != null && String(t.u).trim() ? { u: String(t.u).trim().slice(0, 80) } : {};
     if (aud && audiences && !audiences.includes(aud)) return { ok: false, code: 'audience' };
     const p = aud ? { p: aud } : {};
     if (t.r === 's') return { ok: true, system: true, ...p };
-    if (t.r === 'a') return { ok: true, admin: true, name: String(t.n || '').slice(0, 60), ...p };
+    if (t.r === 'a') return { ok: true, admin: true, name: String(t.n || '').slice(0, 60), ...u, ...p };
     const first = String(t.first || '').trim(), last = String(t.last || '').trim(), batch = String(t.b || '').trim();
     if (!first || !last) return { ok: false, code: 'format' };
     const full = String(t.full || '').replace(/\s+/g, ' ').trim().slice(0, 120);
-    return { ok: true, first, last, batch, ...(full ? { full } : {}), ...p };
+    return { ok: true, first, last, batch, ...(full ? { full } : {}), ...u, ...p };
+}
+
+/* 🪪 A trainee's ticket says who they are by their Portal account id (u), and only that is trusted (security review
+   2026-11-19): a course signs its tool tickets from the trainee's own record there, which the trainee could have changed, so the
+   names on a ticket prove nothing. The account must exist and be an Approved trainee; the names, batch and full name given back
+   are the account's own. A trainee ticket with no u (a course not yet updated) is refused. */
+export async function traineeAccount(env, t) {
+    if (!t || !t.u || !env.DB) return null;
+    const user = await env.DB.prepare(`SELECT * FROM users WHERE id = ?`).bind(t.u).first().catch(() => null);
+    if (!user || user.status !== 'Approved' || (user.user_type && user.user_type !== 'Trainee')) return null;
+    return user;
 }
 
 export async function onRequestPost({ request, env }) {
     let body;
     try { body = await request.json(); } catch (e) { return reply({ ok: false, code: 'format' }, 400); }
     const out = await verifyTicket(String(env.PORTAL_SSO_SECRET || '').trim(), body.ticket, { audiences: TOOL_AUDIENCES });
+    if (out.ok && !out.admin && !out.system) {
+        const user = await traineeAccount(env, out);
+        if (!user) return reply({ ok: false, code: 'account' }, 401);
+        const full = [user.first_name, user.mi ? String(user.mi).replace(/\.$/, '') + '.' : '', user.last_name].filter(Boolean).join(' ') + (user.suffix ? ', ' + user.suffix : '');
+        return reply({ ok: true, first: String(user.first_name || '').trim(), last: String(user.last_name || '').trim(), batch: String(user.batch_id || '').trim(), full, u: String(user.id), ...(out.p ? { p: out.p } : {}) }, 200);
+    }
     return reply(out, out.ok ? 200 : (out.code === 'not-configured' ? 501 : 401));
 }

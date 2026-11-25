@@ -58,7 +58,7 @@ export async function collectUserRecords(env, user) {
     const byName = await rows(t, `SELECT * FROM simulator_results WHERE username IS NULL AND lower(full_name) = ?`, key);
 
     const live = (await liveAccounts(d)).filter(x => x.username !== user.username);
-    const found = await findCourseRecords(env, [{ name, batch: user.batch_id, username: user.username }], live);
+    const found = await findCourseRecords(env, [{ name, first: user.first_name, last: user.last_name, batch: user.batch_id, username: user.username }], live);
     const course = found.course, skipped = found.skipped;
     return {
         account: user,
@@ -88,6 +88,42 @@ const FT_ONLY = new Set(['assess', 'buffer', 'calcheck', 'calrules', 'calsim', '
     'intakeassign', 'intakecheck', 'kcgames', 'kcreview', 'learn', 'listening', 'lor', 'lorassign', 'monitor', 'process', 'rankshare',
     'sessions', 'shadow', 'skills', 'tracker', 'trackerreview', 'trainerfb', 'transcribe', 'videoaccess', 'videoreq']);
 const familiesFor = (p) => FAMILIES.filter(f => p.id === 'ft' || !FT_ONLY.has(f));
+const OTHER_PREFIXES = COURSE_PROGRAMS.map(p => p.prefix).filter(Boolean);
+// Is this course-KV key one of this trainee's records? (prefix: the program's; id: their course trainee id)
+export function keyOfTrainee(name, prefix, id) {
+    if (!id || !name.startsWith(prefix)) return false;
+    if (!prefix && OTHER_PREFIXES.some(op => name.startsWith(op))) return false;   // (EA / PA's '' prefix: never another program's key)
+    // (nor, under that '' prefix, a key of another app sharing the KV: Ring Channel's, the KB's, the Portal's own, ticket ledgers)
+    if (!prefix && /^(rc|kb|lsh|portal|cms|ring|ringchannel|ticket|tickets|sso-used|session|sessions|sess|cache)[:]/i.test(name)) return false;
+    const segs = name.slice(prefix.length).split(':');
+    if (segs.length < 2 || segs[0] === 'access' || segs[0] === 'trainee-alias' || segs[0] === 'uid') return false;
+    return segs[1] === id || segs[segs.length - 1] === id;
+}
+// Every key in the course KV, a page (up to 1,000 names) per operation: { keys, complete, ops }, or complete: false past the budget.
+async function listEveryKey(kv, budget) {
+    const keys = []; let cursor, ops = 0;
+    try {
+        do {
+            if (ops >= budget) return { keys, complete: false, ops };
+            ops++;
+            const page = await kv.list({ prefix: '', cursor, limit: 1000 });
+            page.keys.forEach(k => keys.push(k.name));
+            cursor = page.list_complete ? null : page.cursor;
+        } while (cursor);
+    } catch (e) { return { keys, complete: false, ops }; }
+    return { keys, complete: true, ops };
+}
+// The course trainee id a person would have in a batch, the way the courses build it (candidateIds: their first and last name
+// as the Portal's ticket sends them, the batch in its one form), to find a course's alias for them. With no first and last
+// name (a tombstone keeps only the full name), the full name less a middle initial and a suffix (Jr, Sr, II…).
+const slugPartP = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+function courseIdOf(person, batch) {
+    const name = person.first && person.last ? `${person.first} ${person.last}`
+        : String(person.name || '').replace(/,/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter((w, i, a) => i === 0 || i === a.length - 1 || !/^[A-Za-z]\.?$/.test(w)).filter((w, i) => i === 0 || !/^(jr|sr|ii|iii|iv)\.?$/i.test(w)).join(' ');
+    if (name.split(' ').length < 2) return '';
+    const s = slugPartP(name).slice(0, 40), b0 = batch == null ? person.batch : batch, b = slugPartP(canonicalBatch(b0) || b0).slice(0, 20);
+    return s ? (b ? `${s}--${b}` : s) : '';
+}
 export async function findCourseRecords(env, people, live, budget = KV_BUDGET) {
     const kv = env.COURSE_KV, course = [], skipped = [];
     if (!kv || !people.length) return { course, skipped };
@@ -132,19 +168,44 @@ export async function findCourseRecords(env, people, live, budget = KV_BUDGET) {
         // block list uses, any batch when no open account has the name, is for blocking, which ▶ Restore undoes)
         for (const person of people) matches(all, [person]).filter(x => !ownedByLive(x.rec)).forEach(x => hits.push({ p, person, ...x }));
     }
-    // 3. each record once, with everything else the program keeps under its id
+    // 3. each record once, with everything else the program keeps under its id. The whole course KV is listed once (a list
+    //    returns up to 1,000 names for one operation), and every key of the trainee's is taken, whatever its family:
+    //    <prefix><kind>:<id>, <prefix><kind>:<id>:<suffix> (a sub-keyed record: CM's actup:<id>:<activity>, backup:<id>:<time>,
+    //    PD's actup, …) and <prefix><kind>:…:<id> (the id last, as the contract has it: checkin:<date>:<id>, backup:progress:<id>).
+    //    A key is theirs only when one of those ':'-parts IS their id, so a trainee whose id merely starts the same
+    //    (jane-doe--b1 and jane-doe--b10) is never touched, nor a key of another program when the prefix is '' (EA / PA), nor
+    //    access:blocked. Also: the course's alias for them (<prefix>trainee-alias:<their id now> = id) and CM's uid:<portalUid>.
+    //    When the listing doesn't fit in the request, the known families are read one by one instead (as before).
+    const listed = hits.length ? await listEveryKey(kv, Math.floor(budget * 0.85) - ops) : null;
+    if (listed) ops += listed.ops;
     const seenKey = new Set();
     for (const h of hits) {
         const k = `${h.p.prefix}trainee:${h.id}`;
         if (seenKey.has(k)) continue; seenKey.add(k);
         const entry = { program: h.p.id, label: h.p.label, id: h.id, person: h.person.username || h.person.name, keys: [{ key: k, value: h.rec }] };
-        for (const f of familiesFor(h.p)) {
-            if (ops++ >= budget) { skipped.push(h.p.label); break; }
-            const key = `${h.p.prefix}${f}:${h.id}`;
-            const v = await kv.get(key).catch(() => null);
-            if (v != null) { let val = v; try { val = JSON.parse(v); } catch (e) { /* kept as text */ } entry.keys.push({ key, value: val }); }
+        const extra = [];
+        if (listed && listed.complete) listed.keys.forEach(name => { if (name !== k && keyOfTrainee(name, h.p.prefix, h.id)) extra.push(name); });
+        else familiesFor(h.p).forEach(f => extra.push(`${h.p.prefix}${f}:${h.id}`));
+        if (h.rec && typeof h.rec.portalUid === 'string' && /^[\w.@:-]{1,80}$/.test(h.rec.portalUid)) extra.push(`${h.p.prefix}uid:${h.rec.portalUid}`);
+        // the course's aliases for them: the id they'd have in their batch now, in the record's batch, and in the batch it moved from
+        for (const b of [h.person.batch, h.rec && h.rec.batch, h.rec && h.rec.batchFrom]) {
+            const now = b ? courseIdOf(h.person, b) : '';
+            if (now && now !== h.id) extra.push(`${h.p.prefix}trainee-alias:${now}`);
         }
-        course.push(entry);
+        // (every key of theirs is read before any of it goes on the list: a request out of KV operations half-way would otherwise
+        // delete the trainee record and leave its other keys behind, orphaned; the program is reported as not done instead)
+        let complete = true;
+        for (const key of [...new Set(extra)]) {
+            if (ops++ >= budget) { skipped.push(h.p.label); complete = false; break; }
+            const v = await kv.get(key).catch(() => null);
+            if (v == null) continue;
+            const rel = key.slice(h.p.prefix.length);
+            if (rel.startsWith('trainee-alias:') && String(v).trim() !== h.id) continue;   // (an alias pointing at someone else)
+            if (rel.startsWith('uid:')) { let u = v; if (typeof v === 'string') { try { u = JSON.parse(v); } catch (e) { u = null; } } if (!u || u.id !== h.id) continue; }   // (CM's {id, …}: only theirs)
+            let val = v; try { val = JSON.parse(v); } catch (e) { /* kept as text */ }
+            entry.keys.push({ key, value: val });
+        }
+        if (complete) course.push(entry);
     }
     return { course, skipped: [...new Set(skipped)] };
 }
