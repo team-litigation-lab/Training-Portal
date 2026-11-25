@@ -3054,7 +3054,7 @@ async function loadProgramAccess() {
 }
 const PA_HIDDEN = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];   // keep in step with ARCHIVED_TOPICS in programs.html (same list; a different name because programs.html loads app.js into the same global scope)
 // the programs' names as LSH Academy Index shows them (PROGRAM_NAMES in programs.html)
-const PA_NAMES = { 'STANDARD TRAINING': 'Standard Foundational Training', 'CM TRAINING': 'Case Management Training', 'REVISED CM TRAINING': 'Revised Case Management Training', 'PROPERTY DAMAGE': 'Property Damage Claims Training', 'MEDSUM AND DEMAND': 'Medsum & Demand Training', 'LIEN NEGOTIATION': 'Lien Negotiator Training' };
+const PA_NAMES = { 'STANDARD TRAINING': 'Legal VA Foundational Track', 'CM TRAINING': 'Case Management Track', 'REVISED CM TRAINING': 'Revised Case Management Track', 'PROPERTY DAMAGE': 'Property Damage Claims Track', 'MEDSUM AND DEMAND': 'Medsum & Demand Track', 'LIEN NEGOTIATION': 'Lien Negotiator Track', 'EA  PA TRAINING-OUTSOURCED MANP': 'EA PA Track' };
 const paName = (key) => PA_NAMES[key] || ((__paTopics.find(t => t.key === key) || {}).name) || key;
 const paIsSuspended = (st) => String(st || '').startsWith('Suspended');
 const paPillClass = (st) => paIsSuspended(st) ? 'suspended' : String(st || '').toLowerCase();
@@ -3180,7 +3180,7 @@ async function paFtSweep() {
     const btn = document.getElementById('pa-ft-sweep-btn'); if (btn) btn.disabled = true;
     try {
         const r = await postJson('/api/topics', { action: 'FT_SWEEP' });
-        const list = (r.blocked || []).map(x => x.name + (x.batch ? ' (' + batchLabel(x.batch) + ')' : '') + ': Standard Foundational Training')
+        const list = (r.blocked || []).map(x => x.name + (x.batch ? ' (' + batchLabel(x.batch) + ')' : '') + ': Legal VA Foundational Track')
             .concat((r.programs || []).map(x => x.name + (x.batch ? ' (' + batchLabel(x.batch) + ')' : '') + ': ' + (PA_NAMES[x.program] || x.program)));
         showToast(list.length ? `Taken off the program's sheets and scorecards: ${list.join('; ')}.` : 'Nobody to take off: every revoked trainee is already off every program\'s sheets.', 'success');
     } catch (e) { showToast(e.message, 'error'); }
@@ -3190,7 +3190,7 @@ window.paFtSweep = paFtSweep;
 // 🧹 Users: everyone revoked before Revoke reached every program is wiped from all six (revoked-sweep.js). Like a revocation,
 // nothing goes until a copy is safe: filed to the Drive, or (no Drive) downloaded here first and then the second call deletes.
 async function usersRevokedSweep() {
-    if (!confirm('Wipe every revoked trainee from every training program?\n\nAnyone whose account was revoked and who still has records in Foundational, EA / PA, Case Management, PD Claims, Medsum & Demand or Lien Negotiator Training is taken off every sheet and scorecard there. A copy is filed to their batch\'s folder (or downloaded) first. This cannot be undone.')) return;
+    if (!confirm('Wipe every revoked trainee from every training program?\n\nAnyone whose account was revoked and who still has records in the Legal VA Foundational, EA PA, Case Management, Property Damage Claims, Medsum & Demand or Lien Negotiator Track is taken off every sheet and scorecard there. A copy is filed to their batch\'s folder (or downloaded) first. This cannot be undone.')) return;
     const btn = document.getElementById('users-revoked-sweep-btn'); if (btn) btn.disabled = true;
     try {
         let r = await postJson('/api/revoked-sweep', {});
@@ -3218,8 +3218,8 @@ async function paSet(username, topicKey, action) {
     try {
         const r = await postJson('/api/topics', { action, topicKey, traineeUsername: username });
         const ft = r && r.ft;
-        showToast((PA_DONE[action] || 'Saved.') + (ft && ft.blocked && ft.blocked.length ? ' They are off the Standard Foundational Training sheets.' : ft && ft.unblocked && ft.unblocked.length ? ' They are back on the Standard Foundational Training sheets.' : ''), 'success');
-        if (ft && ft.error) showToast('Standard Foundational Training wasn’t told: ' + ft.error, 'error');
+        showToast((PA_DONE[action] || 'Saved.') + (ft && ft.blocked && ft.blocked.length ? ' They are off the Legal VA Foundational Track sheets.' : ft && ft.unblocked && ft.unblocked.length ? ' They are back on the Legal VA Foundational Track sheets.' : ''), 'success');
+        if (ft && ft.error) showToast('Legal VA Foundational Track wasn’t told: ' + ft.error, 'error');
         loadProgramAccess();
     } catch (e) { showToast(e.message, 'error'); }
 }
