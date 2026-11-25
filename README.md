@@ -116,8 +116,8 @@ The **Got a referral?** button on the home page (a pill in the top navigation) o
 The deck is drawn by **`lsh-blueprint.js`**, the Blueprint engine every LSH platform shares — the same navy cover band with the numbered contents, the same points / where to find it / tip slide, and the same real-text PDF as every program's blueprint, so they all read as one deck. The page itself is the front door: the standard portal header, the track, and **🧭 Open the blueprint**, which opens the deck over the page. Nothing here opens a deck inside a program or a tool.
 
 It has two tracks, switched at the top of the page:
-- **Trainees** (8 slides): what the portal is, registering and the one log in, LSH Academy Index (Request Access, Enter Program, certificates), what's inside a program, LSH Sims, LSH Atlas, good habits, and first steps.
-- **Trainers & Admins** (8 slides, signed-in admins only: trainees never see this track or its tab): the admin bar, the Directory's admin view (topic requests, Switch view), System Management, Trainee Monitoring, Attendance, program admin, LSH Atlas review / referrals / calendar reviews, and a daily checklist.
+- **Trainees** (9 slides): what the portal is, registering and the one log in, LSH Academy Index (Tracks, Request Access, Enter Program, certificates), what's inside a program, LSH Sims, daily practice (Flash Cards, LSH CaseWorX, My Evaluations), LSH Atlas, good habits, and first steps.
+- **Trainers & Admins** (9 slides, signed-in admins only: trainees never see this track or its tab): the admin bar, LSH Academy Index's admin view (topic requests, Switch view), System Management, Trainee Monitoring, Attendance, program admin, LSH Atlas review / referrals / Trainee Evaluations, the Master Control Dashboard & Directory, and a daily checklist.
 
 How to use it:
 - In the deck: **← →** (or Page Up / Page Down) change slides, the contents strip jumps to one, and **Esc** closes it.
