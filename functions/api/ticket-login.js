@@ -1,5 +1,5 @@
 import { json, logActivity, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, googleRequired, googleNeededMessage } from '../_utils.js';
-import { verifyTicket, TOOL_AUDIENCES } from './verify-ticket.js';
+import { verifyTicket, TOOL_AUDIENCES, traineeAccount } from './verify-ticket.js';
 
 // POST /api/ticket-login { ticket }  → signs a trainee in to the Portal from a course's signed ticket, so a simulator a course
 // opens (the Google Calendar Simulator, Medical Records Requests, …) doesn't ask them to log in again. A simulator page's ?ticket= is
@@ -12,7 +12,7 @@ import { verifyTicket, TOOL_AUDIENCES } from './verify-ticket.js';
 //     (the Portal's /api/launch gave them one; the course signs one back only for a trainer who came from there) signs them in
 //     to their own admin account: the Approved admin whose full name is n, exactly one. A ticket with no name (the Master
 //     Account's), no such admin or more than one, and the Portal's system ticket, never sign anyone in: the password then;
-//   - the account is the trainee's Portal account with that first and last name (and Batch ID when the ticket has one), Approved;
+//   - the account is the trainee's Portal account whose id the ticket carries (u), Approved, never found by the ticket's names;
 //     no account, more than one, or a pending, rejected, revoked or suspended one: refused, never guessed.
 // The session is the same as /api/login's (12 hours, the heartbeat seeded).
 // The Portal session for a course's ticket: { user, cookie } or { status, code, error }. functions/_middleware.js uses it for a
@@ -47,16 +47,17 @@ export async function ticketSession(env, ticket) {
         const { password: _pw, ...safeUser } = user;
         return { user: { ...safeUser, fullName, userType: 'Admin' }, cookie: sessionCookie(token, 43200) };
     }
-    const { results } = await db.prepare(`SELECT * FROM users WHERE lower(trim(first_name)) = lower(?) AND lower(trim(last_name)) = lower(?) AND (? = '' OR batch_id = ?) AND (user_type IS NULL OR user_type = 'Trainee')`)
-        .bind(t.first, t.last, t.batch, t.batch).all();
-    const list = results || [];
-    const approved = list.filter(u => u.status === 'Approved');
-    if (approved.length !== 1) {
-        const why = !list.length ? 'No Portal account has your name and batch: ask your trainer.'
-            : approved.length > 1 ? 'More than one Portal account has your name and batch: ask your trainer.'
-            : list[0].status === 'Pending' ? 'Your registration is still pending admin approval.' : 'Your access has been revoked or suspended by an administrator.';
+    // the trainee's Portal account, by its id (u) only: never by the names on the ticket, which a course signs from a record the
+    // trainee can edit there (security review 2026-11-19)
+    const acct = await traineeAccount(env, t);
+    if (!acct) {
+        const any = t.u ? await db.prepare(`SELECT status FROM users WHERE id = ?`).bind(t.u).first().catch(() => null) : null;
+        const why = !t.u ? 'This link is from an older version of your training program: open the simulator again from the program, or log in here.'
+            : !any ? 'No Portal account matches this link: ask your trainer.'
+            : any.status === 'Pending' ? 'Your registration is still pending admin approval.' : 'Your access has been revoked or suspended by an administrator.';
         return { status: 403, code: 'no-account', error: why };
     }
+    const approved = [acct];
     const user = approved[0], fullName = buildFullName(user);
     await logActivity(db, user.username, user.batch_id, 'login', 'ticket');
     await upsertSessionHeartbeat(db, { username: user.username, fullName, batchId: user.batch_id, userType: 'Trainee' });

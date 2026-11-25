@@ -162,7 +162,7 @@ function attemptLogin(switched) {
             let next = '/programs.html';
             // (a page on this site only, its query kept: a simulator a course opened, e.g. /simulators/gcal.html?program=FT&track=activity)
             try { const n = new URLSearchParams(location.search).get('next'); const u = n ? new URL(n, location.origin) : null;
-                if (u && /^\/(?![\/\\])/.test(n) && u.origin === location.origin) next = u.pathname + u.search; } catch (e) { /* the Directory then */ }
+                if (u && /^\/(?![\/\\])/.test(n) && !/[\u0000-\u001f\u007f\\]/.test(n) && u.origin === location.origin && !/^\/[\/\\]/.test(u.pathname)) next = u.pathname + u.search; } catch (e) { /* the Directory then */ }
             setTimeout(() => {
                 window.location.href = next;
             }, 900);

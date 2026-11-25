@@ -9,6 +9,23 @@ const P = { data: null, cache: {}, snaps: {}, tab: 'people', program: (() => { t
     fb: { day: '', status: '', batch: '', q: '' } };
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nameKey = (s) => String(s || '').split(' · ')[0].trim().toLowerCase().replace(/\s+/g, ' ');
+// 🪪 One record per person is one name in one batch (the id every course keys its trainee by: name--batch, as
+// functions/api/call-results.js courseTraineeId builds it), not one name: two trainees called Maria Santos in different
+// batches are two people. The Portal's own results come keyed the same way (byId); byName is only for results with no
+// Portal account behind them (a visitor's), as before. (Code inventory 2026-10-16 #5.)
+const slugPart = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+const personKey = (t) => { const s = slugPart(String(t.name || '').replace(/\s+/g, ' ').trim()).slice(0, 40), b = slugPart(t.batch).slice(0, 20); return s ? (b ? `${s}--${b}` : s) : ''; };
+const byPerson = (m, key, name) => (m && m.byId && m.byId[key]) || (m && m.byName && m.byName[nameKey(name)]) || null;
+// The row a course record belongs to: its person key (the server's, batch in its one form: t.personKey) when a Portal account has
+// it; else the one account with that name (a batch changed on the Portal, a typed legacy batch), so one person is one row with
+// their own results; else its own key.
+function rowKey(t, d) {
+    const k = t.personKey || personKey(t);
+    const names = (d && d.accountNames) || {}, all = Object.values(names).flat();
+    if (!k || all.includes(k)) return k;
+    const same = names[nameKey(t.name)] || [];
+    return same.length === 1 ? same[0] : k;
+}
 const avg = (xs) => { xs = xs.filter(v => v != null); return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : null; };
 const AREAS = [['platform', 'Platform & ease of use'], ['lessons', 'Lessons & content'], ['facilitator', 'Facilitator / trainer'], ['practice', 'Practice & roleplays'], ['assessment', 'Knowledge Checks & feedback']];
 const STATUS_RANK = { Approved: 0, Pending: 1, Rejected: 2, Archived: 3 };
@@ -34,16 +51,17 @@ function starAvg(items) { return avg(items.flatMap(f => Object.values(f.ratings 
 function people() {
     const d = P.data, by = {};
     for (const t of d.trainees || []) {
-        const k = nameKey(t.name) || (t.program + ':' + t.id);
+        const k = rowKey(t, d) || (t.program + ':' + t.id);
         (by[k] = by[k] || { key: k, enrollments: [] }).enrollments.push(t);
     }
     const tfb = d.traineeFeedback || [];
     return Object.values(by).map(p => {
         const en = p.enrollments.sort((a, b) => (STATUS_RANK[a.status] - STATUS_RANK[b.status]) || String(b.lastActive || '').localeCompare(String(a.lastActive || '')));
         const ids = new Set(en.map(t => t.program + ':' + t.id));
-        const sent = tfb.filter(f => !f.anonymous && (ids.has(f.program + ':' + f.traineeId) || (!f.traineeId && nameKey(f.name) === p.key)));
-        const sim = (d.simulators && d.simulators.byName || {})[p.key] || null;
-        const work = (d.portalWork && d.portalWork.byName || {})[p.key] || null;
+        const nm = p.enrollments[0] && p.enrollments[0].name;
+        const sent = tfb.filter(f => !f.anonymous && (ids.has(f.program + ':' + f.traineeId) || (!f.traineeId && nameKey(f.name) === nameKey(nm) && (!f.batch || p.enrollments.some(t => slugPart(t.batch) === slugPart(f.batch))))));
+        const sim = byPerson(d.simulators, p.key, nm);
+        const work = byPerson(d.portalWork, p.key, nm);
         const fbs = en.map(t => t.feedback || { sent: 0, drafts: 0, unread: 0, days: {} });
         const latest = en.flatMap(t => Object.values((t.feedback || {}).days || {}).filter(f => f.status === 'sent'))
             .sort((a, b) => String(b.sentAt || '').localeCompare(String(a.sentAt || '')))[0];
@@ -100,7 +118,7 @@ function cards() {
         const drafts = act.reduce((a, t) => a + ((t.feedback || {}).drafts || 0), 0);
         const sentFb = act.reduce((a, t) => a + ((t.feedback || {}).sent || 0), 0);
         const theirs = tfb.filter(f => f.program === p.id), st = starAvg(theirs);
-        return `<div class="sim-card pg-card"><div class="k">${esc(TRACK_NAMES[p.id] || p.label)} · ${p.days} days</div><div class="v">${act.length}</div>
+        return `<div class="sim-card pg-card"><div class="k">${esc(TRACK_NAMES[p.id] || p.label)} · ${p.days} ${esc(p.unit || 'days')}</div><div class="v">${act.length}</div>
             <div class="s">${act.length === 1 ? 'approved trainee' : 'approved trainees'} in ${nBatches} batch${nBatches === 1 ? '' : 'es'} · ${recent} active this week${pending ? ` · <b>${pending} pending approval</b>` : ''}${nArch ? ` · ${nArch} archived batch${nArch === 1 ? '' : 'es'}` : ''}</div>
             <div class="s" style="margin-top:6px;">Avg completion ${done == null ? '—' : done + '%'} · Knowledge Checks ${avg(act.map(t => t.kcAvg)) == null ? '—' : avg(act.map(t => t.kcAvg)) + '%'}</div>
             <div class="s" style="margin-top:6px;">Trainer feedback: ${sentFb} sent${drafts ? ` · <b>${drafts} draft${drafts === 1 ? '' : 's'} to review</b>` : ''} · From trainees: ${theirs.length}${st != null ? ` (avg ${(st / 20).toFixed(1)}★)` : ''}</div>
@@ -159,7 +177,7 @@ const batchName = (b) => b ? `Batch ${b}` : 'No batch set';
 function traineeRows(list) {
     return list.map(p => { const open = !!P.open[p.key];
         return `<tr class="row" onclick="toggle(${esc(JSON.stringify(p.key))})" aria-expanded="${open}"><td class="nm"><b>${esc(p.name)}</b></td>
-            <td>${p.enrollments.map(t => `<span class="pg-prog ${esc(t.program)} ${esc(t.status)}" title="${esc(t.status)}">${t.daysDone}/${t.daysTotal} days</span>`).join('<br>')}</td>
+            <td>${p.enrollments.map(t => `<span class="pg-prog ${esc(t.program)} ${esc(t.status)}" title="${esc(t.status)}">${t.daysDone}/${t.daysTotal} ${esc(t.unit || 'days')}</span>`).join('<br>')}</td>
             <td><span class="pg-bar"><i style="width:${Math.round(p.done * 100)}%"></i></span>${Math.round(p.done * 100)}%</td>
             <td>${score(p.kcAvg)}</td><td>${score(p.practiceAvg)}</td><td>${score(p.taskAvg)}</td>
             <td>${p.fbSent || p.fbDrafts ? `${rating(p.latestRating)} <span class="pg-muted">${p.fbSent} sent${p.fbDrafts ? ` · <b>${p.fbDrafts} draft${p.fbDrafts === 1 ? '' : 's'}</b>` : ''}</span>` : '<span class="pg-muted">—</span>'}</td>
@@ -295,7 +313,7 @@ function tfbCard(f, withName) {
 }
 function detail(p) {
     const d = P.data || {};
-    const cal = (t) => { const c = ((d.calsim && d.calsim.byName || {})[p.key] || {})[t.program]; if (!c) return '';
+    const cal = (t) => { const c = (byPerson(d.calsim, p.key, p.name) || {})[t.program]; if (!c) return '';
         return `<h5>📅 Calendaring Sims</h5>` + c.weeks.map(w => `<div class="pg-muted"><b>${esc(w.label)}</b> · 🤖 ${w.auto ?? '—'}${w.auto != null ? '%' : ''} · ${w.score != null ? '👤 ' + w.score + '/100' : 'to review'} · ${esc(date(w.at))}${w.comment ? '<br>' + esc(w.comment) : ''}</div>`).join(''); };
     const enr = p.enrollments.map(t => `<div class="pg-enr">
         <h4><span class="pg-prog ${esc(t.program)}">${esc(progLabel(t.program))}</span><span class="pg-st ${esc(t.status)}">${esc(t.status)}</span>

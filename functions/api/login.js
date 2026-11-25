@@ -1,4 +1,4 @@
-import { googleRequired, verifyGoogleCredential, json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME, verifyMasterCredentials, normalizePassword, loginBlocked, loginFailed, needsNewPassword } from '../_utils.js';
+import { googleRequired, verifyGoogleCredential, json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME, verifyMasterCredentials, normalizePassword, loginBlocked, loginFailed, needsNewPassword, findUserByUsername, AMBIGUOUS_USERNAME_MESSAGE } from '../_utils.js';
 
 // An approved account made without a password (the trainers' accounts): whatever was typed in the password box,
 // the sign-in page asks them to choose their password (portal.js -> POST /api/set-password).
@@ -54,7 +54,9 @@ export async function onRequestPost({ request, env }) {
             }
             return await wrong();
         }
-        user = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(username).first();
+        const found = await findUserByUsername(db, username);
+        if (found.ambiguous) { await loginFailed(db, request, attempted); return json({ success: false, code: 'AMBIGUOUS_USERNAME', error: AMBIGUOUS_USERNAME_MESSAGE }, 409); }
+        user = found.user;
         if (user && needsNewPassword(user.password) && (user.user_type || 'Trainee') === 'Trainee') return choosePassword(user);
         if (!password) return json({ success: false, error: 'Please enter both username and password.' }, 400);
         if (!user || !(await verifyPassword(password, user.password))) {
@@ -90,7 +92,9 @@ export async function onRequestPost({ request, env }) {
             user = { id: 'MASTER', username: MASTER_USERNAME, batch_id: 'MASTER-ADMIN', status: 'Approved' };
             dbUserType = 'Admin';
         } else {
-            user = await db.prepare(`SELECT * FROM users WHERE username = ?`).bind(username).first();
+            const found = await findUserByUsername(db, username);
+            if (found.ambiguous) { await loginFailed(db, request, attempted); return json({ success: false, code: 'AMBIGUOUS_USERNAME', error: AMBIGUOUS_USERNAME_MESSAGE }, 409); }
+            user = found.user;
             if (user && needsNewPassword(user.password) && user.user_type === 'Admin') return choosePassword(user);
             if (!password) return json({ success: false, error: 'Please enter both username and password.' }, 400);
             if (!user || !(await verifyPassword(password, user.password))) {

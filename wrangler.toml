@@ -1,5 +1,12 @@
+# name: the Cloudflare Pages project this config belongs to. The site answers at cm-training-activity.pages.dev, and
+# case-management-training.legalsupporthelp.workers.dev is a different service (the CM course Worker), so this name may
+# not be the Pages project's. It is left as it is on purpose: the live site deploys from Git through the Pages dashboard,
+# and renaming it here without confirming the project's real name in the dashboard could break those deploys. Never run
+# `wrangler pages deploy` from this repo until it is confirmed (Workers & Pages → the project → its name).
 name = "case-management-training"
-compatibility_date = "2024-03-20"
+# Moved from 2024-03-20 on 2026-11-19: `wrangler pages dev` answered the same on both dates for the front doors, admin
+# and member pages, the attendance script, /api/launch, /api/me and the _redirects rules, and every check passes.
+compatibility_date = "2025-06-01"
 pages_build_output_dir = "./" 
 
 # 1. OLD D1 DATABASE: Accounts, Logins, Registrations, Heartbeats

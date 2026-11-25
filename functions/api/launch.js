@@ -10,11 +10,15 @@ import { requireSession, b64url, isMaster, buildFullName } from '../_utils.js';
 // it was made for: p (its audience) names the program's topic key, or the tool's id, and every program refuses a ticket
 // whose p isn't its own topic key. Each program takes a ticket once, so a copied link is no use later.
 //
-//   ticket = base64url(JSON {first, last, b, full, p, exp}) + "." + base64url(HMAC-SHA256("portal-sso:" + secret, that text))
+//   ticket = base64url(JSON {first, last, b, u, full, p, exp, j}) + "." + base64url(HMAC-SHA256("portal-sso:" + secret, that text))
+//
+// u: the trainee's Portal account id (users.id): it stays the same when their name or Batch ID is corrected, so a course can
+// find their record after a change (Case Management's uid index). j: random, so no two tickets are alike.
 //
 // full: the trainee's whole name as registered (with a middle initial and suffix), for display only: a program's trainee ID
 // stays first + last + batch. Deploy order: the Portal first (programs that don't check p yet ignore it), then the programs
-// (they require p); see reports/platform-qa/2026-11-19-portal.md "Fixes applied".
+// (they refuse a ticket whose p is another program's; one with no p is still taken during the rollout); see
+// reports/platform-qa/2026-11-19-portal.md "Fixes applied".
 //
 // Only programs whose site accepts tickets are listed. The others still open directly, until they
 // get js/portal-gate.js and the Worker endpoints too (see the Foundational-Training repo).
@@ -126,9 +130,12 @@ export function callsQuery(params) {
 // who.aud: the program's topic key (or the tool's id) the ticket is for, sent as p.
 export async function makeTicket(secret, who, now = Date.now()) {
     const enc = new TextEncoder();
-    const body = who.system ? { r: 's', exp: now + TICKET_TTL_MS } : who.admin ? Object.assign({ r: 'a', exp: now + TICKET_TTL_MS }, who.name ? { n: String(who.name).slice(0, 60) } : {})
-        : Object.assign({ first: who.first, last: who.last, b: who.batch }, who.full ? { full: String(who.full).replace(/\s+/g, ' ').trim().slice(0, 120) } : {}, { exp: now + TICKET_TTL_MS });
+    const body = who.system ? { r: 's', exp: now + TICKET_TTL_MS } : who.admin ? Object.assign({ r: 'a', exp: now + TICKET_TTL_MS }, who.name ? { n: String(who.name).slice(0, 60) } : {}, who.uid ? { u: String(who.uid).slice(0, 80) } : {})
+        : Object.assign({ first: who.first, last: who.last, b: who.batch }, who.uid ? { u: String(who.uid).slice(0, 80) } : {},
+            who.full ? { full: String(who.full).replace(/\s+/g, ' ').trim().slice(0, 120) } : {}, { exp: now + TICKET_TTL_MS });
     if (who.aud) body.p = String(who.aud);
+    // j: a few random characters, so two tickets made in the same millisecond are never the same ticket (each works once)
+    body.j = b64url(crypto.getRandomValues(new Uint8Array(6)));
     const payload = b64url(enc.encode(JSON.stringify(body)));
     const key = await crypto.subtle.importKey('raw', enc.encode('portal-sso:' + secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     return payload + '.' + b64url(await crypto.subtle.sign('HMAC', key, enc.encode(payload)));
@@ -183,7 +190,9 @@ async function launch({ request, env }) {
         // Every training program and tool opens signed in as this trainer, from a ticket that works once.
         if (!isTool || ADMIN_TICKET_TOOLS.includes(tool)) {
             const name = isMaster(auth.session) ? '' : String(auth.session.fullName || auth.session.username || 'Trainer').trim();
-            const ticket = await makeTicket(secret, { admin: true, name, aud: isTool ? tool : program });
+            // (u: the admin's Portal account id, so a tool that keeps a session can re-check that very account later: the KB)
+            const acct = isMaster(auth.session) ? null : await env.DB.prepare(`SELECT id FROM users WHERE username = ?`).bind(auth.session.username).first().catch(() => null);
+            const ticket = await makeTicket(secret, { admin: true, name, uid: acct && acct.id != null ? String(acct.id) : '', aud: isTool ? tool : program });
             // An admin in the Portal's 👁 trainee view: the program opens in its own trainee view (it only hides; the
             // admin can switch back there), so what they see matches what a trainee sees
             const view = !isTool && params.get('view') === 'trainee' ? '&view=trainee' : '';
@@ -193,7 +202,7 @@ async function launch({ request, env }) {
     }
     if (auth.session.userType !== 'Trainee') return page(403, 'Not available', 'This account can\'t open programs.');
 
-    const user = await env.DB.prepare(`SELECT first_name, last_name, batch_id, mi, suffix FROM users WHERE username = ?`).bind(auth.session.username).first();
+    const user = await env.DB.prepare(`SELECT id, first_name, last_name, batch_id, mi, suffix FROM users WHERE username = ?`).bind(auth.session.username).first();
     if (!user || !user.first_name || !user.last_name) return page(403, 'Account incomplete', 'Your account has no name on record. Please tell your trainer.');
     if (!user.batch_id && !isTool) return page(403, 'No batch yet', 'Your Batch ID is assigned when an administrator approves your registration. Please check back after that.');
 
@@ -208,7 +217,7 @@ async function launch({ request, env }) {
     }
 
     const ticket = await makeTicket(secret, { first: user.first_name.trim(), last: user.last_name.trim(), batch: String(user.batch_id || '').trim(),
-        full: buildFullName(user), aud: isTool ? tool : program });
+        uid: user.id != null ? String(user.id) : '', full: buildFullName(user), aud: isTool ? tool : program });
     const to = landing(params.get('to') || '', isTool, params, tool);
     return Response.redirect(`${target}?ticket=${ticket}${to.query}${to.hash}`, 302);
 }

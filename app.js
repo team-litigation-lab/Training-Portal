@@ -5,7 +5,7 @@
 const SESSION_KEY = 'LSH_SESSION_V1';
 // Every request that runs a Function counts toward the Cloudflare account's monthly requests (shared by
 // every LSH site), so open pages ask sparingly. The heartbeat keeps the session alive: the server allows
-// HEARTBEAT_GRACE_SECONDS (90) between beats, and one is sent when the tab comes back into view.
+// HEARTBEAT_GRACE_SECONDS (150) between beats, and one is sent when the tab comes back into view.
 const HEARTBEAT_INTERVAL_MS = 30000;
 // Progress and the leaderboard: once a minute, only on a page that shows them and only while it's in view.
 const LIVE_DATA_INTERVAL_MS = 60000;
@@ -211,7 +211,7 @@ function stopLiveDataPolling() {
 // 2b. SESSION HEARTBEAT
 // Keeps the server-side `heartbeats` row fresh so requireSession() (see
 // _utils.js) keeps treating this tab as logged in. If this stops ticking,
-// the session is treated as expired within HEARTBEAT_GRACE_SECONDS (90 s)
+// the session is treated as expired within HEARTBEAT_GRACE_SECONDS (150 s)
 // even if the signed session cookie itself hasn't expired yet.
 function startHeartbeat() {
     stopHeartbeat(); // idempotent — never run two intervals at once
@@ -632,9 +632,9 @@ async function renderActivityLogs() {
 // =========================================================
 // Same layout as Users and Program Access: the trainers online in a section of their own, then one retractable
 // table per batch (newest first). Each row says what the person is viewing and when their page last checked in:
-// a heartbeat older than the server's grace window (HEARTBEAT_GRACE_SECONDS in functions/_utils.js, 90s) means the
+// a heartbeat older than the server's grace window (HEARTBEAT_GRACE_SECONDS in functions/_utils.js, 150 s) means the
 // tab was closed or went to sleep without logging out, so that row reads Away rather than Online.
-const MON_GRACE_SECONDS = 90;
+const MON_GRACE_SECONDS = 150;
 function monSecondsAgo(v) {
     if (!v) return null;
     const d = new Date(String(v).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(v)) ? '' : 'Z'));
@@ -1154,6 +1154,16 @@ function openAnswerActivityModal(activityId) {
     document.getElementById('modal-answer-activity').classList.add('open');
 }
 
+// Was this objective answer right? An admin has the answer key (q.correctAnswer); a trainee doesn't (it is stripped from what
+// they get), so a graded submission carries the server's verdict per question (sub.question_results[id].correct).
+// null: not known (a trainee's submission not graded yet).
+function answerIsCorrect(sub, q, given) {
+    const r = sub && sub.question_results && sub.question_results[q.id];
+    if (r && typeof r.correct === 'boolean') return r.correct;
+    if (q.correctAnswer === undefined) return null;
+    return given !== undefined && String(given).trim().toLowerCase() === String(q.correctAnswer || '').trim().toLowerCase();
+}
+
 // Builds the per-question answer breakdown HTML for a submission — shared
 // by the admin grade modal, the trainee's own read-only detail view, and
 // the PDF report generator, so all three always show the same thing.
@@ -1171,12 +1181,14 @@ function renderSubmissionAnswersHtml(sub, activity) {
             const given = answerByQ.get(q.id);
             let correctness = '';
             if (q.type !== 'essay') {
-                const isCorrect = given !== undefined && String(given).trim().toLowerCase() === String(q.correctAnswer || '').trim().toLowerCase();
+                const isCorrect = answerIsCorrect(sub, q, given);
                 correctness = given === undefined
                     ? `<span style="color:#94a3b8;font-weight:800;font-size:10px;">NOT ANSWERED</span>`
+                    : isCorrect === null
+                        ? `<span style="color:#94a3b8;font-weight:800;font-size:10px;">AWAITING GRADING</span>`
                     : isCorrect
                         ? `<span style="color:#166534;font-weight:800;font-size:10px;">\u2713 CORRECT</span>`
-                        : `<span style="color:#b91c1c;font-weight:800;font-size:10px;">\u2717 INCORRECT &middot; Answer key: ${escapeHtml(q.correctAnswer || '')}</span>`;
+                        : `<span style="color:#b91c1c;font-weight:800;font-size:10px;">\u2717 INCORRECT${q.correctAnswer !== undefined ? ` &middot; Answer key: ${escapeHtml(q.correctAnswer || '')}` : ''}</span>`;
             }
             return `
                 <div class="admin-tile" style="text-align:left;margin-bottom:8px;">
@@ -1213,10 +1225,11 @@ function buildSubmissionReportLines(sub, activity) {
             if (q.scenario) lines.push({ type: 'scenario', text: q.scenario });
             lines.push({ type: 'body', text: `Answer: ${given !== undefined ? given : '(no response)'}` });
             if (q.type !== 'essay') {
-                const isCorrect = given !== undefined && String(given).trim().toLowerCase() === String(q.correctAnswer || '').trim().toLowerCase();
+                const isCorrect = answerIsCorrect(sub, q, given);
                 if (given === undefined) lines.push({ type: 'status-neutral', text: 'NOT ANSWERED' });
+                else if (isCorrect === null) lines.push({ type: 'status-neutral', text: 'AWAITING GRADING' });
                 else if (isCorrect) lines.push({ type: 'status-good', text: 'CORRECT' });
-                else lines.push({ type: 'status-bad', text: `INCORRECT \u2014 Answer key: ${q.correctAnswer || ''}` });
+                else lines.push({ type: 'status-bad', text: q.correctAnswer !== undefined ? `INCORRECT \u2014 Answer key: ${q.correctAnswer || ''}` : 'INCORRECT' });
             }
             lines.push({ type: 'spacer' });
         });
@@ -1315,9 +1328,10 @@ async function openGradeModal(submissionId) {
     }
 
     document.getElementById('grade-modal-subtitle').innerText = `${sub.trainee_name} - ${sub.activity_title}`;
-    document.getElementById('grade-score-input').value = sub.status === 'Graded'
-        ? sub.score
-        : (sub.auto_score !== null && sub.auto_score !== undefined ? sub.auto_score : '');
+    // (the grade is a percentage; auto_score is the objective questions' raw points, so it is a hint here, not the grade)
+    const scoreInput = document.getElementById('grade-score-input');
+    scoreInput.value = sub.status === 'Graded' ? sub.score : '';
+    scoreInput.placeholder = sub.status !== 'Graded' && sub.auto_score !== null && sub.auto_score !== undefined ? `Objective part: ${sub.auto_score} pt — enter the overall %` : '';
     document.getElementById('grade-feedback-input').value = sub.feedback || '';
     document.getElementById('modal-grade-submission').dataset.submissionId = submissionId;
 

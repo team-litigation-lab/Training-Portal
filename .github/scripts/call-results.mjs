@@ -95,5 +95,10 @@ if (!ea || !ea.best['line:Automated Messaging'] || ea.best['line:Automated Messa
 const g2 = await (await onRequestGet({ request: new Request('https://portal.test/api/call-results', { headers: { cookie: `lsh_session=${tok}` } }), env })).json();
 if (!g2.success || g2.results.length !== 7) fail(`conversations leaked into the Admin's list of graded calls: ${g2.results && g2.results.length}`);
 
+// ... and any course's trainee whose record was kept under an earlier id after a Batch ID change (<prefix>trainee-alias:)
+kv.set('pd:trainee-alias:jamie-cruz--b100526', 'jamie-cruz--b010126');
+r = await post({ first: 'Jamie', last: 'Cruz', batch: 'B100526', call: call({ id: 'pd_cs_intake2', program: 'PD', line: 'Claim Setup', lesson: null, score: 66 }) });
+if (r.data.course.key !== 'pd:callsim:jamie-cruz--b010126' || !kv.has('pd:callsim:jamie-cruz--b010126')) fail(`a PD call didn't follow the moved record's alias: ${JSON.stringify(r.data)}`);
+kv.delete('pd:trainee-alias:jamie-cruz--b100526');
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
 console.log('Call results test passed (only a Call Simulator with the shared secret; Ring Channel\'s and the CMS\'s; the trainee\'s Portal results; each course\'s store by lesson or line, with its prefix and id; the EA / PA alias; Client Messaging conversations on their own line, Ring Channel\'s Automated Messaging threads too, MD conversations only).');

@@ -1,4 +1,4 @@
-import { json, requireSession, logActivity, generateAiReview, parseJsonList } from '../_utils.js';
+import { json, requireSession, logActivity, generateAiReview, parseJsonList, gradeAsPercent } from '../_utils.js';
 
 // Grades every objective question (mcq / truefalse / short) against the
 // answer key. Essay questions always need a human, so their presence means
@@ -7,6 +7,7 @@ import { json, requireSession, logActivity, generateAiReview, parseJsonList } fr
 function gradeAnswers(questions, answers) {
     const responseByQ = new Map((answers || []).map(a => [a.questionId, a.response]));
     let autoScore = 0;
+    let totalPoints = 0;
     let hasEssay = false;
 
     for (const q of questions) {
@@ -14,6 +15,7 @@ function gradeAnswers(questions, answers) {
             hasEssay = true;
             continue;
         }
+        totalPoints += q.points || 1;
         const resp = responseByQ.get(q.id);
         if (resp === undefined || resp === null || resp === '') continue;
         const correct = String(q.correctAnswer ?? '').trim().toLowerCase();
@@ -23,7 +25,12 @@ function gradeAnswers(questions, answers) {
         }
     }
 
-    return { autoScore, hasEssay };
+    return { autoScore, totalPoints, hasEssay };
+}
+// A grade is a percentage everywhere it is shown ("Graded · 90%", "/ 100", the averages, the leaderboard, the 100% celebration):
+// an all-objective submission's points are turned into one. (auto_score keeps the raw points, as before.)
+export function percentOf(points, total) {
+    return total > 0 ? Math.round((100 * points) / total) : 0;
 }
 
 export async function onRequestGet({ request, env }) {
@@ -40,9 +47,35 @@ export async function onRequestGet({ request, env }) {
         }
 
         const { results } = await env.TRAINING_DB.prepare(query).bind(...binds).all();
+        // A trainee never gets the answer key (api/activities.js strips correctAnswer), so their Details view and PDF can't
+        // mark an objective answer right or wrong themselves: a graded submission says it here, per question (correct:
+        // true / false; an essay or an unanswered question has none). Admins get the key with the activity, as before.
+        const keys = new Map(), qs = new Map();
+        {
+            const ids = [...new Set((results || []).filter(s => s.status === 'Graded').map(s => s.activity_id))];
+            for (const id of ids) {
+                const row = await env.TRAINING_DB.prepare('SELECT questions FROM activities WHERE id = ?').bind(id).first().catch(() => null);
+                qs.set(id, row ? parseJsonList(row.questions) : []);
+                if (auth.session.userType !== 'Admin') keys.set(id, qs.get(id));
+            }
+        }
+        const marks = (s, answers) => {
+            if (!keys.has(s.activity_id)) return undefined;
+            const given = new Map(answers.map(a => [a.questionId, a.response]));
+            const out = {};
+            for (const q of keys.get(s.activity_id)) {
+                if (!q || q.type === 'essay') continue;
+                const resp = given.get(q.id);
+                if (resp === undefined || resp === null || resp === '') continue;
+                out[q.id] = { correct: !!String(q.correctAnswer ?? '').trim() && String(resp).trim().toLowerCase() === String(q.correctAnswer ?? '').trim().toLowerCase() };
+            }
+            return out;
+        };
         const submissions = (results || []).map(s => ({
             ...s,
+            score: gradeAsPercent(s, qs.get(s.activity_id)),   // (an older all-objective grade in raw points, as a percentage)
             answers: parseJsonList(s.answers),
+            ...(keys.has(s.activity_id) && s.status === 'Graded' ? { question_results: marks(s, parseJsonList(s.answers)) } : {}),
             // ai_review is stored as a JSON string (see generateAiReview in
             // _utils.js) — null/undefined here just means it hasn't been
             // generated yet (still pending, generation failed, or the
@@ -107,7 +140,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
 
             let res;
             if (questions.length > 0) {
-                const { autoScore, hasEssay } = gradeAnswers(questions, answers);
+                const { autoScore, totalPoints, hasEssay } = gradeAnswers(questions, answers);
 
                 if (!hasEssay) {
                     // Every question was objective — grade and close it out immediately.
@@ -117,7 +150,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
                     ).bind(
                         activityId, storedTitle, auth.session.username,
                         auth.session.fullName || auth.session.username, notes || '',
-                        answersJson, autoScore, autoScore
+                        answersJson, autoScore, percentOf(autoScore, totalPoints)
                     ).run();
                 } else {
                     // Contains at least one essay question — objective portion is

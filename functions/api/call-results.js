@@ -1,4 +1,4 @@
-import { json, requireSession, sameSecret } from '../_utils.js';
+import { json, requireSession, sameSecret, canonicalBatch } from '../_utils.js';
 
 // Graded calls from the Call Simulator, and graded text conversations from the CMS's 💬 Client Messaging (kind: 'message'),
 // so they count in the trainee's course. Every Call Simulator is LSH Ring Channel's
@@ -17,7 +17,7 @@ import { json, requireSession, sameSecret } from '../_utils.js';
 //     "cms:<their CMS username>"), so the progress page shows it with the other simulators;
 //   - the course's own store (COURSE_KV, the LSH_KV namespace every course Worker shares), under <prefix>callsim:<id>, where
 //     <id> is the id the course gives the trainee (the same slug of "first last" and batch: courseTraineeId), and the
-//     course shows it on its progress. EA / PA's trainee may be on an older id (trainee-alias:<id> points to it).
+//     course shows it on its progress. a trainee may be on an older id (<prefix>trainee-alias:<id> points to it: EA / PA's linked record, a Batch ID change).
 //     { traineeId, updatedAt, calls: [{ id, line, lesson, title, score, at }] (the latest 60), best: { <lesson or line>: { score, calls, at } } }
 //   GET  /api/call-results   (a signed-in admin) the latest graded calls.
 const COURSES = { FT: { prefix: 'ft:' }, CM: { prefix: 'cm:' }, PD: { prefix: 'pd:' }, EA: { prefix: '' }, MD: { prefix: 'md:' } };
@@ -33,6 +33,11 @@ export function courseTraineeId(first, last, batch) {
     if (!slug) { let h = 0; for (const c of name) h = (h * 31 + c.codePointAt(0)) >>> 0; slug = 'trainee-' + h.toString(36); }
     const b = slugPart(batch).slice(0, 20);
     return b ? `${slug}--${b}` : slug;
+}
+// One person on Trainee Monitoring: their name and batch the way every course builds an id (the batch in its one form, so a
+// course record's B11012026 and the account's B110126 are the same; the same hash fallback for a name with no Latin letters).
+export function personKeyOf(name, batch) {
+    return courseTraineeId(String(name || '').replace(/\s+/g, ' ').trim(), '', canonicalBatch(batch) || String(batch || '').trim());
 }
 // Where a call counts in its course: a Standard Training call by its lesson, the others by their line.
 export const courseSlot = (call) => call.program === 'FT' && call.lesson ? `lesson${call.lesson}` : `line:${call.line}`;
@@ -93,7 +98,14 @@ export async function onRequestPost({ request, env }) {
     if (env.COURSE_KV) {
         const prefix = COURSES[call.program].prefix;
         let id = courseTraineeId(first, last, batch);
-        if (call.program === 'EA') { const alias = await env.COURSE_KV.get(`trainee-alias:${id}`); if (alias && /^[a-z0-9-]{1,80}$/.test(alias)) id = alias; }
+        // a trainee whose record a course kept under an earlier id (EA / PA's linked record, a Batch ID change: every course
+        // writes <prefix>trainee-alias:<new id> = <kept id>) gets the result on that record
+        // (only when the course has no record under the id itself: a record of that id is always theirs)
+        if (!(await env.COURSE_KV.get(`${prefix}trainee:${id}`))) {
+            const alias = await env.COURSE_KV.get(`${prefix}trainee-alias:${id}`);
+            if (alias && /^[a-z0-9-]{1,100}$/.test(alias)) id = alias;
+            else { let m = null; try { m = JSON.parse(await env.COURSE_KV.get(`${prefix}merged:${id}`) || 'null'); } catch (e) { m = null; } if (m && typeof m.into === 'string' && /^[a-z0-9-]{1,100}$/.test(m.into)) id = m.into; }
+        }
         const key = `${prefix}callsim:${id}`;
         let rec = null; try { rec = JSON.parse(await env.COURSE_KV.get(key) || 'null'); } catch (e) { rec = null; }
         const next = addCall(rec, id, call);

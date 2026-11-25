@@ -359,34 +359,16 @@
     </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
 <script src="portal.js"></script>
 <script>
-    // Standard Foundational Training, CM Training, EA PA Training,
-    // Property Damage, Medsum & Demand and Lien Negotiation are the only programs with a real,
-    // built portal so far — everything else in the topics table is reference-only until its
-    // own site exists. Keyed by the exact `key` value seeded into the topics
-    // table. Standard Foundational Training is the 16-day, 8-lesson program
-    // (Foundational-Training repo). CM Training is the 5-day course
-    // (Case-Management-Training repo); the CMS it uses opens from inside it.
-    // Property Damage is the 5-day PD Claims course
-    // (propertydamageclaimstraining repo). Medsum and Demand is the 5-day
-    // Medsum & Demand course (medsumanddemandtraining repo). Lien Negotiation is the
-    // 2-day Lien Negotiator course (LienNegotiatorTraining repo).
-    const BUILT_PROGRAMS = {
-        'STANDARD TRAINING': 'https://foundational-training.legalsupporthelp.workers.dev/',
-        'CM TRAINING': 'https://case-management-training.legalsupporthelp.workers.dev/',
-        'EA  PA TRAINING-OUTSOURCED MANP': 'https://ea-pa-training.legalsupporthelp.workers.dev/',
-        'PROPERTY DAMAGE': 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/',
-        'MEDSUM AND DEMAND': 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/',
-        'LIEN NEGOTIATION': 'https://liennegotiatortraining.legalsupporthelp.workers.dev/'
-    };
-
-    // Programs that open through this portal's single sign-in: their own site has no trainee
-    // sign-in, and trainees come in with a signed ticket from /api/launch (functions/api/launch.js).
-    // Keep in step with SSO_PROGRAMS there. Admins go through it too (no admin password again in the program).
-    const SSO_PROGRAMS = ['STANDARD TRAINING', 'EA  PA TRAINING-OUTSOURCED MANP', 'CM TRAINING', 'PROPERTY DAMAGE', 'MEDSUM AND DEMAND', 'LIEN NEGOTIATION'];
+    // The programs with their own site, which open through this portal's single sign-in (/api/launch): their own site has
+    // no trainee sign-in, and trainees come in with a signed ticket. The list comes with /api/topics (programs), from the
+    // Portal's one list of programs (functions/_programs.js; launch.js holds each one's address), so this page keeps no copy
+    // that could drift. Everything else in the topics table is reference-only ("Coming Soon") until its own site exists.
+    // Admins go through it too (no admin password again in the program).
+    let SSO_PROGRAMS = [];
     // Opening a program asks the Portal to vouch for you (/api/launch), which needs a live Portal session. A Portal tab that sat in the
     // background has its heartbeat slowed by the browser, so the session can look timed out right when you click. Wake it first, then go.
     document.addEventListener('click', function (e) {
@@ -405,7 +387,7 @@
             .catch(() => {}).finally(() => { clearTimeout(timer); go(); });
     }, true);
     // An admin in 👁 trainee view (Switch view) opens a program the way a trainee sees it, too (&view=trainee)
-    const programHref = (key, built) => SSO_PROGRAMS.includes(key) ? '/api/launch?program=' + encodeURIComponent(key) + (PortalNav.traineeView() ? '&view=trainee' : '') : built;
+    const programHref = (key) => SSO_PROGRAMS.includes(key) ? '/api/launch?program=' + encodeURIComponent(key) + (PortalNav.traineeView() ? '&view=trainee' : '') : null;
 
     // Display names that replace the topics table's `name`, so a program can
     // be renamed without editing the live database. topics_seed.sql carries
@@ -444,7 +426,7 @@
     // Added to the list only when the database doesn't already have the key,
     // so seeding it later (topics_seed.sql carries it) changes nothing here.
     // Not in TOPIC_SEQUENCE: free programs aren't gated behind progression.
-    // Give it a BUILT_PROGRAMS link once it has its own site.
+    // It opens once it is in functions/_programs.js and launch.js (its own site).
     const EXTRA_PROGRAMS = [
         { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Track', sort_order: 0 },
         { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Track', sort_order: 13 },
@@ -558,6 +540,7 @@
             __topicsCache = (data.topics || []).map(t => PROGRAM_NAMES[t.key] ? { ...t, name: PROGRAM_NAMES[t.key] } : t);
             EXTRA_PROGRAMS.forEach(x => { if (!__topicsCache.some(t => t.key === x.key)) __topicsCache.push({ ...x }); });
             __accessCache = data.access || [];
+            SSO_PROGRAMS = Array.isArray(data.programs) ? data.programs : [];
             if (!asTrainee) renderQueue(session);
             renderTopics(session);
             startLiveAccess(session);
@@ -651,7 +634,7 @@
 
         const cardFor = (t) => {
             if (PORTAL_TOOLS[t.key]) return toolCard(t);
-            const built = BUILT_PROGRAMS[t.key];
+            const built = SSO_PROGRAMS.includes(t.key);
             const myAccess = isAdmin ? null : __accessCache.find(a => a.topic_key === t.key);
             const status = isAdmin ? 'approved' : (myAccess ? myAccess.status.toLowerCase() : 'locked');
 
@@ -660,9 +643,7 @@
                 <div class="topic-card">
                     <h3>${escapeHtml(t.name)}${PINNED_PROGRAMS.includes(t.key) ? ' <span class="topic-free">Free</span>' : ''}</h3>
                     <span class="topic-status ${built ? 'approved' : 'locked'}">${built ? 'Available' : 'Coming Soon'}</span>
-                    ${built ? (SSO_PROGRAMS.includes(t.key)
-                        ? `<a class="topic-action-btn primary" href="/trainee-login.html">Log in to open &rarr;</a>`
-                        : `<a class="topic-action-btn primary" href="${built}" target="_blank" rel="noopener">Open Program &rarr;</a>`) : `<span class="topic-action-btn disabled">Coming Soon</span>`}
+                    ${built ? `<a class="topic-action-btn primary" href="/trainee-login.html">Log in to open &rarr;</a>` : `<span class="topic-action-btn disabled">Coming Soon</span>`}
                 </div>`;
             }
 
@@ -674,7 +655,7 @@
             if (!built) {
                 actionHtml = `<span class="topic-action-btn disabled">Coming Soon</span>`;
             } else if (isAdmin || status === 'approved' || status === 'passed') {   // finished: the program stays open
-                actionHtml = `<a class="topic-action-btn primary" href="${programHref(t.key, built)}" target="_blank" rel="noopener">Enter Program &rarr;</a>`;
+                actionHtml = `<a class="topic-action-btn primary" href="${programHref(t.key)}" target="_blank" rel="noopener">Enter Program &rarr;</a>`;
             } else if (status === 'pending') {
                 actionHtml = `<span class="topic-action-btn disabled">Awaiting Admin Approval</span>`;
             } else if (status.startsWith('suspended')) {   // ⏸ an admin paused it (Program Access → Suspend): no asking again until restored

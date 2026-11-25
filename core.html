@@ -20,6 +20,25 @@
     .grades-toolbar .grades-danger[disabled] { opacity: .45; cursor: not-allowed; }
     .grades-hint { font-size: 11.5px; color: #475569; }
     .grades-hint.ready { color: #166534; font-weight: 700; }
+    /* On a phone (and a narrow tablet) the top bar (announcement, clock, time zone, two links, the user) is far wider than the screen, and body has
+       overflow: hidden, so it used to push the dashboard off the right edge with no way to scroll to it. It wraps instead:
+       the announcement takes its own line, the clock and time-zone picker (the computer's clock is on the phone already) go.
+       (From 1080px down: the bar's own contents, with a long name, fit in one 38px line down to about 1040px; above that it stays one line.) */
+    @media (max-width: 1080px) {
+        #classification-bar .top-bar-right { flex-wrap: wrap; justify-content: flex-end; gap: 8px 14px; min-width: 0; max-width: 100%; }
+        #classification-bar .top-ticker-mini { flex: 1 1 100%; max-width: 100%; min-width: 0; order: 9; }
+    }
+    @media (max-width: 1080px) { #classification-bar { height: auto; min-height: 38px; padding-top: 6px; padding-bottom: 6px; } }
+    @media (max-width: 700px) {
+        #classification-bar { padding: 8px 14px; gap: 8px; }
+        #classification-bar .top-clock { display: none; }
+        /* and the 280px side menu sits above the dashboard (its own scroll) instead of beside it, so the cards get the width */
+        #app-shell { flex-direction: column; }
+        #app-shell > aside.custom-sidebar-panel { width: 100% !important; max-height: 38vh; overflow-y: auto; flex-shrink: 0; border-right: none !important; border-bottom: 1px solid #0d1c3d; }
+        #app-shell > aside.custom-sidebar-panel > div:first-child { display: none !important; }   /* (the logo: the top bar already says where they are) */
+        #app-shell > aside.custom-sidebar-panel { max-height: 46vh; }
+        #app-shell > main { min-height: 0; }
+    }
 
     /* 🧭 Dashboard & Directory (Master Control → Overview) and the ⓘ How to use pop-outs (mc-directory.js).
        Built to fit one wide screen: one line of live counts, then every admin feature in one table. */
@@ -307,6 +326,9 @@
 
                 <!-- 6. ADMIN LESSON DECKS & ACTIVITIES -->
                 <div id="view-admin-activities" class="portal-view-section hidden">
+                    <div class="admin-tile" role="note" style="text-align:left;margin-bottom:16px;border-left:4px solid #d97706;background:#fffbeb;font-size:12px;color:#78350f;">
+                        <b>Trainees don't see the activities and decks published here right now.</b> This dashboard is for administrators only, and the trainees' navigation has no link to the Portal's own activities or lectures, so nothing published here reaches a trainee. Put trainee work in the training programs (the Training Directory) instead.
+                    </div>
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-xl font-black uppercase tracking-wide text-navy">Manage Decks &amp; Activities</h2>
                         <div class="flex gap-2">
@@ -339,6 +361,9 @@
 
                 <!-- 7. ADMIN LECTURES -->
                 <div id="view-admin-lectures" class="portal-view-section hidden">
+                    <div class="admin-tile" role="note" style="text-align:left;margin-bottom:16px;border-left:4px solid #d97706;background:#fffbeb;font-size:12px;color:#78350f;">
+                        <b>Trainees don't see the lectures added here right now.</b> This dashboard is for administrators only, and the trainees' navigation has no link to the Portal's own activities or lectures, so nothing published here reaches a trainee. Put trainee work in the training programs (the Training Directory) instead.
+                    </div>
                     <div class="flex justify-between items-center mb-6">
                         <div>
                             <h2 class="text-xl font-black uppercase tracking-wide text-navy">Recorded Lectures</h2>
@@ -1079,7 +1104,7 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js"></script>
     <script src="/portal-nav.js"></script>
 <script src="app.js"></script>
     <script src="portal.js"></script>

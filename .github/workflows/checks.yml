@@ -72,6 +72,16 @@ jobs:
         run: node --no-warnings .github/scripts/ringchannel.mjs
       - name: A sign-in ticket names the one program or tool it is for, and the tools' check refuses a program's ticket
         run: node --no-warnings .github/scripts/sso-audience.mjs
+      - name: A trainee's graded submission says which objective answers were right, never the answer key
+        run: node --no-warnings .github/scripts/submission-marks.mjs
+      - name: Completion and the leaderboard count only the activities a trainee can see
+        run: node --no-warnings .github/scripts/grade-counts.mjs
+      - name: Usernames match in any capitals; a case-only duplicate is refused, never guessed
+        run: node --no-warnings .github/scripts/username-case.mjs
+      - name: Trainee Monitoring keeps two trainees with one name in two batches apart
+        run: node --no-warnings .github/scripts/progress-identity.mjs
+      - name: Attendance names every course's days as the course does (FT's 8 lessons, EA / PA's titles, CM's Case Flow days 11-15)
+        run: node --no-warnings .github/scripts/attendance-days.mjs
       - name: Graded calls from the Call Sim count in the trainee's course (the Portal's results and each course's store)
         run: node --no-warnings .github/scripts/call-results.mjs
       - name: Sim results count in the trainee's own record and course (the account's name, each course's store)
@@ -81,7 +91,7 @@ jobs:
       - name: Email Replies is scored on the five fixed scorecard metrics
         run: node --no-warnings .github/scripts/email-scorecard.mjs
       - name: Build the Pages Functions without deploying
-        run: npx --yes wrangler@3 pages functions build --outdir "$RUNNER_TEMP/dist"
+        run: npx --yes wrangler@3.114.17 pages functions build --outdir "$RUNNER_TEMP/dist"
 
   smoke:
     name: Smoke test in a browser

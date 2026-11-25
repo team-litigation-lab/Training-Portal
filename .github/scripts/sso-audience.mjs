@@ -57,6 +57,9 @@ else {
     if (ln.body.p !== 'LIEN NEGOTIATION') fail(`the trainee's ticket should name its program (p): ${JSON.stringify(ln.body)}`);
     if (ln.body.full !== 'Maria L. Santos, Jr') fail(`the trainee's ticket should carry the full registered name: ${JSON.stringify(ln.body)}`);
     if (ln.body.first !== 'Maria' || ln.body.last !== 'Santos' || ln.body.b !== 'B111926') fail(`first, last and batch must stay as they were: ${JSON.stringify(ln.body)}`);
+    if (ln.body.u !== '1') fail(`the trainee's ticket should carry their Portal account id (u): ${JSON.stringify(ln.body)}`);
+    const again = await go(trainee, 'program=' + encodeURIComponent('LIEN NEGOTIATION'));
+    if (!ln.body.j || !again.ticket || again.ticket === ln.ticket) fail('two tickets made for the same launch must never be the same ticket (j)');
 }
 // a program they have no access to still makes no ticket at all
 const ft = await go(trainee, 'program=' + encodeURIComponent('STANDARD TRAINING'));
@@ -84,10 +87,24 @@ const tProg = await post(tl.onRequestPost, ln.ticket);
 if (tProg.status !== 401 || tProg.body.code !== 'audience') fail(`/api/ticket-login must refuse a program's ticket: ${JSON.stringify(tProg)}`);
 // an old ticket with no p (a course's tool ticket not yet updated) and a course's 'tool' ticket still sign in at the Portal
 for (const extra of [{}, { p: 'tool' }, { p: 'portal' }]) {
-    const t = await launch.makeTicket(env.PORTAL_SSO_SECRET, { first: 'Maria', last: 'Santos', batch: 'B111926', aud: extra.p });
+    const t = await launch.makeTicket(env.PORTAL_SSO_SECRET, { first: 'Maria', last: 'Santos', batch: 'B111926', uid: '1', aud: extra.p });
     const r = await post(tl.onRequestPost, t);
     if (r.status !== 200 || !r.body.success) fail(`a course's tool ticket (${JSON.stringify(extra)}) should still sign the trainee in at the Portal: ${JSON.stringify(r)}`);
 }
+// 4b. /api/verify-ticket (the CMS, the KB, Ring Channel) trusts only the account id u: the names given back are the account's, a
+//     forged name on a course's tool ticket changes nothing, and a trainee ticket with no u or another kind of account is refused
+{
+    const forged = await launch.makeTicket(env.PORTAL_SSO_SECRET, { first: 'Bob', last: 'Victim', batch: 'B200000', uid: '1', aud: 'tool' });
+    const v = await post(vt.onRequestPost, forged);
+    if (v.status !== 200 || v.body.first !== 'Maria' || v.body.last !== 'Santos' || v.body.u !== '1' || v.body.full !== 'Maria L. Santos, Jr') fail(`verify-ticket answers with the account u is, never the ticket's names: ${JSON.stringify(v)}`);
+    const noU = await post(vt.onRequestPost, await launch.makeTicket(env.PORTAL_SSO_SECRET, { first: 'Maria', last: 'Santos', batch: 'B111926', aud: 'tool' }));
+    if (noU.status !== 401 || noU.body.code !== 'account') fail(`a trainee ticket with no u is refused: ${JSON.stringify(noU)}`);
+    const adminU = await post(vt.onRequestPost, await launch.makeTicket(env.PORTAL_SSO_SECRET, { first: 'Maria', last: 'Santos', batch: 'B111926', uid: '2', aud: 'kb' }));
+    if (adminU.status !== 401) fail(`a trainee ticket whose u is an admin account is refused: ${JSON.stringify(adminU)}`);
+    const a = await go(admin, 'tool=kb');
+    if (!a.body || a.body.u !== '2') fail(`an admin's ticket carries their account id: ${JSON.stringify(a.body)}`);
+}
+
 // 5. the Sign-in check's system ticket names the program it goes to
 const sent = [];
 const realFetch = globalThis.fetch;
@@ -97,6 +114,18 @@ globalThis.fetch = realFetch;
 for (const [key, url] of Object.entries(launch.SSO_PROGRAMS)) {
     const s = sent.find((x) => x.url === url + 'api/auth/portal');
     if (!s || s.body.r !== 's' || s.body.p !== key) fail(`the Sign-in check's ticket for ${key} should name it: ${JSON.stringify(s)}`);
+}
+
+// 6. one list of programs (code inventory 2026-10-16 #10): launch.js's addresses are for exactly the programs in _programs.js, which
+//    /api/topics hands the Training Directory (programs.html keeps no copy of its own)
+{
+    const progs = await import(pathToFileURL(path.resolve('functions/_programs.js')).href);
+    const want = progs.COURSE_PROGRAMS.map((p) => p.topic).sort(), have = Object.keys(launch.SSO_PROGRAMS).sort();
+    if (JSON.stringify(want) !== JSON.stringify(have)) fail(`launch.js SSO_PROGRAMS (${have}) and _programs.js (${want}) list different programs`);
+    const page = fs.readFileSync('programs.html', 'utf8');
+    if (/BUILT_PROGRAMS|workers\.dev/.test(page) || !/SSO_PROGRAMS = Array\.isArray\(data\.programs\)/.test(page)) fail('programs.html should take its program list from /api/topics (programs), not keep its own map of addresses');
+    const tp = fs.readFileSync('functions/api/topics.js', 'utf8');
+    if ((tp.match(/programs: LAUNCHABLE/g) || []).length !== 3) fail('/api/topics should hand the program list (programs) in each of its answers');
 }
 
 if (failures.length) { console.log(`\n${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }

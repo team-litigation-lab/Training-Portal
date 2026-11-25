@@ -195,6 +195,10 @@ check(noSecret.status === 501, 'with no gateway secret set the gateway says so')
     const rev = await gw.runAi(db, renv, { module: 'calendaring', user: 'b', system: 's', messages: [{ role: 'user', text: 'x' }], json: true });
     check(chat.status === 429 && chat.body.scope === 'daily', `a practice chat stops at the reviews' reserve (${chat.status} ${chat.body.scope})`);
     check(rev.status === 200, `a review still goes through, over its flow's share of the day too (${rev.status} ${rev.body.error || ''})`);
+    // ... but a browser's request (api/sim-ai.js: review: false) can't claim the reserve by sending json: true (code inventory 2026-10-16 #4)
+    const forged = await gw.runAi(db, renv, { module: 'cms', user: 'c', system: 's', messages: [{ role: 'user', text: 'x' }], json: true, review: false });
+    check(forged.status === 429 && forged.body.scope === 'daily', `a browser's json request stops at the reviews' reserve like a chat (${forged.status} ${forged.body.scope})`);
+    check(/review:\s*false/.test(fs.readFileSync('functions/api/sim-ai.js', 'utf8')), 'api/sim-ai.js (the browser endpoint) passes review: false');
     check(gw.limits({ AI_REVIEW_RESERVE: '0.2' }).reviewReserve === 0.2 && gw.limits({}).reviewReserve === 0.1 && gw.limits({ AI_REVIEW_RESERVE: '0' }).reviewReserve === 0, 'AI_REVIEW_RESERVE sets the reserve (10% unless set)');
 }
 

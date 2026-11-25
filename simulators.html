@@ -11,8 +11,8 @@
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/simulators/sim.css">
 <style>
-    /* The hub is meant to be taken in at a glance: on a desktop screen the seven
-       cards sit above the fold, so the page does not scroll to show a simulator. */
+    /* The hub is meant to be taken in at a glance: on a desktop screen every card sits
+       above the fold, so the page does not scroll to show a simulator. */
     .hub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     @media (max-width: 1000px) { .hub-grid { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 620px) { .hub-grid { grid-template-columns: 1fr; } }
@@ -29,32 +29,28 @@
     .sim-wrap.hub-wrap { max-width: none; }
     .hub-wrap .sim-hero p { max-width: none; }
 
-    /* One screen: a room-sized window (wide enough for four columns, tall enough
-       for two rows of cards) gets the compact hub — four across, a shorter hero and
-       each description cut to a few lines, with the whole text on hover. Anything
-       smaller keeps the roomy layout and scrolls as before. */
-    @media (min-width: 1180px) and (min-height: 700px) {
-        .sim-wrap { padding-bottom: 28px; }
-        .sim-hero { padding: 18px 24px; margin-bottom: 16px; }
-        .sim-hero .eyebrow { margin-bottom: 8px; padding: 3px 10px; font-size: 11px; }
-        .sim-hero h1 { font-size: 23px; margin-bottom: 5px; }
-        .sim-hero p { font-size: 13px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .hub-grid { grid-template-columns: repeat(4, 1fr); gap: 13px; }
-        .sim-card.hub-card { padding: 15px; gap: 8px; }
-        .hub-card .icon { width: 38px; height: 38px; border-radius: 11px; font-size: 19px; }
+    /* One screen: every card fits on a laptop or desktop screen without scrolling. Each description is a sentence or two
+       (the whole of it is in the card's tooltip), so four columns of three rows fit from 1180x700 up. */
+    @media (min-width: 1180px) {
+        .sim-wrap { padding-top: 18px; padding-bottom: 18px; }
+        .sim-hero { padding: 12px 22px; margin-bottom: 10px; }
+        .sim-hero .eyebrow { margin-bottom: 6px; padding: 3px 10px; font-size: 11px; }
+        .sim-hero h1 { font-size: 22px; margin-bottom: 4px; }
+        .sim-hero p { font-size: 13px; line-height: 1.45; }
+        .hub-grid { grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .sim-card.hub-card { padding: 13px 15px; gap: 6px; }
+        .hub-card .icon { width: 34px; height: 34px; border-radius: 10px; font-size: 18px; }
         .hub-card h3 { font-size: 15.5px; }
-        .hub-card p { font-size: 12.5px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
-        .hub-card .row { margin-top: 2px; }
-        .hub-card .uses { font-size: 11px; }
-        .hub-card .sim-btn { padding: 7px 14px; font-size: 12.5px; }
+        .sim-hero .eyebrow { display: none; }
+        .hub-card p { font-size: 13px; line-height: 1.42; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .hub-card .row { margin-top: 0; }
+        .hub-card .uses { font-size: 11px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .hub-card .sim-btn { padding: 6px 14px; font-size: 12.5px; white-space: nowrap; flex-shrink: 0; }
     }
-    @media (min-width: 1180px) and (min-height: 700px) and (max-height: 820px) {
-        .hub-card p { -webkit-line-clamp: 4; }
-    }
-    @media (min-width: 1180px) and (min-height: 700px) and (max-height: 740px) {
-        .sim-wrap { padding-top: 22px; padding-bottom: 20px; }
-        .sim-hero { padding: 14px 22px; margin-bottom: 12px; }
-        .hub-card p { -webkit-line-clamp: 3; }
+    @media (min-width: 1180px) and (max-width: 1299px) {
+        .hub-wrap { padding-left: 16px; padding-right: 16px; }
+        .sim-card.hub-card { padding: 12px 12px; }
+        .hub-card p { font-size: 12.2px; letter-spacing: -.005em; }
     }
 </style>
 <link rel="stylesheet" href="/theme.css">
@@ -65,41 +61,52 @@
     <section class="sim-hero">
         <div class="eyebrow">Shared across every program</div>
         <h1>🛠 LSH Sims</h1>
-        <p>Hands-on tools every LSH program can use — Case Management, EA/PA and the specialised trainings. Pick a simulator, work a realistic scenario, and get a scored debrief. Your results are saved to your account.</p>
+        <p>Hands-on practice for every LSH program. Pick a simulator, work a realistic scenario and get a scored debrief, saved to your account.</p>
     </section>
 
     <div class="hub-grid" id="hub-grid"></div>
+
+    <!-- 📈 Your results: every graded run saved to your account, from any device (and this browser's practice runs) -->
+    <section class="sim-card" id="my-results" hidden style="margin-top:18px;">
+        <h3 style="margin-top:0;">📈 Your results</h3>
+        <p id="my-results-note" style="margin:4px 0 10px;"></p>
+        <div style="overflow-x:auto;"><table class="sim-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr><th style="text-align:left;padding:6px 8px;">When</th><th style="text-align:left;padding:6px 8px;">Simulator</th><th style="text-align:left;padding:6px 8px;">Scenario</th><th style="text-align:right;padding:6px 8px;">Score</th></tr></thead>
+            <tbody id="my-results-rows"></tbody>
+        </table></div>
+        <div class="row" style="margin-top:10px;"><button class="sim-btn ghost" id="my-results-more" hidden onclick="showMyResults(true)">Show all</button></div>
+    </section>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js"></script>
 <script src="/app.js"></script>
 <script src="/portal-nav.js"></script>
 <script src="/portal.js"></script>
 <script src="/simulators/sim.js"></script>
 <script>
     const SIMULATORS = [
-        { id: 'call', icon: '📞', title: 'Call Sim', status: 'live', href: '/api/launch?tool=ringchannel&to=calls', uses: 'Standard · CM · PD · EA/PA · all programs',
-          desc: 'Real phone calls on ☎ LSH Voice, the training phone (it opens there, already signed in): the phone rings, the caller speaks, you answer out loud with your headset (or type), and use the phone\'s own keys — mute, hold, transfer — on the line the call comes in on. Reception and Calendar Management ring the Main Line, Intake the Intake Line; the case files are in 🔎 Case lookup. Practice with an AI caller, or take a graded call: a caller you don\'t see first, graded on your line\'s Mock Calls Metrics, and it counts in your course. Your trainer can also ring you for a live mock call on the same phone.' },
-        { id: 'messaging', icon: '💬', title: 'Client Messaging', status: 'live', href: '/api/launch?tool=ringchannel&to=messages', uses: 'Reception · Intake · CM · Medsum and Demand · PD · EA/PA',
-          desc: 'Text with clients the way a case management system does it, on ☎ LSH Voice (it opens there, already signed in): a text lands on the client\'s file in its 💬 Messages tab and you answer it from the file, in your program\'s role. A client who lost an appointment card, a "cousin" who isn\'t on the file, an unknown number, a STOP, a client in danger, an offer they want you to decide, storage fees, a mediation time. Verify before you share, follow the firm\'s texting policy, use the quick replies, log the Case Note. Practice with coaching, or take it graded: scored on the Client Messaging scorecard, and it counts in your course.' },
-        { id: 'automessaging', icon: '🤖', title: 'Automated Messaging', status: 'live', href: '/api/launch?tool=ringchannel&to=automessages', uses: 'Standard · CM · PD · EA/PA · Medsum and Demand',
-          desc: 'The firm\'s automated messaging, on ☎ LSH Voice (it opens there, already signed in): an automation texts a client — an appointment reminder, the intake auto-responder, a records chaser, a settlement-check notice — the client texts back, and you take the thread from there. The automation keeps sending on its own schedule whether or not you have replied, so you are answering a conversation that is already moving: read what has landed, verify before you share, keep advice and figures off text, and leave the client with a clear next step. The case files are in 🔎 Case lookup and the firm\'s texting policy is beside the thread. Practice, or take it graded: scored on the Client Messaging Metrics, and it counts in your course.' },
-        { id: 'calsim', icon: '📆', title: 'Calendaring Sims', status: 'live', href: '/simulators/calsim.html', uses: 'Foundational · CM · EA/PA',
-          desc: 'All the calendaring practice in one place: the Google Calendar Sim for each program. 🎓 Standard Training (Foundational · Calendar Management), ⚖️ Litigation Week (Case Management) and 🏢 Executive Week (EA / PA). Callers ask for appointments: book them on the attorney\'s (or executive\'s) calendar under the rules, with the right title, description, Google Meet for video calls and an email reminder a day before, move or cancel what they ask, then check your calendar. Scores are saved for your trainer.' },
-        { id: 'email', icon: '✉️', title: 'Email Sims', status: 'live', href: '/simulators/email.html', uses: 'All programs · CM',
-          desc: 'All the email practice in one place: the ✉️ Email Workspace, a Gmail-style practice inbox (a ready-made CM or EA/PA inbox, or one for any program) to triage, label, reply, forward and report phishing, and ✍️ Email Replies, one email at a time answered like at work (an upset client, an adjuster, a lien letter, your attorney, a phishing attempt), here or from your own inbox. Scored on filing, security, triage and writing, with a model reply.' },
-        { id: 'docket', icon: '⚖️', title: 'Docket System', status: 'live', href: '/simulators/docket.html', uses: 'CM · Litigation · all programs',
-          desc: 'Law-firm docketing. Court notices and mail arrive in an inbox: put what belongs on the court docket there and calendar every deadline it triggers, counted under federal (FRCP 6) or state rules, with a responsible attorney and reminders. Federal-style docket reports for every case, a firm calendar and a rules-based deadline calculator.' },
-        { id: 'records', icon: '🗂', title: 'Medical Records Requests', status: 'live', href: '/simulators/records.html', uses: 'CM · Medsum and Demand',
-          desc: 'A medical records request platform on the John Doe file. Check the HIPAA authorization, request records and itemized bills from the right departments for the right dates, and move the calendar forward. Handle what comes back: rejections, invoices over the fee cap, silence, partial ledgers and providers hiding in the records. Scored against the attorney\'s objectives.' },
-        { id: 'drafting', icon: '✍️', title: 'Drafting', status: 'live', href: '/simulators/drafting.html', uses: 'Standard Foundational · CM',
-          desc: 'Draft the firm\'s letters in the firm\'s own templates: the 1P Letter of Representation to the client\'s carrier and the 3P letter with affidavit to the defendant\'s. The page shows the letter the way Word has it — the firm\'s wording is fixed, and the blanks it highlighted in yellow are yours to fill, from the case notes beside you. The download is that same Word file with your answers written into it, letterhead and logo included, named the way the trainers ask, ready to upload to SA.' },
-        { id: 'packet', icon: '📚', title: 'Demand Packets & Binders', status: 'live', gated: true, href: '/simulators/demand-packet.html', uses: 'CM · Medsum and Demand · Litigation',
-          desc: 'Put the full packet together as one PDF, the way the firm sends it: the cover letter, the index, the demand letter, the PIP log, the medical bills and the medical records — or a mediation or arbitration binder with numbered tabs. Add as many PDFs (and scans or photos) as each section needs; the page writes the cover letter and the PIP log from the case, numbers every page, stamps the Bates numbers, bookmarks every section and builds the index with each document\'s real page and Bates range. Check it the way the firm does before it leaves, and send it to your trainer.' },
-        { id: 'drive', icon: '📂', title: 'Backup Drive', status: 'live', href: '/simulators/drive.html', uses: 'CM · all programs',
-          desc: 'The firm\'s backup drive, on your own Google Drive: connect it once, then lay the firm\'s case-file folder structure out yourself — the client folder, intake and retainer, records apart from bills, liens, property damage, litigation, and the firm\'s own folders, named, nested and in order. It is graded automatically, folder by folder, with the rule behind every folder you miss, and the score is saved for your trainer. A layout that is right is built in your Drive; ↻ Check my drive and 🔁 Put the missing folders back keep it in order.' },
+        { id: 'call', icon: '📞', title: 'Call Sim', status: 'live', href: '/api/launch?tool=ringchannel&to=calls', uses: 'All programs',
+          desc: 'Answer phone calls on ☎ LSH Voice with an AI caller: practice, or a graded call.' },
+        { id: 'messaging', icon: '💬', title: 'Client Messaging', status: 'live', href: '/api/launch?tool=ringchannel&to=messages', uses: 'CM · PD · EA/PA · Medsum',
+          desc: 'Text clients from their case file on ☎ LSH Voice, under the firm\'s texting policy.' },
+        { id: 'automessaging', icon: '🤖', title: 'Automated Messaging', status: 'live', href: '/api/launch?tool=ringchannel&to=automessages', uses: 'CM · PD · EA/PA · Medsum',
+          desc: 'Pick up client threads the firm\'s automated reminders and notices started.' },
+        { id: 'calsim', icon: '📆', title: 'Calendaring Sims', status: 'live', href: '/simulators/calsim.html', uses: 'Standard · CM · EA/PA',
+          desc: 'Book, move and cancel appointments on the attorney\'s calendar by the rules.' },
+        { id: 'email', icon: '✉️', title: 'Email Sims', status: 'live', href: '/simulators/email.html', uses: 'All programs',
+          desc: 'Triage a Gmail-style inbox, or answer one work email at a time with a model reply.' },
+        { id: 'docket', icon: '⚖️', title: 'Docket System', status: 'live', href: '/simulators/docket.html', uses: 'CM · Litigation',
+          desc: 'Docket court notices and calendar every deadline under federal or state rules.' },
+        { id: 'records', icon: '🗂', title: 'Medical Records Requests', status: 'live', href: '/simulators/records.html', uses: 'CM · Medsum',
+          desc: 'Request records and bills on the John Doe file and handle what comes back.' },
+        { id: 'drafting', icon: '✍️', title: 'Drafting', status: 'live', href: '/simulators/drafting.html', uses: 'Standard · CM',
+          desc: 'Fill the firm\'s 1P and 3P letter templates and download the finished Word file.' },
+        { id: 'packet', icon: '📚', title: 'Demand Packets & Binders', status: 'live', gated: true, href: '/simulators/demand-packet.html', uses: 'CM · Medsum · Litigation',
+          desc: 'Build the demand packet or binder as one Bates-stamped, indexed PDF.' },
+        { id: 'drive', icon: '📂', title: 'Backup Drive', status: 'live', href: '/simulators/drive.html', uses: 'All programs',
+          desc: 'Lay out the firm\'s case-file folders on your Google Drive, graded folder by folder.' },
         { id: 'efiling', icon: '🏛', title: 'Court E-Filing', status: 'live', href: '/simulators/efiling.html', uses: 'CM · Litigation',
-          desc: 'File like US courts require: a federal filing through electronic case filing (event, case, filer, linked entry, attachments, docket text) and state filings through an e-filing provider (filing code, parties, service contacts, fees). Fix the documents first: OCR, signatures, certificates of service, redaction, size limits, passwords. Then submit and see if the clerk accepts it.' }
+          desc: 'Fix the filing documents, then e-file in federal or state court.' }
     ];
     // 📚 Demand Packets & Binders is for Case Management and Medsum and Demand only (Sim.packetAccess, the same rule the page
     // itself and Drafting's tab use): grayed out until that is known, and for everyone else (Standard Foundational Training).
@@ -120,8 +127,30 @@
             </div>`).join('');
     }
 
+    // 📈 Your results: a signed-in trainee's come from their account (every device), a visitor's from this browser; administrators
+    // see everyone's on the Portal's own pages, so the panel is not shown to them.
+    let MY_RESULTS = null;
+    async function showMyResults(all) {
+        const box = document.getElementById('my-results');
+        if (Sim.isAdmin()) { box.hidden = true; return; }
+        if (!MY_RESULTS) { try { MY_RESULTS = await Sim.results(); } catch (e) { MY_RESULTS = { results: Sim.localHistory(), offline: true }; } }
+        const rows = (MY_RESULTS.results || []).filter(r => r && r.simulator);
+        if (!rows.length) { box.hidden = true; return; }
+        const shown = all ? rows : rows.slice(0, 10);
+        document.getElementById('my-results-rows').innerHTML = shown.map(r => `<tr>
+            <td style="padding:6px 8px;white-space:nowrap;">${Sim.esc(Sim.fmtDate(r.created_at))}</td><td style="padding:6px 8px;">${Sim.esc(r.simulator)}</td>
+            <td style="padding:6px 8px;">${Sim.esc(r.scenario || '')}</td><td style="padding:6px 8px;text-align:right;">${Sim.scoreChip(r.score == null ? null : Number(r.score))}</td></tr>`).join('');
+        const signedIn = !!Sim.session().userType;
+        document.getElementById('my-results-note').textContent = (signedIn
+            ? (MY_RESULTS.offline ? 'Your account\'s results couldn\'t be loaded just now, so this is what this browser kept.' : 'Every result saved to your account, from any device, newest first.')
+            : 'Kept in this browser only: sign in on the Portal to keep your results on your account.') + ` ${rows.length} in all.`;
+        const more = document.getElementById('my-results-more');
+        more.hidden = all || rows.length <= 10; more.textContent = `Show all ${rows.length}`;
+        box.hidden = false;
+    }
+
     // A new tab has the signed cookie but no copy of who in its own storage: ask first, so an admin gets the admin hub, and the heartbeat runs.
-    document.addEventListener('DOMContentLoaded', async () => { await Sim.restore(); renderHub(); PACKET_OK = await Sim.packetAccess(); if (PACKET_OK) renderHub(); });
+    document.addEventListener('DOMContentLoaded', async () => { await Sim.restore(); renderHub(); showMyResults(false); PACKET_OK = await Sim.packetAccess(); if (PACKET_OK) renderHub(); });
 </script>
 </body>
 </html>
