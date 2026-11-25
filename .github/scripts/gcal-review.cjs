@@ -145,6 +145,17 @@ const server = http.createServer((req, res) => {
     await page.click('[data-a="nav"][data-d="1"]').catch(() => {});
     const evs = await page.evaluate(() => [...document.querySelectorAll('.ev')].map(e => e.textContent));
     if (!evs.some(x => /Maria Santos/.test(x))) fail('the trainee\'s booking isn\'t on the calendar: ' + JSON.stringify(evs.slice(0, 5)));
+    // 👁 the trainee's event, opened: every field it holds, set or not (time, time zones, color, calendar, location, guests, notifications, notes)
+    await page.click('.ev:has-text("Maria Santos")').catch(() => {}); await page.waitForSelector('.gc-pop', { timeout: 3000 }).catch(() => {});
+    { const pop = await page.textContent('.gc-pop').catch(() => '');
+        if (!/What the trainee entered/.test(pop) || !/Event time zone:/.test(pop) || !/Color:/.test(pop) || !/Guests:/.test(pop) || !/Notifications:/.test(pop) || !/Location:/.test(pop)) fail('the trainee\'s event card doesn\'t show everything they entered: ' + pop.slice(0, 400));
+        await page.click('.gc-pop [data-a="pop-x"]').catch(() => {}); }
+    // 📋 everything they entered, below the calendar: every field of each of their events, and 👁 Show opens it on the calendar
+    { const tx = await page.textContent('#tv-entered').catch(() => '');
+        if (!/Everything they entered \(1 event\)/.test(tx) || !/Maria Santos/.test(tx) || !/Eastern Time/.test(tx) || !/1 day before, as email/.test(tx) || !/Google Meet/.test(tx)) fail('the trainer\'s list of everything the trainee entered is missing or incomplete: ' + tx.slice(0, 400));
+        await page.click('#tv-entered [data-a="tv-show"]').catch(() => fail('no 👁 Show on the list')); await page.waitForTimeout(300);
+        if (!/Maria Santos/.test(await page.textContent('.gc-pop').catch(() => ''))) fail('👁 Show didn\'t open the event on the calendar');
+        await page.click('.gc-pop [data-a="pop-x"]').catch(() => {}); }
     const metrics = await page.$$eval('.csc-form tbody tr', trs => trs.map(tr => tr.cells[0].textContent));
     if (metrics.length !== 9 || metrics[0] !== 'Professional Introduction & Call Control' || metrics[6] !== 'Notes, Recap & Call Closing' || metrics[7] !== 'Tools Utilization' || metrics[8] !== 'WEIGHTED AVERAGE') fail('the scorecard isn\'t the CALENDAR MANAGEMENT MOCK CALL sheet: ' + JSON.stringify(metrics));
     // the calendar check sits beside the trainer's scores on the same metrics; 🤖 Fill puts its scores in the blank metrics the calendar shows
