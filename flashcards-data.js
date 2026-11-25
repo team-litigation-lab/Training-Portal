@@ -68,5 +68,8 @@
     const day = () => Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
     // today's digest: one card from each deck
     const today = (d = day()) => DECKS.map((deck, i) => ({ deck, i: (d + i * 3) % deck.cards.length }));
-    window.LSH_FLASHCARDS = { DECKS, day, today };
+    // the card of the day on the LSH Academy Index: one card, from the next deck in turn each day
+    // (Rules, Trivia, Terminologies, Process, FAQs, then Rules again), the same card that deck shows in today's digest
+    const one = (d = day()) => today(d)[d % DECKS.length];
+    window.LSH_FLASHCARDS = { DECKS, day, today, one };
 })();

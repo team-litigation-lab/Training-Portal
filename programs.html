@@ -139,10 +139,9 @@
     .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
     .topic-action-btn.request { background: var(--orange); color: #0f172a; }
     .topic-action-btn.disabled { background: #f1f5f9; color: #334155; cursor: default; }
-    /* 🃏 Flash Cards: the card itself shows today's flash cards (no buttons). It spans the status and action row,
-       turns through the five decks on its own, flips to the answer on a click or Enter (and stays there until clicked
-       again), and pauses while the pointer or focus is on it. A new set every day (flashcards-data.js). */
-    .tool-card .fc-mini { grid-column: 1 / -1; grid-row: 2; position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+    /* 🃏 Flash Cards: the card itself shows the day's one flash card (no buttons). It spans the status and action
+       row and flips to the answer on a click or Enter (and back again). A new card every day (flashcards-data.js). */
+    .tool-card .fc-mini { grid-column: 1 / -1; grid-row: 2; position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr);
         align-items: center; gap: 4px 10px; min-height: 0; padding: 5px 10px; border-radius: 10px; cursor: pointer; text-align: left;
         background: #fff; color: var(--navy-deep); border: 2px solid var(--navy-deep); box-shadow: inset 4px 0 0 var(--orange); transition: background .25s ease, color .25s ease; }
     .tool-card .fc-mini:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
@@ -155,9 +154,6 @@
     .fc-mini.flip .fc-mini-text { font-weight: 600; }
     .fc-mini-text.in { animation: fcMiniIn .45s ease; }
     @keyframes fcMiniIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-    .fc-mini-dots { display: flex; gap: 4px; }
-    .fc-mini-dots i { width: 6px; height: 6px; border-radius: 50%; background: #cbd5e1; }
-    .fc-mini-dots i.on { background: var(--orange); box-shadow: 0 0 6px rgba(249,115,22,.8); }
     @media (prefers-reduced-motion: reduce) { .fc-mini-text.in { animation: none; } .tool-card .fc-mini { transition: none; } }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
@@ -457,40 +453,32 @@
         { key: 'FLASH CARDS', name: 'Flash Cards', sort_order: 0 }
     ];
     // Portal pages anyone can open from a card, with no access request: they live on this site.
-    // 🃏 Flash Cards: the Daily Digest (decks in flashcards-data.js), shown live on its own card; flashcards.html has the full page.
+    // 🃏 Flash Cards: one flash card a day on its own card (decks in flashcards-data.js); flashcards.html has the full digest.
     const PORTAL_TOOLS = { 'FLASH CARDS': '/flashcards.html' };
     const toolCard = (t) => `
                 <div class="topic-card tool-card">
                     <h3>${escapeHtml(t.name)} <span class="topic-free">Daily</span></h3>
-                    <div class="fc-mini" role="button" tabindex="0" aria-live="polite" title="Today's flash cards: click to flip">
-                        <span class="fc-mini-deck"></span><span class="fc-mini-text"></span><span class="fc-mini-dots" aria-hidden="true"></span>
+                    <div class="fc-mini" role="button" tabindex="0" aria-live="polite" aria-pressed="false" title="Today's flash card: click to flip">
+                        <span class="fc-mini-deck"></span><span class="fc-mini-text"></span>
                     </div>
                 </div>`;
-    // 🃏 The Flash Cards card plays today's digest by itself: one card from each deck in turn, every 7 seconds.
-    let __fcTimer = null;
+    // 🃏 The Flash Cards card shows one flash card a day (flashcards-data.js one()); a click or Enter flips it to the answer.
     function startFlashCards() {
-        if (__fcTimer) { clearInterval(__fcTimer); __fcTimer = null; }
         const box = document.querySelector('.tool-card .fc-mini'), F = window.LSH_FLASHCARDS;
-        if (!box || !F) return;
-        const cards = F.today(), deckEl = box.querySelector('.fc-mini-deck'), textEl = box.querySelector('.fc-mini-text'), dotsEl = box.querySelector('.fc-mini-dots');
-        let n = 0, held = false;
+        if (!box || !F || box.dataset.ready) return;
+        box.dataset.ready = '1';
+        const { deck, i } = F.one(), [q, a] = deck.cards[i], deckEl = box.querySelector('.fc-mini-deck'), textEl = box.querySelector('.fc-mini-text');
         const show = () => {
-            const { deck, i } = cards[n], [q, a] = deck.cards[i], back = box.classList.contains('flip');
+            const back = box.classList.contains('flip');
             deckEl.innerHTML = escapeHtml(deck.icon) + '<b>' + escapeHtml(' ' + deck.label) + '</b>'; deckEl.title = deck.label + (back ? ': the answer' : '');
             textEl.textContent = back ? a : q; box.title = (back ? a : q) + (back ? '\n\nClick to see the question' : '\n\nClick for the answer');
+            box.setAttribute('aria-pressed', back ? 'true' : 'false');
             textEl.classList.remove('in'); void textEl.offsetWidth; textEl.classList.add('in');
-            dotsEl.innerHTML = cards.map((_, k) => `<i class="${k === n ? 'on' : ''}"></i>`).join('');
         };
         const flip = () => { box.classList.toggle('flip'); show(); };
         box.addEventListener('click', flip);
-        box.addEventListener('keydown', (ev) => {
-            if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); flip(); }
-            else if (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') { ev.preventDefault(); box.classList.remove('flip'); n = (n + (ev.key === 'ArrowRight' ? 1 : cards.length - 1)) % cards.length; show(); }
-        });
-        ['mouseenter', 'focusin'].forEach(e => box.addEventListener(e, () => { held = true; }));
-        ['mouseleave', 'focusout'].forEach(e => box.addEventListener(e, () => { held = false; }));
+        box.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); flip(); } });
         show();
-        __fcTimer = setInterval(() => { if (held || box.classList.contains('flip') || document.hidden) return; n = (n + 1) % cards.length; show(); }, 7000);
     }
     // Shown first on the index, ahead of the progression, with a "Free" badge.
     const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
