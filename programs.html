@@ -139,6 +139,10 @@
     .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
     .topic-action-btn.request { background: var(--orange); color: #0f172a; }
     .topic-action-btn.disabled { background: #f1f5f9; color: #334155; cursor: default; }
+    /* 🃏 Flash Cards: one pill per Daily Digest deck instead of a single button */
+    .topic-action-btn.digest { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; padding: 4px; background: #eef2ff; cursor: default; }
+    .topic-action-btn.digest a { flex: 1 1 auto; padding: 4px 6px; border-radius: 999px; background: var(--navy); color: var(--orange); text-decoration: none; font-size: .86em; white-space: nowrap; }
+    .topic-action-btn.digest a:hover, .topic-action-btn.digest a:focus-visible { background: var(--orange); color: #0f172a; }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
     .sim-banner-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
@@ -383,7 +387,10 @@
         'IMMIGRATION LAW': 'Immigration Law Track',
         'INTELLECTUAL PROPERTY LAW': 'Intellectual Property Law Track',
         'REAL ESTATE LAW': 'Real Estate Law Track',
-        'FREE UPSKILL PROGRAMS': 'Free Upskill Track'
+        'FREE UPSKILL PROGRAMS': 'Free Upskill Track',
+        'SETTLEMENTS CLOSING': 'Settlements / Closing Specialist Track',
+        'CLIENT INTERVIEW PREP': 'Client Interview Prep',
+        'FLASH CARDS': 'Flash Cards'
     };
 
     // Programs shown on the index that aren't in the live topics table yet.
@@ -393,8 +400,21 @@
     // Give it a BUILT_PROGRAMS link once it has its own site.
     const EXTRA_PROGRAMS = [
         { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Track', sort_order: 0 },
-        { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Track', sort_order: 13 }
+        { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Track', sort_order: 13 },
+        { key: 'SETTLEMENTS CLOSING', name: 'Settlements / Closing Specialist Track', sort_order: 13 },
+        { key: 'CLIENT INTERVIEW PREP', name: 'Client Interview Prep', sort_order: 0 },
+        { key: 'FLASH CARDS', name: 'Flash Cards', sort_order: 0 }
     ];
+    // Portal pages anyone can open from a card, with no access request: they live on this site.
+    // 🃏 Flash Cards: the Daily Digest (flashcards.html), one card a day from each deck; the deck links jump straight to it.
+    const PORTAL_TOOLS = { 'FLASH CARDS': '/flashcards.html' };
+    const DIGEST_DECKS = [['rules', 'Rules'], ['trivia', 'Trivia'], ['terms', 'Terminologies'], ['process', 'Process'], ['faqs', 'FAQs']];
+    const toolCard = (t) => `
+                <div class="topic-card tool-card">
+                    <h3>${escapeHtml(t.name)} <span class="topic-free">Daily</span></h3>
+                    <span class="topic-status approved">Daily Digest</span>
+                    <span class="topic-action-btn digest">${DIGEST_DECKS.map(([id, label]) => `<a href="${PORTAL_TOOLS[t.key]}#${id}" title="Today's ${label} card">${label}</a>`).join('')}</span>
+                </div>`;
     // Shown first on the index, ahead of the progression, with a "Free" badge.
     const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
 
@@ -407,7 +427,7 @@
         'STANDARD TRAINING', 'LITIGATION', 'MEDSUM AND DEMAND', 'CM TRAINING',
         'EA  PA TRAINING-OUTSOURCED MANP', 'REVISED EA PA TRAINING', 'REVISED CM TRAINING',
         'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW',
-        'HEALTH SUBRO', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'LIEN VERIFICATION', 'LIEN NEGOTIATION',
+        'HEALTH SUBRO', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'LIEN VERIFICATION', 'LIEN NEGOTIATION', 'SETTLEMENTS CLOSING',
         'MASS TORT', 'PROPERTY DAMAGE', 'REAL ESTATE LAW'
     ];
 
@@ -565,6 +585,7 @@
         const isAdmin = session.userType === 'Admin';
 
         const cardFor = (t) => {
+            if (PORTAL_TOOLS[t.key]) return toolCard(t);
             const built = BUILT_PROGRAMS[t.key];
             const myAccess = isAdmin ? null : __accessCache.find(a => a.topic_key === t.key);
             const status = isAdmin ? 'approved' : (myAccess ? myAccess.status.toLowerCase() : 'locked');
@@ -613,15 +634,15 @@
     // The cards are grouped by practice area: everything personal injury is in one place.
     const TOPIC_GROUPS = [
         { title: 'Personal Injury Playbooks', note: '',
-          keys: ['STANDARD TRAINING', 'LIEN NEGOTIATION', 'MEDSUM AND DEMAND', 'CM TRAINING', 'PROPERTY DAMAGE', 'HEALTH SUBRO', 'LIEN VERIFICATION'] },
+          keys: ['STANDARD TRAINING', 'LIEN NEGOTIATION', 'MEDSUM AND DEMAND', 'CM TRAINING', 'PROPERTY DAMAGE', 'HEALTH SUBRO', 'LIEN VERIFICATION', 'SETTLEMENTS CLOSING'] },
         { title: 'Specialized Playbooks', note: '',
           keys: ['LITIGATION', 'MASS TORT', 'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'REAL ESTATE LAW'] },
         { title: 'Support & Upskill', note: '',
-          keys: ['EA  PA TRAINING-OUTSOURCED MANP', 'FREE UPSKILL PROGRAMS'] }
+          keys: ['EA  PA TRAINING-OUTSOURCED MANP', 'FREE UPSKILL PROGRAMS', 'CLIENT INTERVIEW PREP', 'FLASH CARDS'] }
     ];
     // How many across, so a group's last row is not a stub. Four is the default
     // and the widest the cards look right at; three when the count divides by
-    // three and not by four. Personal Injury Playbooks' seven reads 4 + 3;
+    // three and not by four. Personal Injury Playbooks' eight reads 4 + 4;
     // Specialized Playbooks' eight stays 4 + 4.
     const columnsFor = (n) => (n % 4 === 0 ? 4 : n % 3 === 0 ? 3 : 4);
 

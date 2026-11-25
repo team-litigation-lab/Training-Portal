@@ -10,7 +10,7 @@ const ADMIN_PAGES = [/^\/(core|attendance|progress|referrals|system)(\.html)?\/?
     /^\/simulators\/drafting\/trainers\//i];
 // LSH Academy Index is for signed-in people: a visitor who opens it (or presses "Access LSH Academy Index" on the main
 // page) is sent to the trainee sign-in, and comes back here once signed in. The main page itself stays public.
-const MEMBER_PAGES = [/^\/programs(\.html)?\/?$/i];
+const MEMBER_PAGES = [/^\/programs(\.html)?\/?$/i, /^\/flashcards(\.html)?\/?$/i];   // 🃏 Flash Cards (Daily Digest) too
 const PROTECTED = [/^\/simulators(\.html)?\/?$/i, /^\/simulators\//i];
 // The Call Simulator is LSH Ring Channel's (the training phone itself): a link to the Portal's opens it there, through the
 // Portal's sign-in (/api/launch?tool=ringchannel&to=calls), on the line the link names and with a graded call ringing at
