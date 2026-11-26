@@ -19,11 +19,12 @@
         { g: 'people', id: 'people', icon: '👥', name: 'People & Access', go: { fn: 'openPeople' },
           stat: () => { const a = Number((document.getElementById('admin-stat-pending') || {}).textContent) || 0, b = Number((document.getElementById('access-req-badge-side') || {}).textContent) || 0;
               return a + b ? `<b style="color:#c2410c">${a + b} waiting</b>` : count('admin-stat-total-users', 'accounts'); },
-          what: 'Log-in approvals, who can open which program (with access requests), and every account: one place, two tabs.',
+          what: 'The dashboard, log-in approvals, who can open which program (with access requests) and every account, and the site lock and admin password check: one place, four tabs.',
           steps: ['📝 Log-in Approvals: new sign-ups. Check the name, email and Onboarding Day, then Approve (the Batch ID is issued) or Deny. + Create account is at the top right.',
                   '🔑 Program Access & Accounts: 🙋 Access Requests are trainees waiting for a program or tool: Approve or Deny.',
                   'Search a trainee, then Grant, ⏸ Suspend (nothing removed), ▶ Restore or Revoke one program.',
-                  '👥 Accounts (at the foot of the same tab): Edit, Suspend, Restore or Revoke a whole account; Revoke takes them out of every program.'] },
+                  '👥 Accounts (at the foot of the same tab): Edit, Suspend, Restore or Revoke a whole account; Revoke takes them out of every program.',
+                  '🔒 Site Lock & Admin Password (the fourth tab): pause or lock the whole site (🔒 Open Access Control), and check that every platform accepts the admin password.'] },
         // (hidden: the three panels People & Access opens. Not rows of their own any more; they name each panel's bar and its ⓘ How to use)
         { g: 'people', id: 'registrations', hidden: true, icon: '📝', name: 'Log-in Approvals', go: { mc: 'registrations' }, stat: () => count('admin-stat-pending', 'waiting', true),
           what: 'New sign-ups waiting. Approving issues the Batch ID and moves the account to Users.',
@@ -35,7 +36,7 @@
         { g: 'people', id: 'users', hidden: true, icon: '👥', name: 'Users & Accounts', go: { mc: 'users' }, stat: () => count('admin-stat-total-users', 'accounts'),
           what: 'Whole accounts: edit details, suspend, restore or revoke.',
           steps: ['Trainers are listed first, then one table per batch (click a batch to open it).', 'Edit changes Batch ID, name, email, username or password.', 'Suspend blocks sign-in for now; Restore undoes it.', 'Revoke removes the trainee from every program (records are filed to the batch folder first).'] },
-        { g: 'people', id: 'access', icon: '🔒', name: 'Site Lock & Admin Password', go: { mc: 'access' }, stat: () => [text('ov-lock-state', ''), text('ov-pause-state', '')].filter(Boolean).join(' · '),
+        { g: 'people', id: 'access', hidden: true, icon: '🔒', name: 'Site Lock & Admin Password', go: { mc: 'access' }, stat: () => [text('ov-lock-state', ''), text('ov-pause-state', '')].filter(Boolean).join(' · '),
           what: 'Pause activity or lock the whole site (Master Account only for Lock), and check that every platform accepts the admin password.',
           steps: ['Open Site Lock & Admin Password, then 🔒 Open Access Control.', 'Pause stops activity for everyone; Resume brings it back.', 'Lock closes the site (Master Account only); Unlock opens it.',
                   '🔐 Admin password check (same panel): type the admin password once and press Check every platform. Any platform marked INCORRECT or NOT SET needs its MASTER_ADMIN_PASSWORD set to the same value.'] },
