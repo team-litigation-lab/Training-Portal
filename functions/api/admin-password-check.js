@@ -6,6 +6,7 @@ import { controlRoomPage } from '../_control-room.js';
 //
 // GET  /api/admin-password-check   a page with one password box
 // POST /api/admin-password-check   password=…  → the same page with a line per platform
+// POST …?format=json                → { success, rows: [{ name, url, state, tone, note }] } (Master Control's Site Lock & Admin Password panel)
 //
 // An admin types the Portal's admin password (MASTER_ADMIN_PASSWORD) once. This sends it, server to server over HTTPS, to each
 // platform's own admin sign-in and lists what each said:
@@ -60,7 +61,12 @@ export async function onRequestPost({ request, env }) {
     if (origin && new URL(origin).host !== new URL(request.url).host) return new Response('Cross-site request refused.', { status: 403 });
     const form = await request.formData().catch(() => null);
     const password = String((form && form.get('password')) || '').trim();
-    if (!password) return html(page([], 'Type the admin password first.'));
+    const asJson = new URL(request.url).searchParams.get('format') === 'json';
+    const out = (rows, msg) => asJson
+        ? new Response(JSON.stringify({ success: !msg, error: msg || undefined, rows: rows.map(r => ({ name: r.name, url: r.url, state: r.v[0], tone: r.v[1], note: r.v[2] })) }),
+            { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } })
+        : html(page(rows, msg));
+    if (!password) return out([], 'Type the admin password first.');
 
     const rows = [];
     // this Portal
@@ -83,5 +89,5 @@ export async function onRequestPost({ request, env }) {
         return { name: 'LSH Atlas', url, v: verdict(r, x => x.status === 200 && x.body && x.body.success, []) };
     })());
     rows.push(...await Promise.all(jobs));
-    return html(page(rows, ''));
+    return out(rows, '');
 }

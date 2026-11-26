@@ -24,6 +24,12 @@
        overflow: hidden, so it used to push the dashboard off the right edge with no way to scroll to it. It wraps instead:
        the announcement takes its own line, the clock and time-zone picker (the computer's clock is on the phone already) go.
        (From 1080px down: the bar's own contents, with a long name, fit in one 38px line down to about 1040px; above that it stays one line.) */
+    /* 📢 The announcement fills the bar's free width (as on LSH Academy Index), in the bold sans type, not a narrow box of mono */
+    #classification-bar .top-bar-right { flex: 1 1 auto; min-width: 0; }
+    #classification-bar .top-ticker-mini { flex: 1 1 auto; max-width: none; min-width: 0; }
+    #classification-bar .top-ticker-mini .ticker-viewport { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+    #classification-bar .top-ticker-mini, #classification-bar .top-ticker-mini #ticker-text, #classification-bar .top-clock, #classification-bar .top-user-name, #classification-bar .top-user-role { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+    #classification-bar .top-ticker-mini #ticker-text { font-size: 13.5px; font-weight: 800; letter-spacing: .01em; }
     @media (max-width: 1080px) {
         #classification-bar .top-bar-right { flex-wrap: wrap; justify-content: flex-end; gap: 8px 14px; min-width: 0; max-width: 100%; }
         #classification-bar .top-ticker-mini { flex: 1 1 100%; max-width: 100%; min-width: 0; order: 9; }
@@ -130,8 +136,9 @@
             <!-- ?stay=1: functions/_middleware.js sends a signed-in person who asks
                  for /index.html on to /programs.html, so without it this button would
                  land an admin back on LSH Academy Index, not the landing page. -->
-            <a href="/index.html?stay=1" style="font-size:11.5px; font-weight:700; text-decoration:none; white-space:nowrap;" title="The LSH Nexus landing page">&#127968; Main Portal</a>
-            <a href="/programs.html" style="font-size:11.5px; font-weight:700; text-decoration:none; white-space:nowrap;" title="Back to all programs">&larr; LSH Academy Index</a>
+            <!-- the bar's links as orange pills (portal-nav.js .pn-pill: a white frame, orange words), as on every admin bar -->
+            <a href="/index.html?stay=1" class="pn-pill" style="white-space:nowrap;" title="The LSH Nexus landing page">&#127968; Main Portal</a>
+            <a href="/programs.html" class="pn-pill" style="white-space:nowrap;" title="Back to all programs">&larr; LSH Academy Index</a>
             <div class="top-user">
                 <div class="top-user-avatar" id="top-user-avatar">--</div>
                 <div>
@@ -147,7 +154,7 @@
         <!-- TRAINEE SIDEBAR -->
         <aside id="sidebar-trainee" class="no-print custom-sidebar-panel hidden" style="width:280px; background:var(--navy-deep); color:white; flex-direction:column; border-right:1px solid #0d1c3d;">
             <div id="sidebar-header" style="padding:24px 26px 22px; border-bottom:1px solid #0d1c3d; display:flex; flex-direction:column; gap:14px; align-items:center; text-align:center;">
-                <div id="agency-seal" style="width:88px; height:88px; border-radius:0; padding:6px; box-sizing:border-box; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#fff;"></div>
+                <div id="agency-seal" style="width:132px; height:82px; border-radius:0; padding:0; box-sizing:border-box; overflow:hidden; display:flex; align-items:center; justify-content:center; background:transparent;"></div>
                 <div>
                     <h1 class="font-black text-white leading-tight uppercase tracking-tight serif" style="font-size:20px; margin:0;">Legal Support Help</h1>
                     <div class="text-orange-500 mono" style="font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; margin-top:4px;">Trainee Workspace</div>
@@ -165,7 +172,7 @@
         <!-- ADMIN SIDEBAR -->
         <aside id="sidebar-admin" class="no-print custom-sidebar-panel hidden" style="width:280px; background:var(--navy-deep); color:white; flex-direction:column; border-right:1px solid #0d1c3d;">
             <div id="sidebar-header-admin" style="padding:24px 26px 22px; border-bottom:1px solid #0d1c3d; display:flex; flex-direction:column; gap:14px; align-items:center; text-align:center;">
-                <div id="agency-seal-admin" style="width:88px; height:88px; border-radius:0; padding:6px; box-sizing:border-box; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#fff;"></div>
+                <div id="agency-seal-admin" style="width:132px; height:82px; border-radius:0; padding:0; box-sizing:border-box; overflow:hidden; display:flex; align-items:center; justify-content:center; background:transparent;"></div>
                 <div>
                     <h1 class="font-black text-white leading-tight uppercase tracking-tight serif" style="font-size:20px; margin:0;">Legal Support Help</h1>
                     <div class="text-red-500 mono" style="font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; margin-top:4px;">Admin Control Portal</div>
@@ -181,13 +188,11 @@
                 <button onclick="openPeople()" class="side-nav-btn mc-nav-btn" data-mc="people" title="Log-in approvals, program access and access requests, and accounts: one place, three tabs"><span>👥</span> People &amp; Access <span id="reg-pending-badge-side" class="admin-nav-badge"></span><span id="access-req-badge-side" class="admin-nav-badge"></span></button>
                 <a class="side-nav-btn" href="/referrals.html" style="text-decoration:none" title="People referred from the home page, with their CVs"><span>🤝</span> Referrals</a>
                 <div class="admin-nav-group">2 · Grading &amp; Progress</div>
-                <button onclick="switchView('admin-grades')" class="side-nav-btn active view-nav-btn" id="nav-admin-grades" title="Grade submissions, then release the grades to trainees"><span>📊</span> Check &amp; Release Grades</button>
+                <button onclick="switchView('admin-grades')" class="side-nav-btn active view-nav-btn" id="nav-admin-grades" title="Every grader’s scores across every program, in one report"><span>📊</span> Grades Report</button>
                 <a class="side-nav-btn" href="/progress.html" style="text-decoration:none" title="Every trainee's progress and feedback in every program"><span>📈</span> Progress &amp; Feedback</a>
                 <a class="side-nav-btn" href="/attendance.html" style="text-decoration:none" title="Take and review attendance, batch by batch"><span>🕘</span> Attendance</a>
                 <div class="admin-nav-group">3 · Training Content</div>
                 <button onclick="switchView('admin-activities')" class="side-nav-btn view-nav-btn" id="nav-admin-activities" title="Add, publish and archive lesson decks and activities"><span>📋</span> Lesson Decks &amp; Activities</button>
-                <button onclick="switchView('admin-lectures')" class="side-nav-btn view-nav-btn" id="nav-admin-lectures" title="Embed and manage recorded lectures"><span>🎬</span> Manage Lectures</button>
-                <a class="side-nav-btn" href="/programs.html" style="text-decoration:none" title="Every program as trainees see it"><span>🎓</span> LSH Academy Index</a>
                 <a class="side-nav-btn" href="/api/launch?tool=kb" style="text-decoration:none" title="Review VA posts and manage LSH Atlas"><span>📚</span> LSH Atlas</a>
                 <div class="admin-nav-group">4 · Monitoring &amp; Comms</div>
                 <button onclick="mcGo('monitoring')" class="side-nav-btn mc-nav-btn" data-mc="monitoring" title="Who is signed in right now, and the server logs"><span>🟢</span> Who&rsquo;s Online</button>
@@ -195,8 +200,7 @@
                 <button onclick="mcGo('announce')" class="side-nav-btn mc-nav-btn" data-mc="announce" title="Ticker announcement, full-screen alert, ping"><span>📢</span> Broadcast &amp; Ping</button>
                 <a class="side-nav-btn" href="/api/ai-usage" style="text-decoration:none" title="Today's use of the shared AI budget, flow by flow"><span>🤖</span> AI Usage</a>
                 <div class="admin-nav-group">5 · System</div>
-                <button onclick="mcGo('access')" class="side-nav-btn mc-nav-btn" data-mc="access" title="Pause or lock the whole site"><span>🔒</span> Site Lock</button>
-                <a class="side-nav-btn" href="/api/admin-password-check" style="text-decoration:none" title="Does every platform accept the admin password?"><span>🔐</span> Admin Password Check</a>
+                <button onclick="mcGo('access')" class="side-nav-btn mc-nav-btn" data-mc="access" title="Pause or lock the whole site, and check every platform accepts the admin password"><span>🔒</span> Site Lock &amp; Admin Password</button>
             </div>
             <div id="session-footer-admin" style="margin:16px;"></div>
         </aside>
@@ -829,8 +833,6 @@
 
             <!-- ACCESS CONTROL (Pause vs Lock) -->
             <div class="mc-pane" id="admin-dash-program-access">
-                <div class="mc-section-title">🔑 Program Access</div>
-                <p style="font-size:16px;font-weight:600;line-height:1.6;color:#0f172a;margin-bottom:16px;">Who can open which program. <b>🙋 Access Requests</b> (at the bottom) are trainees waiting for a program or tool: <b>Approve</b> or <b>Deny</b>. Each trainee's programs: <b>Grant</b> opens one; <b>⏸ Suspend</b> pauses it (they can't open it or ask for it again; nothing of theirs is removed) and <b>▶ Restore</b> gives back what they had, Completed included; <b>Revoke</b> closes it (they can request it again). To act on a whole account, use <b>Users</b>.</p>
                 <div class="mc-section-sub">👥 Each trainee's programs, by batch · 🧑‍🏫 trainers on their own</div>
                 <input type="text" id="pa-search" placeholder="Search by name, username or batch" oninput="renderProgramAccess()" style="width:100%;max-width:460px;padding:12px 14px;border:1.5px solid #94a3b8;border-radius:8px;margin-bottom:12px;font-size:16px;font-weight:600;color:#0f172a;">
                 <div id="program-access-list"></div>
@@ -846,6 +848,16 @@
                 <div class="admin-tile">
                     <p style="font-size:11px; color:#334155; margin-bottom:14px; line-height:1.6;">Pause and Lock now live on a dedicated, server-gated page rather than here in the main dashboard — the session check happens before that page is ever sent to your browser, so this content can't be revealed by anyone without a valid admin session, even via browser dev tools.</p>
                     <a href="/access-control" class="btn-primary" style="display:inline-block;text-decoration:none;border-radius:6px;padding:10px 16px;font-size:11px;">🔒 Open Access Control &rarr;</a>
+                </div>
+                    <!-- 🔐 Admin password check (pw-check.js): does every platform accept the admin password? It was a page of its own (/api/admin-password-check, still there). -->
+                <div class="admin-tile" id="pw-check" style="margin-top:16px;">
+                    <div class="mc-section-sub">🔐 Admin password check: does every platform accept it?</div>
+                    <p style="font-size:14px;font-weight:600;color:#0f172a;margin:4px 0 10px;line-height:1.5;">Type the admin password once; each platform is asked whether it accepts it, so you can see which has a different MASTER_ADMIN_PASSWORD. Nothing is stored.</p>
+                    <form id="pw-check-form" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0;" autocomplete="off">
+                        <input type="password" id="pw-check-input" placeholder="Admin password" required style="padding:10px 12px;border-radius:10px;border:1.5px solid #94a3b8;width:280px;max-width:100%;font-size:15px;font-weight:600;">
+                        <button type="submit" class="btn-primary" id="pw-check-btn" style="padding:10px 16px;border-radius:10px;font-weight:800;">Check every platform →</button>
+                    </form>
+                    <div id="pw-check-out" style="margin-top:12px;"></div>
                 </div>
             </div>
 
@@ -1111,6 +1123,8 @@
     <script src="portal.js"></script>
     <script src="/mc-directory.js"></script>
     <script src="/people-access.js"></script>
+    <script src="/grades-report.js"></script>
+    <script src="/pw-check.js"></script>
 <script>
 // /core.html#master, #registrations, #users, #access, #access-requests, #monitoring and #announce (📢 Broadcast & Ping) open Master Control (the admin screen, not the trainee workspace) on that tab:
 // the admin bar's System Management menu (portal-nav.js) uses them.
