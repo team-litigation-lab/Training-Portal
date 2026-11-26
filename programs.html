@@ -193,10 +193,15 @@
     .topic-card.tk.still h3, .topic-card.tk.still .tk-ic, .topic-card.tk.still .tk-name,
     .tg-still .topic-card.tk h3, .tg-still .topic-card.tk .tk-ic, .tg-still .topic-card.tk .tk-name { animation: none; }
     .topic-card.tk.still .tk-name, .tg-still .topic-card.tk .tk-name { background-position: 0 0; }
-    /* 🧭 Legal VA Foundational Track, where every trainee starts: its name looks embossed, raised off the pill (a light edge above,
-       a soft shadow below), and the pill itself is gently bevelled (a highlight along its top, a shade along its foot) */
-    .topic-card.tk-ft .tk-name { filter: drop-shadow(0 -1px 0 rgba(255,255,255,.95)) drop-shadow(0 1.5px 0 rgba(30,35,64,.28)) drop-shadow(0 3px 3px rgba(30,35,64,.22)); }
-    .topic-card.tk-ft h3 { box-shadow: inset 0 2px 0 rgba(255,255,255,.95), inset 0 -3px 6px rgba(30,35,64,.12), 0 4px 10px -4px rgba(30,35,64,.35) !important; }
+    /* Every track's name looks embossed, raised off its pill (a light edge above, a soft shadow below), and the pill is gently
+       bevelled (a highlight along its top, a shade along its foot). (It was the Legal VA Foundational Track's alone.) */
+    .topic-card.tk .tk-name { filter: drop-shadow(0 -1px 0 rgba(255,255,255,.95)) drop-shadow(0 1.5px 0 rgba(30,35,64,.28)) drop-shadow(0 3px 3px rgba(30,35,64,.22)); }
+    .topic-card.tk h3, .topic-card.tk.soon h3 { box-shadow: inset 0 2px 0 rgba(255,255,255,.95), inset 0 -3px 6px rgba(30,35,64,.12), 0 4px 10px -4px rgba(30,35,64,.35) !important; }
+    /* 🎨 One colour per set of playbooks, so the Index reads calm (each track had its own): Personal Injury in LSH navy-blue,
+       Cross-Practice in deep teal, Beyond-Legal Skills in bronze. The name's ink (--tk-ink) follows from it. */
+    .tg-pi .topic-card.tk { --tk: #1d3f86 !important; }
+    .tg-cross .topic-card.tk { --tk: #0f5f66 !important; }
+    .tg-beyond .topic-card.tk { --tk: #8a4b12 !important; }
     /* ▪ The track-name pill, simplified: a plain black frame on white, no coloured border, sheen or glow (the name keeps its colour) */
     .topic-card h3, .topic-card.tk h3, .topic-card.soon h3, .topic-card.tk.soon h3 { border: 2px solid #111827; background: #fff; box-shadow: none; animation: none; }
     @media (prefers-reduced-motion: reduce) { .tk-name, .topic-card.tk.live h3, .topic-card.tk.live .tk-ic { animation: none; } .tk-name { background-position: 0 0; } }
@@ -217,7 +222,7 @@
         margin-top: auto; padding: 5px 14px; border-radius: 999px; border: none; font-weight: 700; font-size: 10.5px;
         text-transform: uppercase; letter-spacing: 0.03em; text-align: center; text-decoration: none; cursor: pointer;
     }
-    .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
+    .topic-action-btn.primary { background: var(--navy); color: #f5c451; }   /* Enter Program: navy with gold words (the Index's accents are gold) */
     .topic-action-btn.request { background: var(--orange); color: #0f172a; }
     .topic-action-btn.disabled { background: #f1f5f9; color: #334155; cursor: default; }
     /* 📬 Your Daily Digest: the Flash Cards card is one button that opens today's card in a popup (the popup's styles are below). */
@@ -227,7 +232,7 @@
     .tool-card .dd-open:hover { transform: translateY(-2px); box-shadow: inset 5px 0 0 var(--orange), 0 10px 20px -12px rgba(160,100,30,.45); }
     .tool-card .dd-open:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
     .dd-open .dd-t { font-size: clamp(13px, 1.9vh, 20px); font-weight: 900; letter-spacing: .01em; white-space: nowrap; }
-    .dd-open .dd-c { font-size: clamp(10.5px, 1.3vh, 13px); font-weight: 800; color: #0f172a; background: var(--orange); border-radius: 999px; padding: 3px 14px; white-space: nowrap; }
+    .dd-open .dd-c { font-size: clamp(10.5px, 1.3vh, 13px); font-weight: 800; color: #1E2340; background: linear-gradient(180deg, #fde7b0 0%, #f5c451 50%, #e0a43a 100%); border-radius: 999px; padding: 3px 14px; white-space: nowrap; }
     /* The popup: today's one card (flashcards-data.js one()), a daily dose rather than a stack, in the banners' elite look:
        a navy header with the gold title, the question, and the answer
        behind a gold Reveal button. */
@@ -288,8 +293,8 @@
         background: linear-gradient(180deg, #ffffff 0%, #fde7b0 45%, #f5c451 75%, #e0a43a 100%); -webkit-background-clip: text; background-clip: text;
         color: transparent; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 10px rgba(245,196,81,.30)) drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
     .sim-banner-row .sim-banner-go { font-size: 12.5px; font-weight: 900; padding: 6px 12px;
-        box-shadow: 0 0 0 0 rgba(249,115,22,.55); animation: sb-go 2.8s ease-out infinite; transition: transform .2s ease; }
-    @keyframes sb-go { 0% { box-shadow: 0 0 0 0 rgba(249,115,22,.55); } 70%, 100% { box-shadow: 0 0 0 9px rgba(249,115,22,0); } }
+        box-shadow: 0 0 0 0 rgba(224,164,58,.6); animation: sb-go 2.8s ease-out infinite; transition: transform .2s ease; }
+    @keyframes sb-go { 0% { box-shadow: 0 0 0 0 rgba(224,164,58,.6); } 70%, 100% { box-shadow: 0 0 0 9px rgba(224,164,58,0); } }
     .sim-banner-row .sim-banner-ic { font-size: 21px; box-shadow: 0 0 0 rgba(249,115,22,0); animation: sb-ic 3.2s ease-in-out infinite; }
     .sim-banner-row .sim-banner:nth-child(2) .sim-banner-ic { animation-delay: .8s; }
     .sim-banner-row .sim-banner:nth-child(3) .sim-banner-ic { animation-delay: 1.6s; }
@@ -307,7 +312,7 @@
     @media (max-width: 620px) { .sim-banner-row { grid-template-columns: 1fr; } }
     .sim-banner-ic { width: 48px; height: 48px; border-radius: 14px; background: rgba(249,115,22,.18); border: 1px solid rgba(253,186,116,.45); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
     .sim-banner-tx { flex: 1; min-width: 0; text-align: center; } .sim-banner-tx b { display: block; font-size: 16px; text-transform: uppercase; letter-spacing: .06em; } .sim-banner-tx span { font-size: 13px; color: #c7d2fe; }
-    .sim-banner-go { background: var(--orange); color: #0f172a; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 8px 16px; white-space: nowrap; }
+    .sim-banner-go { background: linear-gradient(180deg, #fde7b0 0%, #f5c451 50%, #e0a43a 100%); color: #1E2340; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 8px 16px; white-space: nowrap; }
 
     /* The top bar: the LSH logo, the page's name, and the pill bar (trainees, visitors, or the admin bar). */
     .idx-top { --brand-panel: 200px; --brand-panel-sm: 162px; position: relative; z-index: 5; gap: 20px; padding: 8px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
@@ -339,7 +344,6 @@
         #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: calc(clamp(13px, 1.95vh, 21px) + 1pt); padding: .45em 1em; line-height: 1.1; }   /* the pill's air in step with the name, so it never looks crammed */
         /* ✦ Beyond-Legal Skills, the highlight lessons: their names a size down, with room either side, so that row doesn't look crammed */
         #idx-topics .tg-beyond .topic-card h3 { font-size: calc(clamp(13px, 1.55vh, 17px) + 1pt); padding-left: 14px; padding-right: 14px; }
-        #idx-topics .topic-card.tk-ft h3 { font-size: calc(clamp(13px, 1.95vh, 21px) - 1pt); }   /* 🧭 Legal VA Foundational Track's name a little smaller than the other tracks' */
         #idx-topics .topic-action-btn { font-size: clamp(9.5px, 1.05vh, 11.5px); padding: clamp(4px, 0.6vh, 7px) clamp(11px, 1vw, 16px); }
         #idx-topics .topic-status { font-size: clamp(9.5px, 1.1vh, 12px); padding: 3px 10px; }
     }
@@ -553,7 +557,7 @@
         'REAL ESTATE LAW': 'Real Estate Law Track',
         'FREE UPSKILL PROGRAMS': 'Communication Mastery Track',
         'SETTLEMENTS CLOSING': 'Closing Specialist Track',
-        'CLIENT INTERVIEW PREP': 'Client Matching Essentials',
+        'CLIENT INTERVIEW PREP': 'Client Matching Essentials Track',
         'SOCIAL MEDIA MANAGEMENT': 'Social Media Management Track',
         'BOOKKEEPING': 'Bookkeeping Track',
         'LEAD GENERATION OUTREACH': 'Lead Generation & Outreach Track',
@@ -586,7 +590,7 @@
         { key: 'FREE UPSKILL PROGRAMS', name: 'Communication Mastery Track', sort_order: 0 },
         { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Track', sort_order: 13 },
         { key: 'SETTLEMENTS CLOSING', name: 'Closing Specialist Track', sort_order: 13 },
-        { key: 'CLIENT INTERVIEW PREP', name: 'Client Matching Essentials', sort_order: 0 },
+        { key: 'CLIENT INTERVIEW PREP', name: 'Client Matching Essentials Track', sort_order: 0 },
         // Beyond-Legal Skills, Coming Soon (no site yet, so not in functions/_programs.js)
         { key: 'SOCIAL MEDIA MANAGEMENT', name: 'Social Media Management Track', sort_order: 0 },
         { key: 'BOOKKEEPING', name: 'Bookkeeping Track', sort_order: 0 },
@@ -876,7 +880,7 @@
           keys: ['STANDARD TRAINING', 'LIEN NEGOTIATION', 'MEDSUM AND DEMAND', 'CM TRAINING', 'PROPERTY DAMAGE', 'HEALTH SUBRO', 'LIEN VERIFICATION', 'SETTLEMENTS CLOSING'] },
         { title: 'Cross-Practice Playbooks', note: '',
           keys: ['LITIGATION', 'MASS TORT', 'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'REAL ESTATE LAW'] },
-        { title: 'Beyond-Legal Skills', note: '',
+        { title: 'Beyond-Legal Skills Playbooks', note: '',
           keys: ['EA  PA TRAINING-OUTSOURCED MANP', 'FREE UPSKILL PROGRAMS', 'CLIENT INTERVIEW PREP',
                  'SOCIAL MEDIA MANAGEMENT', 'BOOKKEEPING', 'LEAD GENERATION OUTREACH', 'AUTOMATION UPSKILL', 'WEBSITE MANAGEMENT', 'FLASH CARDS'] }
     ];
@@ -899,7 +903,7 @@
         const rest = all.filter(t => !used.has(t.key));
         if (rest.length) sections.push({ title: 'More Training & Resources', note: '', cards: rest });
         return sections.filter(sec => sec.cards.length).map(sec =>
-            `<section class="topic-group${sec.title === 'Beyond-Legal Skills' ? ' tg-beyond' : ''}${sec.title === 'Personal Injury Playbooks' ? ' tg-still' : ''}" style="--rows:${Math.ceil(sec.cards.length / columnsFor(sec.cards.length))}"><div class="topic-group-head"><h2>${escapeHtml(sec.title)}</h2>${sec.note ? `<span>${escapeHtml(sec.note)}</span>` : ''}</div>`
+            `<section class="topic-group${sec.title === 'Beyond-Legal Skills Playbooks' ? ' tg-beyond' : ''}${sec.title === 'Personal Injury Playbooks' ? ' tg-still tg-pi' : ''}${sec.title === 'Cross-Practice Playbooks' ? ' tg-cross' : ''}" style="--rows:${Math.ceil(sec.cards.length / columnsFor(sec.cards.length))}"><div class="topic-group-head"><h2>${escapeHtml(sec.title)}</h2>${sec.note ? `<span>${escapeHtml(sec.note)}</span>` : ''}</div>`
             + `<div class="topic-grid${columnsFor(sec.cards.length) === 3 ? ' cols-3' : ''}" style="--cols:${columnsFor(sec.cards.length)}">${sec.cards.map(cardFor).join('')}</div></section>`).join('');
     }
 

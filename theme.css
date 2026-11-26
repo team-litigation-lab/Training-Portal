@@ -18,9 +18,10 @@
        blue so a gradient has somewhere to travel. */
     --g-navy: linear-gradient(135deg, #081226 0%, #132a5c 58%, #1d3f86 100%);
     --g-navy-soft: linear-gradient(135deg, #0f2148 0%, #16336b 60%, #1d3f86 100%);
-    /* Orange into amber: both carry dark text, so a button keeps its contrast
-       wherever the gradient lands. */
-    --g-accent: linear-gradient(135deg, #f97316 0%, #fb923c 55%, #fbbf24 100%);
+    /* LSH gold (the Academy Index's tool-banner gold, light at the top to deep gold at the foot): every accent button
+       (Open, the primary buttons, the active nav pill) is gold with dark text, so it keeps its contrast wherever the gradient lands.
+       (It was orange into amber.) */
+    --g-accent: linear-gradient(180deg, #fde7b0 0%, #f5c451 50%, #e0a43a 100%);
     /* The one genuinely "futuristic" note — a cyan edge light, used only as a
        hairline or a glow, never as a fill behind text. */
     --g-edge: linear-gradient(90deg, transparent 0%, #f97316 22%, #38bdf8 62%, transparent 100%);
@@ -148,7 +149,7 @@
    which reads 5.91:1 at that same end and unchanged elsewhere. */
 .auth-submit,
 .sim-btn.primary,
-.topic-action-btn.primary { color: #fdba74; }
+.topic-action-btn.primary { color: #f5c451; }   /* gold words on navy (the accents are gold) */
 .btn-navy:hover,
 .auth-submit:hover,
 .sim-btn.primary:hover,

@@ -122,7 +122,8 @@
     <!-- CLASSIFICATION / TIME BAR -->
     <div class="top-bar-modern no-print" id="classification-bar">
         <div class="top-bar-right">
-            <div class="top-ticker-mini" id="announcement-ticker">
+            <!-- no announcement in Master Control: it is set here (📢 Broadcast & Ping) and shown to trainees elsewhere; the elements stay, hidden, for app.js -->
+            <div class="top-ticker-mini" id="announcement-ticker" hidden style="display:none" aria-hidden="true">
                 <span class="tag" id="announcement-tag">Announcement:</span>
                 <div class="ticker-viewport">
                     <div class="ticker-track" id="ticker-track"><span id="ticker-text">Welcome to LSH Nexus.</span></div>
