@@ -3,7 +3,7 @@
    The drafting activities (the 1P and 3P Letters of Representation, and a medical provider's lien
    and records-request letters) used to end at a download: the trainee printed or saved the letter
    and filed it by hand, and nothing was graded. A Case Manager's job doesn't end there. The letter
-   is a file, and it has to reach the case file in LSH CaseWorks, under the right tab, named the firm's
+   is a file, and it has to reach the case file in LSH CaseWorX, under the right tab, named the firm's
    way. This file is that half of the activity — the filing, and the grade for it:
 
        DraftingDocs.build(opts)         a drafted letter as a document: its kind, client and text
@@ -18,17 +18,17 @@
      • the tab — checked here, before anything leaves the page. A letter in the wrong tab is a letter
        nobody finds, so a wrong one is refused naming the tab the firm actually keeps it in, and the
        document is not sent at all.
-     • the name — checked by LSH CaseWorks, against the firm's one rule (caseFileName in its app.js). A
+     • the name — checked by LSH CaseWorX, against the firm's one rule (caseFileName in its app.js). A
        wrong one comes back with what is wrong with it, and nothing is filed.
 
    Every attempt is kept, so a trainer can see who filed it right the first time.
 
    The file name is the firm's convention, the same one the Medical Records Requests simulator
-   produces (simulators/records-docs.js) and the same one LSH CaseWorks checks:
+   produces (simulators/records-docs.js) and the same one LSH CaseWorX checks:
 
        <Case ID>_<Last-First>_<Type>_<YYYY-MM-DD>.pdf
 
-   The Type is the Doc Hub tab the letter is filed under, so a name produced here is a name LSH CaseWorks
+   The Type is the Doc Hub tab the letter is filed under, so a name produced here is a name LSH CaseWorX
    accepts. The naming and the destination are written out again here rather than shared with
    records-docs.js, which is live: .github/scripts/drafting-docs.cjs checks the two produce the same
    name for the same inputs, so they cannot drift apart without a test failing.
@@ -57,7 +57,7 @@ const KINDS = {
     medlor: { title: 'Medical LOR with Unsworn Declaration', category: 'Medical Records' },
     hitech: { title: 'HITECH Records Request', category: 'Medical Records' }
 };
-/* The Doc Hub tabs in LSH CaseWorks, for the picker a trainee chooses from. The whole list, not only the
+/* The Doc Hub tabs in LSH CaseWorX, for the picker a trainee chooses from. The whole list, not only the
    tabs these letters use: choosing the right one out of all of them is the thing being learned. */
 const TABS = ['Intake Documents', 'Medical Records', 'Police Report', 'Case Files', 'Invoices', 'Bills',
     'Property Damage', 'Litigation Documents', 'Others'];
@@ -69,12 +69,12 @@ const titleOf = (kind) => (KINDS[kind] || {}).title || 'Drafted letter';
    ?from= (the courses open their tools with it) or ?program=, and an unknown launcher is the Portal
    itself, where there is nothing to file into and the download still works. */
 const DESTS = {
-    cms:    { key: 'cms',    name: 'LSH CaseWorks', url: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/?program=cm&from=cm',
+    cms:    { key: 'cms',    name: 'LSH CaseWorX', url: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/?program=cm&from=cm',
               files: 'the case\'s Doc Hub', wired: true },
     cm:     { key: 'cm',     name: 'Case Management Training', url: 'https://case-management-training.legalsupporthelp.workers.dev/',
-              files: 'the Doc Hub of your case in LSH CaseWorks beside the lesson', wired: true },
+              files: 'the Doc Hub of your case in LSH CaseWorX beside the lesson', wired: true },
     ft:     { key: 'ft',     name: 'Standard Foundational Training', url: 'https://foundational-training.legalsupporthelp.workers.dev/',
-              files: 'the Doc Hub of your case in LSH CaseWorks beside the lesson', wired: true },
+              files: 'the Doc Hub of your case in LSH CaseWorX beside the lesson', wired: true },
     portal: { key: 'portal', name: 'LSH Nexus', url: '/simulators.html', files: 'your own case file', wired: false }
 };
 // what each course calls itself when it opens a tool (?program=CM, ?program=FT, …)
@@ -99,7 +99,7 @@ function setCaseId(id) {
 }
 
 /* ---------- the firm's file name ----------
-   The same parts, slugged the same way, as LSH CaseWorks' caseFileName. The date is the real day it is
+   The same parts, slugged the same way, as LSH CaseWorX' caseFileName. The date is the real day it is
    filed, because that is what the name records. */
 const part = (v, max) => String(v || '').normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/&/g, ' and ')
     .replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, max || 40).replace(/-+$/, '');
@@ -179,7 +179,7 @@ function download(doc, onError) {
 function check(doc, answer) {
     const a = answer || {}, tab = String(a.tab || '').trim(), problems = [];
     if (!doc.caseId) problems.push('No case is open, so there is nothing to file into. Open your client\'s case file first, or enter its Case ID.');
-    if (!tab) problems.push('Choose the LSH CaseWorks tab you would file this letter under.');
+    if (!tab) problems.push('Choose the LSH CaseWorX tab you would file this letter under.');
     else if (tab !== doc.category) problems.push(`The firm files this letter under ${doc.category}, not ${tab}. A letter in the wrong tab is a letter nobody finds.`);
     if (!String(a.name || '').trim()) problems.push(`Write the file name, in the firm's convention: ${pattern(doc)}`);
     return problems;
@@ -187,7 +187,7 @@ function check(doc, answer) {
 
 /* ---------- filing it into the case file the trainee came from ----------
    The platform that opened this activity frames or opens it, so it is window.parent (⧉ Side by side,
-   the course's tool frame) or window.opener (New tab). Either way it is asked in LSH CaseWorks' own
+   the course's tool frame) or window.opener (New tab). Either way it is asked in LSH CaseWorX' own
    protocol — {lsh:'cms-doc-file', name, category, bytes} answered with {lsh:'cms-doc-filed'} — so a
    platform that already files the course's documents files this one with nothing new to learn.
    Nobody listening is not a wrong answer: it is not counted as an attempt, and the trainee downloads
@@ -218,7 +218,7 @@ function send(doc, answer) {
         let done = false;
         const on = (e) => { if (!e.data || e.data.lsh !== 'cms-doc-filed' || e.data.id !== id) return;
             done = true; window.removeEventListener('message', on);
-            // LSH CaseWorks has the last word on the name: its answer is the grade for that half
+            // LSH CaseWorX has the last word on the name: its answer is the grade for that half
             res(Object.assign({ graded: true, problems: [] }, e.data));
         };
         window.addEventListener('message', on);
@@ -248,7 +248,7 @@ function grade(doc, rec) {
         score: s,
         summary: r.filed
             ? `Filed as ${r.name} under ${r.category || doc.category} in ${r.attempts} attempt(s)${r.attempts === 1 ? ' — first time right' : ''}.`
-            : 'Not filed in LSH CaseWorks.',
+            : 'Not filed in LSH CaseWorX.',
         details: { kind: doc.kind, tab: doc.category, chose: r.category || '', name: r.name || '',
                    attempts: r.attempts || 0, filed: !!r.filed, caseId: doc.caseId || '', at: new Date().toISOString() }
     };

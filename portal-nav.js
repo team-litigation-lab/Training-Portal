@@ -57,7 +57,7 @@ const PortalNav = {
     // and LSH Atlas and LSH Voice are banners on LSH Academy Index.
     SYSTEM_LINKS: [
         ['/index.html?stay=1', '🏠 Main Portal', 'The LSH Nexus landing page'],
-        ['/programs.html', '🎓 LSH Academy Index', 'Every training program, plus 🛠 LSH Sims, 📚 LSH Atlas, ☎ LSH Voice and 🗂 LSH CaseWorks'],
+        ['/programs.html', '🎓 LSH Academy Index', 'Every training program, plus 🛠 LSH Sims, 📚 LSH Atlas, ☎ LSH Voice and 🗂 LSH CaseWorX'],
         ['/core.html#master', '🛡 Master Control', "Users & revoke access, program access, who's online, activity logs and broadcasts: all on one screen"],
         ['/core.html#registrations', '📝 Log-in Approvals <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Approve new trainee registrations'],
         ['/core.html#access-requests', '🙋 Access Requests <b class="pn-reg-badge" id="idx-access-badge"></b>', 'Trainees asking to open a program or tool: approve or deny, suspend or restore'],
@@ -77,7 +77,7 @@ const PortalNav = {
         ['Medsum & Demand Track', '/api/launch?program=MEDSUM%20AND%20DEMAND&to=blueprint'],
         ['Lien Negotiator Track', '/api/launch?program=LIEN%20NEGOTIATION&to=blueprint'],
         ['Closing Specialist Track', '/api/launch?program=SETTLEMENTS%20CLOSING&to=blueprint'],
-        ['🗂 LSH CaseWorks', '/api/launch?tool=cms&to=blueprint'],
+        ['🗂 LSH CaseWorX', '/api/launch?tool=cms&to=blueprint'],
         ['☎ LSH Voice', '/api/launch?tool=ringchannel&to=blueprint'],
         ['📚 LSH Atlas', '/api/launch?tool=kb&to=blueprint']
     ],
