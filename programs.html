@@ -144,9 +144,11 @@
         box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 6px 14px -10px color-mix(in srgb, var(--tk) 55%, transparent); }
     .topic-card.tk.live h3 .tk-name { font-weight: 900; letter-spacing: .005em; animation-duration: 4.5s; }   /* an open track's name: the boldest weight, and its shine passes a little more often */
     .tk-ic { display: inline-block; margin-right: .32em; }
-    /* Every track's name is one size, on one line (an open track and a Coming Soon one alike). Only a name that would not fit
-       its card on one line is drawn smaller, just enough to fit (fitTrackTitles below). */
+    /* Every track's name is one size, on one line (an open track and a Coming Soon one alike). A name that would not fit
+       its card on one line goes onto two at the same size (.two-line); only one that still won't fit is drawn smaller,
+       just enough to fit (fitTrackTitles below). */
     .topic-card h3 { white-space: nowrap; }
+    .topic-card h3.two-line { white-space: normal; text-wrap: balance; line-height: 1.15; }
     .topic-card h3.free-below { flex-direction: column; gap: 3px; }   /* the badge under a name it doesn't fit beside (fitTrackTitles) */
     .topic-card h3.free-below .topic-free { display: table; margin: 3px auto 0; }
     .tk-name { background: linear-gradient(100deg, var(--tk-ink) 0%, var(--tk-ink) 38%, color-mix(in srgb, var(--tk) 45%, #fff) 50%, var(--tk-ink) 62%, var(--tk-ink) 100%);
@@ -294,7 +296,7 @@
            card's own content, so on a screen that is a little too short the last group was
            clipped by the body's overflow:hidden instead of the rows giving up their spare air. */
         #idx-topics .topic-card { grid-template-rows: minmax(0, 1fr) auto; align-content: center; min-height: 0; overflow: hidden; }
-        #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: clamp(12px, 1.95vh, 21px); }
+        #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: clamp(13px, 1.55vh, 17px); padding-left: 14px; padding-right: 14px; }   /* names a size down, with room either side, so a row of cards doesn't look crammed */
         #idx-topics .topic-action-btn { font-size: clamp(9.5px, 1.05vh, 11.5px); padding: clamp(4px, 0.6vh, 7px) clamp(11px, 1vw, 16px); }
         #idx-topics .topic-status { font-size: clamp(9.5px, 1.1vh, 12px); padding: 3px 10px; }
     }
@@ -463,8 +465,8 @@
         // from before the rename; these put the full names on the cards without a migration.
         'CM TRAINING': 'Case Management Track',
         'REVISED CM TRAINING': 'Revised Case Management Track',
-        'EA  PA TRAINING-OUTSOURCED MANP': 'EA PA Track',
-        'REVISED EA PA TRAINING': 'Revised EA PA Track',
+        'EA  PA TRAINING-OUTSOURCED MANP': 'Executive/Personal Virtual Assistant Track',
+        'REVISED EA PA TRAINING': 'Revised Executive/Personal Virtual Assistant Track',
         'CALENDAR MANAGEMENT TRAINING': 'Calendar Management Track',
         'PROPERTY DAMAGE': 'Property Damage Claims Track',
         'MEDSUM AND DEMAND': 'Medsum & Demand Track',
@@ -780,9 +782,14 @@
     // the least) until it fits, and only that name.
     function fitTrackTitles() {
         document.querySelectorAll('#idx-topics .topic-card h3').forEach(h => {
-            h.style.fontSize = ''; h.classList.remove('free-below');
+            h.style.fontSize = ''; h.classList.remove('free-below', 'two-line');
             // a name with a badge (FREE UPSKILL) that doesn't fit beside it: the badge goes under the name, which keeps its size
             if (h.scrollWidth > h.clientWidth + 1 && h.querySelector('.topic-free')) h.classList.add('free-below');
+            // a long name (Executive/Personal Virtual Assistant Track) goes onto two lines at the same size, if the card has the height
+            if (h.scrollWidth > h.clientWidth + 1 && !h.querySelector('.topic-free')) {
+                h.classList.add('two-line');
+                if (h.scrollHeight > h.clientHeight + 1 || h.scrollWidth > h.clientWidth + 1) h.classList.remove('two-line');
+            }
             let px = parseFloat(getComputedStyle(h).fontSize);
             while (h.scrollWidth > h.clientWidth + 1 && px > 9) { px -= 0.5; h.style.fontSize = px + 'px'; }
         });
