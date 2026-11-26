@@ -41,6 +41,8 @@
     .at-bbar label { display: inline-flex; gap: 6px; align-items: center; font-weight: 800; color: var(--navy); white-space: nowrap; min-width: 0; }
     .at-table select, .at-table input, .at-bbar select, .at-bbar input { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: var(--ink, #0f172a); }
     .at-day { width: 60px; }
+    /* the page uses the window's whole width (a 24px gutter each side), not the simulators' centred 1280px column, so the batch tables have room */
+    .sim-wrap { max-width: none; }
     .at-tr { max-width: 240px; } .at-bbar .at-tr { max-width: 300px; min-width: 0; } .at-tr.own { border-color: var(--orange); background: #fff8f1; }
     .at-table td { vertical-align: middle; white-space: nowrap; }
     .at-table td.nm { white-space: normal; min-width: 140px; font-weight: 700; }
@@ -114,7 +116,7 @@ const mdy = iso => { const [y, m, d] = String(iso || '').split('-'); return y &&
 const time12 = v => { const m = /^(\d{1,2}):(\d{2})/.exec(String(v || '')); if (!m) return ''; const h = +m[1]; return `${h % 12 || 12}:${m[2]} ${h < 12 ? 'AM' : 'PM'}`; };
 // The programs' shown names (as on LSH Academy Index's cards). The server's own labels stay as they were:
 // they name the Attendance sheet's program column and the Drive archive folders.
-const TRACK_NAMES = { ft: 'Legal VA Foundational Track', eapa: 'Executive/Personal Virtual Assistant Track', cm: 'Case Management Track', pd: 'Property Damage Claims Track', md: 'Medsum & Demand Track', ln: 'Lien Negotiator Track', cs: 'Closing Specialist Track' };
+const TRACK_NAMES = { ft: 'Legal VA Foundational Track', eapa: 'Executive/Personal Assistant Track', cm: 'Case Management Track', pd: 'Property Damage Claims Track', md: 'Medsum & Demand Track', ln: 'Lien Negotiator Track', cs: 'Closing Specialist Track' };
 const progLabel = id => TRACK_NAMES[id] || ((A.data && A.data.programs || []).find(p => p.id === id) || {}).label || id;
 const batchOf = key => ((A.data && A.data.batches) || []).find(b => b.key === key);
 const rec = b => b.record || (b.record = { v: 1, batch: b.batch, date: A.date, day: b.day, training: b.training, rows: {} });   // a day not saved yet

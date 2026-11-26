@@ -60,7 +60,7 @@ const PortalNav = {
     // LSH Academy Index alone, never on the landing page. /api/launch opens each one signed in.
     BLUEPRINT_DECKS: [
         ['Legal VA Foundational Track', '/api/launch?program=STANDARD%20TRAINING&to=blueprint'],
-        ['Executive/Personal Virtual Assistant Track', '/api/launch?program=EA%20%20PA%20TRAINING-OUTSOURCED%20MANP&to=blueprint'],
+        ['Executive/Personal Assistant Track', '/api/launch?program=EA%20%20PA%20TRAINING-OUTSOURCED%20MANP&to=blueprint'],
         ['Case Management Track', '/api/launch?program=CM%20TRAINING&to=blueprint'],
         ['Property Damage Claims Track', '/api/launch?program=PROPERTY%20DAMAGE&to=blueprint'],
         ['Medsum & Demand Track', '/api/launch?program=MEDSUM%20AND%20DEMAND&to=blueprint'],
