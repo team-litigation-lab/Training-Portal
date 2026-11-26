@@ -362,6 +362,12 @@
         #idx-topics { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
         #idx-topics .topic-group:last-child { margin-bottom: 0; }
         #idx-topics .topic-group { flex: var(--rows, 1) 1 auto; min-height: 0; display: flex; flex-direction: column; }
+        /* Beyond-Legal Skills' cards shorter (their group is only as tall as its cards need), and the room goes to a bigger
+           top bar: more air above and below, the page's name a size up */
+        #idx-topics .topic-group.tg-beyond { flex: 0 1 auto; }   /* only as tall as its cards need; the other groups take the spare height */
+        body .idx-top { padding-top: 14px; padding-bottom: 14px; }
+        body .idx-title { font-size: clamp(20px, 2.35vw, 36px); }
+        @media (max-width: 1400px) { body .idx-title { font-size: clamp(18px, 1.75vw, 24px); white-space: nowrap; max-width: none; } }   /* a laptop: one line, beside the admin bar */
         #idx-topics .topic-group .topic-grid { flex: 1 1 auto; min-height: 0; grid-auto-rows: minmax(0, 1fr); }
         /* min-height:0 on the card and its title: without it a row can never shrink below the
            card's own content, so on a screen that is a little too short the last group was
