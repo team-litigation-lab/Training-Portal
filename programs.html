@@ -202,6 +202,8 @@
     .tg-pi .topic-card.tk { --tk: #1d3f86 !important; }
     .tg-cross .topic-card.tk { --tk: #0f5f66 !important; }
     .tg-beyond .topic-card.tk { --tk: #8a4b12 !important; }
+    /* each title is one solid colour (its set's ink), not a gradient with a shine passing through it */
+    .topic-card.tk .tk-name { background: none !important; color: var(--tk-ink) !important; -webkit-text-fill-color: var(--tk-ink) !important; animation: none !important; }
     /* ▪ The track-name pill, simplified: a plain black frame on white, no coloured border, sheen or glow (the name keeps its colour) */
     .topic-card h3, .topic-card.tk h3, .topic-card.soon h3, .topic-card.tk.soon h3 { border: 2px solid #111827; background: #fff; box-shadow: none; animation: none; }
     @media (prefers-reduced-motion: reduce) { .tk-name, .topic-card.tk.live h3, .topic-card.tk.live .tk-ic { animation: none; } .tk-name { background-position: 0 0; } }
