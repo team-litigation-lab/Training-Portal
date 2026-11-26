@@ -3185,7 +3185,7 @@ function renderProgramAccess() {
                 <thead><tr><th style="width:30%;">Trainer</th><th>Username</th><th>Email</th><th>Program access</th></tr></thead>
                 <tbody>${trainers.map(u => `<tr><td class="pa-who"><div class="pa-name">${escapeHtml(u.fullName)}</div></td><td>${escapeHtml(u.username)}</td><td class="mc-sub">${escapeHtml(u.email || '')}</td><td>${u.status === 'Suspended' ? '<span class="mc-pill suspended">account suspended</span>' : '<span class="mc-pill approved">All programs</span>'}</td></tr>`).join('')}</tbody></table></div></details>` : '';
     box.innerHTML = `<div class="pa-toolbar"><button class="btn-ghost" onclick="paExpandAll(true)">Expand all</button><button class="btn-ghost" onclick="paExpandAll(false)">Collapse all</button></div>`
-        + batches.map(batchSection).join('') + trainerSection;   // trainers last: they need no grants, so they're rarely opened here
+        + batches.map(batchSection).join('');   // no Trainers section here: trainers need no grants, and they are listed once, under 👥 Accounts (the Users list)
 }
 const PA_DONE = { APPROVE: 'Access approved.', DENY: 'Access revoked.', GRANT: 'Access granted.', MARK_PASSED: 'Marked as passed.', SUSPEND: 'Access suspended.', RESTORE: 'Access restored.', CLEAR: 'Request cleared.' };
 // 🧹 Standard Foundational Training: everyone revoked here before the course was told goes on its block list (topics.js FT_SWEEP)
