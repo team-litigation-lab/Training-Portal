@@ -415,3 +415,216 @@ body.portal-bg-dark {
     .sim-hero::after, .sim-card::before, .topic-card::before,
     .first-screen::before { display: none; }
 }
+
+/* ============================================================================
+   ECOSYSTEM LAYER — one design language across LSH Academy Index, LSH Sims,
+   LSH Atlas, LSH Voice, LSH CaseWorX and every portal page.
+
+   Visual only. Nothing here sets a font family, weight or size, and nothing
+   changes a link, a route or a word of copy: it standardises the surfaces
+   (radii, borders, shadows), the geometry of every pill, badge and button,
+   their hover / press / focus states, and the navigation chrome, so moving
+   between apps feels like moving within one product. Mobile gets breathing
+   room: wider gutters, roomier cards, and rows that wrap cleanly instead of
+   squeezing.
+   ========================================================================= */
+:root {
+    --eco-navy: #0f2148;
+    --eco-orange: #f97316;
+    --eco-radius-card: 18px;
+    --eco-radius-pill: 999px;
+    --eco-line: rgba(15, 33, 72, .12);
+    --eco-line-accent: rgba(249, 115, 22, .30);
+    --eco-shadow-1: 0 1px 2px rgba(15, 33, 72, .06), 0 10px 24px -16px rgba(15, 33, 72, .32);
+    --eco-shadow-2: 0 2px 6px rgba(15, 33, 72, .08), 0 20px 40px -22px rgba(15, 33, 72, .50);
+    --eco-ring: 0 0 0 3px rgba(249, 115, 22, .40);
+    --eco-ease: cubic-bezier(.2, .7, .2, 1);
+}
+html { -webkit-tap-highlight-color: transparent; }
+
+/* ---------- top bars: one chrome for every app ---------- */
+/* The Academy Index bar and the shared app bar (Sims, Blueprint, Digest,
+   Progress, Referrals) already share the navy ramp and the orange underline;
+   they now share the same soft drop shadow, so the page reads as sitting
+   beneath one continuous header wherever you are. */
+.idx-top,
+.sim-top { box-shadow: 0 12px 28px -20px rgba(8, 18, 38, .75); }
+
+/* Every item in a top bar is a pill now. The Academy Index bar was all pills
+   while the app bars used bare text links, which is the seam you felt when
+   crossing from one to the other. Plain links become quiet ghost pills (the
+   same geometry as .pn-pill, no outline until hovered) so the hierarchy holds:
+   the outlined pills still lead, the ghost ones follow. */
+.sim-nav { gap: 8px; }
+.sim-nav > a:not(.pn-pill):not(.pn-back),
+.sim-nav > .who {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: var(--eco-radius-pill);
+    border: 1px solid transparent;
+    transition: background-color .18s var(--eco-ease), border-color .18s var(--eco-ease), color .18s var(--eco-ease), transform .12s var(--eco-ease);
+}
+.sim-nav > a:not(.pn-pill):not(.pn-back):hover {
+    background: rgba(255, 255, 255, .09); border-color: rgba(255, 255, 255, .22);
+}
+.sim-nav > a.on:not(.pn-pill):not(.pn-back) {
+    background: rgba(249, 115, 22, .14); border-color: rgba(249, 115, 22, .65);
+}
+/* The signed-in name: a chip, not a link. */
+.sim-nav > span.who { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .12); }
+
+/* Shared pill behaviour for every nav pill and Back button, on every bar. */
+.pn-pill,
+.pn-back {
+    gap: 6px;
+    transition: background-color .18s var(--eco-ease), border-color .18s var(--eco-ease), box-shadow .2s var(--eco-ease), transform .12s var(--eco-ease);
+}
+.pn-pill:hover,
+.pn-back:hover,
+.sim-nav > a:not(.pn-pill):not(.pn-back):hover { transform: translateY(-1px); }
+.pn-pill:active,
+.pn-back:active,
+.sim-nav > a:active { transform: translateY(0) scale(.97); }
+.pn-pill:focus-visible,
+.pn-back:focus-visible,
+.sim-nav > a:focus-visible,
+.sim-brand:focus-visible {
+    outline: none; box-shadow: var(--eco-ring);
+}
+/* The drop-down under 🧭 Blueprint: a frosted card with the same edge light. */
+.pn-menu {
+    border: 1px solid var(--eco-line);
+    background: rgba(255, 255, 255, .96);
+    backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
+}
+.pn-menu a { transition: background-color .15s var(--eco-ease), padding-left .15s var(--eco-ease); }
+.pn-menu a:hover { background: #fff7ed; }
+.pn-reg-badge.has { box-shadow: 0 0 0 2px rgba(8, 18, 38, .35); }
+
+/* ---------- section dividers & eyebrows ---------- */
+/* The pillar dividers on the Academy Index (Personal Injury Playbooks,
+   Specialized Playbooks, Support & Upskill) and the eyebrow pills on every
+   hero share one look: navy pill, thin orange edge, soft lift. */
+.topic-group-head h2 { box-shadow: 0 8px 18px -12px rgba(8, 18, 38, .65), inset 0 1px 0 rgba(255, 255, 255, .08); }
+.sim-hero .eyebrow,
+.idx-head .eyebrow { border-radius: var(--eco-radius-pill); }
+
+/* ---------- cards: one surface family ---------- */
+/* Same radius, hairline and shadow everywhere; the Academy Index's own track
+   frames (set by id on that page) are left exactly as they are. */
+.sim-card {
+    border-radius: var(--eco-radius-card);
+    border: 1px solid var(--eco-line);
+    box-shadow: var(--eco-shadow-1);
+}
+.sim-card:hover { box-shadow: var(--eco-shadow-2); }
+.sim-card.soon,
+.sim-card.locked { box-shadow: none; }
+.sim-card.soon:hover,
+.sim-card.locked:hover { transform: none; box-shadow: var(--eco-shadow-1); }
+.hub-card .icon { border: 1px solid var(--eco-line-accent); }
+.queue-card { border-radius: var(--eco-radius-card); box-shadow: var(--eco-shadow-1); }
+.queue-table { border: 1px solid #fed7aa; }
+.sim-hero { border: 1px solid rgba(255, 255, 255, .06); }
+.sim-banner { border: 1px solid rgba(253, 186, 116, .18); }
+
+/* ---------- badges & status pills ---------- */
+/* One geometry for every status: full pill, centred contents, a hairline in
+   its own ink so pale fills still read as a shape over glass. */
+.topic-status,
+.sim-chip,
+.topic-free,
+.sim-score {
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    border-radius: var(--eco-radius-pill);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent);
+    white-space: nowrap;
+}
+
+/* ---------- buttons & CTAs ---------- */
+/* Every action button is a full pill with centred icon + label, a gentle lift
+   on hover, a press on tap and the same orange focus ring. */
+.sim-btn,
+.topic-action-btn,
+.queue-btn,
+.sim-banner-go,
+#dd-pop .dd-show {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border-radius: var(--eco-radius-pill);
+    transition: background-color .18s var(--eco-ease), border-color .18s var(--eco-ease), box-shadow .2s var(--eco-ease), transform .12s var(--eco-ease), filter .2s var(--eco-ease);
+}
+.queue-btn { padding-left: 14px; padding-right: 14px; }
+.sim-btn:not([disabled]):hover,
+.topic-action-btn:not(.disabled):hover,
+.queue-btn:hover,
+#dd-pop .dd-show:hover { transform: translateY(-1px); }
+.sim-btn:not([disabled]):active,
+.topic-action-btn:not(.disabled):active,
+.queue-btn:active,
+.sim-banner:active,
+#dd-pop .dd-show:active,
+.btn-navy:active,
+.btn-primary:active { transform: translateY(0) scale(.97); }
+.sim-btn.ghost:hover { box-shadow: var(--eco-shadow-1); }
+.sim-btn:focus-visible,
+.topic-action-btn:focus-visible,
+.queue-btn:focus-visible,
+.sim-banner:focus-visible,
+.btn-navy:focus-visible,
+.btn-primary:focus-visible,
+#dd-pop .dd-show:focus-visible { outline: none; box-shadow: var(--eco-ring); }
+.topic-action-btn.disabled { box-shadow: inset 0 0 0 1px rgba(51, 65, 85, .14); }
+
+/* ---------- search fields ---------- */
+input[type="search"] {
+    border-radius: var(--eco-radius-pill);
+    transition: border-color .18s var(--eco-ease), box-shadow .18s var(--eco-ease);
+}
+input[type="search"]:focus { outline: none; border-color: var(--eco-orange); box-shadow: var(--eco-ring); }
+
+/* ---------- mobile: calm, roomy, nothing squeezed ---------- */
+@media (max-width: 760px) {
+    /* Even 16px gutters on every app. */
+    .sim-wrap { padding-left: 16px; padding-right: 16px; }
+    /* The nav row scrolls sideways as one swipeable strip of pills; a little
+       room under it keeps the focus ring and the scrollbar off the pills. */
+    .sim-nav { gap: 8px; padding-bottom: 4px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+    .sim-nav > * { scroll-snap-align: start; flex-shrink: 0; }
+    /* Tool banners and hub cards: a bit more air between them. */
+    .hub-grid { gap: 14px; }
+    /* Metadata and the action share one row and wrap cleanly when they must,
+       with the button staying right-aligned. */
+    .hub-card .row { flex-wrap: wrap; row-gap: 8px; }
+    .hub-card .row .sim-btn { margin-left: auto; }
+    .queue-row { flex-wrap: wrap; row-gap: 8px; }
+    .queue-actions { margin-left: auto; }
+}
+@media (max-width: 640px) {
+    .idx-wrap { padding-left: 16px; padding-right: 16px; }
+    .sim-banner-row { gap: 12px; margin-bottom: 14px; }
+}
+@media (max-width: 560px) {
+    /* One card per row at full width, with real padding and gaps — on a
+       phone the Academy Index had inherited the short-screen squeeze meant
+       for laptops. */
+    .topic-grid,
+    .topic-grid.cols-3 { gap: 14px; }
+    .topic-group { margin-bottom: 22px; }
+    .topic-group-head { margin-bottom: 12px; }
+    .topic-card { padding: 14px 16px; gap: 12px 10px; }
+    /* A long action label wraps inside its pill instead of being cut off. */
+    .topic-card .topic-action-btn { white-space: normal; text-align: center; }
+    /* A pillar name too wide for a narrow phone wraps rather than spilling. */
+    .topic-group-head h2 { white-space: normal; text-align: center; }
+    /* Comfortable tap targets. */
+    .sim-btn, .topic-action-btn, .queue-btn, .pn-pill, .pn-back { min-height: 34px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pn-pill, .pn-back, .sim-nav > a, .sim-btn, .topic-action-btn, .queue-btn,
+    .sim-banner-go, #dd-pop .dd-show, .pn-menu a { transition: none; }
+    .pn-pill:hover, .pn-back:hover, .sim-nav > a:hover, .sim-btn:hover,
+    .topic-action-btn:hover, .queue-btn:hover, #dd-pop .dd-show:hover { transform: none; }
+}
+@media print {
+    .idx-top, .sim-top, .sim-card, .queue-card { box-shadow: none; }
+}
