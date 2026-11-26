@@ -52,20 +52,9 @@ const PortalNav = {
         const back = backTo ? `<a class="pn-back${cls}" onclick="PortalNav.back('${backTo}')" title="Go back">← Back</a>` : '';
         return back + links.map(([id, href, label]) => `<a class="${active === id ? 'on' : ''}${cls}" href="${href}"${active === id ? ' aria-current="page"' : ''}>${label}</a>`).join('');
     },
-    // Everything an admin uses less often, collated under ⚙ System Management: [href, label, title, opens in a new tab].
-    // One entry per destination: Master Control's tabs (users, access, who's online) open from Master Control itself,
-    // and LSH Atlas and LSH CommX are banners on LSH Academy Index.
-    SYSTEM_LINKS: [
-        ['/index.html?stay=1', '🏠 Main Portal', 'The LSH Nexus landing page'],
-        ['/programs.html', '🎓 LSH Academy Index', 'Every training program, plus 🛠 LSH Elev8, 📚 LSH Atlas, ☎️ LSH CommX and 🗂 LSH CaseWorX'],
-        ['/core.html#master', '🛡 Master Control', "Users & revoke access, program access, who's online, activity logs and broadcasts: all on one screen"],
-        ['/core.html#registrations', '📝 Log-in Approvals <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Approve new trainee registrations'],
-        ['/core.html#access-requests', '🙋 Access Requests <b class="pn-reg-badge" id="idx-access-badge"></b>', 'Trainees asking to open a program or tool: approve or deny, suspend or restore'],
-        ['/core.html#announce', '📢 Announcement', 'The scrolling announcement on LSH Academy Index and every program, and the full-screen alert (Broadcast & Ping)'],
-        ['/simulators.html', '🛠 LSH Elev8', ''],
-        ['/api/admin-password-check', '🔑 Admin Password Check', 'Does every platform accept the admin password?'],
-        ['/api/ai-usage', '🤖 AI Usage', "Today's use of the shared AI budget, flow by flow"]
-    ],
+    // Everything an admin uses less often lives on ONE page, ⚙ System Management (system.html), reached from the admin bar's
+    // System Management pill. (The menu list that used to be kept here, SYSTEM_LINKS, was no longer drawn anywhere: a second
+    // copy of the same destinations, so it went. Add a new admin destination as a row on its card in system.html.)
     // 🧭 Blueprint: the Platform Blueprint, then (for an admin) every program's and tool's own blueprint.
     // Those decks have no link of their own, so this menu is the only way in — and it lives on the
     // LSH Academy Index alone, never on the landing page. /api/launch opens each one signed in.

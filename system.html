@@ -10,35 +10,15 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/simulators/sim.css">
-<!-- Admin: System Management, the Master Control of the whole platform. Six cards, each opening the tools for one job.
+<!-- Admin: System Management, the Master Control of the whole platform, laid out as a control room in the platform's current
+     design (control-room.css): a hero band with the one way into 🛡 Master Control, then one engineered card per function under
+     three section pills. Each card: its main action as the navy button, its other actions as rows.
      The admin bar's "System Management" pill comes here (portal-nav.js). -->
-<style>
-    body { background: var(--navy); }
-    html, body { overflow-x: clip; }
-    .sy-band { margin: -34px calc(50% - 50vw) 26px; padding: 22px 24px; background: var(--navy-mid); border-bottom: 3px solid var(--orange); text-align: center; }
-    .sy-band h1 { margin: 0; color: #fff; font-size: clamp(20px, 2.6vw, 30px); font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
-    @media (max-width: 760px) { .sy-band { margin-top: -22px; } }
-    .sy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-    @media (max-width: 1000px) { .sy-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 620px) { .sy-grid { grid-template-columns: 1fr; } }
-    .sy-card { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 22px 18px 20px; border-radius: 16px; color: #fff;
-        background: rgba(255,255,255,.12); border: 2px solid rgba(139,92,246,.45); box-shadow: 0 12px 26px -16px rgba(0,0,0,.7); }
-    .sy-ic { font-size: 30px; line-height: 1; }
-    .sy-card h2 { align-self: stretch; margin: 0; padding: 9px 10px; border: 3px solid var(--navy-deep); color: #fff; font-size: 15px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; line-height: 1.3; }
-    .sy-card p { margin: 0; font-size: 13px; line-height: 1.5; color: rgba(255,255,255,.75); flex: 1; }
-    .sy-links { align-self: stretch; display: flex; flex-direction: column; gap: 7px; }
-    .sy-links a { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: 999px; background: var(--navy-deep); color: var(--orange); font-size: 12.5px; font-weight: 800; text-decoration: none; letter-spacing: .02em; }
-    .sy-links a:hover { background: #000c22; box-shadow: 0 0 0 2px var(--orange) inset; }
-    .sy-links a.main { background: var(--orange); color: var(--navy-deep); text-transform: uppercase; letter-spacing: .08em; }
-    .sy-links a.main:hover { background: var(--orange-soft); box-shadow: none; }
-    .sy-badge { display: none; background: #fff; color: var(--navy-deep); border-radius: 999px; padding: 0 7px; font-size: 11px; }
-    .sy-badge.has { display: inline-block; }
-    .sy-note { margin: 22px 0 0; color: rgba(255,255,255,.55); font-size: 12.5px; text-align: center; }
-</style>
 <script src="/portal-nav.js"></script>
 <link rel="stylesheet" href="/theme.css">
+<link rel="stylesheet" href="/control-room.css">
 </head>
-<body class="portal-bg-dark">
+<body class="cr-page">
 <script>
     // Admins only (the server sends everyone else to admin sign-in too: functions/_middleware.js).
     (function () {
@@ -56,56 +36,82 @@
     </div>
 </div>
 <div class="sim-wrap">
-    <section class="sy-band"><h1>Master Control</h1></section>
-    <div class="sy-grid">
-        <section class="sy-card">
-            <span class="sy-ic">🔑</span><h2>Access Management</h2>
-            <p>Approve log-ins, approve or deny access requests, and grant, suspend, restore or revoke each trainee's programs and tools (and mark them passed).</p>
-            <div class="sy-links">
-                <a class="main" href="/core.html#master">Open Master Control</a>
-                <a href="/core.html#registrations">📝 Log-in Approvals <b class="sy-badge" id="sy-reg"></b></a>
-                <a href="/core.html#access-requests">🙋 Access Requests <b class="sy-badge" id="sy-acc"></b></a>
-                <a href="/core.html#access">🔑 Program Access: suspend, restore, revoke</a>
-                <a href="/api/admin-password-check" title="Does every platform accept the admin password?">🔐 Admin password check</a>
+    <section class="sim-hero cr-hero">
+        <div class="cr-hero-text">
+            <div class="eyebrow">Admin · Master Control</div>
+            <h1>⚙ System Management</h1>
+            <p>Every control for LSH Nexus, one card per job: who gets in, how the platform is running, and what changes and why.</p>
+        </div>
+        <div class="cr-hero-cta">
+            <a class="cr-go gold" href="/core.html#master">🛡 Open Master Control <span class="arr">→</span></a>
+            <small>Dashboard &amp; Directory: live counts and every admin tool</small>
+        </div>
+    </section>
+
+    <div class="cr-groups">
+        <section class="cr-group">
+            <div class="topic-group-head"><h2>Access &amp; People</h2></div>
+            <div class="cr-cards">
+                <article class="cr-card" style="--ac:#DB8437">
+                    <div class="cr-top"><span class="cr-tag"><b>CONTROL 01</b> <i>// ACCESS</i></span><span class="cr-state" id="sy-access-state">Portal</span></div>
+                    <div class="cr-head"><span class="cr-icon">🔑</span><h3>Access Management</h3></div>
+                    <p class="cr-desc">Approve log-ins and access requests; grant, suspend, restore or revoke each trainee's programs and tools (and mark them passed).</p>
+                    <ul class="cr-rows">
+                        <li><a class="cr-row" href="/core.html#access-requests"><span class="ic">🙋</span><span class="lb">Access Requests &amp; Program Access<small>Approve or deny · suspend, restore, revoke</small></span><b class="sy-badge" id="sy-acc"></b><span class="go">→</span></a></li>
+                        <li><a class="cr-row" href="/core.html#users"><span class="ic">👥</span><span class="lb">Users &amp; Accounts<small>Edit, suspend, restore or revoke a whole account</small></span><span class="go">→</span></a></li>
+                        <li><a class="cr-row" href="/api/admin-password-check" title="Does every platform accept the admin password?"><span class="ic">🔐</span><span class="lb">Admin password check<small>Does every platform accept it?</small></span><span class="go">→</span></a></li>
+                    </ul>
+                    <div class="cr-foot"><span class="cr-spec">People &amp; Access</span><a class="cr-go" href="/core.html#registrations">📝 Log-in Approvals <b class="sy-badge" id="sy-reg"></b><span class="arr">→</span></a></div>
+                </article>
+                <article class="cr-card" style="--ac:#0d9488">
+                    <div class="cr-top"><span class="cr-tag"><b>CONTROL 02</b> <i>// REFERRALS</i></span><span class="cr-state">Portal</span></div>
+                    <div class="cr-head"><span class="cr-icon">🤝</span><h3>Referrals</h3></div>
+                    <p class="cr-desc">People referred with "Got a referral?" on the main page: their contact details and CV, a status and a note for each.</p>
+                    <div class="cr-foot"><span class="cr-spec">Contacts · CVs · Status</span><a class="cr-go" href="/referrals.html">Open Referrals <span class="arr">→</span></a></div>
+                </article>
             </div>
         </section>
-        <section class="sy-card">
-            <span class="sy-ic">🤖</span><h2>AI Usage Monitoring</h2>
-            <p>Today's use of the shared AI budget that every LSH platform draws on, flow by flow.</p>
-            <div class="sy-links"><a class="main" href="/api/ai-usage">Open AI usage</a></div>
-        </section>
-        <section class="sy-card">
-            <span class="sy-ic">💬</span><h2>Platform Feedback and Update</h2>
-            <p>What trainees say about the platform and the training (ratings by area and comments), and announcements to everyone with Broadcast &amp; Ping.</p>
-            <div class="sy-links">
-                <a class="main" href="/progress.html">Feedback from trainees</a>
-                <a href="/core.html#master">📣 Broadcast &amp; Ping</a>
+
+        <section class="cr-group">
+            <div class="topic-group-head"><h2>Platform Health</h2></div>
+            <div class="cr-cards">
+                <article class="cr-card" style="--ac:#7c3aed">
+                    <div class="cr-top"><span class="cr-tag"><b>CONTROL 03</b> <i>// AI BUDGET</i></span><span class="cr-state live"><i></i>Today</span></div>
+                    <div class="cr-head"><span class="cr-icon">🤖</span><h3>AI Usage Monitoring</h3></div>
+                    <p class="cr-desc">Today's use of the shared AI budget that every LSH platform draws on, flow by flow, and the last seven days.</p>
+                    <div class="cr-foot"><span class="cr-spec">Shared budget · By flow</span><a class="cr-go" href="/api/ai-usage">Open AI usage <span class="arr">→</span></a></div>
+                </article>
+                <article class="cr-card" style="--ac:#2563eb">
+                    <div class="cr-top"><span class="cr-tag"><b>CONTROL 04</b> <i>// CODE</i></span><span class="cr-state">External ↗</span></div>
+                    <div class="cr-head"><span class="cr-icon">🛰</span><h3>GitHub, Cloudflare &amp; Version Control</h3></div>
+                    <p class="cr-desc">The code behind every LSH platform, its automatic checks and the history of every change, and the live sites on Cloudflare.</p>
+                    <ul class="cr-rows">
+                        <li><a class="cr-row" href="https://github.com/team-litigation-lab/Training-Portal/actions" target="_blank" rel="noopener"><span class="ic">✅</span><span class="lb">Portal checks (Actions)</span><span class="go">↗</span></a></li>
+                        <li><a class="cr-row" href="https://github.com/team-litigation-lab/Training-Portal/commits/main" target="_blank" rel="noopener"><span class="ic">🕘</span><span class="lb">Version history<small>Every change to the Portal</small></span><span class="go">↗</span></a></li>
+                        <li><a class="cr-row" href="https://dash.cloudflare.com/" target="_blank" rel="noopener"><span class="ic">☁</span><span class="lb">Cloudflare dashboard</span><span class="go">↗</span></a></li>
+                    </ul>
+                    <div class="cr-foot"><span class="cr-spec">GitHub · Cloudflare</span><a class="cr-go" href="https://github.com/team-litigation-lab" target="_blank" rel="noopener">GitHub <span class="arr">↗</span></a></div>
+                </article>
             </div>
         </section>
-        <section class="sy-card">
-            <span class="sy-ic">🤝</span><h2>Referrals</h2>
-            <p>People referred with "Got a referral?" on the main page: their contact details and CV, a status and a note for each.</p>
-            <div class="sy-links"><a class="main" href="/referrals.html">Open Referrals</a></div>
-        </section>
-        <section class="sy-card">
-            <span class="sy-ic">🛰</span><h2>GitHub and Cloudflare Monitoring</h2>
-            <p>The code behind every LSH platform and its automatic checks on GitHub, and the live sites on Cloudflare.</p>
-            <div class="sy-links">
-                <a class="main" href="https://github.com/team-litigation-lab" target="_blank" rel="noopener">GitHub</a>
-                <a href="https://github.com/team-litigation-lab/Training-Portal/actions" target="_blank" rel="noopener">✅ Portal checks (Actions)</a>
-                <a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">☁ Cloudflare dashboard</a>
-            </div>
-        </section>
-        <section class="sy-card">
-            <span class="sy-ic">🧭</span><h2>Blueprint Update / Platform Version Control</h2>
-            <p>The Platform Blueprint for trainers and trainees (its PDF carries the live version), and the history of every change to the Portal.</p>
-            <div class="sy-links">
-                <a class="main" href="/blueprint.html?track=admin">Open the Blueprint</a>
-                <a href="https://github.com/team-litigation-lab/Training-Portal/commits/main" target="_blank" rel="noopener">🕘 Version history</a>
+
+        <section class="cr-group wide">
+            <div class="topic-group-head"><h2>Releases &amp; Feedback</h2></div>
+            <div class="cr-cards">
+                <article class="cr-card wide" style="--ac:#db2777">
+                    <div class="cr-top"><span class="cr-tag"><b>CONTROL 05</b> <i>// FEEDBACK &amp; UPDATES</i></span><span class="cr-state">Portal</span></div>
+                    <div class="cr-head"><span class="cr-icon">💬</span><h3>Platform Feedback, Updates &amp; Blueprint</h3></div>
+                    <p class="cr-desc">What trainees say about the platform and the training, announcements to everyone, and the Platform Blueprint (its PDF carries the live version).</p>
+                    <ul class="cr-rows">
+                        <li><a class="cr-row" href="/core.html#announce"><span class="ic">📣</span><span class="lb">Broadcast &amp; Ping<small>Ticker announcement, full-screen alert, ping</small></span><span class="go">→</span></a></li>
+                        <li><a class="cr-row" href="/blueprint.html?track=admin"><span class="ic">🧭</span><span class="lb">Platform Blueprint<small>For trainers and trainees, with its PDF</small></span><span class="go">→</span></a></li>
+                    </ul>
+                    <div class="cr-foot"><span class="cr-spec">Ratings · Announcements</span><a class="cr-go" href="/progress.html">Feedback from trainees <span class="arr">→</span></a></div>
+                </article>
             </div>
         </section>
     </div>
-    <p class="sy-note">LSH Academy Index, 🛠 LSH Elev8, 📚 LSH Atlas, ☎️ LSH CommX and 🗂 LSH CaseWorX open from LSH Academy Index.</p>
+    <p class="cr-note">LSH Academy Index, 🛠 LSH Elev8, 📚 LSH Atlas, ☎️ LSH CommX and 🗂 LSH CaseWorX open from LSH Academy Index.</p>
 </div>
 
 <script src="/app.js"></script>
@@ -116,13 +122,20 @@
         const n = (Array.isArray(users) ? users : []).filter(u => u.status === 'Pending' && u.userType === 'Trainee').length;
         if (!n) return;
         ['sy-reg', 'idx-reg-badge'].forEach(id => { const b = document.getElementById(id); if (b) { b.textContent = n; b.classList.add('has'); } });
+        if (typeof waiting === 'function') waiting();
     }).catch(() => {});
     // Access requests waiting, on the Access Requests link (and the System Management menu's)
     fetch('/api/topics', { credentials: 'include', cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
         const n = d && d.success ? (d.access || []).filter(a => a.status === 'Pending').length : 0;
         if (!n) return;
         ['sy-acc', 'idx-access-badge'].forEach(id => { const b = document.getElementById(id); if (b) { b.textContent = n; b.classList.add('has'); } });
-    }).catch(() => {});
+    }).catch(() => {}).finally(waiting);
+    // CONTROL 01's status pill: how many log-ins and requests are waiting, together
+    function waiting() {
+        const n = ['sy-reg', 'sy-acc'].reduce((a, id) => a + (Number((document.getElementById(id) || {}).textContent) || 0), 0);
+        const st = document.getElementById('sy-access-state');
+        if (st && n) { st.className = 'cr-state hot'; st.innerHTML = '<i></i>' + n + ' waiting'; }
+    }
 </script>
 </body>
 </html>
