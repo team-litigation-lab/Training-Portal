@@ -181,7 +181,7 @@
                 <button onclick="openPeople()" class="side-nav-btn mc-nav-btn" data-mc="people" title="Log-in approvals, program access and access requests, and accounts: one place, three tabs"><span>👥</span> People &amp; Access <span id="reg-pending-badge-side" class="admin-nav-badge"></span><span id="access-req-badge-side" class="admin-nav-badge"></span></button>
                 <a class="side-nav-btn" href="/referrals.html" style="text-decoration:none" title="People referred from the home page, with their CVs"><span>🤝</span> Referrals</a>
                 <div class="admin-nav-group">2 · Grading &amp; Progress</div>
-                <button onclick="switchView('admin-grades')" class="side-nav-btn active view-nav-btn" id="nav-admin-grades" title="Grade submissions, then release the grades to trainees"><span>📊</span> Check &amp; Release Grades</button>
+                <button onclick="switchView('admin-grades')" class="side-nav-btn active view-nav-btn" id="nav-admin-grades" title="Every grader’s scores across every program, in one report"><span>📊</span> Grades Report</button>
                 <a class="side-nav-btn" href="/progress.html" style="text-decoration:none" title="Every trainee's progress and feedback in every program"><span>📈</span> Progress &amp; Feedback</a>
                 <a class="side-nav-btn" href="/attendance.html" style="text-decoration:none" title="Take and review attendance, batch by batch"><span>🕘</span> Attendance</a>
                 <div class="admin-nav-group">3 · Training Content</div>
@@ -1109,6 +1109,7 @@
     <script src="portal.js"></script>
     <script src="/mc-directory.js"></script>
     <script src="/people-access.js"></script>
+    <script src="/grades-report.js"></script>
 <script>
 // /core.html#master, #registrations, #users, #access, #access-requests, #monitoring and #announce (📢 Broadcast & Ping) open Master Control (the admin screen, not the trainee workspace) on that tab:
 // the admin bar's System Management menu (portal-nav.js) uses them.
