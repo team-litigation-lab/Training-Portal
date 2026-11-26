@@ -176,10 +176,9 @@
                 <div class="admin-nav-group">Start Here</div>
                 <button onclick="mcGo('overview')" class="side-nav-btn mc-nav-btn" data-mc="overview" title="Live counts and the Control Directory: every admin feature, with how to use it"><span>🧭</span> Dashboard &amp; Directory</button>
                 <div class="admin-nav-group">1 · People &amp; Access</div>
-                <button onclick="mcGo('registrations')" class="side-nav-btn mc-nav-btn" data-mc="registrations" title="New sign-ups waiting: approve to issue a Batch ID"><span>📝</span> Log-in Approvals <span id="reg-pending-badge-side" class="admin-nav-badge"></span></button>
-                <!-- 🙋 Access Requests and 🔑 Program Access are one panel, so one entry: it opens at the waiting requests when there are any -->
-                <button onclick="openAccessRequests()" class="side-nav-btn mc-nav-btn" data-mc="program-access" title="Trainees asking to open a program or tool (approve or deny), and each trainee's programs: grant, suspend, restore or revoke"><span>🔑</span> Program Access &amp; Requests <span id="access-req-badge-side" class="admin-nav-badge"></span></button>
-                <button onclick="mcGo('users')" class="side-nav-btn mc-nav-btn" data-mc="users" title="Whole accounts: edit, suspend, restore, revoke"><span>👥</span> Users &amp; Accounts</button>
+                <!-- 👥 Log-in Approvals, Program Access & Requests and Users & Accounts are one job, so one entry (people-access.js): it opens where
+                     something is waiting, and tabs across the top of the panel move between the three. Both waiting counts sit on it. -->
+                <button onclick="openPeople()" class="side-nav-btn mc-nav-btn" data-mc="people" title="Log-in approvals, program access and access requests, and accounts: one place, three tabs"><span>👥</span> People &amp; Access <span id="reg-pending-badge-side" class="admin-nav-badge"></span><span id="access-req-badge-side" class="admin-nav-badge"></span></button>
                 <a class="side-nav-btn" href="/referrals.html" style="text-decoration:none" title="People referred from the home page, with their CVs"><span>🤝</span> Referrals</a>
                 <div class="admin-nav-group">2 · Grading &amp; Progress</div>
                 <button onclick="switchView('admin-grades')" class="side-nav-btn active view-nav-btn" id="nav-admin-grades" title="Grade submissions, then release the grades to trainees"><span>📊</span> Check &amp; Release Grades</button>
@@ -1111,6 +1110,7 @@
 <script src="app.js"></script>
     <script src="portal.js"></script>
     <script src="/mc-directory.js"></script>
+    <script src="/people-access.js"></script>
 <script>
 // /core.html#master, #registrations, #users, #access, #access-requests, #monitoring and #announce (📢 Broadcast & Ping) open Master Control (the admin screen, not the trainee workspace) on that tab:
 // the admin bar's System Management menu (portal-nav.js) uses them.
