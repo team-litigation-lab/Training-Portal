@@ -1,6 +1,6 @@
 # Training programs: what every program must do
 
-Every LSH training program (Foundational, EA / PA, Case Management, PD Claims, Medsum & Demand, Lien Negotiator, and
+Every LSH training program (Foundational, EA / PA, Case Management, PD Claims, Medsum & Demand, Lien Negotiator, Closing Specialist, and
 every program built after them) is its own Cloudflare Worker. Its records are kept in the **shared course KV**, which the
 Portal reads as `COURSE_KV`. When a trainer revokes a trainee on the Portal, the revocation has to reach every
 program's scorecards. This file is the contract that makes that work. **A new program follows all of it before it goes live.**

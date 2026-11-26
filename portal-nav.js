@@ -76,6 +76,7 @@ const PortalNav = {
         ['Property Damage Claims Track', '/api/launch?program=PROPERTY%20DAMAGE&to=blueprint'],
         ['Medsum & Demand Track', '/api/launch?program=MEDSUM%20AND%20DEMAND&to=blueprint'],
         ['Lien Negotiator Track', '/api/launch?program=LIEN%20NEGOTIATION&to=blueprint'],
+        ['Closing Specialist Track', '/api/launch?program=SETTLEMENTS%20CLOSING&to=blueprint'],
         ['🗂 LSH CaseWorX', '/api/launch?tool=cms&to=blueprint'],
         ['☎ LSH Voice', '/api/launch?tool=ringchannel&to=blueprint'],
         ['📚 LSH Atlas', '/api/launch?tool=kb&to=blueprint']
