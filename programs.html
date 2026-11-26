@@ -165,6 +165,9 @@
         #idx-topics .topic-card.has-free .topic-status, #idx-topics .topic-card.has-free .topic-action-btn, .topic-card.has-free .topic-free { font-size: 9px; padding-left: 6px; padding-right: 6px; letter-spacing: 0; }
     }
     .topic-card.has-free .topic-status { justify-self: start; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* room below the letters: the name is painted with background-clip:text, which only paints inside its box, so at the pill's 1.1 line height
+       the tails of g, y and p (Legal, Negotiator, Property) were cut off. The padding gives them room; the negative margin keeps the pill's height. */
+    .tk-name { display: inline-block; line-height: 1.2; padding: .06em 0 .2em; margin: -.06em 0 -.2em; }
     .tk-name { background: linear-gradient(100deg, var(--tk-ink) 0%, var(--tk-ink) 38%, color-mix(in srgb, var(--tk) 45%, #fff) 50%, var(--tk-ink) 62%, var(--tk-ink) 100%);
         background-size: 260% 100%; background-position: 100% 0; -webkit-background-clip: text; background-clip: text; color: transparent;
         animation: tkShine 6s ease-in-out infinite; animation-delay: var(--tkd, 0s); }
@@ -190,6 +193,12 @@
     .topic-card.tk.still h3, .topic-card.tk.still .tk-ic, .topic-card.tk.still .tk-name,
     .tg-still .topic-card.tk h3, .tg-still .topic-card.tk .tk-ic, .tg-still .topic-card.tk .tk-name { animation: none; }
     .topic-card.tk.still .tk-name, .tg-still .topic-card.tk .tk-name { background-position: 0 0; }
+    /* 🧭 Legal VA Foundational Track, where every trainee starts: its name looks embossed, raised off the pill (a light edge above,
+       a soft shadow below), and the pill itself is gently bevelled (a highlight along its top, a shade along its foot) */
+    .topic-card.tk-ft .tk-name { filter: drop-shadow(0 -1px 0 rgba(255,255,255,.95)) drop-shadow(0 1.5px 0 rgba(30,35,64,.28)) drop-shadow(0 3px 3px rgba(30,35,64,.22)); }
+    .topic-card.tk-ft h3 { box-shadow: inset 0 2px 0 rgba(255,255,255,.95), inset 0 -3px 6px rgba(30,35,64,.12), 0 4px 10px -4px rgba(30,35,64,.35) !important; }
+    /* ▪ The track-name pill, simplified: a plain black frame on white, no coloured border, sheen or glow (the name keeps its colour) */
+    .topic-card h3, .topic-card.tk h3, .topic-card.soon h3, .topic-card.tk.soon h3 { border: 2px solid #111827; background: #fff; box-shadow: none; animation: none; }
     @media (prefers-reduced-motion: reduce) { .tk-name, .topic-card.tk.live h3, .topic-card.tk.live .tk-ic { animation: none; } .tk-name { background-position: 0 0; } }
     .topic-status { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 999px; display: inline-block; width: fit-content; }
     .topic-status.approved { background: #f0fdf4; color: #166534; }
@@ -214,8 +223,8 @@
     /* 📬 Your Daily Digest: the Flash Cards card is one button that opens today's card in a popup (the popup's styles are below). */
     .tool-card { padding: clamp(6px, 1vh - 2px, 12px); }
     .tool-card .dd-open { grid-column: 1 / -1; grid-row: 1 / -1; align-self: stretch; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(4px, .8vh, 9px);
-        border: 2px solid var(--navy-deep); border-radius: 10px; background: linear-gradient(135deg, var(--navy-deep), var(--navy) 60%, var(--navy-mid)); color: #fff; cursor: pointer; font: inherit; padding: 6px 10px; box-shadow: inset 5px 0 0 var(--orange); transition: transform .15s ease, box-shadow .15s ease; }
-    .tool-card .dd-open:hover { transform: translateY(-2px); box-shadow: inset 5px 0 0 var(--orange), 0 10px 20px -12px rgba(0,0,0,.6); }
+        border: 2px solid #ecc98a; border-radius: 10px; background: linear-gradient(135deg, #fffdf7 0%, #fdf2dc 45%, #f7dfb0 100%); color: var(--navy-deep); cursor: pointer; font: inherit; padding: 6px 10px; box-shadow: inset 5px 0 0 var(--orange); transition: transform .15s ease, box-shadow .15s ease; }
+    .tool-card .dd-open:hover { transform: translateY(-2px); box-shadow: inset 5px 0 0 var(--orange), 0 10px 20px -12px rgba(160,100,30,.45); }
     .tool-card .dd-open:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
     .dd-open .dd-t { font-size: clamp(13px, 1.9vh, 20px); font-weight: 900; letter-spacing: .01em; white-space: nowrap; }
     .dd-open .dd-c { font-size: clamp(10.5px, 1.3vh, 13px); font-weight: 800; color: #0f172a; background: var(--orange); border-radius: 999px; padding: 3px 14px; white-space: nowrap; }
@@ -301,9 +310,9 @@
     .sim-banner-go { background: var(--orange); color: #0f172a; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 8px 16px; white-space: nowrap; }
 
     /* The top bar: the LSH logo, the page's name, and the pill bar (trainees, visitors, or the admin bar). */
-    .idx-top { --brand-panel: 200px; --brand-panel-sm: 162px; position: relative; z-index: 5; gap: 20px; padding: 14px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
+    .idx-top { --brand-panel: 200px; --brand-panel-sm: 162px; position: relative; z-index: 5; gap: 20px; padding: 8px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
     .idx-brand { flex-shrink: 0; margin-right: 72px; }
-    .idx-logo { height: 58px; width: auto; display: block; }
+    .idx-logo { height: 70px; width: auto; display: block; }   /* the LSH logo a size up; the bar's padding gives it the room, so the bar stays the same height */
     .idx-title { flex: 0 1 auto; margin: 0 auto 0 0; font-size: clamp(16px, 2vw, 28px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: #fff; white-space: nowrap; }
     .idx-title span { color: var(--orange); }
     .idx-user { gap: 6px; }
@@ -326,10 +335,11 @@
         /* min-height:0 on the card and its title: without it a row can never shrink below the
            card's own content, so on a screen that is a little too short the last group was
            clipped by the body's overflow:hidden instead of the rows giving up their spare air. */
-        #idx-topics .topic-card { grid-template-rows: minmax(0, 1fr) auto; align-content: center; min-height: 0; overflow: hidden; }
+        #idx-topics .topic-card { grid-template-rows: minmax(0, 1fr) auto; align-content: stretch; min-height: 0; overflow: hidden; padding-top: 6px; padding-bottom: 6px; row-gap: 5px; }   /* ★ the card's spare height goes to the name's pill, not to padding */
         #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: calc(clamp(13px, 1.95vh, 21px) + 1pt); padding: .45em 1em; line-height: 1.1; }   /* the pill's air in step with the name, so it never looks crammed */
         /* ✦ Beyond-Legal Skills, the highlight lessons: their names a size down, with room either side, so that row doesn't look crammed */
         #idx-topics .tg-beyond .topic-card h3 { font-size: calc(clamp(13px, 1.55vh, 17px) + 1pt); padding-left: 14px; padding-right: 14px; }
+        #idx-topics .topic-card.tk-ft h3 { font-size: calc(clamp(13px, 1.95vh, 21px) - 1pt); }   /* 🧭 Legal VA Foundational Track's name a little smaller than the other tracks' */
         #idx-topics .topic-action-btn { font-size: clamp(9.5px, 1.05vh, 11.5px); padding: clamp(4px, 0.6vh, 7px) clamp(11px, 1vw, 16px); }
         #idx-topics .topic-status { font-size: clamp(9.5px, 1.1vh, 12px); padding: 3px 10px; }
     }
@@ -349,15 +359,15 @@
        full text is on hover.*/
     @media (max-height: 940px) {
         .idx-wrap { padding: 10px 24px 10px; }
-        .idx-top { padding: 11px 24px; }
-        .idx-logo { height: 50px; }
+        .idx-top { padding: 6px 24px; }
+        .idx-logo { height: 60px; }
         .sim-banner-row { gap: 9px; margin-bottom: 9px; }
         .sim-banner-row .sim-banner { padding: 9px 11px; }
         .topic-card { padding: 8px 10px; gap: 6px; }
     }
     @media (max-height: 800px) {
-        .idx-top { padding: 9px 22px; gap: 16px; }
-        .idx-logo { height: 44px; }
+        .idx-top { padding: 5px 22px; gap: 16px; }
+        .idx-logo { height: 52px; }
         .idx-user .pn-pill { font-size: 10.5px !important; padding: 4px 8px !important; }
         .sim-banner-row { gap: 8px; margin-bottom: 8px; }
         .sim-banner-row .sim-banner { padding: 7px 10px; gap: 9px; }
@@ -376,7 +386,7 @@
     @media (max-height: 730px) {
         .idx-wrap { padding: 8px 20px 8px; }
         .idx-top { padding: 8px 20px; }
-        .idx-logo { height: 38px; }
+        .idx-logo { height: 46px; }
         .sim-banner-row { gap: 7px; margin-bottom: 7px; }
         .sim-banner-row .sim-banner { padding: 6px 9px; }
         .topic-grid { gap: 7px; }
@@ -406,6 +416,7 @@
 </style>
 <script src="/portal-nav.js"></script>
 <script src="/flashcards-data.js"></script>
+<script src="/online-now.js"></script>
 <link rel="stylesheet" href="/theme.css">
 </head>
 <body>
@@ -596,7 +607,7 @@
     // 📬 Your Daily Digest: a daily dose, not a stack. One card a day (flashcards-data.js one(): the same card for everyone
     // today, from the next deck in turn: Rules, Trivia, Terminologies, Process, FAQs), so trainees get familiar with the
     // legal industry a little at a time without leaving their training. A Terminologies card asks what its term means;
-    // the answer (about two lines) stays behind a Reveal button so they think first.
+    // the answer (a short paragraph: what to do, why, and a tip) stays behind a Reveal button so they think first.
     function openDailyDigest() {
         const F = window.LSH_FLASHCARDS; if (!F) return;
         let pop = document.getElementById('dd-pop');
@@ -673,7 +684,7 @@
             // One admin bar on every main page (portal-nav.js); everything else is under System Management.
             if (userEl) userEl.innerHTML = PortalNav.adminHtml('', { back: '/index.html?stay=1', blueprintMenu: true });
             // 📢 the announcement is edited in Master Control → Broadcast & Ping: ✏️ Edit on the ticker goes straight there
-            if (!asTrainee) { const tk = document.getElementById('announcement-ticker'); if (tk && !document.getElementById('idx-ann-edit')) tk.insertAdjacentHTML('afterend', '<a id="idx-ann-edit" href="/core.html#announce" title="Edit the announcement (Master Control → Broadcast &amp; Ping)" style="flex:none;padding:3px 10px;border:1px solid rgba(253,186,116,.6);border-radius:999px;color:#fdba74;font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap">✏️ Edit</a>'); }
+            if (!asTrainee) { const tk = document.getElementById('announcement-ticker'); if (tk && !document.getElementById('idx-ann-edit')) tk.insertAdjacentHTML('afterend', '<a id="idx-ann-edit" href="/core.html#announce" title="Edit the announcement (Master Control → Broadcast &amp; Ping)" style="flex:none;padding:3px 10px;border:1px solid rgba(253,186,116,.6);border-radius:999px;color:#fdba74;font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap">✏️ Edit</a>'); if (window.OnlineNow) OnlineNow.mount(document.getElementById('idx-ann-edit')); }
             if (asTrainee) document.querySelector('.idx-top').insertAdjacentHTML('afterend',
                 `<div class="pn-trainee-view">👁 Trainee view: LSH Academy Index as trainees see it.<button type="button" onclick="PortalNav.switchView()">Back to the admin view</button></div>`);
         }
@@ -792,7 +803,7 @@
         const isAdmin = session.userType === 'Admin';
 
         // 🎨 Each track's own identity on its card: an emblem and a colour, with the name in that colour (TRACK_LOOK).
-        const tkOpen = (t, live) => { const k = TRACK_LOOK[t.key], free = (PINNED_PROGRAMS.includes(t.key) ? ' has-free' : '') + (STILL_TRACKS.includes(t.key) ? ' still' : ''); return k ? `<div class="topic-card tk${live ? ' live' : ' soon'}${free}" style="--tk:${k[1]};--tkd:${(t.key.length * 0.37) % 3}s">` : `<div class="topic-card${live ? '' : ' soon'}${free}">`; };
+        const tkOpen = (t, live) => { const k = TRACK_LOOK[t.key], free = (PINNED_PROGRAMS.includes(t.key) ? ' has-free' : '') + (STILL_TRACKS.includes(t.key) ? ' still' : ''); return k ? `<div class="topic-card tk${live ? ' live' : ' soon'}${free}${t.key === 'STANDARD TRAINING' ? ' tk-ft' : ''}" style="--tk:${k[1]};--tkd:${(t.key.length * 0.37) % 3}s">` : `<div class="topic-card${live ? '' : ' soon'}${free}">`; };
         const tkTitle = (t) => { const k = TRACK_LOOK[t.key];
             const line = k ? `<span class="tk-ic" aria-hidden="true">${k[0]}</span><span class="tk-name">${escapeHtml(t.name)}</span>` : escapeHtml(t.name);
             // the Free Upskill badge goes in the bottom row (.has-free), between the status and the action

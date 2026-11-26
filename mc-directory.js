@@ -14,23 +14,36 @@
     ];
     // go: a Master Control panel (mc), a workspace view (view), a function name (fn) or a page (href)
     const FEATURES = [
-        { g: 'people', id: 'registrations', icon: '📝', name: 'Log-in Approvals', go: { mc: 'registrations' }, stat: () => count('admin-stat-pending', 'waiting', true),
+        // 👥 Log-in Approvals, Program Access & Requests and Users & Accounts are one job and one menu entry (people-access.js), so one row
+        { g: 'people', id: 'people', icon: '👥', name: 'People & Access', go: { fn: 'openPeople' },
+          stat: () => { const a = Number((document.getElementById('admin-stat-pending') || {}).textContent) || 0, b = Number((document.getElementById('access-req-badge-side') || {}).textContent) || 0;
+              return a + b ? `<b style="color:#c2410c">${a + b} waiting</b>` : count('admin-stat-total-users', 'accounts'); },
+          what: 'Log-in approvals, who can open which program (with access requests), and every account: one place, two tabs.',
+          steps: ['📝 Log-in Approvals: new sign-ups. Check the name, email and Onboarding Day, then Approve (the Batch ID is issued) or Deny. + Create account is at the top right.',
+                  '🔑 Program Access & Accounts: 🙋 Access Requests are trainees waiting for a program or tool: Approve or Deny.',
+                  'Search a trainee, then Grant, ⏸ Suspend (nothing removed), ▶ Restore or Revoke one program.',
+                  '👥 Accounts (at the foot of the same tab): Edit, Suspend, Restore or Revoke a whole account; Revoke takes them out of every program.'] },
+        // (hidden: the three panels People & Access opens. Not rows of their own any more; they name each panel's bar and its ⓘ How to use)
+        { g: 'people', id: 'registrations', hidden: true, icon: '📝', name: 'Log-in Approvals', go: { mc: 'registrations' }, stat: () => count('admin-stat-pending', 'waiting', true),
           what: 'New sign-ups waiting. Approving issues the Batch ID and moves the account to Users.',
           steps: ['Open Log-in Approvals: trainers are listed first, then trainees by the batch they will join (oldest first).', 'Check the name, email and Onboarding / Orientation Day (it makes the Batch ID).', 'Press Approve (the Batch ID is issued) or Deny.', 'Need an account for someone? Use + Create account at the top right.'] },
-        // 🙋 Access Requests and 🔑 Program Access are one panel, so one row (it was two, both opening the same panel)
-        { g: 'people', id: 'program-access', icon: '🔑', name: 'Program Access & Requests', go: { fn: 'openAccessRequests' }, stat: () => count('access-req-badge-side', 'waiting', true),
+        { g: 'people', id: 'program-access', hidden: true, icon: '🔑', name: 'Program Access & Accounts', go: { fn: 'openAccessRequests' }, stat: () => count('access-req-badge-side', 'waiting', true),
           what: 'Trainees asking to open a program or tool (Approve or Deny), and one program for one trainee: Grant, ⏸ Suspend, ▶ Restore, Revoke.',
           steps: ['Waiting requests are listed under 🙋 Access Requests: each row names the trainee, batch and program; press Approve or Deny (their LSH Academy Index updates within seconds).',
                   'Search for the trainee by name, username or batch.', 'Grant opens a program; ⏸ Suspend pauses it (nothing removed); ▶ Restore gives back what they had; Revoke closes it (they can request again).', 'Suspending or revoking takes them off that program’s sheets and scorecards; granting brings them back.', 'For the whole account at once, use Users & Accounts instead.'] },
-        { g: 'people', id: 'users', icon: '👥', name: 'Users & Accounts', go: { mc: 'users' }, stat: () => count('admin-stat-total-users', 'accounts'),
+        { g: 'people', id: 'users', hidden: true, icon: '👥', name: 'Users & Accounts', go: { mc: 'users' }, stat: () => count('admin-stat-total-users', 'accounts'),
           what: 'Whole accounts: edit details, suspend, restore or revoke.',
           steps: ['Trainers are listed first, then one table per batch (click a batch to open it).', 'Edit changes Batch ID, name, email, username or password.', 'Suspend blocks sign-in for now; Restore undoes it.', 'Revoke removes the trainee from every program (records are filed to the batch folder first).'] },
+        { g: 'people', id: 'access', icon: '🔒', name: 'Site Lock & Admin Password', go: { mc: 'access' }, stat: () => [text('ov-lock-state', ''), text('ov-pause-state', '')].filter(Boolean).join(' · '),
+          what: 'Pause activity or lock the whole site (Master Account only for Lock), and check that every platform accepts the admin password.',
+          steps: ['Open Site Lock & Admin Password, then 🔒 Open Access Control.', 'Pause stops activity for everyone; Resume brings it back.', 'Lock closes the site (Master Account only); Unlock opens it.',
+                  '🔐 Admin password check (same panel): type the admin password once and press Check every platform. Any platform marked INCORRECT or NOT SET needs its MASTER_ADMIN_PASSWORD set to the same value.'] },
         { g: 'people', id: 'referrals', icon: '🤝', name: 'Referrals', go: { href: '/referrals.html' }, stat: () => '',
           what: 'People referred from “Got a referral?” on the home page, with their CVs.',
           steps: ['Open Referrals.', 'Read each referral and download the CV.', 'Follow up outside the portal, then mark it as handled.'] },
-        { g: 'grading', id: 'admin-grades', icon: '📊', name: 'Check & Release Grades', go: { view: 'admin-grades' }, stat: () => count('admin-stat-submissions', 'submissions'),
-          what: 'Grade trainee submissions, then release the grades to trainees.',
-          steps: ['Open Check & Release Grades.', 'Pick a submission in the table and press Grade.', 'Enter the score and feedback, then save.', 'Release the grades when ready: trainees see them under Grades & Submissions.'] },
+        { g: 'grading', id: 'admin-grades', icon: '📊', name: 'Grades Report', go: { view: 'admin-grades' }, stat: () => '',
+          what: 'Every grader’s scores across every program, in one report (grading and releasing happen inside each program).',
+          steps: ['Open Grades Report.', 'Each row is a trainee, grouped by batch: their average in each program (hover a score for its Knowledge Checks, Practice, Surprise Tasks and Role-plays), their simulator and Portal work, and an overall.', 'Search by name or batch.', 'Download CSV for the whole report.'] },
         { g: 'grading', id: 'progress', icon: '📈', name: 'Progress & Feedback', go: { href: '/progress.html' }, stat: () => '',
           what: 'Every trainee’s progress and feedback, in every program.',
           steps: ['Open Progress & Feedback (its own page).', 'Choose a program and a batch.', 'Open a trainee to see their scores and leave feedback.'] },
@@ -40,10 +53,10 @@
         { g: 'content', id: 'admin-activities', icon: '📋', name: 'Lesson Decks & Activities', go: { view: 'admin-activities' }, stat: () => count('admin-stat-total-activities', 'published'),
           what: 'Add, publish and archive lesson decks and activities.',
           steps: ['Open Lesson Decks & Activities.', 'Press Add New Activity, fill in the title, instructions and files.', 'Publish it to show it to trainees; Archive hides an old one without deleting it.'] },
-        { g: 'content', id: 'admin-lectures', icon: '🎬', name: 'Manage Lectures', go: { view: 'admin-lectures' }, stat: () => '',
+        { g: 'content', id: 'admin-lectures', hidden: true, icon: '🎬', name: 'Manage Lectures', go: { view: 'admin-lectures' }, stat: () => '',
           what: 'Embed and manage recorded lectures.',
           steps: ['Open Manage Lectures.', 'Press Embed Recorded Lecture and paste the video link.', 'Give it a title; trainees see it under Recorded Lectures.'] },
-        { g: 'content', id: 'index', icon: '🎓', name: 'LSH Academy Index', go: { href: '/programs.html' }, stat: () => '',
+        { g: 'content', id: 'index', hidden: true, icon: '🎓', name: 'LSH Academy Index', go: { href: '/programs.html' }, stat: () => '',
           what: 'Every program and track, as trainees see it. Approve waiting requests at the top.',
           steps: ['Open LSH Academy Index.', 'Enter Program opens a program as an admin.', '👁 Switch view shows it exactly as a trainee sees it.'] },
         { g: 'content', id: 'atlas', icon: '📚', name: 'LSH Atlas', go: { href: '/api/launch?tool=kb' }, stat: () => '',
@@ -61,10 +74,7 @@
         { g: 'monitor', id: 'ai-usage', icon: '🤖', name: 'AI Usage', go: { href: '/api/ai-usage' }, stat: () => '',
           what: 'Today’s use of the shared AI budget every LSH platform draws on, flow by flow (the same page as System Management → AI Usage Monitoring).',
           steps: ['Open AI Usage.', 'Read today’s requests and tokens for each call flow, then the last 7 days.'] },
-        { g: 'system', id: 'access', icon: '🔒', name: 'Site Lock & Access Control', go: { mc: 'access' }, stat: () => [text('ov-lock-state', ''), text('ov-pause-state', '')].filter(Boolean).join(' · '),
-          what: 'Pause activity or lock the whole site (Master Account only for Lock).',
-          steps: ['Open Site Lock, then 🔒 Open Access Control.', 'Pause stops activity for everyone; Resume brings it back.', 'Lock closes the site (Master Account only); Unlock opens it.'] },
-        { g: 'system', id: 'password', icon: '🔐', name: 'Admin Password Check', go: { href: '/api/admin-password-check' }, stat: () => '',
+        { g: 'people', id: 'password', hidden: true, icon: '🔐', name: 'Admin Password Check', go: { mc: 'access' }, stat: () => '',   // (now part of Site Lock & Admin Password)
           what: 'Does every platform accept the admin password?',
           steps: ['Open Admin Password Check.', 'Type the admin password once and press Check every platform.', 'Any platform marked INCORRECT or NOT SET needs its MASTER_ADMIN_PASSWORD set to the same value.'] },
         { g: 'system', id: 'overview', icon: '🧭', name: 'Dashboard & Directory', go: { mc: 'overview' }, stat: () => '', hidden: true,
@@ -86,6 +96,16 @@
     }
 
     /* ---------- the directory table ---------- */
+    // each group folds open or closed (click its heading); which are folded is remembered in this browser
+    const closed = new Set((() => { try { return JSON.parse(localStorage.getItem('mcDirClosed') || '[]'); } catch (e) { return []; } })());
+    function toggleGroup(id) {
+        closed.has(id) ? closed.delete(id) : closed.add(id);
+        try { localStorage.setItem('mcDirClosed', JSON.stringify([...closed])); } catch (e) { /* not remembered */ }
+        paintDirectory();
+    }
+    document.addEventListener('click', e => { const g = e.target.closest && e.target.closest('#ov-directory tr.ov-grp'); if (g) toggleGroup(g.dataset.grp); });
+    document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('#ov-directory tr.ov-grp')) { e.preventDefault(); toggleGroup(e.target.dataset.grp); } });
+    (() => { const st = document.createElement('style'); st.textContent = '#ov-directory tr.ov-grp { cursor: pointer; } #ov-directory tr.ov-grp:hover td { filter: brightness(1.15); } #ov-directory .ov-caret { display: inline-block; margin-right: 8px; transition: transform .15s ease; } #ov-directory tr.ov-grp.shut .ov-caret { transform: rotate(-90deg); } #ov-directory tr.ov-grp:focus-visible { outline: 3px solid #DB8437; outline-offset: -3px; }'; document.head.appendChild(st); })();
     function paintDirectory() {
         const box = document.getElementById('ov-directory'); if (!box) return;
         const q = ((document.getElementById('ov-dir-find') || {}).value || '').trim().toLowerCase();
@@ -93,7 +113,8 @@
         const body = GROUPS.map(g => {
             const rows = FEATURES.filter(f => f.g === g.id && !f.hidden && match(f));
             if (!rows.length) return '';
-            return `<tr class="ov-grp"><td colspan="4">${esc(g.title)}<small>${esc(g.note)}</small></td></tr>` + rows.map(f => `<tr class="ov-row">
+            const shut = !q && closed.has(g.id);   // a search shows every match, folded or not
+            return `<tr class="ov-grp${shut ? ' shut' : ''}" data-grp="${g.id}" tabindex="0" role="button" aria-expanded="${!shut}"><td colspan="4"><span class="ov-caret" aria-hidden="true">▾</span>${esc(g.title)}<small>${esc(g.note)}</small></td></tr>` + rows.map(f => `<tr class="ov-row" data-g="${g.id}"${shut ? ' hidden' : ''}>
                 <td class="ov-feat">${f.icon} ${esc(f.name)}</td><td class="ov-what">${esc(f.what)}</td><td class="ov-stat" data-stat="${f.id}">${f.stat() || '<span style="color:#94a3b8">—</span>'}</td>
                 <td class="ov-act"><button type="button" class="ov-open" data-open="${f.id}">Open →</button><button type="button" class="ov-info" data-guide="${f.id}" aria-expanded="false" aria-label="How to use ${esc(f.name)}">ⓘ</button></td></tr>`).join('');
         }).join('');

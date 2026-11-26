@@ -557,8 +557,8 @@ function renderUsersList() {
     const toolbar = `<div class="pa-toolbar"><button class="btn-ghost" onclick="paExpandAll(true, 'users-list')">Expand all</button><button class="btn-ghost" onclick="paExpandAll(false, 'users-list')">Collapse all</button></div>`;
     container.innerHTML = search
         + ((!admins.length && !batches.length) ? '<p class="pa-empty">No accounts match.</p>' : toolbar
-            + (admins.length ? section('users:trainers', '🧑‍🏫 Trainers', 'pa-trainers', admins, true, false) : '')
-            + batches.map((g, i) => section('users:batch:' + g.key, '🎓 ' + (g.key === 'No Batch' ? 'No Batch yet' : 'Batch ' + g.key), '', g.users.sort(byName), false, i === 0)).join(''));
+            + batches.map((g, i) => section('users:batch:' + g.key, '🎓 ' + (g.key === 'No Batch' ? 'No Batch yet' : 'Batch ' + g.key), '', g.users.sort(byName), false, i === 0)).join('')
+            + (admins.length ? section('users:trainers', '🧑‍🏫 Trainers', 'pa-trainers', admins, true, false) : ''));   // trainers below the batches: rarely needed day to day
 }
 
 // =========================================================
@@ -3021,7 +3021,8 @@ function showToast(message, type = 'info', duration = 3500, options = {}) {
 
 // 6. DYNAMIC BRAND MARK INJECTION
 function renderAgencyLogo() {
-    const imgTag = `<img src="/favicon.png" onerror="this.src='${AGENCY_LOGO}'" alt="LSH Logo" style="width:100%;height:100%;object-fit:contain;">`;
+    // the standard LSH logo (/img/logo.svg, as on LSH Academy Index and every top bar), on the sidebar's navy: no white box
+    const imgTag = `<img src="/img/logo.svg" onerror="this.src='${AGENCY_LOGO}'" alt="Legal Support Help" style="width:100%;height:100%;object-fit:contain;">`;
     document.querySelectorAll('#agency-seal, #agency-seal-admin, #auth-seal').forEach(el => {
         el.innerHTML = imgTag;
     });
@@ -3074,7 +3075,6 @@ const paIsSuspended = (st) => String(st || '').startsWith('Suspended');
 const paPillClass = (st) => paIsSuspended(st) ? 'suspended' : String(st || '').toLowerCase();
 const paPillText = (st) => st === 'Suspended-Passed' ? 'Suspended (completed)' : st === 'Passed' ? 'Completed' : st;
 // how many requests are waiting, on the 🙋 Access Requests menu entry (and the System Management menu's)
-function paPendingCount() { return __paAccess.filter(a => a.status === 'Pending').length; }
 function updateAccessRequestBadge(n) {
     ['access-req-badge-side', 'idx-access-badge'].forEach(id => { const b = document.getElementById(id); if (!b) return; b.textContent = n > 0 ? n : ''; b.classList.toggle('has', n > 0); });
 }
@@ -3185,7 +3185,7 @@ function renderProgramAccess() {
                 <thead><tr><th style="width:30%;">Trainer</th><th>Username</th><th>Email</th><th>Program access</th></tr></thead>
                 <tbody>${trainers.map(u => `<tr><td class="pa-who"><div class="pa-name">${escapeHtml(u.fullName)}</div></td><td>${escapeHtml(u.username)}</td><td class="mc-sub">${escapeHtml(u.email || '')}</td><td>${u.status === 'Suspended' ? '<span class="mc-pill suspended">account suspended</span>' : '<span class="mc-pill approved">All programs</span>'}</td></tr>`).join('')}</tbody></table></div></details>` : '';
     box.innerHTML = `<div class="pa-toolbar"><button class="btn-ghost" onclick="paExpandAll(true)">Expand all</button><button class="btn-ghost" onclick="paExpandAll(false)">Collapse all</button></div>`
-        + trainerSection + batches.map(batchSection).join('');
+        + batches.map(batchSection).join('') + trainerSection;   // trainers last: they need no grants, so they're rarely opened here
 }
 const PA_DONE = { APPROVE: 'Access approved.', DENY: 'Access revoked.', GRANT: 'Access granted.', MARK_PASSED: 'Marked as passed.', SUSPEND: 'Access suspended.', RESTORE: 'Access restored.', CLEAR: 'Request cleared.' };
 // 🧹 Standard Foundational Training: everyone revoked here before the course was told goes on its block list (topics.js FT_SWEEP)

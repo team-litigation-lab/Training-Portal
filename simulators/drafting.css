@@ -10,15 +10,15 @@
 /* ---------- the layout: everything the trainee works from on the left, the document on the right ----------
    Left: the title, the letters (a column of their own) and the cards (Edit it on your computer, case notes, the
    HIPAA's blanks, the trainers' reminders). Right: the document, original or ✎ Edit here, as tall as the screen. */
-.sim-wrap.dr-wrap { max-width: 1680px; padding-top: 22px; }
-.dr-layout { display: grid; grid-template-columns: minmax(0, 520px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.sim-wrap.dr-wrap { max-width: none; padding: 22px clamp(16px, 2.2vw, 40px) 80px; }
+.dr-layout { display: grid; grid-template-columns: minmax(0, 600px) minmax(0, 1fr); gap: 20px; align-items: start; }
 .dr-left { display: grid; grid-template-columns: 172px minmax(0, 1fr); gap: 12px; align-content: start; min-width: 0; }
-.dr-titlecard { grid-column: 1 / -1; background: linear-gradient(135deg, var(--navy-deep, #081226) 0%, var(--navy-mid, #132a5c) 70%, #1c3a7a 100%);
-    color: #fff; border-radius: 18px; padding: 18px 20px; }
+.dr-titlecard { margin-bottom: 18px; background: linear-gradient(135deg, var(--navy-deep, #081226) 0%, var(--navy-mid, #132a5c) 70%, #1c3a7a 100%);
+    color: #fff; border-radius: 18px; padding: 22px 28px; border-bottom: 3px solid #d4a017; }
 .dr-titlecard .eyebrow { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .12em;
     text-transform: uppercase; color: #fdba74; border: 1px solid rgba(253, 186, 116, .45); background: rgba(249, 115, 22, .14); border-radius: 999px; padding: 4px 10px; margin-bottom: 9px; }
-.dr-titlecard h1 { margin: 0 0 6px; font-size: 21px; font-weight: 800; line-height: 1.2; }
-.dr-titlecard p { margin: 0; color: #c7d2fe; font-size: 12.5px; line-height: 1.55; }
+.dr-titlecard h1 { margin: 0 0 6px; font-size: 28px; font-weight: 800; line-height: 1.2; }
+.dr-titlecard p { margin: 0; color: #c7d2fe; font-size: 14.5px; line-height: 1.55; }
 .dr-nav { display: flex; flex-direction: column; gap: 8px; align-self: start; position: sticky; top: 84px; padding: 12px; }
 .dr-nav .dr-bar { flex-direction: column; align-items: stretch; margin: 0; gap: 6px; }
 .dr-nav .dr-bar select { flex: none !important; width: 100%; }
@@ -78,11 +78,14 @@ textarea.dr-f { display: block; width: 100%; min-height: 72px; resize: vertical;
 
 /* the side panel */
 .dr-side { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 14px; }
-.dr-note { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; font-size: 12.5px; }
-.dr-note h3 { margin: 0 0 8px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--navy, #0f2148); }
-.dr-note dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; }
-.dr-note dt { color: #64748b; font-weight: 700; }
-.dr-note dd { margin: 0; color: #111; }
+.dr-note { background: #fff; border: 1.5px solid #1e3a8a; border-top: 4px solid #d4a017; border-radius: 12px; padding: 16px 18px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 14px -8px rgba(30, 58, 138, .45); }
+.dr-note h3 { margin: 0 0 10px; padding-bottom: 8px; border-bottom: 1.5px solid #d4a017; font-size: 13.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--navy, #0f2148); }
+.dr-note dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0; border: 1px solid #1e3a8a; border-radius: 8px; overflow: hidden; }
+.dr-note dt, .dr-note dd { padding: 7px 10px; border-bottom: 1px solid rgba(212, 160, 23, .55); }
+.dr-note dt:nth-last-of-type(1), .dr-note dd:last-of-type { border-bottom: none; }
+.dr-note dt { background: #eef2ff; border-right: 1px solid #1e3a8a; }
+.dr-note dt { color: #1e3a8a; font-weight: 800; }
+.dr-note dd { margin: 0; color: #0f172a; font-weight: 700; }
 .dr-prog { height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin: 8px 0 4px; }
 .dr-prog i { display: block; height: 100%; background: linear-gradient(90deg, #f97316, #fbbf24); }
 .dr-actions { display: flex; flex-direction: column; gap: 8px; }
@@ -245,3 +248,9 @@ textarea.dr-f { display: block; width: 100%; min-height: 72px; resize: vertical;
 /* Word's own default size (10 pt) for a run whose file gives no size anywhere; drafting-editor.js sets the file's own
    default (docDefaults) on the wrapper when it has one. Never the page's 15px: the MedLORs ran to a third or fourth page. */
 .dr-paper .docx-wrapper { font-size: 10pt; }
+
+/* Case notes and the trainers' reminders: larger, bold, in blue and gold */
+.dr-note select { font-size: 14px !important; font-weight: 700; border: 1.5px solid #1e3a8a !important; padding: 8px !important; }
+.dr-note ul { padding-left: 20px; margin: 0; } .dr-note li { margin: 0 0 8px; line-height: 1.5; }
+.dr-note li::marker { color: #d4a017; }
+.dr-nav { border: 1.5px solid #1e3a8a; border-top: 4px solid #d4a017; }

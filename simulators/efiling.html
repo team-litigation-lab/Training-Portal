@@ -12,10 +12,31 @@
 <link rel="stylesheet" href="/simulators/sim.css">
 <link rel="stylesheet" href="/simulators/legal-sim.css">
 <link rel="stylesheet" href="/theme.css">
+<style>
+/* 🏛 Court E-Filing: full width, bigger and bolder text */
+.sim-wrap.ef-wrap{max-width:none;padding-left:clamp(16px,2.2vw,40px);padding-right:clamp(16px,2.2vw,40px);}
+.ef-wrap .sim-hero h1{font-size:34px;}
+.ef-wrap .sim-hero p{font-size:16px;font-weight:600;line-height:1.65;}
+.ef-wrap #app{font-size:15.5px;font-weight:600;}
+.ef-wrap .sim-card h2, .ef-wrap .sim-card h3{font-size:21px;}
+.ef-wrap .ef-top{font-size:16px;} .ef-wrap .mr-k{font-size:12px;}
+.ef-wrap .ef-brief{font-size:16px;}
+.ef-wrap .ef-small, .ef-wrap .ef-insp{font-size:14px;}
+.ef-wrap .ef-steps button{font-size:14px;padding:8px 14px;}
+.ef-wrap .ef-opt{font-size:15px;}
+.ef-wrap .ef-lbl{font-size:13.5px;}
+.ef-wrap .ef-lbl input, .ef-wrap .ef-lbl select, .ef-wrap .ef-lbl textarea{font-size:16px;font-weight:700;padding:10px 12px;}
+.ef-wrap .ef-found, .ef-wrap .ef-fees, .ef-wrap .ef-warn, .ef-wrap .ef-sum{font-size:15px;}
+.ef-wrap .ef-dtext{font-size:14px;}
+.ef-wrap .sim-error{font-size:15px;}
+.ef-wrap .sim-btn{font-size:15px;}
+.ef-wrap .ef-file b{font-size:14.5px;} .ef-wrap .ef-sc h3{font-size:19px;} .ef-wrap .ef-search, .ef-wrap .ef-att select, .ef-wrap .ef-att input{font-size:15px;font-weight:600;}
+</style>
+
 </head>
 <body>
 <div id="topbar"></div>
-<div class="sim-wrap">
+<div class="sim-wrap ef-wrap">
     <section class="sim-hero">
         <div class="eyebrow">Sim · Court E-Filing</div>
         <h1>🏛 Court E-Filing</h1>

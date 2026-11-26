@@ -17,6 +17,63 @@
 <script src="/portal-nav.js"></script>
 <link rel="stylesheet" href="/theme.css">
 <link rel="stylesheet" href="/control-room.css">
+<style>
+    /* System Management only: bold type throughout, and on a laptop or desktop every control on one screen with no scrolling.
+       The hero is one compact band; the five cards sit in one row (Access & People 2, Platform Health 2, Releases & Feedback 1)
+       and share the height under it, each card's buttons on its foot. */
+    .cr-page .cr-desc { font-weight: 700; color: #1e293b; }
+    .cr-page .cr-row .lb small { font-weight: 600; color: #475569; }
+    .cr-page .cr-hero p, .cr-page .cr-hero-cta small, .cr-page .cr-note { font-weight: 700; }
+    @media (min-width: 1180px) and (min-height: 600px) {
+        body.cr-page { min-height: 100vh; display: flex; flex-direction: column; }
+        .cr-page .sim-wrap { flex: 1 1 auto; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; padding-top: 14px; padding-bottom: 10px; }
+        .cr-page .cr-hero { flex: none; flex-wrap: nowrap; padding: 12px 22px; margin-bottom: 14px; }
+        .cr-page .cr-hero .eyebrow { margin-bottom: 4px; }
+        .cr-page .cr-hero h1 { font-size: 24px; margin-bottom: 2px; }
+        .cr-page .cr-hero p { font-size: 13.5px; line-height: 1.4; margin: 0; }
+        .cr-page .cr-groups { flex: 1 1 auto; min-height: 0; grid-template-columns: 2fr 2fr 1fr; gap: 0 18px; }
+        .cr-page .cr-group.wide { grid-column: auto; }
+        .cr-page .cr-group .topic-group-head { margin-bottom: 10px; }
+        .cr-page .cr-cards, .cr-page .cr-group.wide .cr-cards { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 16px; }
+        .cr-page .cr-card { padding: 14px 16px 12px; gap: 10px; }
+        .cr-page .cr-icon { width: 44px; height: 44px; border-radius: 13px; font-size: 22px; }
+        .cr-page .cr-head { gap: 12px; }
+        .cr-page .cr-head h3 { font-size: 17px; }
+        .cr-page .cr-desc { font-size: 13px; line-height: 1.45; }
+        .cr-page .cr-row { min-height: 0; padding: 7px 10px; font-size: 13px; }
+        .cr-page .cr-foot { margin-top: auto; }
+        .cr-page .cr-spec { display: none; }   /* five cards to a row: the foot keeps just its button (the spec label had no room) */
+        .cr-page .cr-foot { justify-content: flex-end; }
+        .cr-page .cr-note { flex: none; margin: 10px 0 0; font-size: 12.5px; }
+        .cr-page .lsh-footer { flex: none; padding-top: 6px; padding-bottom: 6px; font-size: 12px; }
+        /* the Releases & Feedback card is one card of five in the row here, so it stacks like the others (not the wide two-column layout) */
+        .cr-page .cr-card.wide { display: flex; }
+        .cr-page .cr-card.wide > .cr-rows { display: flex; }
+        .cr-page .cr-card.wide > .cr-rows li:nth-child(2n) { border-left: 0; }
+        .cr-page .cr-card.wide > .cr-rows li + li { border-top: 1px solid #eef2f7; }
+    }
+    /* a tall screen: the cards have height to spare, so the type grows into it */
+    @media (min-width: 1600px) and (min-height: 900px) {
+        .cr-page .cr-card { padding: 18px 18px 14px; gap: 14px; }
+        .cr-page .cr-icon { width: 52px; height: 52px; font-size: 26px; }
+        .cr-page .cr-head h3 { font-size: 19.5px; }
+        .cr-page .cr-desc { font-size: 15px; line-height: 1.55; }
+        .cr-page .cr-row { padding: 10px 12px; font-size: 14.5px; }
+        .cr-page .cr-row .lb small { font-size: 12.5px; }
+        .cr-page .cr-tag, .cr-page .cr-state { font-size: 11.5px; }
+    }
+    /* a shorter screen: a size down, so the cards' rows still fit */
+    @media (min-width: 1180px) and (min-height: 600px) and (max-height: 820px) {
+        .cr-page .cr-hero .eyebrow { display: none; }
+        .cr-page .cr-hero h1 { font-size: 21px; }
+        .cr-page .cr-card { padding: 11px 14px 10px; gap: 8px; }
+        .cr-page .cr-icon { width: 38px; height: 38px; font-size: 19px; }
+        .cr-page .cr-head h3 { font-size: 15.5px; }
+        .cr-page .cr-desc { font-size: 12.5px; line-height: 1.38; }
+        .cr-page .cr-row { padding: 5px 9px; font-size: 12.5px; }
+        .cr-page .cr-row .lb small { font-size: 11px; }
+    }
+</style>
 </head>
 <body class="cr-page">
 <script>
@@ -42,10 +99,6 @@
             <h1>⚙ System Management</h1>
             <p>Every control for LSH Nexus, one card per job: who gets in, how the platform is running, and what changes and why.</p>
         </div>
-        <div class="cr-hero-cta">
-            <a class="cr-go gold" href="/core.html#master">🛡 Open Master Control <span class="arr">→</span></a>
-            <small>Dashboard &amp; Directory: live counts and every admin tool</small>
-        </div>
     </section>
 
     <div class="cr-groups">
@@ -59,9 +112,9 @@
                     <ul class="cr-rows">
                         <li><a class="cr-row" href="/core.html#access-requests"><span class="ic">🙋</span><span class="lb">Access Requests &amp; Program Access<small>Approve or deny · suspend, restore, revoke</small></span><b class="sy-badge" id="sy-acc"></b><span class="go">→</span></a></li>
                         <li><a class="cr-row" href="/core.html#users"><span class="ic">👥</span><span class="lb">Users &amp; Accounts<small>Edit, suspend, restore or revoke a whole account</small></span><span class="go">→</span></a></li>
-                        <li><a class="cr-row" href="/api/admin-password-check" title="Does every platform accept the admin password?"><span class="ic">🔐</span><span class="lb">Admin password check<small>Does every platform accept it?</small></span><span class="go">→</span></a></li>
+                        <li><a class="cr-row" href="/core.html#site-lock" title="Does every platform accept the admin password? (Master Control → Site Lock &amp; Admin Password)"><span class="ic">🔐</span><span class="lb">Admin password check<small>Does every platform accept it?</small></span><span class="go">→</span></a></li>
                     </ul>
-                    <div class="cr-foot"><span class="cr-spec">People &amp; Access</span><a class="cr-go" href="/core.html#registrations">📝 Log-in Approvals <b class="sy-badge" id="sy-reg"></b><span class="arr">→</span></a></div>
+                    <div class="cr-foot"><span class="cr-spec">People &amp; Access</span><a class="cr-go" href="/core.html#registrations">🛡 Master Control <b class="sy-badge" id="sy-reg"></b><span class="arr">→</span></a></div>
                 </article>
                 <article class="cr-card" style="--ac:#0d9488">
                     <div class="cr-top"><span class="cr-tag"><b>CONTROL 02</b> <i>// REFERRALS</i></span><span class="cr-state">Portal</span></div>
