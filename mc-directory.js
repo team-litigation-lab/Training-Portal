@@ -16,7 +16,7 @@
     const FEATURES = [
         { g: 'people', id: 'registrations', icon: '📝', name: 'Log-in Approvals', go: { mc: 'registrations' }, stat: () => count('admin-stat-pending', 'waiting', true),
           what: 'New sign-ups waiting. Approving issues the Batch ID and moves the account to Users.',
-          steps: ['Open Log-in Approvals: trainers are listed first, then trainees by the batch they will join (oldest first).', 'Check the name, email and training start date.', 'Press Approve (the Batch ID is issued) or Deny.', 'Need an account for someone? Use + Create account at the top right.'] },
+          steps: ['Open Log-in Approvals: trainers are listed first, then trainees by the batch they will join (oldest first).', 'Check the name, email and Onboarding / Orientation Day (it makes the Batch ID).', 'Press Approve (the Batch ID is issued) or Deny.', 'Need an account for someone? Use + Create account at the top right.'] },
         // 🙋 Access Requests and 🔑 Program Access are one panel, so one row (it was two, both opening the same panel)
         { g: 'people', id: 'program-access', icon: '🔑', name: 'Program Access & Requests', go: { fn: 'openAccessRequests' }, stat: () => count('access-req-badge-side', 'waiting', true),
           what: 'Trainees asking to open a program or tool (Approve or Deny), and one program for one trainee: Grant, ⏸ Suspend, ▶ Restore, Revoke.',

@@ -17,7 +17,7 @@
      pinned to the lower RIGHT, with the navy rings panel on the left.
      trainee-login.html keeps the original lower-left layout, so the rules
      live behind this class in auth.css instead of changing the shared ones. -->
-<body class="auth-compact-right">
+<body class="auth-uni" data-role="admin">
 
 <div class="auth-shell">
     <div class="auth-visual">
@@ -35,7 +35,6 @@
             <h1>Master Control starts here.</h1>
             <p>Manage batches, review submissions, release grades, and reach every trainee — all from the Admin Dashboard.</p>
         </div>
-        <div class="visual-foot">&copy; 2026 Legal Support Help. All Rights Reserved.</div>
     </div>
 
     <div class="auth-form-side">
@@ -44,12 +43,9 @@
                 <span class="auth-card-mark"><img src="/img/logo.svg" alt="Legal Support Help" width="75" height="46"></span>
                 <span>Legal Support Help</span>
             </div>
-            <!-- Log in as: switches between the two sign-ins (keeps ?next=). A wrong pick
-                 is also switched for you: attemptLogin() retries in the account's own role. -->
-            <div class="role-tabs" role="group" aria-label="Log in as">
-                <a href="/trainee-login.html" data-role-tab>Trainee</a>
-                <a href="/admin-login.html" data-role-tab class="on" aria-current="page">Admin</a>
-            </div>
+            <!-- Admins and trainees sign in on separate cards (no switch between them): this card signs in an
+                 Admin account only. A trainee account typed here is refused with a link to the Trainee sign-in. -->
+            <div class="role-badge" data-role-badge>🛡 Admin &middot; Authorized staff only</div>
             <h2 id="admin-login-heading">Admin Login</h2>
             <p class="sub" id="admin-login-sub">Sign in with your own administrator username and password: one sign-in for every program, the simulators and Master Control.</p>
 
@@ -65,7 +61,7 @@
                 <button class="auth-submit" type="submit">Log In</button>
 
                 <div class="auth-switch">No account yet? <a href="/registration.html">Register here</a></div>
-                <div class="role-switch"><a href="/programs.html">Looking for your training? Open LSH Academy Index &rarr;</a></div>
+                <div class="role-switch">Are you a trainee? <a href="/trainee-login.html">Use the Trainee sign-in &rarr;</a></div>
             </form>
 
             <!-- Shown instead of the normal login form when the site is

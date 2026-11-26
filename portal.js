@@ -37,7 +37,7 @@ function submitRegistration() {
     if (payload.userType === 'Trainee') {
         payload.trainingStartDate = document.getElementById('reg-training-date').value;
         if (!payload.trainingStartDate) {
-            if (msgDiv) { msgDiv.className = "auth-msg error"; msgDiv.innerText = "Please enter your start of training date."; }
+            if (msgDiv) { msgDiv.className = "auth-msg error"; msgDiv.innerText = "Please pick your Onboarding / Orientation Day: it makes your Batch ID."; }
             return;
         }
     }
@@ -173,12 +173,18 @@ function attemptLogin(switched) {
             playSound('loginError');
         } else if (data.code === 'SET_PASSWORD') {
             showPasswordPanel('first', payload.username, data.error);
-        } else if (data.code === 'WRONG_PORTAL' && switched !== true) {
-            // Right username and password, other role: log in as that role
-            // instead of sending them to the other page to type it all again.
-            currentPortalMode = currentPortalMode === 'Admin' ? 'Trainee' : 'Admin';
-            if (loginMsgDiv) { loginMsgDiv.className = "auth-msg info"; loginMsgDiv.innerText = `Switching to ${currentPortalMode} log in...`; }
-            attemptLogin(true);
+        } else if (data.code === 'WRONG_PORTAL') {
+            // The account is the other role. Trainees and admins sign in on separate cards, so this one never
+            // switches over and signs it in: it says so and links to the right card (nothing is signed in here).
+            const other = currentPortalMode === 'Admin' ? { href: '/trainee-login.html', name: 'Trainee sign-in', who: 'a trainee account' }
+                : { href: '/admin-login.html', name: 'Admin sign-in', who: 'an administrator account' };
+            if (loginMsgDiv) {
+                loginMsgDiv.className = "auth-msg error";
+                loginMsgDiv.textContent = `This is ${other.who}. It can't sign in here: use the `;
+                const a = document.createElement('a'); a.href = other.href + location.search; a.textContent = other.name + ' →';
+                loginMsgDiv.appendChild(a);
+            }
+            playSound('loginError');
         } else {
             if (loginMsgDiv) { loginMsgDiv.className = "auth-msg error"; loginMsgDiv.innerText = data.error || "Login unauthorized."; }
             playSound('loginError');
@@ -258,12 +264,20 @@ function submitPasswordPanel() {
     .then((data) => {
         if (btn) btn.disabled = false;
         if (!data.success) { say(data.error || 'Could not save the password.', 'error'); return; }
-        // sign in with it, in the account's own role
-        if (data.userType === 'Admin' || data.userType === 'Trainee') currentPortalMode = data.userType;
+        // sign in with it, on this card only if it is this card's role: an account of the other role is
+        // sent to its own card (trainees and admins never sign in on each other's)
         const u = document.getElementById('login-username'), p = document.getElementById('login-password');
         if (u) u.value = username;
-        if (p) p.value = newPassword;
         hidePasswordPanel();
+        if ((data.userType === 'Admin' || data.userType === 'Trainee') && data.userType !== currentPortalMode) {
+            const href = data.userType === 'Admin' ? '/admin-login.html' : '/trainee-login.html';
+            showToast('Password saved. Sign in on the ' + data.userType + ' sign-in.', 'success', 4000, { skipSound: true });
+            const msg = document.getElementById('auth-login-msg');
+            if (msg) { msg.className = 'auth-msg info'; msg.textContent = 'Password saved. This is ' + (data.userType === 'Admin' ? 'an administrator' : 'a trainee') + ' account: ';
+                const a = document.createElement('a'); a.href = href + location.search; a.textContent = 'sign in on the ' + data.userType + ' sign-in →'; msg.appendChild(a); }
+            return;
+        }
+        if (p) p.value = newPassword;
         showToast('Password saved.', 'success', 3000, { skipSound: true });
         attemptLogin(true);
     })
@@ -1001,7 +1015,7 @@ const ApprovalPopup = (() => {
 
     function row(u) {
         const when = u.createdAt ? new Date(String(u.createdAt).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(u.createdAt) ? '' : 'Z')).toLocaleString() : 'recently';
-        const start = u.trainingStartDate ? ` · Starts ${esc(u.trainingStartDate)}` : '';
+        const start = u.trainingStartDate ? ` · Onboarding ${esc(u.trainingStartDate)}` : '';
         const tag = u.userType === 'Admin' ? '<span class="lap-tag">Admin / Trainer</span>' : '';
         return `<div class="lap-row" data-id="${esc(u.id)}" data-type="${esc(u.userType)}">
   <div class="lap-who"><b>${esc(u.fullName || '(no name)')}${tag}</b><span>${esc(u.email)}</span><span>Registered ${esc(when)}${start}</span></div>
