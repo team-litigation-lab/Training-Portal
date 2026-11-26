@@ -185,7 +185,7 @@
             linear-gradient(120deg, color-mix(in srgb, var(--tk) 45%, #fff), color-mix(in srgb, var(--tk) 18%, #fff) 50%, color-mix(in srgb, var(--tk) 45%, #fff)) border-box; }
     .topic-card.soon .tk-name { animation: none; background-position: 0 0; }
     .topic-card.soon .tk-ic { filter: grayscale(.45); opacity: .85; }
-    /* The Legal VA Foundational Track's card stands still: no glow, no bobbing emblem, no shine over its name (.still, STILL_TRACKS). */
+    /* The Legal VA Foundational and Executive/Personal Assistant Tracks' cards stand still: no glow, no bobbing emblem, no shine over its name (.still, STILL_TRACKS). */
     /* ... and so does every card in Personal Injury Playbooks (.tg-still, groupedTopicsHtml). */
     .topic-card.tk.still h3, .topic-card.tk.still .tk-ic, .topic-card.tk.still .tk-name,
     .tg-still .topic-card.tk h3, .tg-still .topic-card.tk .tk-ic, .tg-still .topic-card.tk .tk-name { animation: none; }
@@ -622,7 +622,7 @@
     // Shown first on the index, ahead of the progression, with a "Free" badge.
     const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
     // Tracks whose card has no animation (the glow, the bobbing emblem and the shine over the name)
-    const STILL_TRACKS = ['STANDARD TRAINING'];
+    const STILL_TRACKS = ['STANDARD TRAINING', 'EA  PA TRAINING-OUTSOURCED MANP'];
 
     // Fixed VA progression order — display order only now: the topics API
     // no longer gates by sequence (its old gated copy is gone). Anything
