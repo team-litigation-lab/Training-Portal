@@ -201,7 +201,7 @@
     .dd-open .dd-t { font-size: clamp(13px, 1.9vh, 20px); font-weight: 900; letter-spacing: .01em; white-space: nowrap; }
     .dd-open .dd-c { font-size: clamp(10.5px, 1.3vh, 13px); font-weight: 800; color: #0f172a; background: var(--orange); border-radius: 999px; padding: 3px 14px; white-space: nowrap; }
     /* The popup: today's one card (flashcards-data.js one()), a daily dose rather than a stack, in the banners' elite look:
-       a navy header with the gold title, the five decks as pips (today's lit, tomorrow's named), the question, and the answer
+       a navy header with the gold title, the question, and the answer
        behind a gold Reveal button. */
     #dd-pop { position: fixed; inset: 0; z-index: 9000; display: none; align-items: center; justify-content: center; background: rgba(6,10,22,.62); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); padding: 16px; }
     #dd-pop.open { display: flex; }
@@ -215,9 +215,6 @@
     #dd-pop .dd-sub { margin: 4px 0 0; color: #c7d2fe; font-size: 13px; font-weight: 600; }
     #dd-pop .dd-x { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); background: rgba(255,255,255,.06); color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }
     #dd-pop .dd-x:hover { background: rgba(255,255,255,.16); }
-    #dd-pop .dd-pips { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
-    #dd-pop .dd-pip { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.55); border: 1px solid rgba(255,255,255,.18); border-radius: 999px; padding: 3px 10px; }
-    #dd-pop .dd-pip.on { color: #081226; background: linear-gradient(180deg, #fde7b0, #f5c451 60%, #e0a43a); border-color: #f5c451; box-shadow: 0 0 14px -4px rgba(245,196,81,.9); }
     #dd-pop .dd-body { padding: 20px 22px 6px; }
     #dd-pop .dd-deck { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9a3412; background: #fff3e0; border: 1px solid #fed7aa; border-radius: 999px; padding: 3px 11px; }
     #dd-pop .dd-q { margin: 12px 0 16px; font-size: 19px; font-weight: 800; color: var(--navy-deep); line-height: 1.35; }
@@ -567,8 +564,7 @@
         const { deck, i } = F.one(), [q, a] = deck.cards[i], next = F.one(F.day() + 1).deck;
         const ask = deck.id === 'terms' ? `What does “${q}” mean?` : q;
         pop.innerHTML = `<div class="dd-box"><div class="dd-head"><h2 id="dd-title">📬 Your Daily Digest</h2><button type="button" class="dd-x" aria-label="Close">✕</button>
-                <p class="dd-sub">${escapeHtml(when)} · today's card, a minute of the legal industry</p>
-                <div class="dd-pips" aria-hidden="true">${F.DECKS.map(d => `<span class="dd-pip${d === deck ? ' on' : ''}">${escapeHtml(d.label)}</span>`).join('')}</div></div>
+                <p class="dd-sub">${escapeHtml(when)} · today's card, a minute of the legal industry</p></div>
             <div class="dd-body"><span class="dd-deck">${escapeHtml(deck.icon + ' ' + deck.label)}</span><p class="dd-q">${escapeHtml(ask)}</p>
                 <button type="button" class="dd-show">✦ Reveal answer</button><p class="dd-a" hidden>${escapeHtml(a)}</p></div>
             <div class="dd-foot"><span>Think of your answer first, then reveal it.</span><span>Tomorrow: <b>${escapeHtml(next.icon + ' ' + next.label)}</b></span></div></div>`;
