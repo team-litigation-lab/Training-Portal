@@ -13,7 +13,7 @@
     const avg = xs => { const v = xs.filter(num); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null; };
     const nameKey = s => String(s || '').split(' · ')[0].trim().toLowerCase().replace(/\s+/g, ' ');
     const SHORT = { ft: 'Foundational', eapa: 'EA / PA', cm: 'Case Mgmt', pd: 'PD Claims', md: 'Medsum', ln: 'Lien Neg.', cs: 'Closing' };
-    let state = null, loading = null;
+    let state = null, loading = null, pickedBatch = null;
 
     function score(t) {   // a trainee's grade in one program: the average of the graders' averages there
         const parts = { 'Knowledge Checks': t.kcAvg, 'Practice': t.practiceAvg, 'Surprise Tasks': t.taskAvg, 'Role-plays': t.roleplayAvg };
@@ -68,13 +68,19 @@
             <td>${p.work ? `<b class="gr-s ${tone(p.work.avg)}">${pct(p.work.avg)}</b><small>${p.work.graded}/${p.work.submitted} graded</small>` : '<span class="gr-na">—</span>'}</td>
             <td><b class="gr-s big ${tone(p.overall)}">${pct(p.overall)}</b></td></tr>`;
         const all = state.people, scored = all.map(p => p.overall).filter(num);
-        box.innerHTML = `<div class="gr-kpis"><div><b>${all.length}</b><span>Trainees</span></div><div><b>${groups.size}</b><span>Batches shown</span></div>
+        // 🎓 one batch at a time, picked from a dropdown (newest first); a search shows every matching batch instead
+        if (!batches.some(g => g.key === pickedBatch)) pickedBatch = batches.length ? batches[0].key : null;
+        const shown = q ? batches : batches.filter(g => g.key === pickedBatch);
+        const picker = !q && batches.length > 1 ? `<div class="bp-wrap gr-pick"><label class="bp-label" for="gr-batch">🎓 Batch</label><select class="bp-select" id="gr-batch">${
+            batches.map(g => `<option value="${esc(g.key)}"${g.key === pickedBatch ? ' selected' : ''}>${esc(g.key)} — ${g.list.length} trainee${g.list.length === 1 ? '' : 's'}</option>`).join('')}</select><span class="bp-count">${batches.length} batches</span></div>` : '';
+        box.innerHTML = `<div class="gr-kpis"><div><b>${all.length}</b><span>Trainees</span></div><div><b>${groups.size}</b><span>Batches</span></div>
                 <div><b>${pct(avg(scored))}</b><span>Average overall</span></div><div><b>${all.filter(p => num(p.overall) && p.overall < 70).length}</b><span>Under 70%</span></div></div>
             ${state.notes.length ? `<p class="gr-note">${esc(state.notes.join(' '))}</p>` : ''}
-            ${batches.length ? batches.map(g => `<details class="gr-batch" open><summary>🎓 ${esc(g.key)} <span>${g.list.length}</span></summary>
+            ${picker}${shown.length ? shown.map(g => `<details class="gr-batch" open><summary>🎓 ${esc(g.key)} <span>${g.list.length}</span></summary>
                 <div class="gr-scroll"><table class="gr-table"><thead>${head}</thead><tbody>${g.list.sort((a, b) => a.name.localeCompare(b.name)).map(line).join('')}</tbody></table></div></details>`).join('')
                 : '<p class="gr-note">No trainee matches.</p>'}
             <p class="gr-foot">Each program's score is the average of its graders' averages (Knowledge Checks, Practice, Surprise Tasks, Role-plays): hover a score to see them. Updated ${esc(state.at.toLocaleString())}.</p>`;
+        const pickEl = document.getElementById('gr-batch'); if (pickEl) pickEl.addEventListener('change', e => { pickedBatch = e.target.value; render(); });
     }
     function csv() {
         if (!state) return;
