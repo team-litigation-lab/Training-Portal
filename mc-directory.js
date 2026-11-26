@@ -34,6 +34,10 @@
         { g: 'people', id: 'users', hidden: true, icon: '👥', name: 'Users & Accounts', go: { mc: 'users' }, stat: () => count('admin-stat-total-users', 'accounts'),
           what: 'Whole accounts: edit details, suspend, restore or revoke.',
           steps: ['Trainers are listed first, then one table per batch (click a batch to open it).', 'Edit changes Batch ID, name, email, username or password.', 'Suspend blocks sign-in for now; Restore undoes it.', 'Revoke removes the trainee from every program (records are filed to the batch folder first).'] },
+        { g: 'people', id: 'access', icon: '🔒', name: 'Site Lock & Admin Password', go: { mc: 'access' }, stat: () => [text('ov-lock-state', ''), text('ov-pause-state', '')].filter(Boolean).join(' · '),
+          what: 'Pause activity or lock the whole site (Master Account only for Lock), and check that every platform accepts the admin password.',
+          steps: ['Open Site Lock & Admin Password, then 🔒 Open Access Control.', 'Pause stops activity for everyone; Resume brings it back.', 'Lock closes the site (Master Account only); Unlock opens it.',
+                  '🔐 Admin password check (same panel): type the admin password once and press Check every platform. Any platform marked INCORRECT or NOT SET needs its MASTER_ADMIN_PASSWORD set to the same value.'] },
         { g: 'people', id: 'referrals', icon: '🤝', name: 'Referrals', go: { href: '/referrals.html' }, stat: () => '',
           what: 'People referred from “Got a referral?” on the home page, with their CVs.',
           steps: ['Open Referrals.', 'Read each referral and download the CV.', 'Follow up outside the portal, then mark it as handled.'] },
@@ -70,11 +74,7 @@
         { g: 'monitor', id: 'ai-usage', icon: '🤖', name: 'AI Usage', go: { href: '/api/ai-usage' }, stat: () => '',
           what: 'Today’s use of the shared AI budget every LSH platform draws on, flow by flow (the same page as System Management → AI Usage Monitoring).',
           steps: ['Open AI Usage.', 'Read today’s requests and tokens for each call flow, then the last 7 days.'] },
-        { g: 'system', id: 'access', icon: '🔒', name: 'Site Lock & Admin Password', go: { mc: 'access' }, stat: () => [text('ov-lock-state', ''), text('ov-pause-state', '')].filter(Boolean).join(' · '),
-          what: 'Pause activity or lock the whole site (Master Account only for Lock), and check that every platform accepts the admin password.',
-          steps: ['Open Site Lock & Admin Password, then 🔒 Open Access Control.', 'Pause stops activity for everyone; Resume brings it back.', 'Lock closes the site (Master Account only); Unlock opens it.',
-                  '🔐 Admin password check (same panel): type the admin password once and press Check every platform. Any platform marked INCORRECT or NOT SET needs its MASTER_ADMIN_PASSWORD set to the same value.'] },
-        { g: 'system', id: 'password', hidden: true, icon: '🔐', name: 'Admin Password Check', go: { mc: 'access' }, stat: () => '',   // (now part of Site Lock & Admin Password)
+        { g: 'people', id: 'password', hidden: true, icon: '🔐', name: 'Admin Password Check', go: { mc: 'access' }, stat: () => '',   // (now part of Site Lock & Admin Password)
           what: 'Does every platform accept the admin password?',
           steps: ['Open Admin Password Check.', 'Type the admin password once and press Check every platform.', 'Any platform marked INCORRECT or NOT SET needs its MASTER_ADMIN_PASSWORD set to the same value.'] },
         { g: 'system', id: 'overview', icon: '🧭', name: 'Dashboard & Directory', go: { mc: 'overview' }, stat: () => '', hidden: true,
