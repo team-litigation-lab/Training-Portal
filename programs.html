@@ -185,6 +185,10 @@
             linear-gradient(120deg, color-mix(in srgb, var(--tk) 45%, #fff), color-mix(in srgb, var(--tk) 18%, #fff) 50%, color-mix(in srgb, var(--tk) 45%, #fff)) border-box; }
     .topic-card.soon .tk-name { animation: none; background-position: 0 0; }
     .topic-card.soon .tk-ic { filter: grayscale(.45); opacity: .85; }
+    /* 🧭 Legal VA Foundational Track, where every trainee starts: its name looks embossed, raised off the pill (a light edge above,
+       a soft shadow below), and the pill itself is gently bevelled (a highlight along its top, a shade along its foot) */
+    .topic-card.tk-ft .tk-name { filter: drop-shadow(0 -1px 0 rgba(255,255,255,.95)) drop-shadow(0 1.5px 0 rgba(30,35,64,.28)) drop-shadow(0 3px 3px rgba(30,35,64,.22)); }
+    .topic-card.tk-ft h3 { box-shadow: inset 0 2px 0 rgba(255,255,255,.95), inset 0 -3px 6px rgba(30,35,64,.12), 0 4px 10px -4px rgba(30,35,64,.35) !important; }
     /* ▪ The track-name pill, simplified: a plain black frame on white, no coloured border, sheen or glow (the name keeps its colour) */
     .topic-card h3, .topic-card.tk h3, .topic-card.soon h3, .topic-card.tk.soon h3 { border: 2px solid #111827; background: #fff; box-shadow: none; animation: none; }
     @media (prefers-reduced-motion: reduce) { .tk-name, .topic-card.tk.live h3, .topic-card.tk.live .tk-ic { animation: none; } .tk-name { background-position: 0 0; } }
