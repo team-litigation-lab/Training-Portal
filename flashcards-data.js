@@ -16,15 +16,15 @@
             ['Can you change a date on the calendar without telling anyone?', 'No. Any change to a deadline or appointment is noted with who approved it, and everyone on the matter is told.']
         ] },
         { id: 'trivia', label: 'Trivia', icon: '💡', cards: [
-            ['What does “PI” stand for in a firm’s practice areas?', 'Personal Injury: claims for harm to a person caused by someone else’s negligence or wrongdoing.'],
+            ['What does “PI” stand for in a firm’s practice areas?', 'Personal Injury: claims for harm to a person caused by someone else’s negligence or wrongdoing, such as car crashes, falls and dog bites.'],
             ['What does the “UM” in UM/UIM coverage mean?', 'Uninsured Motorist. UIM is Underinsured Motorist: coverage when the at-fault driver has no insurance or not enough.'],
-            ['What is the most common type of PI case?', 'Motor vehicle accidents (car, truck, motorcycle).'],
+            ['What is the most common type of PI case?', 'Motor vehicle accidents (car, truck, motorcycle). That is why so much of the work is police reports, insurance claims and medical records.'],
             ['What does “HIPAA” protect?', 'The privacy of a patient’s health information. Providers need a signed HIPAA authorization before they release records to the firm.'],
-            ['What color highlighter do many firms use for deadlines on a printed calendar?', 'Trick question: it depends on the firm. Always follow your firm’s own color code.'],
-            ['What does “ER” stand for in medical records, and why does it matter?', 'Emergency Room. Its records are often the first proof of injury right after the incident.'],
-            ['Who usually pays a client’s medical bills first after a car accident in a no-fault state?', 'The client’s own PIP (Personal Injury Protection) coverage, up to its limit.'],
-            ['What is a “policy limit”?', 'The most an insurance policy will pay for a covered claim. A demand often asks for it.'],
-            ['What does “Esq.” after a name mean?', 'Esquire: a title used by attorneys.'],
+            ['What color highlighter do many firms use for deadlines on a printed calendar?', 'Trick question: it depends on the firm. Always follow your firm’s own color code, and write the deadline in words too: never rely on color alone.'],
+            ['What does “ER” stand for in medical records, and why does it matter?', 'Emergency Room. Its records are often the first proof of injury right after the incident, so they are usually among the first records requested.'],
+            ['Who usually pays a client’s medical bills first after a car accident in a no-fault state?', 'The client’s own PIP (Personal Injury Protection) coverage, up to its limit. Health insurance or other coverage usually picks up after PIP runs out.'],
+            ['What is a “policy limit”?', 'The most an insurance policy will pay for a covered claim. A demand often asks for it, and a bigger case may also look to other coverage such as UIM.'],
+            ['What does “Esq.” after a name mean?', 'Esquire: a courtesy title used by attorneys in the U.S. It goes after the name in letters and signatures, and is never used together with “Mr.” or “Ms.”'],
             ['What is “discovery” in a lawsuit?', 'The stage where each side asks the other for information: interrogatories, requests for documents, admissions and depositions.']
         ] },
         { id: 'terms', label: 'Terminologies', icon: '📖', cards: [
@@ -36,7 +36,7 @@
             ['Medical specials (“specials”)', 'The total of the client’s medical bills and other money losses that can be added up, such as lost wages.'],
             ['Demand letter', 'The letter to the insurer setting out liability, injuries, treatment and damages, and asking for a settlement amount.'],
             ['Release', 'The document the client signs to settle: it ends the claim against the released parties in exchange for payment.'],
-            ['Liability', 'Legal responsibility for the harm. In PI, whether and how much the other party is at fault.'],
+            ['Liability', 'Legal responsibility for the harm. In PI, whether and how much the other party is at fault, which decides who pays and how much.'],
             ['Comparative negligence', 'A rule that reduces the recovery by the client’s own share of fault (and in some states bars recovery past a set percentage).']
         ] },
         { id: 'process', label: 'Process', icon: '🔁', cards: [
