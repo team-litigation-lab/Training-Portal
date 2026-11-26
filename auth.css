@@ -351,7 +351,7 @@
     body.auth-uni .auth-card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: var(--role-accent); }
 
     body.auth-uni .auth-card-brand { gap: 12px; margin-bottom: 18px; }
-    body.auth-uni .auth-card-mark { border-radius: 12px; padding: 6px 12px; background: #c3cfe0; }
+    body.auth-uni .auth-card-mark { border-radius: 12px; padding: 6px 12px; background: #081226; }   /* navy: the one LSH logo is the one made for dark backgrounds */
     body.auth-uni .auth-card-mark img { height: 50px; }
     body.auth-uni .auth-card-brand span { font-size: 15px; font-weight: 800; }
 

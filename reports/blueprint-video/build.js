@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
 const scenes = require('./scenes');
 const OUT = __dirname, FR = path.join(OUT, 'frames');
 fs.mkdirSync(FR, { recursive: true });
-const logo = 'data:image/svg+xml;base64,' + fs.readFileSync(path.join(__dirname, '../../img/logo.svg')).toString('base64');
+const logo = 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, '../../lsh-logo-dark.png')).toString('base64');   // the one LSH logo (white outline and wordmark, for dark backgrounds)
 
 const WPS = 2.45, PAD = 1.6, FADE = 0.45;
 const words = s => s.split(/\s+/).filter(Boolean).length;
