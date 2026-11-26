@@ -144,7 +144,6 @@
     /* Every track's name is one size, on one line (an open track and a Coming Soon one alike). Only a name that would not fit
        its card on one line is drawn smaller, just enough to fit (fitTrackTitles below). */
     .topic-card h3 { white-space: nowrap; }
-    .topic-card.soon h3 { font-size: calc(16px / .92); }   /* a Coming Soon card is drawn at 92% (below): its name is set up by as much, so every name reads the same size */
     .tk-name { background: linear-gradient(100deg, var(--tk-ink) 0%, var(--tk-ink) 38%, color-mix(in srgb, var(--tk) 45%, #fff) 50%, var(--tk-ink) 62%, var(--tk-ink) 100%);
         background-size: 260% 100%; background-position: 100% 0; -webkit-background-clip: text; background-clip: text; color: transparent;
         animation: tkShine 6s ease-in-out infinite; animation-delay: var(--tkd, 0s); }
@@ -157,7 +156,7 @@
     /* ⏳ A Coming Soon track steps back so the open programs lead: the card draws smaller inside its grid slot (the grid
        doesn't move), on a softer white with no shadow, a smaller title in a thinner, muted frame, and no shimmer.
        The words keep their full colour, so they still read at WCAG AA. */
-    .topic-card.soon { transform: scale(.92); background: rgba(255,255,255,.84); box-shadow: none; border-color: rgba(15,33,72,.18); }
+    .topic-card.soon { background: rgba(255,255,255,.84); box-shadow: none; border-color: rgba(15,33,72,.18); }   /* the same size as an open track's card: it steps back by its softer white, not by shrinking */
     .topic-card.tk.soon { box-shadow: inset 0 3px 0 color-mix(in srgb, var(--tk) 45%, transparent); }
     .topic-card.soon h3 { border-width: 1.5px; border-color: color-mix(in srgb, var(--tk, var(--navy)) 40%, #fff); background: color-mix(in srgb, var(--tk, var(--navy)) 11%, #fff); }
     .topic-card.tk.soon h3 { border-color: transparent; box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
@@ -172,6 +171,12 @@
     .topic-status.pending { background: #fffbeb; color: #b45309; }
     .topic-status.locked { background: #f1f5f9; color: #334155; }
     .topic-status.denied { background: #fef2f2; color: #b91c1c; }
+    /* ✨ The card's outline, as on the LSH course cards: a thick rounded frame, navy along the top fading to gold at the bottom.
+       Nothing inside the card changes. A Coming Soon card's frame is the same, softer. */
+    #idx-topics .topic-card { border: 4px solid transparent; border-radius: 18px;
+        background: linear-gradient(#fff, #fff) padding-box, linear-gradient(180deg, #1E2340 0%, #2c3360 30%, #a8692f 78%, #DB8437 100%) border-box;
+        box-shadow: 0 16px 30px -16px rgba(30,35,64,.45), 0 4px 10px -6px rgba(30,35,64,.2); }
+    #idx-topics .topic-card.soon { background: linear-gradient(rgba(255,255,255,.9), rgba(255,255,255,.9)) padding-box, linear-gradient(180deg, rgba(30,35,64,.55) 0%, rgba(219,132,55,.55) 100%) border-box; box-shadow: none; }
     .topic-status.suspended, .topic-status.suspended-passed { background: #eef2ff; color: #3730a3; }
     .topic-action-btn {
         margin-top: auto; padding: 5px 14px; border-radius: 999px; border: none; font-weight: 700; font-size: 10.5px;
@@ -282,7 +287,6 @@
            clipped by the body's overflow:hidden instead of the rows giving up their spare air. */
         #idx-topics .topic-card { grid-template-rows: minmax(0, 1fr) auto; align-content: center; min-height: 0; overflow: hidden; }
         #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: clamp(12px, 1.95vh, 21px); }
-        #idx-topics .topic-card.soon h3 { font-size: calc(clamp(12px, 1.95vh, 21px) / .92); }
         #idx-topics .topic-action-btn { font-size: clamp(9.5px, 1.05vh, 11.5px); padding: clamp(4px, 0.6vh, 7px) clamp(11px, 1vw, 16px); }
         #idx-topics .topic-status { font-size: clamp(9.5px, 1.1vh, 12px); padding: 3px 10px; }
     }
