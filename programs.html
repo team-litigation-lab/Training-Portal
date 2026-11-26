@@ -188,6 +188,11 @@
             linear-gradient(120deg, color-mix(in srgb, var(--tk) 45%, #fff), color-mix(in srgb, var(--tk) 18%, #fff) 50%, color-mix(in srgb, var(--tk) 45%, #fff)) border-box; }
     .topic-card.soon .tk-name { animation: none; background-position: 0 0; }
     .topic-card.soon .tk-ic { filter: grayscale(.45); opacity: .85; }
+    /* The Legal VA Foundational and Executive/Personal Assistant Tracks' cards stand still: no glow, no bobbing emblem, no shine over its name (.still, STILL_TRACKS). */
+    /* ... and so does every card in Personal Injury Playbooks (.tg-still, groupedTopicsHtml). */
+    .topic-card.tk.still h3, .topic-card.tk.still .tk-ic, .topic-card.tk.still .tk-name,
+    .tg-still .topic-card.tk h3, .tg-still .topic-card.tk .tk-ic, .tg-still .topic-card.tk .tk-name { animation: none; }
+    .topic-card.tk.still .tk-name, .tg-still .topic-card.tk .tk-name { background-position: 0 0; }
     /* 🧭 Legal VA Foundational Track, where every trainee starts: its name looks embossed, raised off the pill (a light edge above,
        a soft shadow below), and the pill itself is gently bevelled (a highlight along its top, a shade along its foot) */
     .topic-card.tk-ft .tk-name { filter: drop-shadow(0 -1px 0 rgba(255,255,255,.95)) drop-shadow(0 1.5px 0 rgba(30,35,64,.28)) drop-shadow(0 3px 3px rgba(30,35,64,.22)); }
@@ -627,6 +632,8 @@
     function closeDailyDigest() { const pop = document.getElementById('dd-pop'); if (pop) pop.classList.remove('open'); const b = document.querySelector('.tool-card .dd-open'); if (b) b.focus(); }
     // Shown first on the index, ahead of the progression, with a "Free" badge.
     const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
+    // Tracks whose card has no animation (the glow, the bobbing emblem and the shine over the name)
+    const STILL_TRACKS = ['STANDARD TRAINING', 'EA  PA TRAINING-OUTSOURCED MANP'];
 
     // Fixed VA progression order — display order only now: the topics API
     // no longer gates by sequence (its old gated copy is gone). Anything
@@ -796,7 +803,7 @@
         const isAdmin = session.userType === 'Admin';
 
         // 🎨 Each track's own identity on its card: an emblem and a colour, with the name in that colour (TRACK_LOOK).
-        const tkOpen = (t, live) => { const k = TRACK_LOOK[t.key], free = PINNED_PROGRAMS.includes(t.key) ? ' has-free' : ''; return k ? `<div class="topic-card tk${live ? ' live' : ' soon'}${free}${t.key === 'STANDARD TRAINING' ? ' tk-ft' : ''}" style="--tk:${k[1]};--tkd:${(t.key.length * 0.37) % 3}s">` : `<div class="topic-card${live ? '' : ' soon'}${free}">`; };
+        const tkOpen = (t, live) => { const k = TRACK_LOOK[t.key], free = (PINNED_PROGRAMS.includes(t.key) ? ' has-free' : '') + (STILL_TRACKS.includes(t.key) ? ' still' : ''); return k ? `<div class="topic-card tk${live ? ' live' : ' soon'}${free}${t.key === 'STANDARD TRAINING' ? ' tk-ft' : ''}" style="--tk:${k[1]};--tkd:${(t.key.length * 0.37) % 3}s">` : `<div class="topic-card${live ? '' : ' soon'}${free}">`; };
         const tkTitle = (t) => { const k = TRACK_LOOK[t.key];
             const line = k ? `<span class="tk-ic" aria-hidden="true">${k[0]}</span><span class="tk-name">${escapeHtml(t.name)}</span>` : escapeHtml(t.name);
             // the Free Upskill badge goes in the bottom row (.has-free), between the status and the action
@@ -892,7 +899,7 @@
         const rest = all.filter(t => !used.has(t.key));
         if (rest.length) sections.push({ title: 'More Training & Resources', note: '', cards: rest });
         return sections.filter(sec => sec.cards.length).map(sec =>
-            `<section class="topic-group${sec.title === 'Beyond-Legal Skills' ? ' tg-beyond' : ''}" style="--rows:${Math.ceil(sec.cards.length / columnsFor(sec.cards.length))}"><div class="topic-group-head"><h2>${escapeHtml(sec.title)}</h2>${sec.note ? `<span>${escapeHtml(sec.note)}</span>` : ''}</div>`
+            `<section class="topic-group${sec.title === 'Beyond-Legal Skills' ? ' tg-beyond' : ''}${sec.title === 'Personal Injury Playbooks' ? ' tg-still' : ''}" style="--rows:${Math.ceil(sec.cards.length / columnsFor(sec.cards.length))}"><div class="topic-group-head"><h2>${escapeHtml(sec.title)}</h2>${sec.note ? `<span>${escapeHtml(sec.note)}</span>` : ''}</div>`
             + `<div class="topic-grid${columnsFor(sec.cards.length) === 3 ? ' cols-3' : ''}" style="--cols:${columnsFor(sec.cards.length)}">${sec.cards.map(cardFor).join('')}</div></section>`).join('');
     }
 
