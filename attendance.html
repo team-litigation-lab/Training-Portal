@@ -41,6 +41,8 @@
     .at-bbar label { display: inline-flex; gap: 6px; align-items: center; font-weight: 800; color: var(--navy); white-space: nowrap; min-width: 0; }
     .at-table select, .at-table input, .at-bbar select, .at-bbar input { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: var(--ink, #0f172a); }
     .at-day { width: 60px; }
+    /* the page uses the window's whole width (a 24px gutter each side), not the simulators' centred 1280px column, so the batch tables have room */
+    .sim-wrap { max-width: none; }
     .at-tr { max-width: 240px; } .at-bbar .at-tr { max-width: 300px; min-width: 0; } .at-tr.own { border-color: var(--orange); background: #fff8f1; }
     .at-table td { vertical-align: middle; white-space: nowrap; }
     .at-table td.nm { white-space: normal; min-width: 140px; font-weight: 700; }
