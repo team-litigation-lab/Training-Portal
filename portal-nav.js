@@ -237,3 +237,22 @@ window.addEventListener('scroll', () => PortalNav.closeMenus(), true);
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addFooter); else addFooter();
 })();
+// The standard LSH logo leads each page's hero card instead of sitting in the top bar (theme.css .lsh-hero-logo).
+// The first hero on the page gets it: a simulator's or a Portal page's .sim-hero, or the Blueprint's .or-head. A
+// page with no hero card (LSH Academy Index, the dashboard) keeps the logo in its top bar. body.lsh-logo-in-hero tells
+// theme.css to take the logo out of the bar. Run again when a page draws its hero after load.
+(function () {
+    function heroLogo() {
+        if (PortalNav.embedded()) return;
+        const hero = document.querySelector('.sim-hero, .or-head');
+        if (!hero || hero.querySelector(':scope > .lsh-hero-logo')) return;
+        const img = document.createElement('img');
+        img.className = 'lsh-hero-logo'; img.src = '/lsh-logo-dark.png'; img.alt = 'Legal Support Help'; img.width = 646; img.height = 397;   // the logo made for dark backgrounds: white outline and wordmark
+        hero.insertBefore(img, hero.firstChild);
+        hero.classList.add('has-lsh-logo');
+        document.body.classList.add('lsh-logo-in-hero');
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', heroLogo); else heroLogo();
+    window.addEventListener('load', heroLogo);
+    PortalNav.heroLogo = heroLogo;
+})();

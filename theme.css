@@ -684,3 +684,39 @@ body.auth-uni[data-role="register"] .auth-form-side { padding-bottom: 48px; }
 }
 @media (max-width: 560px) { .lsh-footer { font-size: 13px; padding: 11px 14px; } }
 @media print { .lsh-footer { background: none; color: #334155; border-top: 1px solid #cbd5e1; } }
+
+/* ---------- the logo in the hero card, and one slim top bar ---------- */
+/* The standard LSH logo leads each page's hero card (portal-nav.js puts it there), at one size everywhere, straight on
+   the hero with no plate behind it. It sits at
+   the hero's left edge, centred top to bottom, and the hero's own content moves over by the logo's width: nothing
+   inside the hero is rearranged, and the hero is at least as tall as the logo. */
+.lsh-hero-logo { display: block; height: 100px; width: auto; }
+.sim-hero.has-lsh-logo { position: relative; padding-left: 222px !important; min-height: 132px; }
+.sim-hero.has-lsh-logo > .lsh-hero-logo { position: absolute; left: 28px; top: 50%; transform: translateY(-50%); z-index: 1; }
+.or-head.has-lsh-logo { align-items: center; }
+.or-head.has-lsh-logo > .lsh-hero-logo { margin-right: 12px; }
+/* tablets: a step smaller; phones: the logo sits above the hero's text instead of beside it */
+@media (max-width: 1000px) {
+    .lsh-hero-logo { height: 80px; }
+    .sim-hero.has-lsh-logo { padding-left: 184px !important; min-height: 112px; }
+    .sim-hero.has-lsh-logo > .lsh-hero-logo { left: 22px; }
+}
+@media (max-width: 560px) {
+    .lsh-hero-logo { height: 64px; }
+    .sim-hero.has-lsh-logo { padding-left: 18px !important; min-height: 0; }
+    .sim-hero.has-lsh-logo > .lsh-hero-logo { position: static; transform: none; margin: 0 0 12px; }
+}
+
+/* One compact top bar on every page. Where the hero carries the logo the bar drops it (and the slate panel that
+   was there to light it); LSH Academy Index, with no hero, keeps a smaller logo in the same slim bar. */
+.sim-top, .idx-top { padding-top: 8px; padding-bottom: 8px; min-height: 60px; align-items: center; }
+body.lsh-logo-in-hero .sim-top .sim-brand img { display: none; }
+body.lsh-logo-in-hero .sim-top .sim-brand { gap: 0; }
+/* The one LSH logo is the one made for dark backgrounds (white outline and wordmark), so the light slate panel the
+   bars used to light the old logo goes everywhere, the landing page's nav included. */
+.sim-top::before, .idx-top::before, nav::before { display: none !important; }
+.sim-top .sim-brand img { height: 42px; }
+.idx-top .idx-logo { height: 42px; }
+.idx-top { --brand-panel: 150px; --brand-panel-sm: 130px; }
+.sim-top { --brand-panel: 150px; --brand-panel-sm: 130px; }
+@media (max-width: 760px) { .idx-top::before, .sim-top::before { height: 58px; } }
