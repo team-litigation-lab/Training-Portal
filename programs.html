@@ -98,10 +98,10 @@
     /* The group's name sits in a dark pill, and a thin muted orange rule runs out from both sides of it. */
     .topic-group-head::before, .topic-group-head::after { content: ""; flex: 1 1 0; min-width: 16px; height: 1px; border-radius: 1px; background: linear-gradient(90deg, rgba(249,115,22,0), rgba(249,115,22,.45)); }
     .topic-group-head::after { background: linear-gradient(90deg, rgba(249,115,22,.45), rgba(249,115,22,0)); }
-    /* A quiet signpost, so the track cards stay the main thing on the page: a near-black pill with a soft gradient, a thin
-       muted orange edge, no glow, and slightly smaller capitals. */
+    /* A quiet signpost, so the track cards stay the main thing on the page: a pill in the Portal's navy (the same gradient
+       as the 📬 Daily Digest card), a thin muted orange edge, no glow, and slightly smaller capitals. */
     .topic-group-head h2 { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; font-size: 15px; line-height: 1.15; font-weight: 800; margin: 0; padding: 4px 18px; color: rgba(255,255,255,.92); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap;
-        background: linear-gradient(135deg, #0a0a0c 0%, #1c1f26 55%, #2c3039 100%); border: 1px solid rgba(249,115,22,.45); border-radius: 999px;
+        background: linear-gradient(135deg, var(--navy-deep) 0%, var(--navy) 55%, var(--navy-mid) 100%); border: 1px solid rgba(249,115,22,.45); border-radius: 999px;
         box-shadow: 0 6px 14px -10px rgba(0,0,0,.55); }
     .topic-group-head h2::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: rgba(249,115,22,.85); flex-shrink: 0; }
     /* These section notes sit directly on the body backdrop, not on a card,
@@ -189,7 +189,7 @@
        (flashcards-data.js today()), each with its question (for a term: "What does … mean?") and a Show answer button. */
     .tool-card { padding: clamp(6px, 1vh - 2px, 12px); }
     .tool-card .dd-open { grid-column: 1 / -1; grid-row: 1 / -1; align-self: stretch; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(4px, .8vh, 9px);
-        border: 2px solid var(--navy-deep); border-radius: 10px; background: linear-gradient(135deg, #0a0a0c, #1c1f26 60%, #2c3039); color: #fff; cursor: pointer; font: inherit; padding: 6px 10px; box-shadow: inset 5px 0 0 var(--orange); transition: transform .15s ease, box-shadow .15s ease; }
+        border: 2px solid var(--navy-deep); border-radius: 10px; background: linear-gradient(135deg, var(--navy-deep), var(--navy) 60%, var(--navy-mid)); color: #fff; cursor: pointer; font: inherit; padding: 6px 10px; box-shadow: inset 5px 0 0 var(--orange); transition: transform .15s ease, box-shadow .15s ease; }
     .tool-card .dd-open:hover { transform: translateY(-2px); box-shadow: inset 5px 0 0 var(--orange), 0 10px 20px -12px rgba(0,0,0,.6); }
     .tool-card .dd-open:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
     .dd-open .dd-t { font-size: clamp(13px, 1.9vh, 20px); font-weight: 900; letter-spacing: .01em; white-space: nowrap; }
