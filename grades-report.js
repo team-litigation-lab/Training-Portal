@@ -1,4 +1,4 @@
-// 📊 Grades Report (Master Control → 2 · Grading & Progress): one consolidated report of every grader's scores, across every
+// 📊 Grades & Progress → Grades Report (Master Control → 2 · Grading & Progress; its other tab opens 📈 Progress & Feedback, /progress.html): one consolidated report of every grader's scores, across every
 // program, and nothing else. Grading, releasing and deleting live in each program (each course grades its own work), so this
 // view no longer carries them: the old Check & Release Grades sections stay in the page, hidden, so app.js's loaders still
 // find their elements.
@@ -98,7 +98,8 @@
         const view = document.getElementById('view-admin-grades'); if (!view || document.getElementById('gr-wrap')) return;
         [...view.children].forEach(el => { el.hidden = true; el.style.display = 'none'; });   // the old grading tools: still there for app.js, not shown
         const wrap = document.createElement('div'); wrap.id = 'gr-wrap';
-        wrap.innerHTML = `<div class="gr-hero"><div><div class="gr-eyebrow">Master Control · Grading &amp; Progress</div><h2>📊 Grades Report</h2>
+        wrap.innerHTML = `<div class="gr-tabs" role="tablist" aria-label="Grades & Progress"><span class="gr-tab on" role="tab" aria-selected="true">📊 Grades Report</span><a class="gr-tab" role="tab" aria-selected="false" href="/progress.html">📈 Progress &amp; Feedback</a></div>
+            <div class="gr-hero"><div><div class="gr-eyebrow">Master Control · Grading &amp; Progress</div><h2>📊 Grades Report</h2>
                 <p>Every grader's scores, across every program, in one place. Grading and releasing happen inside each program.</p></div>
                 <div class="gr-actions"><button type="button" class="gr-btn" id="gr-refresh">↻ Refresh</button><button type="button" class="gr-btn gold" id="gr-csv">⬇ Download CSV</button></div></div>
             <input type="search" id="gr-search" placeholder="Search by name or batch" aria-label="Search the report">
@@ -108,9 +109,13 @@
         wrap.querySelector('#gr-csv').addEventListener('click', csv);
         wrap.querySelector('#gr-search').addEventListener('input', render);
         const nav = document.getElementById('nav-admin-grades');
-        if (nav) { nav.innerHTML = '<span>📊</span> Grades Report'; nav.title = 'Every grader’s scores across every program, in one report'; }
+        if (nav) { nav.innerHTML = '<span>📊</span> Grades &amp; Progress'; nav.title = 'Every grader’s scores across every program, and each trainee’s progress and feedback'; }
         const st = document.createElement('style');
         st.textContent = `#gr-wrap { color: #0f172a; }
+        .gr-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; padding: 6px; border-radius: 14px; background: rgba(30,35,64,.06); border: 1px solid rgba(30,35,64,.1); }
+        .gr-tab { padding: 8px 16px; border-radius: 10px; color: #1E2340; font-size: 13.5px; font-weight: 800; text-decoration: none; border: 1px solid transparent; }
+        a.gr-tab:hover { background: #fff; border-color: rgba(30,35,64,.15); }
+        .gr-tab.on { background: linear-gradient(180deg, #2a3058, #1E2340); color: #fff; box-shadow: inset 0 -2px 0 #DB8437; }
         .gr-hero { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; padding: 18px 22px; border-radius: 18px; background: linear-gradient(135deg, #1E2340, #2D3762); color: #fff; border-bottom: 3px solid #DB8437; margin-bottom: 16px; }
         .gr-eyebrow { font: 800 11px/1 'IBM Plex Mono', monospace; letter-spacing: .12em; text-transform: uppercase; color: #fdba74; margin-bottom: 6px; }
         .gr-hero h2 { margin: 0 0 4px; font-size: 24px; font-weight: 900; color: #fff; }
