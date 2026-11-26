@@ -144,6 +144,8 @@
     /* Every track's name is one size, on one line (an open track and a Coming Soon one alike). Only a name that would not fit
        its card on one line is drawn smaller, just enough to fit (fitTrackTitles below). */
     .topic-card h3 { white-space: nowrap; }
+    .topic-card h3.free-below { flex-direction: column; gap: 3px; }   /* the badge under a name it doesn't fit beside (fitTrackTitles) */
+    .topic-card h3.free-below .topic-free { display: table; margin: 3px auto 0; }
     .tk-name { background: linear-gradient(100deg, var(--tk-ink) 0%, var(--tk-ink) 38%, color-mix(in srgb, var(--tk) 45%, #fff) 50%, var(--tk-ink) 62%, var(--tk-ink) 100%);
         background-size: 260% 100%; background-position: 100% 0; -webkit-background-clip: text; background-clip: text; color: transparent;
         animation: tkShine 6s ease-in-out infinite; animation-delay: var(--tkd, 0s); }
@@ -474,7 +476,7 @@
         'IMMIGRATION LAW': 'Immigration Law Track',
         'INTELLECTUAL PROPERTY LAW': 'Intellectual Property Law Track',
         'REAL ESTATE LAW': 'Real Estate Law Track',
-        'FREE UPSKILL PROGRAMS': 'English Proficiency Track',
+        'FREE UPSKILL PROGRAMS': 'Communication Mastery Track',
         'SETTLEMENTS CLOSING': 'Closing Specialist Track',
         'CLIENT INTERVIEW PREP': 'Client Matching Essentials',
         'FLASH CARDS': 'Flash Cards'
@@ -499,7 +501,7 @@
     // Not in TOPIC_SEQUENCE: free programs aren't gated behind progression.
     // It opens once it is in functions/_programs.js and launch.js (its own site).
     const EXTRA_PROGRAMS = [
-        { key: 'FREE UPSKILL PROGRAMS', name: 'English Proficiency Track', sort_order: 0 },
+        { key: 'FREE UPSKILL PROGRAMS', name: 'Communication Mastery Track', sort_order: 0 },
         { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Track', sort_order: 13 },
         { key: 'SETTLEMENTS CLOSING', name: 'Closing Specialist Track', sort_order: 13 },
         { key: 'CLIENT INTERVIEW PREP', name: 'Client Matching Essentials', sort_order: 0 },
@@ -697,7 +699,7 @@
                 if (pa !== pb) return (pa === -1 ? Infinity : pa) < (pb === -1 ? Infinity : pb) ? -1 : 1;
                 const ia = seqIndex(a.key), ib = seqIndex(b.key);
                 // Compare directly: Infinity - Infinity is NaN, which left the
-                // unsequenced cards (Handouts, English Proficiency…) in random order.
+                // unsequenced cards (Handouts, Communication Mastery…) in random order.
                 if (ia !== ib) return ia < ib ? -1 : 1;
                 return (a.sort_order || 0) - (b.sort_order || 0);
             });
@@ -711,7 +713,8 @@
         // 🎨 Each track's own identity on its card: an emblem and a colour, with the name in that colour (TRACK_LOOK).
         const tkOpen = (t, live) => { const k = TRACK_LOOK[t.key]; return k ? `<div class="topic-card tk${live ? ' live' : ' soon'}" style="--tk:${k[1]};--tkd:${(t.key.length * 0.37) % 3}s">` : `<div class="topic-card${live ? '' : ' soon'}">`; };
         const tkTitle = (t) => { const k = TRACK_LOOK[t.key], free = PINNED_PROGRAMS.includes(t.key) ? ' <span class="topic-free">Free Upskill</span>' : '';
-            return k ? `<h3><span class="tk-ic" aria-hidden="true">${k[0]}</span><span class="tk-name">${escapeHtml(t.name)}</span>${free}</h3>` : `<h3>${escapeHtml(t.name)}${free}</h3>`; };
+            const line = k ? `<span class="tk-ic" aria-hidden="true">${k[0]}</span><span class="tk-name">${escapeHtml(t.name)}</span>` : escapeHtml(t.name);
+            return free ? `<h3><span class="tk-line">${line}</span>${free}</h3>` : `<h3>${line}</h3>`; };
         const cardFor = (t) => {
             if (PORTAL_TOOLS[t.key]) return toolCard(t);
             const built = SSO_PROGRAMS.includes(t.key);
@@ -761,7 +764,9 @@
     // the least) until it fits, and only that name.
     function fitTrackTitles() {
         document.querySelectorAll('#idx-topics .topic-card h3').forEach(h => {
-            h.style.fontSize = '';
+            h.style.fontSize = ''; h.classList.remove('free-below');
+            // a name with a badge (FREE UPSKILL) that doesn't fit beside it: the badge goes under the name, which keeps its size
+            if (h.scrollWidth > h.clientWidth + 1 && h.querySelector('.topic-free')) h.classList.add('free-below');
             let px = parseFloat(getComputedStyle(h).fontSize);
             while (h.scrollWidth > h.clientWidth + 1 && px > 9) { px -= 0.5; h.style.fontSize = px + 'px'; }
         });
