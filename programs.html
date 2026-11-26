@@ -144,9 +144,11 @@
         box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 6px 14px -10px color-mix(in srgb, var(--tk) 55%, transparent); }
     .topic-card.tk.live h3 .tk-name { font-weight: 900; letter-spacing: .005em; animation-duration: 4.5s; }   /* an open track's name: the boldest weight, and its shine passes a little more often */
     .tk-ic { display: inline-block; margin-right: .32em; }
-    /* Every track's name is one size, on one line (an open track and a Coming Soon one alike). Only a name that would not fit
-       its card on one line is drawn smaller, just enough to fit (fitTrackTitles below). */
+    /* Every track's name is one size, on one line (an open track and a Coming Soon one alike). A name that would not fit
+       its card on one line goes onto two at the same size (.two-line); only one that still won't fit is drawn smaller,
+       just enough to fit (fitTrackTitles below). */
     .topic-card h3 { white-space: nowrap; }
+    .topic-card h3.two-line { white-space: normal; text-wrap: balance; line-height: 1.15; }
     .topic-card h3.free-below { flex-direction: column; gap: 3px; }   /* the badge under a name it doesn't fit beside (fitTrackTitles) */
     .topic-card h3.free-below .topic-free { display: table; margin: 3px auto 0; }
     .tk-name { background: linear-gradient(100deg, var(--tk-ink) 0%, var(--tk-ink) 38%, color-mix(in srgb, var(--tk) 45%, #fff) 50%, var(--tk-ink) 62%, var(--tk-ink) 100%);
@@ -190,8 +192,7 @@
     .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
     .topic-action-btn.request { background: var(--orange); color: #0f172a; }
     .topic-action-btn.disabled { background: #f1f5f9; color: #334155; cursor: default; }
-    /* 📬 Your Daily Digest: the Flash Cards card is one button that opens today's digest in a popup: one card from each deck
-       (flashcards-data.js today()), each with its question (for a term: "What does … mean?") and a Show answer button. */
+    /* 📬 Your Daily Digest: the Flash Cards card is one button that opens today's card in a popup (the popup's styles are below). */
     .tool-card { padding: clamp(6px, 1vh - 2px, 12px); }
     .tool-card .dd-open { grid-column: 1 / -1; grid-row: 1 / -1; align-self: stretch; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(4px, .8vh, 9px);
         border: 2px solid var(--navy-deep); border-radius: 10px; background: linear-gradient(135deg, var(--navy-deep), var(--navy) 60%, var(--navy-mid)); color: #fff; cursor: pointer; font: inherit; padding: 6px 10px; box-shadow: inset 5px 0 0 var(--orange); transition: transform .15s ease, box-shadow .15s ease; }
@@ -199,21 +200,37 @@
     .tool-card .dd-open:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
     .dd-open .dd-t { font-size: clamp(13px, 1.9vh, 20px); font-weight: 900; letter-spacing: .01em; white-space: nowrap; }
     .dd-open .dd-c { font-size: clamp(10.5px, 1.3vh, 13px); font-weight: 800; color: #0f172a; background: var(--orange); border-radius: 999px; padding: 3px 14px; white-space: nowrap; }
-    #dd-pop { position: fixed; inset: 0; z-index: 9000; display: none; align-items: center; justify-content: center; background: rgba(8,12,24,.55); padding: 16px; }
+    /* The popup: today's one card (flashcards-data.js one()), a daily dose rather than a stack, in the banners' elite look:
+       a navy header with the gold title, the five decks as pips (today's lit, tomorrow's named), the question, and the answer
+       behind a gold Reveal button. */
+    #dd-pop { position: fixed; inset: 0; z-index: 9000; display: none; align-items: center; justify-content: center; background: rgba(6,10,22,.62); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); padding: 16px; }
     #dd-pop.open { display: flex; }
-    #dd-pop .dd-box { width: min(760px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; background: #fff; border-radius: 16px; border: 2px solid var(--navy-deep); box-shadow: 0 24px 60px -20px rgba(0,0,0,.6); padding: 18px 20px 16px; }
-    #dd-pop .dd-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
-    #dd-pop h2 { margin: 0; font-size: 22px; font-weight: 900; color: var(--navy-deep); }
-    #dd-pop .dd-x { border: 0; background: none; font-size: 22px; line-height: 1; cursor: pointer; color: #334155; padding: 4px 8px; }
-    #dd-pop .dd-sub { margin: 0 0 12px; color: #475569; font-size: 13.5px; }
-    #dd-pop .dd-card { border: 1.5px solid #e2e8f0; border-left: 5px solid var(--orange); border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; }
-    #dd-pop .dd-deck { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #c2410c; }
-    #dd-pop .dd-q { margin: 4px 0 8px; font-size: 16px; font-weight: 800; color: #0f172a; line-height: 1.35; }
-    #dd-pop .dd-a { margin: 0; font-size: 15px; color: #1e293b; line-height: 1.45; background: #f8fafc; border-radius: 8px; padding: 8px 10px; }
-    #dd-pop .dd-show { border: 1.5px solid var(--navy-deep); background: #fff; color: var(--navy-deep); border-radius: 999px; padding: 4px 14px; font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; }
-    #dd-pop .dd-show:hover { background: var(--navy-deep); color: #fff; }
-    #dd-pop .dd-foot { display: flex; justify-content: flex-end; margin-top: 4px; }
-    #dd-pop .dd-foot a { font-size: 13.5px; font-weight: 800; color: var(--navy-deep); }
+    #dd-pop .dd-box { width: min(680px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; border-radius: 18px; background: #fffdf8; border: 1px solid rgba(245,196,81,.55);
+        box-shadow: 0 0 0 1px rgba(8,18,38,.9), 0 30px 70px -24px rgba(0,0,0,.75), 0 0 40px -18px rgba(245,196,81,.55); animation: dd-in .22s ease-out; }
+    @keyframes dd-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+    #dd-pop .dd-head { position: relative; padding: 18px 22px 14px; background: linear-gradient(135deg, var(--navy-deep), var(--navy) 55%, var(--navy-mid)); border-bottom: 2px solid var(--orange); color: #fff; }
+    #dd-pop .dd-head::after { content: ""; position: absolute; left: 22px; right: 22px; bottom: -2px; height: 2px; background: linear-gradient(90deg, transparent, #f5c451, transparent); }
+    #dd-pop h2 { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase;
+        background: linear-gradient(180deg, #ffffff 0%, #fde7b0 45%, #f5c451 75%, #e0a43a 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    #dd-pop .dd-sub { margin: 4px 0 0; color: #c7d2fe; font-size: 13px; font-weight: 600; }
+    #dd-pop .dd-x { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); background: rgba(255,255,255,.06); color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }
+    #dd-pop .dd-x:hover { background: rgba(255,255,255,.16); }
+    #dd-pop .dd-pips { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+    #dd-pop .dd-pip { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.55); border: 1px solid rgba(255,255,255,.18); border-radius: 999px; padding: 3px 10px; }
+    #dd-pop .dd-pip.on { color: #081226; background: linear-gradient(180deg, #fde7b0, #f5c451 60%, #e0a43a); border-color: #f5c451; box-shadow: 0 0 14px -4px rgba(245,196,81,.9); }
+    #dd-pop .dd-body { padding: 20px 22px 6px; }
+    #dd-pop .dd-deck { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9a3412; background: #fff3e0; border: 1px solid #fed7aa; border-radius: 999px; padding: 3px 11px; }
+    #dd-pop .dd-q { margin: 12px 0 16px; font-size: 19px; font-weight: 800; color: var(--navy-deep); line-height: 1.35; }
+    #dd-pop .dd-show { display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; padding: 9px 20px; font: inherit; font-size: 13.5px; font-weight: 900; letter-spacing: .03em; cursor: pointer; color: #081226;
+        background: linear-gradient(180deg, #fde7b0, #f5c451 55%, #e0a43a); box-shadow: 0 8px 18px -10px rgba(224,164,58,.9); transition: transform .12s ease; }
+    #dd-pop .dd-show:hover { transform: translateY(-1px); }
+    #dd-pop .dd-show:focus-visible, #dd-pop .dd-x:focus-visible, #dd-pop .dd-foot a:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+    #dd-pop .dd-a { margin: 0; font-size: 15.5px; font-weight: 600; color: #1e293b; line-height: 1.55; background: linear-gradient(180deg, #ffffff, #fbf6ea); border: 1px solid #f1e3c2; border-left: 4px solid #e0a43a; border-radius: 10px; padding: 12px 14px; animation: dd-in .2s ease-out; }
+    #dd-pop .dd-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 22px 18px; color: #64748b; font-size: 12.5px; }
+    #dd-pop .dd-foot b { color: var(--navy-deep); }
+    #dd-pop .dd-foot a { font-size: 13px; font-weight: 800; color: var(--navy-deep); text-decoration: none; border-bottom: 1.5px solid #f5c451; }
+    @media (max-width: 520px) { #dd-pop .dd-head, #dd-pop .dd-body, #dd-pop .dd-foot { padding-left: 16px; padding-right: 16px; } #dd-pop h2 { font-size: 19px; padding-right: 36px; } #dd-pop .dd-q { font-size: 17px; } }
+    @media (prefers-reduced-motion: reduce) { #dd-pop .dd-box, #dd-pop .dd-a { animation: none; } }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
     .sim-banner-tx .tm { font-size: calc(.72em + 2pt); font-weight: 900; letter-spacing: 0; margin-left: .08em; vertical-align: baseline; position: relative; top: -.62em; line-height: 0; color: #f5c451; -webkit-text-fill-color: #f5c451; }   /* ™ on each tool's name: larger, in gold */
@@ -294,7 +311,7 @@
            card's own content, so on a screen that is a little too short the last group was
            clipped by the body's overflow:hidden instead of the rows giving up their spare air. */
         #idx-topics .topic-card { grid-template-rows: minmax(0, 1fr) auto; align-content: center; min-height: 0; overflow: hidden; }
-        #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: clamp(12px, 1.95vh, 21px); }
+        #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: clamp(13px, 1.55vh, 17px); padding-left: 14px; padding-right: 14px; }   /* names a size down, with room either side, so a row of cards doesn't look crammed */
         #idx-topics .topic-action-btn { font-size: clamp(9.5px, 1.05vh, 11.5px); padding: clamp(4px, 0.6vh, 7px) clamp(11px, 1vw, 16px); }
         #idx-topics .topic-status { font-size: clamp(9.5px, 1.1vh, 12px); padding: 3px 10px; }
     }
@@ -463,8 +480,8 @@
         // from before the rename; these put the full names on the cards without a migration.
         'CM TRAINING': 'Case Management Track',
         'REVISED CM TRAINING': 'Revised Case Management Track',
-        'EA  PA TRAINING-OUTSOURCED MANP': 'EA PA Track',
-        'REVISED EA PA TRAINING': 'Revised EA PA Track',
+        'EA  PA TRAINING-OUTSOURCED MANP': 'Executive/Personal Virtual Assistant Track',
+        'REVISED EA PA TRAINING': 'Revised Executive/Personal Virtual Assistant Track',
         'CALENDAR MANAGEMENT TRAINING': 'Calendar Management Track',
         'PROPERTY DAMAGE': 'Property Damage Claims Track',
         'MEDSUM AND DEMAND': 'Medsum & Demand Track',
@@ -528,12 +545,14 @@
     const PORTAL_TOOLS = { 'FLASH CARDS': '/flashcards.html' };
     const toolCard = (t) => `
                 <div class="topic-card tool-card">
-                    <button type="button" class="dd-open" onclick="openDailyDigest()" aria-haspopup="dialog" title="Today's flash cards: one from each deck">
+                    <button type="button" class="dd-open" onclick="openDailyDigest()" aria-haspopup="dialog" title="Today's flash card: one a day, a few minutes of the legal industry">
                         <span class="dd-t">📬 Your Daily Digest</span><span class="dd-c">Click Here</span>
                     </button>
                 </div>`;
-    // 📬 Your Daily Digest: today's cards (flashcards-data.js today(), the same for everyone today) in a popup. A Terminologies
-    // card asks what its term means; every card keeps its answer behind a Show answer button.
+    // 📬 Your Daily Digest: a daily dose, not a stack. One card a day (flashcards-data.js one(): the same card for everyone
+    // today, from the next deck in turn: Rules, Trivia, Terminologies, Process, FAQs), so trainees get familiar with the
+    // legal industry a little at a time without leaving their training. A Terminologies card asks what its term means;
+    // the answer (about two lines) stays behind a Reveal button so they think first.
     function openDailyDigest() {
         const F = window.LSH_FLASHCARDS; if (!F) return;
         let pop = document.getElementById('dd-pop');
@@ -545,13 +564,14 @@
             document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && pop.classList.contains('open')) closeDailyDigest(); });
         }
         const when = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-        pop.innerHTML = `<div class="dd-box"><div class="dd-head"><h2 id="dd-title">📬 Your Daily Digest</h2><button type="button" class="dd-x" aria-label="Close">✕</button></div>
-            <p class="dd-sub">${escapeHtml(when)}: one card from each deck. Think of your answer, then press Show answer.</p>
-            ${F.today().map(({ deck, i }) => { const [q, a] = deck.cards[i];
-                const ask = deck.id === 'terms' ? `What does “${q}” mean?` : q;
-                return `<div class="dd-card"><div class="dd-deck">${escapeHtml(deck.icon + ' ' + deck.label)}</div><p class="dd-q">${escapeHtml(ask)}</p>
-                    <button type="button" class="dd-show">Show answer</button><p class="dd-a" hidden>${escapeHtml(a)}</p></div>`; }).join('')}
-            <div class="dd-foot"><a href="/flashcards.html">All the flash cards →</a></div></div>`;
+        const { deck, i } = F.one(), [q, a] = deck.cards[i], next = F.one(F.day() + 1).deck;
+        const ask = deck.id === 'terms' ? `What does “${q}” mean?` : q;
+        pop.innerHTML = `<div class="dd-box"><div class="dd-head"><h2 id="dd-title">📬 Your Daily Digest</h2><button type="button" class="dd-x" aria-label="Close">✕</button>
+                <p class="dd-sub">${escapeHtml(when)} · today's card, a minute of the legal industry</p>
+                <div class="dd-pips" aria-hidden="true">${F.DECKS.map(d => `<span class="dd-pip${d === deck ? ' on' : ''}">${escapeHtml(d.label)}</span>`).join('')}</div></div>
+            <div class="dd-body"><span class="dd-deck">${escapeHtml(deck.icon + ' ' + deck.label)}</span><p class="dd-q">${escapeHtml(ask)}</p>
+                <button type="button" class="dd-show">✦ Reveal answer</button><p class="dd-a" hidden>${escapeHtml(a)}</p></div>
+            <div class="dd-foot"><span>Think of your answer first, then reveal it.</span><span>Tomorrow: <b>${escapeHtml(next.icon + ' ' + next.label)}</b></span></div></div>`;
         pop.classList.add('open');
         const x = pop.querySelector('.dd-x'); if (x) x.focus();
     }
@@ -780,9 +800,14 @@
     // the least) until it fits, and only that name.
     function fitTrackTitles() {
         document.querySelectorAll('#idx-topics .topic-card h3').forEach(h => {
-            h.style.fontSize = ''; h.classList.remove('free-below');
+            h.style.fontSize = ''; h.classList.remove('free-below', 'two-line');
             // a name with a badge (FREE UPSKILL) that doesn't fit beside it: the badge goes under the name, which keeps its size
             if (h.scrollWidth > h.clientWidth + 1 && h.querySelector('.topic-free')) h.classList.add('free-below');
+            // a long name (Executive/Personal Virtual Assistant Track) goes onto two lines at the same size, if the card has the height
+            if (h.scrollWidth > h.clientWidth + 1 && !h.querySelector('.topic-free')) {
+                h.classList.add('two-line');
+                if (h.scrollHeight > h.clientHeight + 1 || h.scrollWidth > h.clientWidth + 1) h.classList.remove('two-line');
+            }
             let px = parseFloat(getComputedStyle(h).fontSize);
             while (h.scrollWidth > h.clientWidth + 1 && px > 9) { px -= 0.5; h.style.fontSize = px + 'px'; }
         });
