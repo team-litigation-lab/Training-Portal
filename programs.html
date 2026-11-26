@@ -99,8 +99,9 @@
     .topic-group { margin-bottom: clamp(8px, 1.1vh, 12px); }
     .topic-group-head { display: flex; align-items: center; justify-content: center; text-align: center; gap: 14px; flex-wrap: nowrap; margin: 0 0 7px; }
     /* The group's name sits in a dark pill, and a thin muted orange rule runs out from both sides of it. */
-    .topic-group-head::before, .topic-group-head::after { content: ""; flex: 1 1 0; min-width: 16px; height: 1px; border-radius: 1px; background: linear-gradient(90deg, rgba(249,115,22,0), rgba(249,115,22,.45)); }
-    .topic-group-head::after { background: linear-gradient(90deg, rgba(249,115,22,.45), rgba(249,115,22,0)); }
+    /* the line either side of a section's name: 2px, solid orange where it meets the name and fading out, with a soft glow */
+    .topic-group-head::before, .topic-group-head::after { content: ""; flex: 1 1 0; min-width: 16px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(249,115,22,0), rgba(249,115,22,.55) 45%, #f97316); box-shadow: 0 0 8px rgba(249,115,22,.45); }
+    .topic-group-head::after { background: linear-gradient(90deg, #f97316, rgba(249,115,22,.55) 55%, rgba(249,115,22,0)); }
     /* A quiet signpost, so the track cards stay the main thing on the page: a pill in the Portal's navy (the same gradient
        as the 📬 Daily Digest card), a thin muted orange edge, no glow, and slightly smaller capitals. */
     .topic-group-head h2 { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; font-size: 15px; line-height: 1.15; font-weight: 800; margin: 0; padding: 4px 18px; color: rgba(255,255,255,.92); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap;
@@ -308,7 +309,7 @@
            card's own content, so on a screen that is a little too short the last group was
            clipped by the body's overflow:hidden instead of the rows giving up their spare air. */
         #idx-topics .topic-card { grid-template-rows: minmax(0, 1fr) auto; align-content: center; min-height: 0; overflow: hidden; }
-        #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: clamp(12px, 1.95vh, 21px); }
+        #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: clamp(12px, 1.65vh, 19px); padding: .4em 1em; line-height: 1.1; }   /* the pill's air in step with the name, so it never looks crammed */
         /* ✦ Beyond-Legal Skills, the highlight lessons: their names a size down, with room either side, so that row doesn't look crammed */
         #idx-topics .tg-beyond .topic-card h3 { font-size: clamp(13px, 1.55vh, 17px); padding-left: 14px; padding-right: 14px; }
         #idx-topics .topic-action-btn { font-size: clamp(9.5px, 1.05vh, 11.5px); padding: clamp(4px, 0.6vh, 7px) clamp(11px, 1vw, 16px); }
