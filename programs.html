@@ -211,8 +211,8 @@
     /* 📬 Your Daily Digest: the Flash Cards card is one button that opens today's card in a popup (the popup's styles are below). */
     .tool-card { padding: clamp(6px, 1vh - 2px, 12px); }
     .tool-card .dd-open { grid-column: 1 / -1; grid-row: 1 / -1; align-self: stretch; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(4px, .8vh, 9px);
-        border: 2px solid var(--navy-deep); border-radius: 10px; background: linear-gradient(135deg, var(--navy-deep), var(--navy) 60%, var(--navy-mid)); color: #fff; cursor: pointer; font: inherit; padding: 6px 10px; box-shadow: inset 5px 0 0 var(--orange); transition: transform .15s ease, box-shadow .15s ease; }
-    .tool-card .dd-open:hover { transform: translateY(-2px); box-shadow: inset 5px 0 0 var(--orange), 0 10px 20px -12px rgba(0,0,0,.6); }
+        border: 2px solid #ecc98a; border-radius: 10px; background: linear-gradient(135deg, #fffdf7 0%, #fdf2dc 45%, #f7dfb0 100%); color: var(--navy-deep); cursor: pointer; font: inherit; padding: 6px 10px; box-shadow: inset 5px 0 0 var(--orange); transition: transform .15s ease, box-shadow .15s ease; }
+    .tool-card .dd-open:hover { transform: translateY(-2px); box-shadow: inset 5px 0 0 var(--orange), 0 10px 20px -12px rgba(160,100,30,.45); }
     .tool-card .dd-open:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
     .dd-open .dd-t { font-size: clamp(13px, 1.9vh, 20px); font-weight: 900; letter-spacing: .01em; white-space: nowrap; }
     .dd-open .dd-c { font-size: clamp(10.5px, 1.3vh, 13px); font-weight: 800; color: #0f172a; background: var(--orange); border-radius: 999px; padding: 3px 14px; white-space: nowrap; }
