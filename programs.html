@@ -102,6 +102,9 @@
     /* the line either side of a section's name: 2px, solid orange where it meets the name and fading out, with a soft glow */
     .topic-group-head::before, .topic-group-head::after { content: ""; flex: 1 1 0; min-width: 16px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(249,115,22,0), rgba(249,115,22,.55) 45%, #f97316); box-shadow: 0 0 8px rgba(249,115,22,.45); }
     .topic-group-head::after { background: linear-gradient(90deg, #f97316, rgba(249,115,22,.55) 55%, rgba(249,115,22,0)); }
+    /* the lines beside each playbook's heading, clearer: 3px, solid orange most of the way (fading only at the far end) with a soft glow */
+    .topic-group-head::before { height: 3px; background: linear-gradient(90deg, rgba(219,132,55,0), #DB8437 18%, #DB8437); box-shadow: 0 0 10px rgba(219,132,55,.5); }
+    .topic-group-head::after { height: 3px; background: linear-gradient(90deg, #DB8437, #DB8437 82%, rgba(219,132,55,0)); box-shadow: 0 0 10px rgba(219,132,55,.5); }
     /* A quiet signpost, so the track cards stay the main thing on the page: a pill in the Portal's navy (the same gradient
        as the 📬 Daily Digest card), a thin muted orange edge, no glow, and slightly smaller capitals. */
     .topic-group-head h2 { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; font-size: 15px; line-height: 1.15; font-weight: 800; margin: 0; padding: 4px 18px; color: rgba(255,255,255,.92); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap;
@@ -210,6 +213,8 @@
        subtle line under it between the title and the status / action row. */
     #idx-topics .topic-card h3 { border: 0 !important; border-bottom: 1px solid rgba(30,35,64,.16) !important; border-radius: 0 !important;
         background: none !important; box-shadow: none !important; padding: 2px 4px clamp(6px, .9vh, 10px) !important; }
+    /* the line under the name, clearer: 2px in the playbook set's own colour at half strength (it was a faint 1px grey) */
+    #idx-topics .topic-card h3 { border-bottom: 2px solid color-mix(in srgb, var(--tk, #1E2340) 55%, transparent) !important; }
     @media (prefers-reduced-motion: reduce) { .tk-name, .topic-card.tk.live h3, .topic-card.tk.live .tk-ic { animation: none; } .tk-name { background-position: 0 0; } }
     .topic-status { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 999px; display: inline-block; width: fit-content; }
     .topic-status.approved { background: #f0fdf4; color: #166534; }
@@ -310,6 +315,8 @@
     .sim-banner-row .sim-banner:hover, .sim-banner-row .sim-banner:focus-visible { transform: translateY(-3px);
         outline-color: rgba(253,186,116,.9); box-shadow: 0 16px 30px -14px rgba(8,18,38,.75), 0 0 0 2px rgba(249,115,22,.45), 0 0 22px rgba(249,115,22,.35); }
     .sim-banner-row .sim-banner:hover .sim-banner-go { transform: translateX(3px); }
+    /* the tool banners stand still: no shimmer across them, no pulse on Open, no bobbing icon (the hover lift stays) */
+    .sim-banner-row .sim-banner::before, .sim-banner-row .sim-banner-go, .sim-banner-row .sim-banner-ic { animation: none !important; }
     @media (prefers-reduced-motion: reduce) {
         .sim-banner-row .sim-banner::before, .sim-banner-row .sim-banner-go, .sim-banner-row .sim-banner-ic { animation: none; }
         .sim-banner-row .sim-banner, .sim-banner-row .sim-banner-go { transition: none; }

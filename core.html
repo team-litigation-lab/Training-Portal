@@ -186,16 +186,15 @@
                 <div class="admin-nav-group">1 · People &amp; Access</div>
                 <!-- 👥 Log-in Approvals, Program Access & Requests and Users & Accounts are one job, so one entry (people-access.js): it opens where
                      something is waiting, and tabs across the top of the panel move between the three. Both waiting counts sit on it. -->
-                <button onclick="openPeople()" class="side-nav-btn mc-nav-btn" data-mc="people" title="The dashboard (live counts and the Control Directory), log-in approvals, and program access with every account: one place, three tabs"><span>👥</span> People &amp; Access <span id="reg-pending-badge-side" class="admin-nav-badge"></span><span id="access-req-badge-side" class="admin-nav-badge"></span></button>
-                <button onclick="mcGo('access')" class="side-nav-btn mc-nav-btn" data-mc="access" title="Pause or lock the whole site, and check every platform accepts the admin password"><span>🔒</span> Site Lock &amp; Admin Password</button>
+                <button onclick="openPeople()" class="side-nav-btn mc-nav-btn" data-mc="people" title="The dashboard (live counts and the Control Directory), log-in approvals, program access with every account, and the site lock and admin password check: one place, four tabs"><span>👥</span> People &amp; Access <span id="reg-pending-badge-side" class="admin-nav-badge"></span><span id="access-req-badge-side" class="admin-nav-badge"></span></button>
                 <a class="side-nav-btn" href="/referrals.html" style="text-decoration:none" title="People referred from the home page, with their CVs"><span>🤝</span> Referrals</a>
                 <div class="admin-nav-group">2 · Grading &amp; Progress</div>
                 <!-- 📊 Grades & Progress, one entry: the Grades Report (grades-report.js), with a tab across its top to 📈 Progress & Feedback (/progress.html) -->
                 <button onclick="switchView('admin-grades')" class="side-nav-btn active view-nav-btn" id="nav-admin-grades" title="Every grader’s scores across every program, and each trainee’s progress and feedback"><span>📊</span> Grades &amp; Progress</button>
                 <a class="side-nav-btn" href="/attendance.html" style="text-decoration:none" title="Take and review attendance, batch by batch"><span>🕘</span> Attendance</a>
                 <div class="admin-nav-group">3 · Monitoring &amp; Comms</div>
-                <button onclick="mcGo('monitoring')" class="side-nav-btn mc-nav-btn" data-mc="monitoring" title="Who is signed in right now, and the server logs"><span>🟢</span> Who&rsquo;s Online</button>
-                <button onclick="mcGo('activity-logs')" class="side-nav-btn mc-nav-btn" data-mc="activity-logs" title="Audit trail of uploads, gradings and submissions"><span>🗂</span> Activity Logs</button>
+                <!-- 🛰 Who's Online and Activity Logs are one job, so one entry (online-activity.js): tabs across the top move between them -->
+                <button onclick="openOnlineActivity()" class="side-nav-btn mc-nav-btn" data-mc="online-activity" title="Who is signed in right now, and the audit trail of uploads, gradings and submissions: one place, two tabs"><span>🛰</span> Online &amp; Activity</button>
                 <button onclick="mcGo('announce')" class="side-nav-btn mc-nav-btn" data-mc="announce" title="Ticker announcement, full-screen alert, ping"><span>📢</span> Broadcast &amp; Ping</button>
                 <a class="side-nav-btn" href="/api/ai-usage" style="text-decoration:none" title="Today's use of the shared AI budget, flow by flow"><span>🤖</span> AI Usage</a>
             </div>
@@ -1120,6 +1119,7 @@
     <script src="portal.js"></script>
     <script src="/mc-directory.js"></script>
     <script src="/people-access.js"></script>
+    <script src="/online-activity.js"></script>
     <script src="/grades-report.js"></script>
     <script src="/pw-check.js"></script>
 <script>

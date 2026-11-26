@@ -7,7 +7,7 @@
 // entry open that page at the Accounts section. Both waiting counts stay on the one entry (their badge ids are unchanged,
 // so app.js and the Control Directory keep filling them).
 (function () {
-    const TABS = [['overview', '🧭 Dashboard & Directory'], ['registrations', '📝 Log-in Approvals'], ['program-access', '🔑 Program Access & Accounts']];   // the Dashboard is part of People & Access too (no menu entry of its own)
+    const TABS = [['overview', '🧭 Dashboard & Directory'], ['registrations', '📝 Log-in Approvals'], ['program-access', '🔑 Program Access & Accounts'], ['access', '🔒 Site Lock & Admin Password']];   // Site Lock & Admin Password is a tab here too (no menu entry of its own)   // the Dashboard is part of People & Access too (no menu entry of its own)
     const PANES = TABS.map(t => t[0]).concat('users');
 
     // 👥 Accounts: the Users panel's list and wipe button, moved to the foot of Program Access (their ids are unchanged, so
