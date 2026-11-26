@@ -36,8 +36,9 @@
 </style>
 <script src="/portal-nav.js"></script>
 <link rel="stylesheet" href="/theme.css">
+<link rel="stylesheet" href="/control-room.css">
 </head>
-<body>
+<body class="cr-page">
 <script>
     // Admins only (the API checks the session too). Anyone else goes to admin sign-in.
     (function () {
@@ -56,11 +57,14 @@
 </div>
 <div class="sim-wrap">
     <section class="sim-hero">
-        <div class="eyebrow">Admin · Got a referral?</div>
+        <div class="eyebrow">System Management · Control 02</div>
         <h1>Referrals</h1>
         <p>People referred to LSH from the portal's home page, with their contact details and CV. Track each one's status, keep a note, and delete a referral when you no longer need it.</p>
     </section>
-    <div id="app"><div class="sim-card"><div class="sim-loading">Loading referrals…</div></div></div>
+    <section class="cr-group">
+        <div class="topic-group-head"><h2>Got a referral?</h2></div>
+        <div id="app"><div class="sim-card"><div class="sim-loading">Loading referrals…</div></div></div>
+    </section>
 </div>
 
 <script src="/app.js"></script>
