@@ -702,9 +702,12 @@ body.auth-uni[data-role="register"] .auth-form-side { padding-bottom: 48px; }
     .sim-hero.has-lsh-logo > .lsh-hero-logo { left: 22px; }
 }
 @media (max-width: 560px) {
-    .lsh-hero-logo { height: 64px; }
-    .sim-hero.has-lsh-logo { padding-left: 18px !important; min-height: 0; }
-    .sim-hero.has-lsh-logo > .lsh-hero-logo { position: static; transform: none; margin: 0 0 12px; }
+    /* still beside the hero's text on a phone, never above or over the title */
+    .lsh-hero-logo { height: 56px; }
+    .sim-hero.has-lsh-logo { padding-left: 120px !important; min-height: 84px; }
+    .sim-hero.has-lsh-logo > .lsh-hero-logo { left: 14px; top: 22px; transform: none; }
+    .or-head.has-lsh-logo > .lsh-hero-logo + * { flex: 1 1 0; min-width: 0; }
+    .or-head.has-lsh-logo > .lsh-hero-logo + * ~ * { flex-basis: 100%; }
 }
 
 /* One compact top bar on every page. Where the hero carries the logo the bar drops it (and the slate panel that
