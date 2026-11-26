@@ -4,18 +4,18 @@
 //
 //     the Portal's Medical Records Requests simulator (simulators/records.js, records-docs.js)
 //       -> the Case Management course's relay (js/cm-doc-filing.js)
-//         -> LSH CaseWorks' bridge (course-bridge.js) and its real convention (caseFileName in app.js)
+//         -> LSH CaseWorX' bridge (course-bridge.js) and its real convention (caseFileName in app.js)
 //           -> the document on the case, in the Doc Hub
 //
 // Each repository is served from its own port, so the origin checks on both sides are the real ones,
-// and LSH CaseWorks' own upload and save APIs are answered here, as LSH CaseWorks' own course-bridge check does.
+// and LSH CaseWorX' own upload and save APIs are answered here, as LSH CaseWorX' own course-bridge check does.
 // What it proves that the single-repo checks cannot: the name the simulator produces is byte-for-byte
-// the name LSH CaseWorks' own caseFileName produces and accepts, so a records request filed from a lesson
+// the name LSH CaseWorX' own caseFileName produces and accepts, so a records request filed from a lesson
 // lands on the case under the right category without anyone retyping anything.
 //
-// LSH CaseWorks re-boots its case editor with no backend behind it and clears the Doc Hub rows moments
-// later, so the assertions are made on LSH CaseWorks' own upload call and the answer it sends back, not on
-// the rows: the upload only happens once a name has passed LSH CaseWorks' own check.
+// LSH CaseWorX re-boots its case editor with no backend behind it and clears the Doc Hub rows moments
+// later, so the assertions are made on LSH CaseWorX' own upload call and the answer it sends back, not on
+// the rows: the upload only happens once a name has passed LSH CaseWorX' own check.
 //
 // Each repository's path can be given as an environment variable; the defaults are sibling checkouts.
 // Usage: node .github/scripts/records-chain.cjs
@@ -53,7 +53,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await new Promise(r => portal.listen(0, r)); await new Promise(r => cms.listen(0, r));
     const portalBase = `http://localhost:${portal.address().port}`, cmsBase = `http://localhost:${cms.address().port}`;
 
-    // The course page: the real relay from js/cm-doc-filing.js, LSH CaseWorks framed beside the lesson
+    // The course page: the real relay from js/cm-doc-filing.js, LSH CaseWorX framed beside the lesson
     // (its src carries "cms", which is how the relay finds it), and the simulator framed as a tool.
     const course = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -83,7 +83,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     page.on('dialog', d => d.accept());
-    // LSH CaseWorks' own upload and save, answered by the test: an upload keeps the name it is given
+    // LSH CaseWorX' own upload and save, answered by the test: an upload keeps the name it is given
     const uploaded = [];
     await page.route('**/api/upload', async (route) => {
         const body = route.request().postData() || '';
@@ -97,16 +97,16 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await page.goto(courseBase, { waitUntil: 'load' });
     const cmsFrame = page.frames().find(f => f.url().startsWith(cmsBase));
     const sim = page.frames().find(f => /records\.html/.test(f.url()));
-    check('LSH CaseWorks frame loaded', !!cmsFrame, 'no CMS frame');
+    check('LSH CaseWorX frame loaded', !!cmsFrame, 'no CMS frame');
     check('the simulator frame loaded', !!sim, 'no simulator frame');
     if (!cmsFrame || !sim) { await browser.close(); return done(); }
     await cmsFrame.waitForFunction(() => !!window.__lshCourseBridge && typeof window.caseFileName === 'function', null, { timeout: 20000 });
     await sim.waitForFunction(() => window.MR && typeof MRDocs !== 'undefined', null, { timeout: 20000 });
 
-    // the relay found LSH CaseWorks beside the lesson
+    // the relay found LSH CaseWorX beside the lesson
     check('the course relay allows the Portal\'s origin', await page.evaluate(() => !!(window.cmDocFiling && cmDocFiling.relayOrigins().length)), 'relay not loaded');
 
-    // Open a case in LSH CaseWorks, so it has a Case ID, a client and a Doc Hub to file into. LSH CaseWorks finishes
+    // Open a case in LSH CaseWorX, so it has a Case ID, a client and a Doc Hub to file into. LSH CaseWorX finishes
     // booting its editor after load and resets the header and the rows, so set it up and keep setting it
     // up until it stays put — this is test scaffolding for what a trainee does by opening their own case.
     const setUp = () => cmsFrame.evaluate(() => {
@@ -123,7 +123,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
         if (/john doe/i.test(ready.client) && ready.cats.includes('Medical Records') && ready.cats.includes('Bills')) break;
     }
     const cats = ready.cats;
-    check('LSH CaseWorks offers its Doc Hub categories', cats.includes('Medical Records') && cats.includes('Bills'), cats.join(', '));
+    check('LSH CaseWorX offers its Doc Hub categories', cats.includes('Medical Records') && cats.includes('Bills'), cats.join(', '));
 
     // the simulator: sign the authorization, request the radiology records and bill, run the clock
     await sim.evaluate(() => { localStorage.clear(); MR.restart && null; });
@@ -148,7 +148,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     });
     check('the provider produced the records', /Delivered|Completed/.test(drive.status), drive.status);
 
-    // file the records, then the bill, through the course into LSH CaseWorks
+    // file the records, then the bill, through the course into LSH CaseWorX
     const names = {}, hub = [], cmsWanted = {};
     for (const kind of ['records', 'bill']) {
         names[kind] = await sim.evaluate(([no, k]) => { const rad = MR_PROVIDERS.find(p => p.id === 'rad');
@@ -157,7 +157,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
         await setUp();
         await sim.evaluate(([no, k]) => MR.sendDoc(no, k), [drive.no, kind]);
         await page.waitForTimeout(2500);
-        // read the Doc Hub now: LSH CaseWorks re-boots its editor on its own and clears the rows again,
+        // read the Doc Hub now: LSH CaseWorX re-boots its editor on its own and clears the rows again,
         // so what is on the case is checked at the moment it is filed, not at the end of the run
         hub.push(...await cmsFrame.evaluate(() => [...document.querySelectorAll('#doc-body tr')].map(tr => {
             const label = tr.querySelector('td div'), link = tr.querySelector('.doc-attachment a[data-r2-key]');
@@ -168,12 +168,12 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
 
     /* What the case actually received. The Doc Hub's rows are not read back here: with no backend the
        CMS re-boots its editor and clears them moments later, which is the stub, not the feature. The
-       authoritative signals are LSH CaseWorks' own upload call (it only happens once the name has passed
-       LSH CaseWorks' nameProblems check against its own caseFileName) and the answer it sends back. */
+       authoritative signals are LSH CaseWorX' own upload call (it only happens once the name has passed
+       LSH CaseWorX' nameProblems check against its own caseFileName) and the answer it sends back. */
     const confirmations = await sim.evaluate((no) => { MR.openReq(no); MR.review(no);
         return [...document.querySelectorAll('.mrd-msg')].map(e => e.textContent.trim()).filter(Boolean); }, drive.no);
-    check('LSH CaseWorks uploaded the records under the firm\'s name', uploaded.includes(names.records), `${names.records} not in ${JSON.stringify(uploaded)}`);
-    check('LSH CaseWorks uploaded the itemized bill under the firm\'s name', uploaded.includes(names.bill), `${names.bill} not in ${JSON.stringify(uploaded)}`);
+    check('LSH CaseWorX uploaded the records under the firm\'s name', uploaded.includes(names.records), `${names.records} not in ${JSON.stringify(uploaded)}`);
+    check('LSH CaseWorX uploaded the itemized bill under the firm\'s name', uploaded.includes(names.bill), `${names.bill} not in ${JSON.stringify(uploaded)}`);
     check('the records were filed under Medical Records', confirmations.some(c => c.includes(names.records) && /under Medical Records/.test(c)), JSON.stringify(confirmations));
     check('the itemized bill was filed under Bills', confirmations.some(c => c.includes(names.bill) && /under Bills/.test(c)), JSON.stringify(confirmations));
     check('real PDF bytes were uploaded', uploaded.length >= 2, uploaded.join(', '));
