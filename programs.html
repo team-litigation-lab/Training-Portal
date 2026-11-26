@@ -145,7 +145,7 @@
     .topic-card.tk.live h3 .tk-name { font-weight: 900; letter-spacing: .005em; animation-duration: 4.5s; }   /* an open track's name: the boldest weight, and its shine passes a little more often */
     .tk-ic { display: inline-block; margin-right: .32em; }
     /* Every track's name is one size, on one line (an open track and a Coming Soon one alike). A name that would not fit
-       its card on one line goes onto two at the same size (.two-line); only one that still won't fit is drawn smaller,
+       its card on one line goes onto two at the same size (.two-line, Beyond-Legal Skills only); otherwise it is drawn smaller,
        just enough to fit (fitTrackTitles below). */
     .topic-card h3 { white-space: nowrap; }
     .topic-card h3.two-line { white-space: normal; text-wrap: balance; line-height: 1.15; }
@@ -308,7 +308,9 @@
            card's own content, so on a screen that is a little too short the last group was
            clipped by the body's overflow:hidden instead of the rows giving up their spare air. */
         #idx-topics .topic-card { grid-template-rows: minmax(0, 1fr) auto; align-content: center; min-height: 0; overflow: hidden; }
-        #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: clamp(13px, 1.55vh, 17px); padding-left: 14px; padding-right: 14px; }   /* names a size down, with room either side, so a row of cards doesn't look crammed */
+        #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: clamp(12px, 1.95vh, 21px); }
+        /* ✦ Beyond-Legal Skills, the highlight lessons: their names a size down, with room either side, so that row doesn't look crammed */
+        #idx-topics .tg-beyond .topic-card h3 { font-size: clamp(13px, 1.55vh, 17px); padding-left: 14px; padding-right: 14px; }
         #idx-topics .topic-action-btn { font-size: clamp(9.5px, 1.05vh, 11.5px); padding: clamp(4px, 0.6vh, 7px) clamp(11px, 1vw, 16px); }
         #idx-topics .topic-status { font-size: clamp(9.5px, 1.1vh, 12px); padding: 3px 10px; }
     }
@@ -800,7 +802,7 @@
             // a name with a badge (FREE UPSKILL) that doesn't fit beside it: the badge goes under the name, which keeps its size
             if (h.scrollWidth > h.clientWidth + 1 && h.querySelector('.topic-free')) h.classList.add('free-below');
             // a long name (Executive/Personal Virtual Assistant Track) goes onto two lines at the same size, if the card has the height
-            if (h.scrollWidth > h.clientWidth + 1 && !h.querySelector('.topic-free')) {
+            if (h.scrollWidth > h.clientWidth + 1 && !h.querySelector('.topic-free') && h.closest('.tg-beyond')) {
                 h.classList.add('two-line');
                 if (h.scrollHeight > h.clientHeight + 1 || h.scrollWidth > h.clientWidth + 1) h.classList.remove('two-line');
             }
@@ -840,7 +842,7 @@
         const rest = all.filter(t => !used.has(t.key));
         if (rest.length) sections.push({ title: 'More Training & Resources', note: '', cards: rest });
         return sections.filter(sec => sec.cards.length).map(sec =>
-            `<section class="topic-group" style="--rows:${Math.ceil(sec.cards.length / columnsFor(sec.cards.length))}"><div class="topic-group-head"><h2>${escapeHtml(sec.title)}</h2>${sec.note ? `<span>${escapeHtml(sec.note)}</span>` : ''}</div>`
+            `<section class="topic-group${sec.title === 'Beyond-Legal Skills' ? ' tg-beyond' : ''}" style="--rows:${Math.ceil(sec.cards.length / columnsFor(sec.cards.length))}"><div class="topic-group-head"><h2>${escapeHtml(sec.title)}</h2>${sec.note ? `<span>${escapeHtml(sec.note)}</span>` : ''}</div>`
             + `<div class="topic-grid${columnsFor(sec.cards.length) === 3 ? ' cols-3' : ''}" style="--cols:${columnsFor(sec.cards.length)}">${sec.cards.map(cardFor).join('')}</div></section>`).join('');
     }
 
