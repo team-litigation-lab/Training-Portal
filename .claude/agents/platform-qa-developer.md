@@ -32,6 +32,7 @@ Worker in its own repo. The links between the two halves are where things break 
 | EA / PA | `EA  PA TRAINING-OUTSOURCED MANP` (two spaces) | EA-PA-TRAINING | ea-pa-training.legalsupporthelp.workers.dev | `''` |
 | PD Claims | `PROPERTY DAMAGE` | propertydamageclaimstraining | propertydamageclaimstraining.legalsupporthelp.workers.dev | `pd:` |
 | Lien Negotiator | `LIEN NEGOTIATION` | LienNegotiatorTraining | liennegotiatortraining.legalsupporthelp.workers.dev | `ln:` |
+| Closing Specialist | `SETTLEMENTS CLOSING` | closingspecialisttraining | closingspecialisttraining.legalsupporthelp.workers.dev | `cs:` |
 | Case Management | `CM TRAINING` | Case-Management-Training | case-management-training.legalsupporthelp.workers.dev | `cm:` |
 | Medsum & Demand | `MEDSUM AND DEMAND` | medsumanddemandtraining | medsumanddemandtraining.legalsupporthelp.workers.dev | `md:` |
 

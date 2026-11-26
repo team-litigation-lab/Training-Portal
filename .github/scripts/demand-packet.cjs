@@ -28,8 +28,8 @@ const server = http.createServer((req, res) => {
     // Ann is a Case Management trainee: the packets are open to her (Standard Foundational Training's trainees get a locked page).
     if (u.pathname === '/api/topics') return send({ success: true, access: [{ topic_key: TOPIC, status: 'Approved' }] });
     if (u.pathname.startsWith('/api/')) return send({ success: true });
-    // The course, with the packet builder in its tool frame: it answers cms-doc-file the way the course relays LSH CaseWorks'
-    // answer (Case-Management-Training js/cm-doc-filing.js → LSH CaseWorks' caseFileName), and keeps what it was sent.
+    // The course, with the packet builder in its tool frame: it answers cms-doc-file the way the course relays LSH CaseWorX'
+    // answer (Case-Management-Training js/cm-doc-filing.js → LSH CaseWorX' caseFileName), and keeps what it was sent.
     if (u.pathname === '/__course.html') {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         return res.end(`<!doctype html><body style="margin:0"><iframe id="t" style="width:1400px;height:950px;border:0" src="/simulators/demand-packet.html?program=CM&type=demand&case=LSH-2026-MVA-770412"></iframe><script>
@@ -233,7 +233,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     const sent = RESULTS[RESULTS.length - 1] || {};
     check('sent to the trainer as Drafting — Demand Packet, with the score and the index', sent.simulator === 'Drafting — Demand Packet' && sent.score === 100 && sent.details && sent.details.index && sent.details.index.length > 5 && sent.who && sent.who.name === 'Ann Lee', JSON.stringify(sent).slice(0, 300));
 
-    // ---- filed into the case in LSH CaseWorks, from the course's tool frame ----
+    // ---- filed into the case in LSH CaseWorX, from the course's tool frame ----
     const host = await ctx.newPage();
     host.on('pageerror', e => errors.push('course frame: ' + e.message));
     host.on('dialog', d => d.accept());
@@ -247,11 +247,11 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     await f.fill('[data-file="name"]', 'LSH-2026-MVA-770412_Doe-John_Medical-Records_' + new Date().toISOString().slice(0, 10) + '.pdf');
     let out = await f.evaluate(() => LSHPacket.file());
     check('a wrong tab is refused with the tab the firm uses, and nothing is sent', !out.ok && /under <b>Others<\/b>/.test(out.problems.join(' ')) && (await host.evaluate(() => FILED.length)) === 0, JSON.stringify(out));
-    // a wrong name: LSH CaseWorks refuses it
+    // a wrong name: LSH CaseWorX refuses it
     await f.selectOption('[data-file="tab"]', 'Others');
     await f.fill('[data-file="name"]', 'John Doe demand.pdf');
     out = await f.evaluate(() => LSHPacket.file());
-    check('a wrong name is refused by LSH CaseWorks, with what it expects', !out.ok && /Others_\d{4}-\d\d-\d\d\.pdf/.test(await f.textContent('[data-file-msg]')), await f.textContent('[data-file-msg]'));
+    check('a wrong name is refused by LSH CaseWorX, with what it expects', !out.ok && /Others_\d{4}-\d\d-\d\d\.pdf/.test(await f.textContent('[data-file-msg]')), await f.textContent('[data-file-msg]'));
     // right: filed, the packet itself
     const loc = new Date(), iso = loc.getFullYear() + '-' + String(loc.getMonth() + 1).padStart(2, '0') + '-' + String(loc.getDate()).padStart(2, '0');
     await f.fill('[data-file="name"]', `LSH-2026-MVA-770412_Doe-John_Others_${iso}.pdf`);
@@ -260,7 +260,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     check('the right tab and name file the packet into the case', out.ok && filed.ok && filed.category === 'Others', JSON.stringify(out));
     check('what is filed is the whole packet', (await f.evaluate(async (b) => (await PDFLib.PDFDocument.load(new Uint8Array(b))).getPageCount(), filed.bytes)) === 18, 'not 18 pages');
     check('the filing is graded by attempts (third time: 60)', out.score === 60 && RESULTS.some(r => r.simulator === 'Document Filing' && r.score === 60 && /Others/.test(r.scenario)), JSON.stringify(RESULTS.map(r => [r.simulator, r.score])));
-    check('Check my packet counts the filing when opened from a course', (await f.evaluate(() => LSHPacket.check())).checks.some(c => /Filed in LSH CaseWorks/.test(c.label) && c.ok), 'no filing check');
+    check('Check my packet counts the filing when opened from a course', (await f.evaluate(() => LSHPacket.check())).checks.some(c => /Filed in LSH CaseWorX/.test(c.label) && c.ok), 'no filing check');
     await host.close();
 
     // ---- a binder: tab sheets before each section ----

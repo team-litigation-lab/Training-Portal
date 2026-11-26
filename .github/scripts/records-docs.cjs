@@ -7,9 +7,9 @@
 // totalling to the ledger, a real PDF out of it, and the name in the firm's convention
 // (<Case ID>_<Last-First>_<Type>_<YYYY-MM-DD>.pdf, the Type being the Doc Hub category).
 // Then where it goes: the platform the trainee came from is read from the link (?from=, ?case=), and
-// "File it" hands the document to that platform in LSH CaseWorks' own cms-doc-file protocol - here a stand-in
-// that frames the simulator and answers it, as LSH CaseWorks beside a lesson does. Opened with no platform at
-// all, the download is still the way through and the file is named NO-CASE-ID_... as LSH CaseWorks names a file
+// "File it" hands the document to that platform in LSH CaseWorX' own cms-doc-file protocol - here a stand-in
+// that frames the simulator and answers it, as LSH CaseWorX beside a lesson does. Opened with no platform at
+// all, the download is still the way through and the file is named NO-CASE-ID_... as LSH CaseWorX names a file
 // uploaded before its case has an ID.
 // Usage: node .github/scripts/records-docs.cjs   (from the repository root; needs `npm i playwright`)
 const { chromium } = require('playwright');
@@ -121,11 +121,11 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
         check('it arrived with its category and name', filed[0].category === 'Bills' && /_Doe-John_Bills_/.test(filed[0].name), JSON.stringify(filed[0]));
     }
     const after = await sim.evaluate((no) => { MR.openReq(no); MR.review(no); return document.getElementById('mr-review').innerHTML; }, delivered.no);
-    check('the simulator records that it was filed', /Filed in LSH CaseWorks as/.test(after), 'no confirmation shown');
+    check('the simulator records that it was filed', /Filed in LSH CaseWorX as/.test(after), 'no confirmation shown');
 
     // the Case File tab lists every document produced
     const fileTab = await sim.evaluate(() => { MR.tab('file'); return document.getElementById('mr-pane').innerHTML; });
-    check('the Case File tab names the destination', /belong to the case file in LSH CaseWorks/.test(fileTab), 'destination card missing');
+    check('the Case File tab names the destination', /belong to the case file in LSH CaseWorX/.test(fileTab), 'destination card missing');
     check('the Case File tab lists the documents produced', /Documents Produced/.test(fileTab) && /Filed/.test(fileTab), 'production table missing');
 
     // scoring still works, untouched
