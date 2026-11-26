@@ -1,6 +1,6 @@
-// LSH Voice (the lshringchannel repo) has no sign-in of its own: /api/launch?tool=ringchannel opens it with a ticket it can
+// LSH CommX (the lshringchannel repo) has no sign-in of its own: /api/launch?tool=ringchannel opens it with a ticket it can
 // check (here, /api/verify-ticket) for a trainee (their name and batch, no program access needed) and for an administrator
-// (as themselves; LSH Voice only: other platforms still send admins to their password). Run: node .github/scripts/ringchannel.mjs
+// (as themselves; LSH CommX only: other platforms still send admins to their password). Run: node .github/scripts/ringchannel.mjs
 import { readFileSync } from 'node:fs';
 import { onRequestGet as launch, SSO_TOOLS, SSO_PROGRAMS } from '../../functions/api/launch.js';
 import { verifyTicket } from '../../functions/api/verify-ticket.js';
@@ -18,13 +18,13 @@ const admin = await createSessionToken({ username: 'boss', userType: 'Admin', fu
 const go = async (token, q = 'tool=ringchannel') => { const r = await launch({ request: new Request('https://cm-training-activity.pages.dev/api/launch?' + q, { headers: token ? { cookie: `lsh_session=${token}` } : {} }), env }); return { status: r.status, at: r.headers.get('Location') || '' }; };
 
 if (SSO_TOOLS.ringchannel !== RC) fail(`SSO_TOOLS.ringchannel is ${SSO_TOOLS.ringchannel}`);
-// 1. a trainee (no program access needed) lands on LSH Voice with a ticket that says who they are
+// 1. a trainee (no program access needed) lands on LSH CommX with a ticket that says who they are
 const t = await go(trainee);
 const u = t.at ? new URL(t.at) : null;
 if (t.status !== 302 || !u || u.origin + u.pathname !== RC || !u.searchParams.get('ticket')) fail(`a trainee's launch: ${t.status} ${t.at}`);
 else {
     const v = await verifyTicket(env.PORTAL_SSO_SECRET, u.searchParams.get('ticket'));
-    if (!v.ok || v.first !== 'Jamie' || v.last !== 'Cruz' || v.batch !== 'B100526') fail(`the ticket LSH Voice gets: ${JSON.stringify(v)}`);
+    if (!v.ok || v.first !== 'Jamie' || v.last !== 'Cruz' || v.batch !== 'B100526') fail(`the ticket LSH CommX gets: ${JSON.stringify(v)}`);
 }
 // 2. an admin opens its console as themselves (a ticket that says admin, with their name) ...
 const a = await go(admin);
@@ -32,7 +32,7 @@ const au = a.at ? new URL(a.at) : null;
 if (a.status !== 302 || !au || au.origin + au.pathname !== RC || !au.searchParams.get('ticket')) fail(`an admin's launch: ${a.status} ${a.at}`);
 else {
     const v = await verifyTicket(env.PORTAL_SSO_SECRET, au.searchParams.get('ticket'));
-    if (!v.ok || !v.admin || v.name !== 'Coach Ana') fail(`the admin's ticket LSH Voice gets: ${JSON.stringify(v)}`);
+    if (!v.ok || !v.admin || v.name !== 'Coach Ana') fail(`the admin's ticket LSH CommX gets: ${JSON.stringify(v)}`);
 }
 // ... every training program too (single sign-on for trainers: no second password), with the blueprint landing kept:
 // the programs carry no Blueprint link of their own, so the Main Portal's 🧭 Blueprint menu is the way into each deck.
@@ -53,7 +53,7 @@ for (const q of ['tool=cms', 'tool=kb']) {
 const master = await createSessionToken({ username: 'LSHADMIN123', userType: 'Admin', fullName: 'System Administrator', batchId: '' }, env.SESSION_SECRET);
 { const o = await go(master, 'tool=cms'); const v = await verifyTicket(env.PORTAL_SSO_SECRET, new URL(o.at).searchParams.get('ticket'));
   if (!v.ok || !v.admin || v.name) fail(`the Master Account's CMS ticket: ${JSON.stringify(v)}`); }
-// ... and the CMS's, LSH Voice's and LSH Atlas's own blueprints open the same way
+// ... and the CMS's, LSH CommX's and LSH Atlas's own blueprints open the same way
 for (const q of ['tool=cms', 'tool=kb', 'tool=ringchannel']) {
     const o = await go(admin, q + '&to=blueprint');
     if (!/\?ticket=[^#&]+#\/blueprint$/.test(o.at || '')) fail(`an admin's ${q} blueprint link: ${o.at}`);
@@ -92,11 +92,11 @@ const cmkb = await go(trainee, 'tool=kb&to=cmkb');
 if (!/\?ticket=[^#&]+#\/c\/case-management$/.test(cmkb.at)) fail(`the CM Training LSH Atlas link: ${cmkb.at}`);
 if (/case-management/.test((await go(trainee, 'tool=cms&to=cmkb')).at)) fail('to=cmkb worked on the CMS');
 // 4. the Portal links to it: LSH Academy Index's banner, where a trainee reaches it. The admin
-// sidebar's link is gone on purpose — LSH Voice is the training phone's own trainer console, not a
+// sidebar's link is gone on purpose — LSH CommX is the training phone's own trainer console, not a
 // screen for running a batch, and the sidebar was grouped by relevance. core.html leaving this list is
 // that change, not an oversight; the place a trainee actually reaches it from is still checked.
-for (const f of ['programs.html']) if (!readFileSync(new URL('../../' + f, import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail(`${f} has no link to LSH Voice`);
-if (readFileSync(new URL('../../core.html', import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail('the admin sidebar links to LSH Voice again (it was taken out deliberately)');
+for (const f of ['programs.html']) if (!readFileSync(new URL('../../' + f, import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail(`${f} has no link to LSH CommX`);
+if (readFileSync(new URL('../../core.html', import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel')) fail('the admin sidebar links to LSH CommX again (it was taken out deliberately)');
 
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-console.log('LSH Voice test passed (trainees and admins open it signed in, admins every program, the CMS and LSH Atlas too; every blueprint reached from the LSH Academy Index\'s 🧭 Blueprint menu; linked from the Directory, and no longer from the admin sidebar).');
+console.log('LSH CommX test passed (trainees and admins open it signed in, admins every program, the CMS and LSH Atlas too; every blueprint reached from the LSH Academy Index\'s 🧭 Blueprint menu; linked from the Directory, and no longer from the admin sidebar).');

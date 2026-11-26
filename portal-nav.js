@@ -1,6 +1,6 @@
 /* LSH Nexus — shared navigation.
    Every portal page shows the same links (Home, LSH Academy Index, Blueprint)
-   plus a Back button. LSH Sims and LSH Atlas aren't in the top bar:
+   plus a Back button. LSH Elev8 and LSH Atlas aren't in the top bar:
    they open from the Home page and LSH Academy Index. Portal pages open in the
    same tab; only the training programs themselves (separate sites) open in a new tab.
    The Home / 🏠 Main Portal button is left out where the page's own Back button already
@@ -18,9 +18,9 @@ const PortalNav = {
         ['directory', '/programs.html', 'LSH Academy Index'],
         ['orient', '/blueprint.html', '🧭 Blueprint']
     ],
-    // Inside a course's frame, only the way back to the LSH Sims hub makes sense.
+    // Inside a course's frame, only the way back to the LSH Elev8 hub makes sense.
     EMBEDDED_LINKS: [
-        ['sims', '/simulators.html', '🛠 LSH Sims']
+        ['sims', '/simulators.html', '🛠 LSH Elev8']
     ],
     embedded() { try { return window.self !== window.top; } catch (e) { return true; } },
     // Back to the previous portal page; a page opened fresh (new tab, bookmark) goes to its parent instead.
@@ -54,15 +54,15 @@ const PortalNav = {
     },
     // Everything an admin uses less often, collated under ⚙ System Management: [href, label, title, opens in a new tab].
     // One entry per destination: Master Control's tabs (users, access, who's online) open from Master Control itself,
-    // and LSH Atlas and LSH Voice are banners on LSH Academy Index.
+    // and LSH Atlas and LSH CommX are banners on LSH Academy Index.
     SYSTEM_LINKS: [
         ['/index.html?stay=1', '🏠 Main Portal', 'The LSH Nexus landing page'],
-        ['/programs.html', '🎓 LSH Academy Index', 'Every training program, plus 🛠 LSH Sims, 📚 LSH Atlas, ☎ LSH Voice and 🗂 LSH CaseWorX'],
+        ['/programs.html', '🎓 LSH Academy Index', 'Every training program, plus 🛠 LSH Elev8, 📚 LSH Atlas, ☎️ LSH CommX and 🗂 LSH CaseWorX'],
         ['/core.html#master', '🛡 Master Control', "Users & revoke access, program access, who's online, activity logs and broadcasts: all on one screen"],
         ['/core.html#registrations', '📝 Log-in Approvals <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Approve new trainee registrations'],
         ['/core.html#access-requests', '🙋 Access Requests <b class="pn-reg-badge" id="idx-access-badge"></b>', 'Trainees asking to open a program or tool: approve or deny, suspend or restore'],
         ['/core.html#announce', '📢 Announcement', 'The scrolling announcement on LSH Academy Index and every program, and the full-screen alert (Broadcast & Ping)'],
-        ['/simulators.html', '🛠 LSH Sims', ''],
+        ['/simulators.html', '🛠 LSH Elev8', ''],
         ['/api/admin-password-check', '🔑 Admin Password Check', 'Does every platform accept the admin password?'],
         ['/api/ai-usage', '🤖 AI Usage', "Today's use of the shared AI budget, flow by flow"]
     ],
@@ -78,7 +78,7 @@ const PortalNav = {
         ['Lien Negotiator Track', '/api/launch?program=LIEN%20NEGOTIATION&to=blueprint'],
         ['Closing Specialist Track', '/api/launch?program=SETTLEMENTS%20CLOSING&to=blueprint'],
         ['🗂 LSH CaseWorX', '/api/launch?tool=cms&to=blueprint'],
-        ['☎ LSH Voice', '/api/launch?tool=ringchannel&to=blueprint'],
+        ['☎️ LSH CommX', '/api/launch?tool=ringchannel&to=blueprint'],
         ['📚 LSH Atlas', '/api/launch?tool=kb&to=blueprint']
     ],
     // The Blueprint pill as a drop-down: the Platform Blueprint first, the program and tool decks under it.

@@ -41,7 +41,7 @@ The signed-in portal: LSH Academy Index, dashboard, progress, attendance, orient
 | `portal.js` | 835 | Public-portal runtime: registration/login, password validation, input filters, sound engine, full-screen alert, site lock/pause UI, pings, and the consolidated /api/live poller. |
 | `programs.html` | 682 | LSH Academy Index: grouped program cards with access request/approve flow, SSO launch wake-up, admin queue, client-side certificate PDF. |
 | `progress.html` | 136 | Admin Trainee Progress & Feedback shell: admin gate, styles and hero; all rendering lives in progress-records.js. |
-| `simulators.html` | 108 | LSH Sims hub: card grid from the SIMULATORS array plus recent results table (admin sees all trainees). |
+| `simulators.html` | 108 | LSH Elev8 hub: card grid from the SIMULATORS array plus recent results table (admin sees all trainees). |
 
 ## Data and deck scripts
 
@@ -49,7 +49,7 @@ Standalone data/deck modules and repo-level config.
 
 | File | Lines | What it is |
 |---|---|---|
-| `README.md` | 306 | Full operator/developer documentation: SSO sign-in, email replies, simulators, referrals, orientation, admin bar, KB, LSH Voice, attendance (+Google Sheet), progress & feedback, Drive archiving, request budget, CI checks and uptime. |
+| `README.md` | 306 | Full operator/developer documentation: SSO sign-in, email replies, simulators, referrals, orientation, admin bar, KB, LSH CommX, attendance (+Google Sheet), progress & feedback, Drive archiving, request budget, CI checks and uptime. |
 | `SIMULATORS.md` | 102 | Sim ownership/status table for parallel Claude chats, plus shared conventions (sim.js session handling, AI gateway, styles, navigation rules, smoke-test registration). |
 | `attendance-sync.gs` | 236 | Google Apps Script pasted into the attendance spreadsheet: two-way sync between the 'Platform Attendance' tab and /api/attendance-feed (15-minute pull, installable on-edit push of Training/Time In/Time Out/Status/Notes). |
 | `lsh-blueprint.js` | 519 | Shared LSH Blueprint slide-deck engine (trainee/trainer/admin decks from window.LSH_BLUEPRINT), with keyboard nav, screenshot zoom, auto-fit scaling, and a jsPDF-based real-text PDF export. |
@@ -79,7 +79,7 @@ The hub page, the older drag-and-drop scheduler, the call entry page and the sha
 | File | Lines | What it is |
 |---|---|---|
 | `simulators/calendar.html` | 299 | 'Conflicts week' Calendaring simulator: two self-contained scenarios (CM litigation week, EA/PA executive week) rendered as a read/edit week grid; rule-based checkPlan() scoring, Gemini coach feedback via Sim.ai, results via Sim.saveResult. |
-| `simulators/call.html` | 19 | Thin redirect stub: forwards to /api/launch?tool=ringchannel&to=calls carrying the query string, so the Call Sim opens on LSH Voice through the Portal's sign-in. |
+| `simulators/call.html` | 19 | Thin redirect stub: forwards to /api/launch?tool=ringchannel&to=calls carrying the query string, so the Call Sim opens on LSH CommX through the Portal's sign-in. |
 | `simulators/calsim-core.js` | 195 | Pure data + logic for the drag-and-drop scheduler: TRACKS (standard/litigation/executive), four SCENARIOS (fixed events, weighted tasks with rules), event sanitizer clean(), word-match task pairing, and the automated review() scored out of 100 (PASS 80). Node-loadable (module.exports) for tests. |
 | `simulators/calsim.html` | 157 | Calendaring Sims hub page: cards for the three Google Calendar tracks (standard/cm/ea), mock-call links via call.html, trainee review summaries, and the admin ?view=scores view (gsList of gcal submissions + the legacy drag-and-drop scheduler scores via calsim.js). |
 | `simulators/calsim.js` | 506 | The earlier drag-and-drop weekly scheduler (Google Calendar style): trainee grid editor with pointer/keyboard drag, autosave to /api/calsim, automated review via FTCalCore, submissions, and the trainer's per-submission feedback UI (FTCalAdmin). Only used from calsim.html?view=scores now (per the page's own comment). |
@@ -153,7 +153,7 @@ Login/session plumbing, user management, site lock/pause/alert, logs and monitor
 | `functions/api/update-status.js` | 40 | POST /api/update-status (admin): Approve / Reject a pending registration, assigning a Batch ID on approval; an Admin / Trainer registration is the Master Account's to decide. |
 | `functions/api/update-user.js` | 80 | POST /api/update-user (admin): edit batch/name/email/username/password; moves username-keyed data across TRAINING_DB tables and kills open sessions. |
 | `functions/api/users.js` | 32 | GET /api/users (admin): all accounts without passwords, with formatted names. |
-| `functions/api/verify-ticket.js` | 42 | POST /api/verify-ticket: verifies a Portal SSO ticket for sites that don't hold the shared secret (CMS, LSH Voice fallback). |
+| `functions/api/verify-ticket.js` | 42 | POST /api/verify-ticket: verifies a Portal SSO ticket for sites that don't hold the shared secret (CMS, LSH CommX fallback). |
 
 ## API: simulators, progress and AI
 
@@ -173,7 +173,7 @@ Sim results and reviews, program progress, attendance, the AI gateway and its bu
 | `functions/api/ai-usage.js` | 29 | Admin-only server-rendered HTML page of today's shared AI budget per call flow, from usageSummary. |
 | `functions/api/attendance-feed.js` | 86 | Google Sheet sync endpoint (Bearer ATTENDANCE_FEED_KEY, constant-time): GET rows for the last N days incl. untagged check-ins; POST a sheet edit back onto the platform record. |
 | `functions/api/attendance.js` | 89 | Admin attendance page API: per-program day view (batches, check-ins, default training), batch history, and merge-writes via _attendance.saveRows; preview deployments can't write. |
-| `functions/api/call-results.js` | 113 | Server-to-server intake of graded Call Sim calls from LSH Voice (via=ringchannel) and the CMS's older panel, and graded Client Messaging conversations from the CMS (kind=message; MD conversations only) (X-Gateway-Key): writes simulator_results and the course's KV callsim record (courseTraineeId/addCall/courseSlot); admin GET lists the calls. |
+| `functions/api/call-results.js` | 113 | Server-to-server intake of graded Call Sim calls from LSH CommX (via=ringchannel) and the CMS's older panel, and graded Client Messaging conversations from the CMS (kind=message; MD conversations only) (X-Gateway-Key): writes simulator_results and the course's KV callsim record (courseTraineeId/addCall/courseSlot); admin GET lists the calls. |
 | `functions/api/calsim.js` | 128 | Calendaring Sims record store (D1 calsim_records): trainee saves, admin reviews, CALENDAR MANAGEMENT MOCK CALL scorecards and per-track exclusions; trainer-owned fields survive trainee saves. |
 | `functions/api/email-inbound.js` | 36 | Postmark inbound webhook (keyed URL, constant-time compare): stores the first reply onto the matching email_practice row. |
 | `functions/api/email-practice.js` | 123 | Email Replies delivery: sends a fixed scenario via Postmark with a tokenized Reply-To, per-address daily cap; GET polls a token's reply status, ?status=1 reports configuration. |
@@ -201,8 +201,8 @@ The Checks suite (node + Playwright) and the Uptime monitor.
 | `.github/scripts/ai-gateway.mjs` | 223 | functions/_ai-gateway.js + api/ai-gateway.js: one shared ledger across flows, minute/daily/per-user/module-share limits, key-pool failover and rest, relay fallback, AI_PREFER=gemini order, live-token cost, abort deadlines, review reserve, endpoint auth. |
 | `.github/scripts/batch.mjs` | 42 | Batch IDs: nextBatchId (functions/_utils.js) mints B+MMDDYY; app.js batchLabel/batchCohort show and group older IDs. |
 | `.github/scripts/blueprint.cjs` | 143 | Orientation decks and PDFs: trainee vs admin tracks, PDF page-per-slide with deploy stamp, consistent numbering across page counter, PDF footers/headers and the engine's own deck. |
-| `.github/scripts/call-results.mjs` | 92 | functions/api/call-results.js: the gateway secret, LSH Voice's and the CMS's graded calls land in simulator_results and each course's KV store by lesson/line, EA/PA alias, admin listing; Client Messaging conversations on their own line, MD's under md:. |
-| `.github/scripts/calls-route.mjs` | 66 | /simulators/call.html routes through /api/launch?tool=ringchannel&to=calls to LSH Voice's practice phone, with the link's line/program/graded call sanitized (callsQuery); signed-out and admin paths.; to=messages opens LSH Voice's Client Messaging with only its program, conversation and graded (messagesQuery). |
+| `.github/scripts/call-results.mjs` | 92 | functions/api/call-results.js: the gateway secret, LSH CommX's and the CMS's graded calls land in simulator_results and each course's KV store by lesson/line, EA/PA alias, admin listing; Client Messaging conversations on their own line, MD's under md:. |
+| `.github/scripts/calls-route.mjs` | 66 | /simulators/call.html routes through /api/launch?tool=ringchannel&to=calls to LSH CommX's practice phone, with the link's line/program/graded call sanitized (callsQuery); signed-out and admin paths.; to=messages opens LSH CommX's Client Messaging with only its program, conversation and graded (messagesQuery). |
 | `.github/scripts/calsim.mjs` | 58 | functions/api/calsim.js: trainee save/read, admin-only reviews/scorecards/exclusions kept through trainee saves, scorecard metrics match simulators/cal-scorecard.js. |
 | `.github/scripts/check-site.mjs` | 86 | Static checks: syntax of every JS file and inline <script>, local file references in HTML exist, JSON parses. |
 | `.github/scripts/front-door.mjs` | 126 | functions/_middleware.js + /api/me on node:sqlite: signed-in users redirected to /programs.html, signed-out/revoked/tampered/locked cases, heartbeat restart. |
@@ -232,7 +232,7 @@ The Checks suite (node + Playwright) and the Uptime monitor.
 | `.github/scripts/sim-session.cjs` | 187 | simulators/sim.js session keeping: heartbeat cadence, Sim.restore single /api/me, Sim.fetchRetry on SESSION_EXPIRED, second trainee on the same browser starts clean, no cross-trainee draft upload. |
 | `.github/scripts/smoke.cjs` | 52 | Opens 24 portal/simulator pages at desktop and phone width; fails on page errors, sideways scroll, missing Back button, portal links opening new tabs. |
 | `.github/scripts/trainees-on-evaluations.cjs` | 64 | 'Your trainees' calendars' table on Trainee Evaluations: per-track View & score links, search survives refresh, submission state per row, button opens the review, phone width. |
-| `.github/scripts/uptime.mjs` | 45 | Fetches 11 live sites (portal, 4 course Workers, CMS, LSH Atlas, LSH Voice, 2 JSON APIs, docket page), one 20 s retry each, prints a Markdown table, exit 1 on failure. |
+| `.github/scripts/uptime.mjs` | 45 | Fetches 11 live sites (portal, 4 course Workers, CMS, LSH Atlas, LSH CommX, 2 JSON APIs, docket page), one 20 s retry each, prints a Markdown table, exit 1 on failure. |
 | `.github/workflows/checks.yml` | 116 | CI on every PR/push to main: 10 node API tests + wrangler build in one job, 10 Playwright browser tests in a second job. |
 | `.github/workflows/uptime.yml` | 48 | Every 30 min (:07/:37) runs uptime.mjs against the live sites and opens/comments/closes a 'site-down' issue. |
 

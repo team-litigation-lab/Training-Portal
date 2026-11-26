@@ -93,6 +93,9 @@
        one-off for that one section. */
     .topic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(8px, 1.1vh, 15px) 15px; }
     .topic-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    /* A group of nine (Beyond-Legal Skills): five across, then four, with 📬 Your Daily Digest taking the last row's two slots. */
+    @media (min-width: 1001px) { .topic-grid[style*="--cols:5"] { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        .topic-grid[style*="--cols:5"] > .tool-card:nth-child(9):last-child { grid-column: span 2; } }
     .topic-group { margin-bottom: clamp(8px, 1.1vh, 12px); }
     .topic-group-head { display: flex; align-items: center; justify-content: center; text-align: center; gap: 14px; flex-wrap: nowrap; margin: 0 0 7px; }
     /* The group's name sits in a dark pill, and a thin muted orange rule runs out from both sides of it. */
@@ -392,7 +395,7 @@
     <div class="sim-banner-row">
     <a class="sim-banner" href="/simulators.html">
         <span class="sim-banner-ic">🛠</span>
-        <span class="sim-banner-tx" title="Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>LSH Sims<sup class="tm" aria-label="trademark">™</sup></b></span>
+        <span class="sim-banner-tx" title="Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>LSH Elev8<sup class="tm" aria-label="trademark">™</sup></b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" href="/kb.html">
@@ -402,7 +405,7 @@
     </a>
     <a class="sim-banner" id="ring-banner" href="/api/launch?tool=ringchannel" target="_blank" rel="noopener">
         <span class="sim-banner-ic">☎</span>
-        <span class="sim-banner-tx" title="Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal."><b>LSH Voice<sup class="tm" aria-label="trademark">™</sup></b></span>
+        <span class="sim-banner-tx" title="Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal."><b>LSH CommX<sup class="tm" aria-label="trademark">™</sup></b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="cms-banner" href="/api/launch?tool=cms" target="_blank" rel="noopener">
@@ -477,6 +480,11 @@
         'FREE UPSKILL PROGRAMS': 'Free Upskill Track',
         'SETTLEMENTS CLOSING': 'Closing Specialist Track',
         'CLIENT INTERVIEW PREP': 'Client Matching Essentials',
+        'SOCIAL MEDIA MANAGEMENT': 'Social Media Management Track',
+        'BOOKKEEPING': 'Bookkeeping Track',
+        'LEAD GENERATION OUTREACH': 'Lead Generation & Outreach Track',
+        'AUTOMATION UPSKILL': 'Automation Upskill Track',
+        'WEBSITE MANAGEMENT': 'Website Management Track',
         'FLASH CARDS': 'Flash Cards'
     };
 
@@ -490,7 +498,9 @@
         'ESTATE PLANNING': ['📜', '#92400e'], 'FAMILY LAW': ['👪', '#be185d'], 'IMMIGRATION LAW': ['🌎', '#0e7490'],
         'INTELLECTUAL PROPERTY LAW': ['💡', '#6d28d9'], 'REAL ESTATE LAW': ['🏢', '#166534'],
         'EA  PA TRAINING-OUTSOURCED MANP': ['🗓', '#a16207'], 'REVISED EA PA TRAINING': ['🗓', '#a16207'],
-        'FREE UPSKILL PROGRAMS': ['🚀', '#0e7490'], 'CLIENT INTERVIEW PREP': ['🎙', '#4338ca'], 'CALENDAR MANAGEMENT TRAINING': ['📅', '#1d4ed8']
+        'FREE UPSKILL PROGRAMS': ['🚀', '#0e7490'], 'CLIENT INTERVIEW PREP': ['🎙', '#4338ca'], 'CALENDAR MANAGEMENT TRAINING': ['📅', '#1d4ed8'],
+        'SOCIAL MEDIA MANAGEMENT': ['📣', '#c026d3'], 'BOOKKEEPING': ['📒', '#4d7c0f'], 'LEAD GENERATION OUTREACH': ['🎯', '#dc2626'],
+        'AUTOMATION UPSKILL': ['⚡', '#ca8a04'], 'WEBSITE MANAGEMENT': ['🌐', '#2563eb']
     };
 
     // Programs shown on the index that aren't in the live topics table yet.
@@ -503,6 +513,12 @@
         { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Track', sort_order: 13 },
         { key: 'SETTLEMENTS CLOSING', name: 'Closing Specialist Track', sort_order: 13 },
         { key: 'CLIENT INTERVIEW PREP', name: 'Client Matching Essentials', sort_order: 0 },
+        // Beyond-Legal Skills, Coming Soon (no site yet, so not in functions/_programs.js)
+        { key: 'SOCIAL MEDIA MANAGEMENT', name: 'Social Media Management Track', sort_order: 0 },
+        { key: 'BOOKKEEPING', name: 'Bookkeeping Track', sort_order: 0 },
+        { key: 'LEAD GENERATION OUTREACH', name: 'Lead Generation & Outreach Track', sort_order: 0 },
+        { key: 'AUTOMATION UPSKILL', name: 'Automation Upskill Track', sort_order: 0 },
+        { key: 'WEBSITE MANAGEMENT', name: 'Website Management Track', sort_order: 0 },
         { key: 'FLASH CARDS', name: 'Flash Cards', sort_order: 0 }
     ];
     // Portal pages anyone can open from a card, with no access request: they live on this site.
@@ -776,13 +792,15 @@
         { title: 'Cross-Practice Playbooks', note: '',
           keys: ['LITIGATION', 'MASS TORT', 'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'REAL ESTATE LAW'] },
         { title: 'Beyond-Legal Skills', note: '',
-          keys: ['EA  PA TRAINING-OUTSOURCED MANP', 'FREE UPSKILL PROGRAMS', 'CLIENT INTERVIEW PREP', 'FLASH CARDS'] }
+          keys: ['EA  PA TRAINING-OUTSOURCED MANP', 'FREE UPSKILL PROGRAMS', 'CLIENT INTERVIEW PREP',
+                 'SOCIAL MEDIA MANAGEMENT', 'BOOKKEEPING', 'LEAD GENERATION OUTREACH', 'AUTOMATION UPSKILL', 'WEBSITE MANAGEMENT', 'FLASH CARDS'] }
     ];
     // How many across, so a group's last row is not a stub. Four is the default
     // and the widest the cards look right at; three when the count divides by
     // three and not by four. Personal Injury Playbooks' eight reads 4 + 4;
-    // Cross-Practice Playbooks' eight stays 4 + 4.
-    const columnsFor = (n) => (n % 4 === 0 ? 4 : n % 3 === 0 ? 3 : 4);
+    // Cross-Practice Playbooks' eight stays 4 + 4. A group of more than eight (Beyond-Legal Skills' nine)
+    // takes two rows, five + four, so the directory still fits one screen.
+    const columnsFor = (n) => (n > 8 ? Math.ceil(n / 2) : n % 4 === 0 ? 4 : n % 3 === 0 ? 3 : 4);
 
     function groupedTopicsHtml(cardFor) {
         const all = orderedTopics();
@@ -797,7 +815,7 @@
         if (rest.length) sections.push({ title: 'More Training & Resources', note: '', cards: rest });
         return sections.filter(sec => sec.cards.length).map(sec =>
             `<section class="topic-group" style="--rows:${Math.ceil(sec.cards.length / columnsFor(sec.cards.length))}"><div class="topic-group-head"><h2>${escapeHtml(sec.title)}</h2>${sec.note ? `<span>${escapeHtml(sec.note)}</span>` : ''}</div>`
-            + `<div class="topic-grid${columnsFor(sec.cards.length) === 3 ? ' cols-3' : ''}">${sec.cards.map(cardFor).join('')}</div></section>`).join('');
+            + `<div class="topic-grid${columnsFor(sec.cards.length) === 3 ? ' cols-3' : ''}" style="--cols:${columnsFor(sec.cards.length)}">${sec.cards.map(cardFor).join('')}</div></section>`).join('');
     }
 
     // Live access: while a trainee has a request waiting for approval, the page asks for the latest every 12 seconds (only while the tab is

@@ -187,7 +187,7 @@ function traineeRows(list) {
             <td>${esc(ago(p.lastActive))}</td></tr>
             ${open ? `<tr class="pg-detail"><td colspan="11"><div class="pg-detail-in">${detail(p)}</div></td></tr>` : ''}`; }).join('');
 }
-const TABLE_HEAD = `<thead><tr><th>Trainee</th><th>Progress</th><th>Completion</th><th>Knowledge Checks</th><th>Practice</th><th>Random tasks</th><th>Trainer feedback</th><th>Their feedback</th><th>LSH Sims</th><th>Portal activities</th><th>Last active</th></tr></thead>`;
+const TABLE_HEAD = `<thead><tr><th>Trainee</th><th>Progress</th><th>Completion</th><th>Knowledge Checks</th><th>Practice</th><th>Random tasks</th><th>Trainer feedback</th><th>Their feedback</th><th>LSH Elev8</th><th>Portal activities</th><th>Last active</th></tr></thead>`;
 function renderTable() {
     const el = document.getElementById('tbl'); if (!el) return;
     const list = rows(), groups = {};
@@ -433,7 +433,7 @@ function renderScoresTable() {
     const list = moduleRows(), n = moduleCount(), groups = {};
     list.forEach(r => { (groups[batchOf(r.person)] = groups[batchOf(r.person)] || []).push(r); });
     const keys = Object.keys(groups).sort((a, b) => (a === '') - (b === '') || b.localeCompare(a, undefined, { numeric: true }));
-    const head = `<thead><tr><th>Trainee</th>${Array.from({ length: n }, (_, i) => `<th title="Module ${i + 1} — day ${i + 1}">M${i + 1}</th>`).join('')}<th>Modules scored</th><th>Module avg</th><th>LSH Sims</th><th>Portal activities</th></tr></thead>`;
+    const head = `<thead><tr><th>Trainee</th>${Array.from({ length: n }, (_, i) => `<th title="Module ${i + 1} — day ${i + 1}">M${i + 1}</th>`).join('')}<th>Modules scored</th><th>Module avg</th><th>LSH Elev8</th><th>Portal activities</th></tr></thead>`;
     el.innerHTML = keys.length ? keys.map((b, i) => {
         const rs = groups[b], closed = P.closed['mx:' + b] !== undefined ? !!P.closed['mx:' + b] : (i > 0 && !P.q);
         const batchAvg = Array.from({ length: n }, (_, k) => avg(rs.map(r => r.mods[k].score)));

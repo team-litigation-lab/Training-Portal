@@ -66,9 +66,9 @@ jobs:
         run: node --no-warnings .github/scripts/gcal-schedule.mjs
       - name: AI gateway (one shared budget for every call flow; per-flow share, per-minute and per-person limits)
         run: node --no-warnings .github/scripts/ai-gateway.mjs
-      - name: The Call Sim opens LSH Voice's practice phone (signed in, on the link's line, graded when it asks)
+      - name: The Call Sim opens LSH CommX's practice phone (signed in, on the link's line, graded when it asks)
         run: node --no-warnings .github/scripts/calls-route.mjs
-      - name: LSH Voice opens from the Portal (signed in; admins to its trainer sign-in; linked on the Portal)
+      - name: LSH CommX opens from the Portal (signed in; admins to its trainer sign-in; linked on the Portal)
         run: node --no-warnings .github/scripts/ringchannel.mjs
       - name: A sign-in ticket names the one program or tool it is for, and the tools' check refuses a program's ticket
         run: node --no-warnings .github/scripts/sso-audience.mjs

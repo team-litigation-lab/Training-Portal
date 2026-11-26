@@ -58,7 +58,7 @@ const PAGES = [
     ['Docket System', '/simulators/docket.html'],
     ['Medical Records Requests', '/simulators/records.html'],
     ['Court E-Filing', '/simulators/efiling.html'],
-    ['LSH Sims hub', '/simulators.html']
+    ['LSH Elev8 hub', '/simulators.html']
 ];
 (async () => {
     await new Promise(r => server.listen(0, r));
