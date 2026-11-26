@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="/favicon.png">
 <!-- A link straight into Master Control (/core.html#registrations, #site-lock, …): hide the page from the first paint until that panel
      is open, so the workspace underneath never flashes for a moment first (the opener below shows it again; 6 s at most). -->
-<script>(function(){var h=(location.hash||'').slice(1);if(/^(master|registrations|users|access|access-requests|monitoring|announce|site-lock|people)$/.test(h)){document.documentElement.classList.add('mc-opening');setTimeout(function(){document.documentElement.classList.remove('mc-opening');},6000);}})();</script>
+<script>(function(){var h=(location.hash||'').slice(1);if(/^(master|registrations|users|access|access-requests|monitoring|announce|site-lock|people)$/.test(h)){document.documentElement.classList.add('mc-opening');setTimeout(function(){document.documentElement.classList.remove('mc-opening');},9000);}})();</script>
 <style>html.mc-opening body{visibility:hidden;}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -182,17 +182,15 @@
             </div>
             <div class="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-2" id="admin-nav">
                 <!-- Grouped by job, in the order an admin's day goes. The 🧭 Dashboard lists every one of these in a table with a ⓘ How to use pop-out (mc-directory.js). -->
-                <div class="admin-nav-group">Start Here</div>
-                <button onclick="mcGo('overview')" class="side-nav-btn mc-nav-btn" data-mc="overview" title="Live counts and the Control Directory: every admin feature, with how to use it"><span>🧭</span> Dashboard &amp; Directory</button>
                 <div class="admin-nav-group">1 · People &amp; Access</div>
                 <!-- 👥 Log-in Approvals, Program Access & Requests and Users & Accounts are one job, so one entry (people-access.js): it opens where
                      something is waiting, and tabs across the top of the panel move between the three. Both waiting counts sit on it. -->
-                <button onclick="openPeople()" class="side-nav-btn mc-nav-btn" data-mc="people" title="Log-in approvals, program access and access requests, and accounts: one place, three tabs"><span>👥</span> People &amp; Access <span id="reg-pending-badge-side" class="admin-nav-badge"></span><span id="access-req-badge-side" class="admin-nav-badge"></span></button>
+                <button onclick="openPeople()" class="side-nav-btn mc-nav-btn" data-mc="people" title="The dashboard (live counts and the Control Directory), log-in approvals, and program access with every account: one place, three tabs"><span>👥</span> People &amp; Access <span id="reg-pending-badge-side" class="admin-nav-badge"></span><span id="access-req-badge-side" class="admin-nav-badge"></span></button>
                 <button onclick="mcGo('access')" class="side-nav-btn mc-nav-btn" data-mc="access" title="Pause or lock the whole site, and check every platform accepts the admin password"><span>🔒</span> Site Lock &amp; Admin Password</button>
                 <a class="side-nav-btn" href="/referrals.html" style="text-decoration:none" title="People referred from the home page, with their CVs"><span>🤝</span> Referrals</a>
                 <div class="admin-nav-group">2 · Grading &amp; Progress</div>
-                <button onclick="switchView('admin-grades')" class="side-nav-btn active view-nav-btn" id="nav-admin-grades" title="Every grader’s scores across every program, in one report"><span>📊</span> Grades Report</button>
-                <a class="side-nav-btn" href="/progress.html" style="text-decoration:none" title="Every trainee's progress and feedback in every program"><span>📈</span> Progress &amp; Feedback</a>
+                <!-- 📊 Grades & Progress, one entry: the Grades Report (grades-report.js), with a tab across its top to 📈 Progress & Feedback (/progress.html) -->
+                <button onclick="switchView('admin-grades')" class="side-nav-btn active view-nav-btn" id="nav-admin-grades" title="Every grader’s scores across every program, and each trainee’s progress and feedback"><span>📊</span> Grades &amp; Progress</button>
                 <a class="side-nav-btn" href="/attendance.html" style="text-decoration:none" title="Take and review attendance, batch by batch"><span>🕘</span> Attendance</a>
                 <div class="admin-nav-group">3 · Training Content</div>
                 <button onclick="switchView('admin-activities')" class="side-nav-btn view-nav-btn" id="nav-admin-activities" title="Add, publish and archive lesson decks and activities"><span>📋</span> Lesson Decks &amp; Activities</button>
@@ -1138,12 +1136,19 @@
         if (typeof openAdminDashboard !== 'function' || typeof showAdminDashTab !== 'function' || !document.getElementById('admin-dash-' + tabs[want])) return false;
         openAdminDashboard();
         showAdminDashTab(tabs[want]);
-        show();   // the panel is up: let the page be seen
         // 🙋 Access Requests and 🔑 Program Access are one panel: #access-requests opens it at the requests, as the admin menu's entry does
         if (want === 'access-requests') setTimeout(() => { const el = document.getElementById('access-requests-list'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' }); }, 900);
         return true;
     }
-    if (!open()) { let tries = 0; const t = setInterval(() => { if (open() || ++tries > 180) { clearInterval(t); show(); } }, 50); }
+    // The page's own start-up (app.js on DOMContentLoaded) switches to the workspace view, which closes Master Control, and it may
+    // run after this. So keep opening it until it has stayed open for 300 ms, and only then let the page be seen (9 s at most).
+    const isOpen = () => { const mc = document.getElementById('master-control-page'), pane = document.getElementById('admin-dash-' + (tabs[want] === 'users' ? 'program-access' : tabs[want]));   // (Users opens inside Program Access: people-access.js)
+        return !!(mc && mc.classList.contains('open') && pane && pane.classList.contains('active')); };
+    let ticks = 0, steady = 0; open();
+    const t = setInterval(() => {
+        if (isOpen()) { if (++steady >= 6) { clearInterval(t); show(); } } else { steady = 0; open(); }
+        if (++ticks > 180) { clearInterval(t); show(); }
+    }, 50);
 })();
 </script>
 <script>

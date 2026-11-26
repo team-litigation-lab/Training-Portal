@@ -1,13 +1,13 @@
 // 👥 People & Access, one entry: Master Control's menu used to list Log-in Approvals, Program Access & Requests and Users &
 // Accounts as three entries for one job. They are now one entry (core.html, data-mc="people") that opens where the work is
-// (access requests waiting first, then log-ins waiting, else Program Access), and each of the three panels carries the same
+// (access requests waiting first, then log-ins waiting, else the 🧭 Dashboard & Directory, which is its first tab), and each of the three panels carries the same
 // strip of tabs across its top to move between them. Users & Accounts is no longer a panel of its own: its list (every login,
 // with Edit, Suspend, Restore and Revoke for the whole account) and its wipe-revoked button sit at the foot of Program Access &
 // Requests as 👥 Accounts, so who can open what and the accounts themselves are on one page. #users and the Directory's Users
 // entry open that page at the Accounts section. Both waiting counts stay on the one entry (their badge ids are unchanged,
 // so app.js and the Control Directory keep filling them).
 (function () {
-    const TABS = [['registrations', '📝 Log-in Approvals'], ['program-access', '🔑 Program Access & Accounts']];
+    const TABS = [['overview', '🧭 Dashboard & Directory'], ['registrations', '📝 Log-in Approvals'], ['program-access', '🔑 Program Access & Accounts']];   // the Dashboard is part of People & Access too (no menu entry of its own)
     const PANES = TABS.map(t => t[0]).concat('users');
 
     // 👥 Accounts: the Users panel's list and wipe button, moved to the foot of Program Access (their ids are unchanged, so
@@ -45,7 +45,7 @@
     }
     function openPeople() {
         if (n('access-req-badge-side') && typeof window.openAccessRequests === 'function') return window.openAccessRequests();
-        if (typeof window.mcGo === 'function') window.mcGo(n('reg-pending-badge-side') ? 'registrations' : 'program-access');
+        if (typeof window.mcGo === 'function') window.mcGo(n('reg-pending-badge-side') ? 'registrations' : 'overview');   // nothing waiting: the Dashboard
     }
 
     // follow every pane change (the menu, the Control Directory, a #hash link) so the strip and the entry stay in step
@@ -57,7 +57,9 @@
             const r = orig.apply(this, arguments); decorate(tab); return r; };
         w.__people = true; window.showAdminDashTab = w;
     };
-    wrap(); document.addEventListener('DOMContentLoaded', wrap);
+    // a panel already open when this loads (a #hash link opened it first): mark it now
+    const markOpen = () => { const a = document.querySelector('.mc-pane.active'); if (a) decorate(a.id.replace('admin-dash-', '')); };
+    wrap(); markOpen(); document.addEventListener('DOMContentLoaded', () => { wrap(); markOpen(); });
     document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-pa-tab]'); if (b && typeof window.mcGo === 'function') window.mcGo(b.getAttribute('data-pa-tab')); });
 
     const st = document.createElement('style');
