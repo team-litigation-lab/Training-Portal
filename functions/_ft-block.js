@@ -123,7 +123,6 @@ const writeList = (kv, ids, prefix = PREFIX) => kv.put(blockKeyOf(prefix), JSON.
 
 // one person's records in a program, read cheaply: the program's keys listed, and only the records whose id (their name
 // slugged, '--', their batch) carries their first and last name read; then the exact match (every form of the name, batch)
-const slugT = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 const idEnds = (id) => nameEnds(String(id).split('--')[0].replace(/-/g, ' '));
 async function personRecords(kv, prefix, p) {
     const want = nameEnds(p.name);
