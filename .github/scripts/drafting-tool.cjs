@@ -224,7 +224,7 @@ const check = (name, cond, detail) => (cond ? oks : fails).push(name + (cond ? '
     const as2 = await page.evaluate(() => ({ sel: document.querySelectorAll('select[onchange*="pickCase"]').length, txt: (document.body.innerText.match(/Your assigned case: [^\n]+/) || [''])[0] }));
     check('the assigned case stays without the link', as2.sel === 0 && as2.txt === 'Your assigned case: Jane Doe · DOL May 5, 2023', JSON.stringify(as2));
 
-    // 8. the case assigned in the course (📄 Assign LORs) reaches the tool however it is opened (the LSH SIMUL8 hub, a bookmark):
+    // 8. the case assigned in the course (📄 Assign LORs) reaches the tool however it is opened (the LSH Elev8 hub, a bookmark):
     // read from the course, it is the only one shown; taken off there, the trainee picks again; a ?case=N link still wins
     const shown = async (q) => { await page.goto(base + '/simulators/drafting.html?tab=lor1p' + (q || ''), { waitUntil: 'load' }); await page.waitForSelector('section.docx > article', { timeout: 30000 });
         await page.waitForTimeout(1000); return page.evaluate(() => ({ sel: document.querySelectorAll('select[onchange*="pickCase"]').length, txt: (document.body.innerText.match(/Your assigned case: [^\n]+/) || [''])[0] })); };

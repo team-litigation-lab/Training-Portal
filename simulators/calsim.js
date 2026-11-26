@@ -161,7 +161,7 @@ function renderPage(){
   const weekTabs = C.SCENARIOS.filter(x => x.track === tk.id).length > 1 ? `<div class="cs-tabs cs-weeks">` + C.SCENARIOS.map((x, i) => x.track === tk.id ? `<button class="cs-tab cs-wk ${i === S.scn ? "active" : ""}" onclick="FTCalSim.pick(${i})">${e(x.title)} <i>${e(x.level)}</i></button>` : "").join("") + `</div>` : "";
   return `<div class="cs-wrap"><div class="cs-top"><div><h1>📅 Calendaring Sims</h1>
       <p class="cs-lead">Build the week in a Google Calendar style, run the automated review, then submit it to your trainer.</p></div>
-      <div><button class="btn btn-ghost btn-sm" onclick="location.href='/simulators.html'">← LSH SIMUL8</button></div></div>
+      <div><button class="btn btn-ghost btn-sm" onclick="location.href='/simulators.html'">← LSH Elev8</button></div></div>
     <div class="cs-tabs">${trackTabs}</div>${weekTabs}
     <p class="cs-blurb">${e(tk.blurb)}</p>
     <p class="cs-also">Also in Calendaring: <a href="/simulators/gcal.html${carry}">📞 Google Calendar Sim</a> (book callers’ appointments) · <a href="/simulators/calendar.html${carry}">🗓 Conflicts week</a> (CM · EA/PA)</p>

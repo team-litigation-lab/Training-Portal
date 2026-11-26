@@ -119,7 +119,7 @@ r = await call({ action: 'nope' }, ann); ck(r.st === 400 && r.j.code === 'DRIVE_
 // the page draws the structure from what the server sends and never carries a copy
 const page = fs.readFileSync('simulators/drive.js', 'utf8');
 ck(!page.includes('Doe-John') && !page.includes('Bills & Invoices'), 'the page carries no copy of the structure');
-ck(/'\/api\/drive'/.test(page) && fs.readFileSync('simulators.html', 'utf8').includes("href: '/simulators/drive.html'"), 'the page talks to /api/drive and the LSH SIMUL8 hub links it');
+ck(/'\/api\/drive'/.test(page) && fs.readFileSync('simulators.html', 'utf8').includes("href: '/simulators/drive.html'"), 'the page talks to /api/drive and the LSH Elev8 hub links it');
 
 if (fails.length) { console.log(`\n${fails.length} failed`); process.exit(1); }
 console.log('\nall passed');
