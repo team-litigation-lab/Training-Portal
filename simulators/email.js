@@ -17,7 +17,18 @@ const WS_ICON = {
   pencil:'<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 000-1.41l-2.34-2.34a.996.996 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>',
   refresh:'<svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>',
   label:'<svg viewBox="0 0 24 24"><path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16zM16 17H5V7h11l3.55 5L16 17z"/></svg>',
-  report:'<svg viewBox="0 0 24 24"><path d="M15.73 3H8.27L3 8.27v7.46L8.27 21h7.46L21 15.73V8.27L15.73 3zM19 14.9L14.9 19H9.1L5 14.9V9.1L9.1 5h5.8L19 9.1v5.8zM11 7h2v6h-2zm0 8h2v2h-2z"/></svg>'
+  report:'<svg viewBox="0 0 24 24"><path d="M15.73 3H8.27L3 8.27v7.46L8.27 21h7.46L21 15.73V8.27L15.73 3zM19 14.9L14.9 19H9.1L5 14.9V9.1L9.1 5h5.8L19 9.1v5.8zM11 7h2v6h-2zm0 8h2v2h-2z"/></svg>',
+  menu:'<svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>',
+  tune:'<svg viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>',
+  help:'<svg viewBox="0 0 24 24"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>',
+  gear:'<svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>',
+  apps:'<svg viewBox="0 0 24 24"><path d="M6 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6 12c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-6 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0-6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm4-8c0 1.1.9 2 2 2s2-.9 2-2-.9-2-2-2-2 .9-2 2zm-4 2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6 6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg>',
+  left:'<svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>',
+  right:'<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>',
+  cal:'<svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .9-2 2v14a2 2 0 002 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>',
+  keep:'<svg viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>',
+  tasks:'<svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>',
+  contacts:'<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'
 };
 const WS_ACTIONS = {
   reply:  {d:'do',       folder:'starred',   verb:'Replied',   done:'Reply sent.'},
@@ -87,6 +98,7 @@ Return ONLY JSON: {"role":"...","labels":["..."],"emails":[{"from":"Name <email>
     wsStart({id:'gen', program:prog, title:`${prog} — generated inbox`, role:r.role||`You work on the ${prog} team.`, labels:labels.map(n=>({name:n})), emails});
   }catch(e){ btn.disabled = false; st.innerHTML = `<div class="sim-error" style="margin-top:8px;">Couldn’t build the inbox: ${esc(e.message)}</div>`; }
 }
+function wsToggleNav(){ W.mini = !W.mini; wsSave(); draw(); }
 function wsResume(){ if(wsLoad()) render(); }
 function wsQuit(){ if(W.phase==='ws' && Object.keys(W.meta||{}).length && !W.result && !confirm('Leave this inbox? Your progress in it will be cleared.')) return; W = {phase:'pick'}; wsSave(); render(); }
 
@@ -146,17 +158,19 @@ function shellHtml(){
   const open = W.open && W.emails.find(e=>e.id===W.open);
   const ready = handled===total && filed===total;
   return `<div class="gm" id="gmShell" tabindex="0" onkeydown="wsKeyDown(event)">
-    <div class="gm-top"><div class="gm-logo"><b>M</b><span>Mail</span></div>
-      <label class="gm-search">${WS_ICON.search}<input placeholder="Search mail" value="${esc(W.search||'')}" oninput="wsSearch(this.value)"></label>
-      <div class="gm-avatar" title="${esc(wsMe())}">${esc(((wsMe()||'Me').split(' ').map(x=>x[0]).join('')).slice(0,2))}</div></div>
+    <div class="gm-top"><button class="gm-ib gm-burger" data-tip="Main menu" onclick="wsToggleNav()" aria-label="Main menu" aria-expanded="${W.mini?'false':'true'}">${WS_ICON.menu}</button><div class="gm-logo"><b>M</b><span>Mail</span></div>
+      <label class="gm-search">${WS_ICON.search}<input placeholder="Search mail" value="${esc(W.search||'')}" oninput="wsSearch(this.value)"><span class="gm-tune" title="Show search options">${WS_ICON.tune}</span></label>
+      <div class="gm-topr"><span class="gm-ib" title="Support" aria-hidden="true">${WS_ICON.help}</span><span class="gm-ib" title="Settings" aria-hidden="true">${WS_ICON.gear}</span><span class="gm-ib" title="Apps" aria-hidden="true">${WS_ICON.apps}</span>
+      <div class="gm-avatar" title="${esc(wsMe())}">${esc(((wsMe()||'Me').split(' ').map(x=>x[0]).join('')).slice(0,2))}</div></div></div>
     <div class="gm-progress"><i style="width:${Math.round(handled/Math.max(total,1)*100)}%"></i></div>
-    <div class="gm-body">
-      <nav class="gm-nav"><button class="gm-compose" disabled title="Not needed for this exercise">${WS_ICON.pencil} Compose</button>
-        ${WS_FOLDERS.map(f=>`<button class="gm-folder ${f.sub?'two':''} ${W.folder===f.id?'on':''}" onclick="wsFolder('${f.id}')" ondragenter="wsDragOver(event,'folder','${f.id}')" ondragover="wsDragOver(event,'folder','${f.id}')" ondragleave="wsDragLeave(event)" ondrop="wsDrop(event,'folder','${f.id}')">${WS_ICON[f.icon]}<span>${f.name}${f.sub?`<small>${f.sub}</small>`:''}</span><em>${f.id==='inbox' ? (unreadIn||'') : (counts[f.id]||'')}</em></button>`).join('')}
+    <div class="gm-body ${W.mini?'mini':''}">
+      <nav class="gm-nav"><button class="gm-compose" disabled title="Not needed for this exercise">${WS_ICON.pencil}<span>Compose</span></button>
+        ${WS_FOLDERS.map(f=>`<button class="gm-folder ${f.sub?'two':''} ${W.folder===f.id?'on':''}" title="${f.name}${f.sub?' — '+f.sub:''}" onclick="wsFolder('${f.id}')" ondragenter="wsDragOver(event,'folder','${f.id}')" ondragover="wsDragOver(event,'folder','${f.id}')" ondragleave="wsDragLeave(event)" ondrop="wsDrop(event,'folder','${f.id}')">${WS_ICON[f.icon]}<span>${f.name}${f.sub?`<small>${f.sub}</small>`:''}</span><em>${f.id==='inbox' ? (unreadIn||'') : (counts[f.id]||'')}</em></button>`).join('')}
         <div class="gm-lblhead">Labels <button title="Create new label" onclick="wsNewLabel()">+</button></div>
         ${lblTree(null).map(({l,depth})=>`<button class="gm-lbl ${W.folder==='label:'+l.id?'on':''}" style="padding-left:${16+depth*16}px" onclick="wsFolder('label:${l.id}')" ondragenter="wsDragOver(event,'label','${l.id}')" ondragover="wsDragOver(event,'label','${l.id}')" ondragleave="wsDragLeave(event)" ondrop="wsDrop(event,'label','${l.id}')" title="${esc(lblPath(l.id))} — drop emails here to file them"><i style="background:${l.color}"></i><span>${esc(l.name)}</span><em>${lc[l.id]||''}</em></button>`).join('')}
       </nav>
       <section class="gm-main">${open ? readerHtml(open) : listHtml()}</section>
+      <aside class="gm-rail" aria-hidden="true"><span title="Calendar">${WS_ICON.cal}</span><span title="Keep" class="k">${WS_ICON.keep}</span><span title="Tasks" class="t">${WS_ICON.tasks}</span><span title="Contacts" class="c">${WS_ICON.contacts}</span><i></i></aside>
     </div>
     <div class="gm-legend">
       <span><b>Do:</b> Reply or ⭐</span><span><b>Schedule:</b> 🕒 Snooze</span><span><b>Delegate:</b> ↪ Forward</span><span><b>Defer:</b> Archive / 🗑</span><span><b>Suspicious:</b> 🚩 Report</span><span><b>File:</b> 🏷 Label — it leaves the Inbox</span><span class="gm-dnd"><b>🖱 Drag</b> an email onto a folder or label</span>
@@ -190,7 +204,7 @@ function listHtml(){
     ${inInbox || inLabel ? bulk('archive','Archive')+bulk('report','Report phishing')+bulk('trash','Delete')+`<button class="gm-ib" data-tip="Snooze" ${selIds.length?'':'disabled'} onclick="wsSnoozeMenu(null)">${WS_ICON.snooze}</button>`+bulk('star','Star') : ''}
     ${inInbox ? '' : `<button class="gm-ib" data-tip="Move to Inbox" ${selIds.length?'':'disabled'} onclick="wsToInbox(null)">${WS_ICON.inbox}</button>`}
     <button class="gm-ib" data-tip="Label as" ${selIds.length?'':'disabled'} onclick="wsLabelMenu(null)">${WS_ICON.label}</button>
-    ${W.folder.startsWith('label:') ? `<span style="margin-left:6px;">${chip(W.folder.slice(6))}</span>` : ''}<span class="gm-count">${rows.length ? `1–${rows.length} of ${rows.length}` : ''}</span></div>
+    ${W.folder.startsWith('label:') ? `<span style="margin-left:6px;">${chip(W.folder.slice(6))}</span>` : ''}<span class="gm-count">${rows.length ? `1–${rows.length} of ${rows.length}` : ''}</span><button class="gm-ib" disabled aria-label="Newer">${WS_ICON.left}</button><button class="gm-ib" disabled aria-label="Older">${WS_ICON.right}</button></div>
     <div class="gm-list">${body}</div>`;
 }
 function readerHtml(e){
