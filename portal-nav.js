@@ -72,7 +72,7 @@ const PortalNav = {
     BLUEPRINT_DECKS: [
         ['Legal VA Foundational Track', '/api/launch?program=STANDARD%20TRAINING&to=blueprint'],
         ['EA PA Track', '/api/launch?program=EA%20%20PA%20TRAINING-OUTSOURCED%20MANP&to=blueprint'],
-        ['Case Management Training', '/api/launch?program=CM%20TRAINING&to=blueprint'],
+        ['Case Management Track', '/api/launch?program=CM%20TRAINING&to=blueprint'],
         ['Property Damage Claims Track', '/api/launch?program=PROPERTY%20DAMAGE&to=blueprint'],
         ['Medsum & Demand Track', '/api/launch?program=MEDSUM%20AND%20DEMAND&to=blueprint'],
         ['Lien Negotiator Track', '/api/launch?program=LIEN%20NEGOTIATION&to=blueprint'],
