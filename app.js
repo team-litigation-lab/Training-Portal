@@ -3074,7 +3074,6 @@ const paIsSuspended = (st) => String(st || '').startsWith('Suspended');
 const paPillClass = (st) => paIsSuspended(st) ? 'suspended' : String(st || '').toLowerCase();
 const paPillText = (st) => st === 'Suspended-Passed' ? 'Suspended (completed)' : st === 'Passed' ? 'Completed' : st;
 // how many requests are waiting, on the 🙋 Access Requests menu entry (and the System Management menu's)
-function paPendingCount() { return __paAccess.filter(a => a.status === 'Pending').length; }
 function updateAccessRequestBadge(n) {
     ['access-req-badge-side', 'idx-access-badge'].forEach(id => { const b = document.getElementById(id); if (!b) return; b.textContent = n > 0 ? n : ''; b.classList.toggle('has', n > 0); });
 }
