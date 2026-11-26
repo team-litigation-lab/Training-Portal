@@ -314,7 +314,7 @@
         /* min-height:0 on the card and its title: without it a row can never shrink below the
            card's own content, so on a screen that is a little too short the last group was
            clipped by the body's overflow:hidden instead of the rows giving up their spare air. */
-        #idx-topics .topic-card { grid-template-rows: minmax(0, 1fr) auto; align-content: center; min-height: 0; overflow: hidden; }
+        #idx-topics .topic-card { grid-template-rows: minmax(0, 1fr) auto; align-content: stretch; min-height: 0; overflow: hidden; padding-top: 6px; padding-bottom: 6px; row-gap: 5px; }   /* ★ the card's spare height goes to the name's pill, not to padding */
         #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: calc(clamp(13px, 1.95vh, 21px) + 1pt); padding: .45em 1em; line-height: 1.1; }   /* the pill's air in step with the name, so it never looks crammed */
         /* ✦ Beyond-Legal Skills, the highlight lessons: their names a size down, with room either side, so that row doesn't look crammed */
         #idx-topics .tg-beyond .topic-card h3 { font-size: calc(clamp(13px, 1.55vh, 17px) + 1pt); padding-left: 14px; padding-right: 14px; }
@@ -565,7 +565,7 @@
     // 📬 Your Daily Digest: a daily dose, not a stack. One card a day (flashcards-data.js one(): the same card for everyone
     // today, from the next deck in turn: Rules, Trivia, Terminologies, Process, FAQs), so trainees get familiar with the
     // legal industry a little at a time without leaving their training. A Terminologies card asks what its term means;
-    // the answer (about two lines) stays behind a Reveal button so they think first.
+    // the answer (a short paragraph: what to do, why, and a tip) stays behind a Reveal button so they think first.
     function openDailyDigest() {
         const F = window.LSH_FLASHCARDS; if (!F) return;
         let pop = document.getElementById('dd-pop');
