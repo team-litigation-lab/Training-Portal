@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LSH Nexus</title>
 <link rel="icon" type="image/png" href="/favicon.png">
+<!-- A link straight into Master Control (/core.html#registrations, #site-lock, …): hide the page from the first paint until that panel
+     is open, so the workspace underneath never flashes for a moment first (the opener below shows it again; 6 s at most). -->
+<script>(function(){var h=(location.hash||'').slice(1);if(/^(master|registrations|users|access|access-requests|monitoring|announce|site-lock|people)$/.test(h)){document.documentElement.classList.add('mc-opening');setTimeout(function(){document.documentElement.classList.remove('mc-opening');},6000);}})();</script>
+<style>html.mc-opening body{visibility:hidden;}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1126,21 +1130,23 @@
     <script src="/grades-report.js"></script>
     <script src="/pw-check.js"></script>
 <script>
-// /core.html#master, #registrations, #users, #access, #access-requests, #monitoring and #announce (📢 Broadcast & Ping) open Master Control (the admin screen, not the trainee workspace) on that tab:
+// /core.html#master, #registrations, #users, #access, #access-requests, #people, #monitoring, #announce and #site-lock (🔒 Site Lock & Admin Password) (📢 Broadcast & Ping) open Master Control (the admin screen, not the trainee workspace) on that tab:
 // the admin bar's System Management menu (portal-nav.js) uses them.
 (function () {
     const want = (location.hash || '').replace('#', '');
-    const tabs = { master: 'overview', registrations: 'registrations', users: 'users', access: 'program-access', 'access-requests': 'program-access', monitoring: 'monitoring', announce: 'announce' };
-    if (!tabs[want]) return;
+    const tabs = { master: 'overview', registrations: 'registrations', users: 'users', access: 'program-access', 'access-requests': 'program-access', people: 'program-access', monitoring: 'monitoring', announce: 'announce', 'site-lock': 'access' };
+    const show = () => document.documentElement.classList.remove('mc-opening');
+    if (!tabs[want]) { show(); return; }
     function open() {
         if (typeof openAdminDashboard !== 'function' || typeof showAdminDashTab !== 'function' || !document.getElementById('admin-dash-' + tabs[want])) return false;
         openAdminDashboard();
         showAdminDashTab(tabs[want]);
+        show();   // the panel is up: let the page be seen
         // 🙋 Access Requests and 🔑 Program Access are one panel: #access-requests opens it at the requests, as the admin menu's entry does
         if (want === 'access-requests') setTimeout(() => { const el = document.getElementById('access-requests-list'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' }); }, 900);
         return true;
     }
-    let tries = 0; const t = setInterval(() => { if (open() || ++tries > 30) clearInterval(t); }, 300);
+    if (!open()) { let tries = 0; const t = setInterval(() => { if (open() || ++tries > 180) { clearInterval(t); show(); } }, 50); }
 })();
 </script>
 <script>
