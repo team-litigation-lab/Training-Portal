@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="auth-register">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="/auth.css">
 <link rel="stylesheet" href="/theme.css">
 </head>
-<body>
+<body class="auth-uni" data-role="register">
 
 <div class="auth-shell">
     <div class="auth-visual">
@@ -31,7 +31,6 @@
             <h1>Join the next generation of case managers.</h1>
             <p>Create your account once. After an administrator approves it, you sign in here and open every training program from LSH Academy Index: no separate sign-in in each program. Trainers register as <b>Admin / Trainer</b>: one sign-in with their own username and password opens every program, the simulators and Master Control.</p>
         </div>
-        <div class="visual-foot">&copy; 2026 Legal Support Help. All Rights Reserved.</div>
     </div>
 
     <div class="auth-form-side">
@@ -41,9 +40,10 @@
                 <span>Legal Support Help</span>
             </div>
 
+            <div class="role-badge" data-role-badge>✨ New Account</div>
             <div id="auth-form-content">
                 <h2>Create Your Account</h2>
-                <p class="sub">Your Batch ID will be assigned once an administrator approves your registration.</p>
+                <p class="sub">Fill this in once. An administrator approves it, then you sign in on the Trainee (or Admin) sign-in.</p>
 
                 <div id="auth-register-msg" class="auth-msg"></div>
 
@@ -62,8 +62,14 @@
                         <option value="Admin">Admin / Trainer</option>
                     </select>
                 </div>
-                <div class="field" id="reg-training-date-wrap"><label>Start of Training Date</label><input type="date" id="reg-training-date" autocomplete="off"></div>
-                <div class="field"><label>Batch ID</label><input type="text" id="reg-batchid" autocomplete="off" readonly placeholder="Batch ID will be assigned upon the approval of your registration." disabled></div>
+                <!-- The Batch ID is the date of the trainee's Onboarding / Orientation Day (B + MMDDYY, nextBatchId in
+                     functions/_utils.js), so the date is asked for by that name, and the Batch ID it makes is shown as they pick it. -->
+                <div class="reg-batch-box" id="reg-training-date-wrap">
+                    <div class="field"><label for="reg-training-date">Onboarding / Orientation Day</label><input type="date" id="reg-training-date" autocomplete="off" oninput="regBatchPreview()" onchange="regBatchPreview()">
+                        <p class="field-hint">The day of your <b>Onboarding / Orientation</b> session, the very first day with your batch. Not the day you register, and not your first lesson.</p></div>
+                    <div class="field"><label for="reg-batchid">Your Batch ID</label><input type="text" id="reg-batchid" autocomplete="off" readonly placeholder="Pick your Onboarding / Orientation Day above" disabled>
+                        <p class="field-hint">Made from that date: <b>B</b> + month, day, year. Onboarding on November 24, 2026 is <b>B112426</b>. It is confirmed when your registration is approved.</p></div>
+                </div>
                 <div class="field"><label>Username</label><input type="text" id="reg-username" autocomplete="off" data-allow="alnum-underscore" placeholder="Choose a username"></div>
                 <div class="field">
                     <label>Password</label>
@@ -95,6 +101,14 @@
 <script src="/portal-nav.js"></script>
 <script src="app.js"></script>
 <script src="portal.js"></script>
-<script>onRegUserTypeChange();   // show the training-start-date field for the default (Trainee)</script>
+<script>
+    onRegUserTypeChange();   // show the Onboarding Day field for the default (Trainee)
+    // The Batch ID the picked Onboarding / Orientation Day makes: B + MMDDYY, the same as the server gives on approval.
+    function regBatchPreview() {
+        const v = (document.getElementById('reg-training-date') || {}).value || '', out = document.getElementById('reg-batchid');
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+        if (out) out.value = m ? 'B' + m[2] + m[3] + m[1].slice(-2) : '';
+    }
+</script>
 </body>
 </html>

@@ -318,3 +318,100 @@
 
     /* (the shared rules above put the form first; the registration page keeps its own order) */
     :where(html.auth-register) .auth-form-side { order: 0; }
+
+/* ---------------------------------------------------------------------------
+   ONE SIGN-IN LOOK (<body class="auth-uni" data-role="trainee|admin|register">):
+   the Trainee sign-in, the Admin sign-in and Registration share one layout.
+   The navy rings panel (with the portal photo, theme.css) is the whole page;
+   a solid white card sits on its right, centred, large enough to read at a
+   glance. Each card names its role at the top (.role-badge) and carries the
+   role's colour along its top edge: trainee orange, admin navy-to-red
+   (authorized staff only), a new account orange-to-navy. There is no switch
+   between the two sign-ins: each card signs in its own role only (portal.js).
+   --------------------------------------------------------------------------- */
+    body.auth-uni { --role-accent: linear-gradient(90deg, #f97316, #fbbf24); --role-ink: #9a3412; --role-chip: #fff7ed; --role-line: #fed7aa; }
+    body.auth-uni[data-role="admin"] { --role-accent: linear-gradient(90deg, #081226, #1d3f86 55%, #b91c1c); --role-ink: #7f1d1d; --role-chip: #fef2f2; --role-line: #fecaca; }
+    body.auth-uni[data-role="register"] { --role-accent: linear-gradient(90deg, #f97316, #1d3f86); --role-ink: #1e3a8a; --role-chip: #eff6ff; --role-line: #bfdbfe; }
+
+    body.auth-uni .auth-shell { display: block; position: relative; min-height: 100vh; }
+    body.auth-uni .auth-visual { display: flex; position: fixed; inset: 0; z-index: 0; }
+    body.auth-uni .auth-form-side {
+        position: relative; z-index: 1; order: 0; min-height: 100vh;
+        display: flex; align-items: center; justify-content: flex-end;
+        padding: 56px clamp(20px, 6vw, 96px) 64px;
+        pointer-events: none;   /* the panel's "Go to Main Portal" stays clickable */
+    }
+    body.auth-uni .auth-card {
+        pointer-events: auto; position: relative; overflow: hidden;
+        width: 100%; max-width: 430px;
+        background: #fff; border-radius: 22px; padding: 34px 34px 28px;
+        box-shadow: 0 0 0 1px rgba(15, 33, 72, .06), 0 32px 80px -30px rgba(8, 18, 38, .8);
+    }
+    body.auth-uni[data-role="register"] .auth-card { max-width: 560px; }
+    body.auth-uni .auth-card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: var(--role-accent); }
+
+    body.auth-uni .auth-card-brand { gap: 12px; margin-bottom: 18px; }
+    body.auth-uni .auth-card-mark { border-radius: 12px; padding: 6px 12px; background: #c3cfe0; }
+    body.auth-uni .auth-card-mark img { height: 50px; }
+    body.auth-uni .auth-card-brand span { font-size: 15px; font-weight: 800; }
+
+    /* the card's role, in words, at the top: the one thing that tells the two sign-ins apart at a glance */
+    body.auth-uni .role-badge {
+        display: inline-flex; align-items: center; gap: 8px; margin: 0 0 14px;
+        padding: 7px 14px; border-radius: 999px;
+        background: var(--role-chip); color: var(--role-ink); border: 1.5px solid var(--role-line);
+        font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    }
+    body.auth-uni .auth-card h2 { font-size: 24px; font-weight: 800; margin: 0 0 6px; letter-spacing: -.01em; }
+    body.auth-uni .auth-card .sub { font-size: 14px; line-height: 1.55; margin: 0 0 22px; color: #334155; }
+    body.auth-uni .auth-msg { font-size: 13px; padding: 11px 14px; border-radius: 12px; }
+    body.auth-uni .auth-msg a { color: inherit; font-weight: 800; text-decoration: underline; }
+
+    body.auth-uni .field { margin-bottom: 15px; }
+    body.auth-uni .field label { font-size: 12px; font-weight: 800; letter-spacing: .05em; margin-bottom: 7px; color: #0f2148; }
+    body.auth-uni .field label span { text-transform: none; font-weight: 500; color: #475569; letter-spacing: 0; }
+    body.auth-uni .field input, body.auth-uni .field select {
+        width: 100%; padding: 13px 15px; border: 1.5px solid #cbd5e1; border-radius: 12px;
+        font-size: 15px; font-weight: 500; font-family: 'IBM Plex Sans', sans-serif; color: #0f2148;
+        background: #f8fafc; outline: none;
+        transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+    }
+    body.auth-uni .field input:hover, body.auth-uni .field select:hover { border-color: #94a3b8; }
+    body.auth-uni .field input:focus, body.auth-uni .field select:focus { background: #fff; border-color: #f97316; box-shadow: 0 0 0 4px rgba(249, 115, 22, .16); }
+    body.auth-uni .field input::placeholder { color: #94a3b8; }
+    body.auth-uni .field input[disabled] { background: #eef2f7; color: #0f2148; font-weight: 800; letter-spacing: .06em; cursor: default; }
+    body.auth-uni .field-row { display: grid; gap: 12px; }
+    body.auth-uni .field-hint { font-size: 12px; color: #475569; margin: 7px 0 0; line-height: 1.45; }
+
+    /* Registration: the Onboarding / Orientation Day and the Batch ID it makes, as one highlighted step */
+    body.auth-uni .reg-batch-box {
+        margin: 4px 0 16px; padding: 16px 16px 2px; border-radius: 14px;
+        background: #fff7ed; border: 1.5px solid #fed7aa;
+    }
+    body.auth-uni .reg-batch-box .field input[disabled] { background: #fff; border-style: dashed; color: #9a3412; }
+
+    body.auth-uni .auth-submit {
+        padding: 15px; font-size: 14px; font-weight: 800; margin-top: 8px; border-radius: 999px;
+        box-shadow: 0 2px 0 rgba(8, 18, 38, .25), 0 12px 24px -12px rgba(8, 18, 38, .55);
+    }
+    body.auth-uni[data-role="trainee"] .auth-submit { background-image: linear-gradient(135deg, #f97316 0%, #fb923c 55%, #fbbf24 100%); color: #0f172a; }
+    body.auth-uni .auth-forgot { font-size: 13px; margin: -6px 0 14px; }
+    body.auth-uni .auth-switch { font-size: 13.5px; margin-top: 18px; }
+    body.auth-uni .role-switch { margin-top: 12px; padding-top: 14px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #475569; }
+    body.auth-uni .role-switch a { font-size: 13px; font-weight: 700; color: #0f2148; text-decoration: underline; }
+    body.auth-uni .role-switch a:hover { color: #c2410c; }
+    body.auth-uni .field > span > input { padding-right: 64px !important; }   /* the Show button (show-password.js) */
+
+    /* the headline on the panel only where it has room beside the card */
+    @media (max-width: 1180px) {
+        body.auth-uni .visual-copy { display: none; }
+        body.auth-uni .auth-form-side { justify-content: center; }
+    }
+    /* phones: the panel stays the background, the card takes the width */
+    @media (max-width: 860px) {
+        body.auth-uni .auth-visual { padding: 20px; }
+        body.auth-uni .auth-form-side { align-items: flex-start; padding: 68px 14px 72px; }
+        body.auth-uni .auth-card { padding: 28px 20px 22px; border-radius: 18px; }
+        body.auth-uni .field-row { grid-template-columns: 1fr 1fr !important; }
+    }
+    @media (max-width: 380px) { body.auth-uni .field-row { grid-template-columns: 1fr !important; } }
