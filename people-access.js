@@ -20,6 +20,10 @@
         sec.innerHTML = '<div class="mc-section-sub">👥 Accounts: every login, trainers first, then by batch · Edit, Suspend, Restore or Revoke the whole account</div>';
         const sweep = document.getElementById('users-revoked-sweep-btn');
         if (sweep && sweep.parentElement && sweep.parentElement !== users) sec.appendChild(sweep.parentElement);
+        // 🧹 both revoked-trainee clean-ups side by side: Program Access's "Clear revoked trainees from every program's scorecards" joins
+        // the Accounts' "Wipe revoked trainees from every program" here (its id is unchanged, so app.js's paFtSweep still finds it)
+        const clear = document.getElementById('pa-ft-sweep-btn');
+        if (clear && clear.parentElement && clear.parentElement.parentElement === pa) sec.appendChild(clear.parentElement);
         sec.appendChild(list);
         pa.appendChild(sec);
         const intro = users.querySelector(':scope > p'); if (intro) intro.remove();
