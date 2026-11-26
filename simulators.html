@@ -97,6 +97,58 @@
     @media (min-width: 1180px) and (max-width: 1299px) {
         .hub-wrap { padding-left: 16px; padding-right: 16px; }
     }
+    /* 🖥 One screen, no scrolling (laptop and desktop): all eleven engines four across in three rows that share the height
+       under the hero. Each card is compact: the app icon sits beside both the ENGINE tag and the name (one block instead of
+       two rows), then the outcome and the spec / Launch row. */
+    @media (min-width: 1180px) and (min-height: 600px) {
+        body { min-height: 100vh; display: flex; flex-direction: column; }
+        .sim-wrap.hub-wrap { flex: 1 1 auto; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; padding-top: 12px; padding-bottom: 12px; }
+        .hub-wrap .sim-hero { flex: none; margin-bottom: 12px; padding-top: 9px; padding-bottom: 9px; }
+        .hub-grid { flex: 1 1 auto; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 14px 16px; }
+        .hub-wrap > #my-results { flex: none; }
+        body .lsh-footer { flex: none; padding-top: 6px; padding-bottom: 6px; font-size: 12px; }   /* a slim footer, so the three rows keep the screen */
+        .hub-grid .hub-card { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto;
+            grid-template-areas: "icon top" "icon name" "desc desc" "foot foot"; gap: 2px 12px; align-content: start; padding: 12px 16px 11px; }
+        .hub-grid .hub-card .hc-head { display: contents; }
+        .hub-grid .hub-card .hc-icon { grid-area: icon; align-self: center; width: 46px; height: 46px; border-radius: 13px; font-size: 23px; }
+        .hub-grid .hub-card .hc-top { grid-area: top; }
+        .hub-grid .hub-card .hc-head h3 { grid-area: name; font-size: 17.5px; }
+        .hub-grid .hub-card .hc-desc { grid-area: desc; margin-top: 8px; font-size: 13.5px; line-height: 1.45; }
+        .hub-grid .hub-card .hc-foot { grid-area: foot; margin-top: 8px; padding-top: 9px; align-self: end; }
+        .hc-go { padding-top: 7px; padding-bottom: 7px; }
+    }
+    /* a big screen (1800px wide and 960px tall, and up): the rows have more height, so the type and icon grow into it rather than leaving the cards hollow */
+    @media (min-width: 1800px) and (min-height: 960px) {
+        .hub-grid .hub-card { padding: 16px 20px 14px; column-gap: 14px; }
+        .hub-grid .hub-card .hc-icon { width: 58px; height: 58px; border-radius: 16px; font-size: 29px; }
+        .hub-grid .hub-card .hc-head h3 { font-size: 21px; }
+        .hc-tag, .hc-live { font-size: 11.5px; }
+        .hub-grid .hub-card .hc-desc { margin-top: 12px; font-size: 15.5px; line-height: 1.55; }
+        .hc-spec { font-size: 12px; padding: 6px 12px; }
+        .hc-go { font-size: 13.5px; padding: 9px 16px; }
+    }
+    /* a short laptop screen (under 880px tall): a touch smaller type so the three rows still fit */
+    @media (min-width: 1180px) and (min-height: 600px) and (max-height: 879px) {
+        .hub-grid .hub-card .hc-desc { font-size: 13px; line-height: 1.4; margin-top: 6px; }
+        .hub-grid .hub-card .hc-foot { margin-top: 6px; padding-top: 7px; }
+        .hub-grid .hub-card { padding-top: 10px; padding-bottom: 9px; }
+        .hub-grid .hub-card .hc-icon { width: 40px; height: 40px; font-size: 20px; }
+        .hub-grid .hub-card .hc-head h3 { font-size: 16.5px; }
+        .hub-grid .hub-card .hc-desc { font-size: 12.5px; line-height: 1.33; }
+        .hub-wrap .sim-hero { margin-bottom: 8px; padding-top: 6px; padding-bottom: 6px; }
+        .hub-grid { gap: 8px 14px; }
+        .hc-go { padding-top: 5px; padding-bottom: 5px; }
+        .hc-spec { padding-top: 4px; padding-bottom: 4px; }
+    }
+    /* a laptop-width screen (four across in under 1800px): the tag, the spec pill and the button a size down so each stays whole on one line */
+    @media (min-width: 1180px) and (max-width: 1799px) and (min-height: 600px) {
+        .hub-grid .hub-card { padding-left: 13px; padding-right: 13px; column-gap: 10px; }
+        .hc-tag { font-size: 9.5px; letter-spacing: 0; }
+        .hc-live { font-size: 9.5px; padding: 2px 7px 2px 6px; gap: 4px; }
+        .hc-spec { font-size: 9.5px; letter-spacing: 0; padding-left: 7px; padding-right: 7px; }
+        .hc-go { font-size: 11.5px; padding-left: 10px; padding-right: 10px; gap: 5px; }
+        .hc-foot { gap: 6px; }
+    }
     /* Phone: one card a row; the tag, the pill, the spec and the button each stay on one line. */
     @media (max-width: 420px) {
         .hub-grid .hub-card { padding: 16px 13px 14px; }
