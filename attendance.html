@@ -91,7 +91,7 @@
 // The attendance Google Sheet: its 🕘 Platform Attendance menu (attendance-sync.gs) fills a
 // "Platform Attendance" tab from /api/attendance-feed every 15 minutes.
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1zs7lqZiHaDYef3XymhoK9cUj2SV-AR3_IgWRUA1iRn8/edit';
-const PROGRAM_ORDER = ['ft', 'eapa', 'cm', 'pd', 'md', 'ln'];   // keep in step with PROGRAM_ORDER (and the label fallback) in progress-records.js
+const PROGRAM_ORDER = ['ft', 'eapa', 'cm', 'pd', 'md', 'ln', 'cs'];   // keep in step with PROGRAM_ORDER (and the label fallback) in progress-records.js
 // The attendance sheet's statuses and colors (keep in step with STATUSES in functions/_attendance.js).
 const STATUSES = [
     { label: 'Present', bg: '#11734b', fg: '#ffffff' }, { label: 'Late', bg: '#d4edbc', fg: '#11734b' }, { label: 'Late with Notif', bg: '#e6cff2', fg: '#5a3286' },
@@ -114,7 +114,7 @@ const mdy = iso => { const [y, m, d] = String(iso || '').split('-'); return y &&
 const time12 = v => { const m = /^(\d{1,2}):(\d{2})/.exec(String(v || '')); if (!m) return ''; const h = +m[1]; return `${h % 12 || 12}:${m[2]} ${h < 12 ? 'AM' : 'PM'}`; };
 // The programs' shown names (as on LSH Academy Index's cards). The server's own labels stay as they were:
 // they name the Attendance sheet's program column and the Drive archive folders.
-const TRACK_NAMES = { ft: 'Legal VA Foundational Track', eapa: 'EA PA Track', cm: 'Case Management Track', pd: 'Property Damage Claims Track', md: 'Medsum & Demand Track', ln: 'Lien Negotiator Track' };
+const TRACK_NAMES = { ft: 'Legal VA Foundational Track', eapa: 'EA PA Track', cm: 'Case Management Track', pd: 'Property Damage Claims Track', md: 'Medsum & Demand Track', ln: 'Lien Negotiator Track', cs: 'Closing Specialist Track' };
 const progLabel = id => TRACK_NAMES[id] || ((A.data && A.data.programs || []).find(p => p.id === id) || {}).label || id;
 const batchOf = key => ((A.data && A.data.batches) || []).find(b => b.key === key);
 const rec = b => b.record || (b.record = { v: 1, batch: b.batch, date: A.date, day: b.day, training: b.training, rows: {} });   // a day not saved yet
