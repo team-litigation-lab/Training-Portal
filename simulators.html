@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LSH Sims — LSH Nexus</title>
+<title>LSH Elev8 — LSH Nexus</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,46 +11,101 @@
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/simulators/sim.css">
 <style>
-    /* The hub is meant to be taken in at a glance: on a desktop screen every card sits
-       above the fold, so the page does not scroll to show a simulator. */
-    .hub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    @media (max-width: 1000px) { .hub-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 620px) { .hub-grid { grid-template-columns: 1fr; } }
-    .hub-card { display: flex; flex-direction: column; gap: 10px; }
-    .hub-card .icon { width: 48px; height: 48px; border-radius: 14px; background: #fff7ed; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-    .hub-card h3 { margin: 0; font-size: 17px; font-weight: 900; }
-    .hub-card p { margin: 0; font-size: 13.5px; font-weight: 500; color: var(--slate); line-height: 1.55; flex: 1; }
-    .hub-card .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
-    .hub-card .uses { font-size: 11.5px; color: var(--slate); font-weight: 800; }
-    .hub-card.soon { background: #fbfaf7; }
-    .hub-card.locked { background: #f1f5f9; opacity: .6; }
-    .hub-card.locked .icon { filter: grayscale(1); }
+    /* 🛠 LSH Elev8: every simulator is an "engine", drawn as its own engineered product card: a top edge and a faint glow in
+       the simulator's own accent (--ac, set per card from SIMULATORS), a technical tag (ENGINE 0N // FUNCTION) and the
+       LIVE pill on top, an app-icon badge beside the product name, a one- or two-sentence outcome, then a spec pill
+       (programs • mode) and a dark-navy Launch Sim button. The hub is meant to be taken in at a glance. */
+    .hub-grid { --hc-navy: #1E2340; --hc-orange: #DB8437; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+    @media (max-width: 1000px) { .hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } }
+    @media (max-width: 620px) { .hub-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; } }
+    .hub-grid .hub-card { position: relative; display: flex; flex-direction: column; gap: 12px; min-width: 0; overflow: hidden;
+        padding: 18px 18px 16px; border-radius: 18px; border: 1px solid rgba(30,35,64,.13);
+        background: radial-gradient(130% 90% at 100% 0%, color-mix(in srgb, var(--ac) 15%, transparent) 0%, transparent 58%),
+            radial-gradient(90% 60% at 0% 100%, color-mix(in srgb, var(--ac) 6%, transparent) 0%, transparent 70%),
+            linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 18px 34px -22px rgba(30,35,64,.5), 0 4px 10px -6px rgba(30,35,64,.18);
+        transition: transform .18s ease, box-shadow .18s ease; }
+    .hub-grid .hub-card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; border-radius: 0; opacity: 1;
+        background: linear-gradient(90deg, var(--ac) 0%, color-mix(in srgb, var(--ac) 60%, #fff) 100%); }
+    .hub-grid .hub-card:hover { transform: translateY(-3px);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 24px 40px -22px color-mix(in srgb, var(--ac) 55%, rgba(30,35,64,.6)), 0 0 0 1px color-mix(in srgb, var(--ac) 35%, transparent); }
+    .hub-grid .hub-card:hover::before { opacity: 1; }
+    /* ✨ The LSH frame, as on the Academy Index cards: a thick rounded outline, navy along the top fading to gold at the bottom.
+       Each simulator keeps its own accent stripe and glow inside it. */
+    .hub-grid .hub-card { border: 4px solid transparent;
+        background: radial-gradient(130% 90% at 100% 0%, color-mix(in srgb, var(--ac) 15%, transparent) 0%, transparent 58%) padding-box,
+            radial-gradient(90% 60% at 0% 100%, color-mix(in srgb, var(--ac) 6%, transparent) 0%, transparent 70%) padding-box,
+            linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) padding-box,
+            linear-gradient(180deg, #1E2340 0%, #2c3360 30%, #a8692f 78%, #DB8437 100%) border-box; }
+    @media (max-width: 420px) { .hub-grid .hub-card { border-width: 3px; padding-left: 15px; padding-right: 15px; } }
+    .hub-grid .hub-card.locked { background: linear-gradient(180deg, #f8fafc, #f1f5f9) padding-box, linear-gradient(180deg, rgba(30,35,64,.55), rgba(219,132,55,.55)) border-box; }
+    .hc-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+    .hc-tag { min-width: 0; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+        color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hc-tag b { color: var(--hc-navy); font-weight: 700; }
+    .hc-tag i { font-style: normal; color: color-mix(in srgb, var(--ac) 80%, #1E2340); }
+    .hc-live { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+        color: #166534; background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #bbf7d0; border-radius: 999px; padding: 3px 9px 3px 8px; }
+    .hc-live i { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; animation: hcPulse 2.2s ease-out infinite; }
+    @keyframes hcPulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,.6); } 70%, 100% { box-shadow: 0 0 0 7px rgba(34,197,94,0); } }
+    .hc-head { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .hc-icon { flex: none; width: 54px; height: 54px; border-radius: 15px; display: grid; place-items: center; font-size: 27px; line-height: 1;
+        background: linear-gradient(145deg, #ffffff 0%, color-mix(in srgb, var(--ac) 11%, #fff) 100%);
+        border: 1px solid color-mix(in srgb, var(--ac) 32%, #e2e8f0);
+        box-shadow: inset 0 1px 0 #fff, 0 10px 18px -10px color-mix(in srgb, var(--ac) 60%, rgba(30,35,64,.5)), 0 2px 4px -2px rgba(30,35,64,.2); }
+    .hc-head h3 { margin: 0; min-width: 0; font-size: 18px; font-weight: 900; line-height: 1.2; letter-spacing: -.01em; color: var(--hc-navy); }
+    .hc-head h3 sup { font-size: .5em; font-weight: 800; margin-left: .1em; vertical-align: super; line-height: 0; color: var(--hc-orange); }
+    .hub-card .hc-desc { margin: 0; flex: 1; font-size: 13.5px; font-weight: 500; line-height: 1.5; color: #334155; }
+    .hc-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 12px; border-top: 1px solid rgba(30,35,64,.09); min-width: 0; }
+    .hc-spec { min-width: 0; font-size: 11px; font-weight: 800; letter-spacing: .02em; color: var(--hc-navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 999px; padding: 5px 11px; }
+    .hc-go { flex: none; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; text-decoration: none; cursor: pointer;
+        font: inherit; font-size: 12.5px; font-weight: 800; letter-spacing: .02em; color: #fff; border: 0; border-radius: 10px; padding: 8px 14px;
+        background: linear-gradient(180deg, #2a3058 0%, var(--hc-navy) 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 -2px 0 var(--hc-orange), 0 8px 16px -10px rgba(30,35,64,.8); transition: background .15s ease, transform .15s ease; }
+    .hc-go .arr { color: var(--hc-orange); transition: transform .15s ease; }
+    .hc-go:hover { background: linear-gradient(180deg, #343b6b 0%, #262c52 100%); }
+    .hc-go:hover .arr { transform: translateX(3px); }
+    .hc-go:focus-visible { outline: 3px solid var(--hc-orange); outline-offset: 2px; }
+    /* 📚 Demand Packets & Binders for anyone outside CM and Medsum: the card steps back and its button is a lock, not a launch. */
+    .hub-grid .hub-card.locked { opacity: .72; filter: saturate(.35); }
+    .hub-grid .hub-card.locked:hover { transform: none; }
+    .hc-go.lock { color: #334155; background: #f1f5f9; border: 1px dashed #94a3b8; box-shadow: none; cursor: not-allowed; }
+    .hub-card.soon .hc-go { opacity: .55; }
+    @media (prefers-reduced-motion: reduce) { .hc-live i { animation: none; } .hub-grid .hub-card, .hc-go, .hc-go .arr { transition: none; } .hub-grid .hub-card:hover { transform: none; } }
     /* the hub uses the window's whole width (a 24px gutter), not the simulators' centred 1280px column */
     .sim-wrap.hub-wrap { max-width: none; }
     .hub-wrap .sim-hero p { max-width: none; }
 
-    /* One screen: every card fits on a laptop or desktop screen without scrolling. Each description is a sentence or two
-       (the whole of it is in the card's tooltip), so four columns of three rows fit from 1180x700 up. */
+    /* Laptop and desktop: a compact one-line hero, then the engines three across (four from 1600px wide, where all eleven
+       fit one 1920x1080 screen). On a 1366x768 laptop the richer cards take a short scroll rather than being squeezed: their
+       spec pills, tags and full descriptions keep their room. */
     @media (min-width: 1180px) {
-        .sim-wrap { padding-top: 18px; padding-bottom: 18px; }
-        .sim-hero { padding: 12px 22px; margin-bottom: 10px; }
-        .sim-hero .eyebrow { margin-bottom: 6px; padding: 3px 10px; font-size: 11px; }
-        .sim-hero h1 { font-size: 22px; margin-bottom: 4px; }
-        .sim-hero p { font-size: 13px; line-height: 1.45; }
-        .hub-grid { grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .sim-card.hub-card { padding: 13px 15px; gap: 6px; }
-        .hub-card .icon { width: 34px; height: 34px; border-radius: 10px; font-size: 18px; }
-        .hub-card h3 { font-size: 15.5px; }
+        .sim-wrap { padding-top: 16px; padding-bottom: 24px; }
+        .sim-hero { padding: 11px 22px; margin-bottom: 18px; display: flex; align-items: baseline; gap: 18px; }
         .sim-hero .eyebrow { display: none; }
-        .hub-card p { font-size: 13px; line-height: 1.42; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .hub-card .row { margin-top: 0; }
-        .hub-card .uses { font-size: 11px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .hub-card .sim-btn { padding: 6px 14px; font-size: 12.5px; white-space: nowrap; flex-shrink: 0; }
+        .sim-hero h1 { font-size: 22px; margin: 0; white-space: nowrap; }
+        .sim-hero p { font-size: 13px; line-height: 1.45; }
+        .hub-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px 18px; }
+        .hub-grid .hub-card { padding: 16px 18px 14px; gap: 11px; }
+        .hc-icon { width: 48px; height: 48px; border-radius: 14px; font-size: 24px; }
+        .hc-head h3 { font-size: 18px; }
+    }
+    @media (min-width: 1600px) {
+        .hub-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 20px; }
     }
     @media (min-width: 1180px) and (max-width: 1299px) {
         .hub-wrap { padding-left: 16px; padding-right: 16px; }
-        .sim-card.hub-card { padding: 12px 12px; }
-        .hub-card p { font-size: 12.2px; letter-spacing: -.005em; }
+    }
+    /* Phone: one card a row; the tag, the pill, the spec and the button each stay on one line. */
+    @media (max-width: 420px) {
+        .hub-grid .hub-card { padding: 16px 13px 14px; }
+        .hc-tag { font-size: 10px; letter-spacing: .07em; }
+        .hc-live { font-size: 10px; padding: 3px 8px 3px 7px; }
+        .hc-head h3 { font-size: 17px; }
+        .hc-spec { font-size: 10px; padding: 5px 8px; letter-spacing: 0; }
+        .hc-go { font-size: 12px; padding: 8px 11px; gap: 5px; }
+        .hc-foot { gap: 8px; }
     }
 </style>
 <link rel="stylesheet" href="/theme.css">
@@ -60,14 +115,14 @@
 <div class="sim-wrap hub-wrap">
     <section class="sim-hero">
         <div class="eyebrow">Shared across every program</div>
-        <h1>🛠 LSH Sims</h1>
+        <h1>🛠 LSH Elev8</h1>
         <p>Hands-on practice for every LSH program. Pick a simulator, work a realistic scenario and get a scored debrief, saved to your account.</p>
     </section>
 
     <div class="hub-grid" id="hub-grid"></div>
 
     <!-- 📈 Your results: every graded run saved to your account, from any device (and this browser's practice runs) -->
-    <section class="sim-card" id="my-results" hidden style="margin-top:18px;">
+    <section class="sim-card" id="my-results" hidden style="margin-top:24px;">
         <h3 style="margin-top:0;">📈 Your results</h3>
         <p id="my-results-note" style="margin:4px 0 10px;"></p>
         <div style="overflow-x:auto;"><table class="sim-table" style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -84,29 +139,42 @@
 <script src="/portal.js"></script>
 <script src="/simulators/sim.js"></script>
 <script>
+    // Each simulator is an engine: its tag's function, its product name (™ added when drawn), what it does for the trainee,
+    // its spec (programs • mode) and its accent colour (--ac). The engine number is its place in this list.
     const SIMULATORS = [
-        { id: 'call', icon: '📞', title: 'Call Sim', status: 'live', href: '/api/launch?tool=ringchannel&to=calls', uses: 'All programs',
-          desc: 'Answer phone calls on ☎ LSH Voice with an AI caller: practice, or a graded call.' },
-        { id: 'messaging', icon: '💬', title: 'Client Messaging', status: 'live', href: '/api/launch?tool=ringchannel&to=messages', uses: 'CM · PD · EA/PA · Medsum',
-          desc: 'Text clients from their case file on ☎ LSH Voice, under the firm\'s texting policy.' },
-        { id: 'automessaging', icon: '🤖', title: 'Automated Messaging', status: 'live', href: '/api/launch?tool=ringchannel&to=automessages', uses: 'CM · PD · EA/PA · Medsum',
-          desc: 'Pick up client threads the firm\'s automated reminders and notices started.' },
-        { id: 'calsim', icon: '📆', title: 'Calendaring Sims', status: 'live', href: '/simulators/calsim.html', uses: 'Standard · CM · EA/PA',
-          desc: 'Book, move and cancel appointments on the attorney\'s calendar by the rules.' },
-        { id: 'email', icon: '✉️', title: 'Email Sims', status: 'live', href: '/simulators/email.html', uses: 'All programs',
-          desc: 'Triage a Gmail-style inbox, or answer one work email at a time with a model reply.' },
-        { id: 'docket', icon: '⚖️', title: 'Docket System', status: 'live', href: '/simulators/docket.html', uses: 'CM · Litigation',
-          desc: 'Docket court notices and calendar every deadline under federal or state rules.' },
-        { id: 'records', icon: '🗂', title: 'Medical Records Requests', status: 'live', href: '/simulators/records.html', uses: 'CM · Medsum',
-          desc: 'Request records and bills on the John Doe file and handle what comes back.' },
-        { id: 'drafting', icon: '✍️', title: 'Drafting', status: 'live', href: '/simulators/drafting.html', uses: 'Standard · CM',
-          desc: 'Fill the firm\'s 1P and 3P letter templates and download the finished Word file.' },
-        { id: 'packet', icon: '📚', title: 'Demand Packets & Binders', status: 'live', gated: true, href: '/simulators/demand-packet.html', uses: 'CM · Medsum · Litigation',
-          desc: 'Build the demand packet or binder as one Bates-stamped, indexed PDF.' },
-        { id: 'drive', icon: '📂', title: 'Backup Drive', status: 'live', href: '/simulators/drive.html', uses: 'All programs',
-          desc: 'Lay out the firm\'s case-file folders on your Google Drive, graded folder by folder.' },
-        { id: 'efiling', icon: '🏛', title: 'Court E-Filing', status: 'live', href: '/simulators/efiling.html', uses: 'CM · Litigation',
-          desc: 'Fix the filing documents, then e-file in federal or state court.' }
+        { id: 'call', icon: '📞', fn: 'Live Voice AI', title: 'Intake & Call Desk', status: 'live', href: '/api/launch?tool=ringchannel&to=calls', accent: '#DB8437',
+          spec: 'All Programs • Graded & Practice',
+          desc: 'Handle live inbound calls via ☎️ LSH CommX with an adaptive AI client. Run ungraded warm-ups or take a scored assessment.' },
+        { id: 'messaging', icon: '💬', fn: 'Real-Time Messaging', title: 'Client Chat & Triage', status: 'live', href: '/api/launch?tool=ringchannel&to=messages', accent: '#0ea5e9',
+          spec: 'All Programs • Scored Debrief',
+          desc: 'Navigate live SMS and portal threads with AI clients. Practice rapid issue triage, empathy, and case updates under scored evaluation.' },
+        { id: 'automessaging', icon: '🤖', fn: 'Automation Relay', title: 'Auto-Reply Command', status: 'live', href: '/api/launch?tool=ringchannel&to=automessages', accent: '#8b5cf6',
+          spec: 'CM · PD · EA/PA · Medsum • Live',
+          desc: 'Take over client threads the firm\'s reminders and auto-responders started, while the automation keeps sending. Answer from the file, within texting policy.' },
+        { id: 'calsim', icon: '📆', fn: 'Scheduling Logic', title: 'Calendar Command', status: 'live', href: '/simulators/calsim.html', accent: '#2563eb',
+          spec: 'Standard · CM · EA/PA • Reviewed',
+          desc: 'Book, move and cancel the attorney\'s week in a Google Calendar-style workspace. Every entry is checked against the rules, then reviewed by your trainer.' },
+        { id: 'email', icon: '✉️', fn: 'Inbox Operations', title: 'Inbox Command Center', status: 'live', href: '/simulators/email.html', accent: '#dc2626',
+          spec: 'All Programs • 5-Metric Score',
+          desc: 'Triage a Gmail-style inbox by filing, labeling and forwarding, or answer one work email at a time, scored on five reply metrics.' },
+        { id: 'docket', icon: '⚖️', fn: 'Deadline Calculus', title: 'Docket & Deadline Engine', status: 'live', href: '/simulators/docket.html', accent: '#0f766e',
+          spec: 'CM · Litigation • Graded',
+          desc: 'Docket NEFs and court mail, then calculate every deadline under FRCP 6 or the state method, court holidays included, onto the firm calendar.' },
+        { id: 'records', icon: '🗂', fn: 'Records Pipeline', title: 'Records Retrieval Desk', status: 'live', href: '/simulators/records.html', accent: '#c026d3',
+          spec: 'CM · Medsum • 100-Point Score',
+          desc: 'Run the John Doe records collection end to end: HIPAA authorizations, provider requests, rejections, fee-cap invoices and follow-ups on a business-day clock.' },
+        { id: 'drafting', icon: '✍️', fn: 'Document Assembly', title: 'LOR Drafting Studio', status: 'live', href: '/simulators/drafting.html', accent: '#4f46e5',
+          spec: 'Standard · CM • Graded Upload',
+          desc: 'Draft the firm\'s 1P, 3P and medical provider letters from the case notes, download the Word file, and upload the finished PDF for a graded check.' },
+        { id: 'packet', icon: '📚', fn: 'PDF Compilation', title: 'Demand Packet Builder', status: 'live', gated: true, href: '/simulators/demand-packet.html', accent: '#ca8a04',
+          spec: 'CM · Medsum • Indexed PDF',
+          desc: 'Compile a demand packet, mediation or arbitration binder into one PDF, with cover letter, index, PIP log, Bates numbers, bookmarks and tab sheets.' },
+        { id: 'drive', icon: '📂', fn: 'Cloud Structure', title: 'Case-File Drive Architect', status: 'live', href: '/simulators/drive.html', accent: '#16a34a',
+          spec: 'All Programs • Auto-Graded',
+          desc: 'Build the firm\'s 16-folder case-file structure in your own Google Drive, graded folder by folder for spelling, order and anything missing.' },
+        { id: 'efiling', icon: '🏛', fn: 'Court Submission', title: 'Court E-Filing Gateway', status: 'live', href: '/simulators/efiling.html', accent: '#475569',
+          spec: 'CM · Litigation • Clerk Review',
+          desc: 'Fix the filing folder (OCR, /s/ signatures, certificate of service, redactions, size limits), then file in federal or state court for a graded receipt.' }
     ];
     // 📚 Demand Packets & Binders is for Case Management and Medsum and Demand only (Sim.packetAccess, the same rule the page
     // itself and Drafting's tab use): grayed out until that is known, and for everyone else (Standard Foundational Training).
@@ -115,16 +183,20 @@
 
     function renderHub() {
         document.getElementById('topbar').innerHTML = Sim.topbar('hub');
-        Sim.label('LSH Sims');
-        document.getElementById('hub-grid').innerHTML = SIMULATORS.map(s => `
-            <div class="sim-card hub-card ${s.status === 'live' ? '' : 'soon'}${s.gated && !PACKET_OK ? ' locked' : ''}">
-                <div class="row" style="margin-top:0;"><span class="icon">${s.icon}</span><span class="sim-chip ${CHIP[s.status][0]}">${CHIP[s.status][1]}</span></div>
-                <h3>${Sim.esc(s.title)}</h3>
-                <p title="${Sim.esc(s.desc)}">${Sim.esc(s.desc)}</p>
-                <div class="row"><span class="uses">${Sim.esc(s.uses)}</span>
-                    ${s.gated && !PACKET_OK ? `<button class="sim-btn ghost" disabled title="Part of Case Management and Medsum and Demand training, not Standard Foundational Training">🔒 CM · Medsum only</button>`
-                        : s.href ? `<a class="sim-btn primary" href="${s.href}">Open →</a>` : `<button class="sim-btn ghost" disabled>Not yet</button>`}</div>
-            </div>`).join('');
+        Sim.label('LSH Elev8');
+        document.getElementById('hub-grid').innerHTML = SIMULATORS.map((s, i) => {
+            const locked = s.gated && !PACKET_OK, n = String(i + 1).padStart(2, '0');
+            const pill = s.status === 'live' ? '<span class="hc-live"><i aria-hidden="true"></i>Live</span>' : `<span class="sim-chip ${CHIP[s.status][0]}">${CHIP[s.status][1]}</span>`;
+            const go = locked ? `<button class="hc-go lock" disabled title="Part of Case Management and Medsum and Demand training, not Standard Foundational Training">🔒 CM · Medsum</button>`
+                : s.href ? `<a class="hc-go" href="${s.href}">Launch Sim <span class="arr" aria-hidden="true">→</span></a>` : `<button class="hc-go lock" disabled>Not yet</button>`;
+            return `
+            <article class="sim-card hub-card${s.status === 'live' ? '' : ' soon'}${locked ? ' locked' : ''}" style="--ac:${s.accent}" data-sim="${s.id}">
+                <div class="hc-top"><span class="hc-tag"><b>Engine ${n}</b> <i>// ${Sim.esc(s.fn)}</i></span>${pill}</div>
+                <div class="hc-head"><span class="hc-icon" aria-hidden="true">${s.icon}</span><h3>${Sim.esc(s.title)}<sup>™</sup></h3></div>
+                <p class="hc-desc" title="${Sim.esc(s.desc)}">${Sim.esc(s.desc)}</p>
+                <div class="hc-foot"><span class="hc-spec" title="${Sim.esc(s.spec)}">${Sim.esc(s.spec)}</span>${go}</div>
+            </article>`;
+        }).join('');
     }
 
     // 📈 Your results: a signed-in trainee's come from their account (every device), a visitor's from this browser; administrators

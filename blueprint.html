@@ -15,7 +15,7 @@
   slide, and the same real-text PDF — so the portal's blueprint and every program's blueprint
   read as one deck. This page is its front door: the standard portal header and the two tracks.
   Every blueprint link stays here: nothing on this page opens a deck inside a program or a tool.
-    • Trainees: the portal, LSH Academy Index, program sign-in, LSH Sims, LSH Atlas.
+    • Trainees: the portal, LSH Academy Index, program sign-in, LSH Elev8, LSH Atlas.
     • Trainers & Admins: admin sign-in, LSH Academy Index's admin view, System Management,
       Trainee Monitoring, Attendance, program admin, LSH Atlas review, the daily workflow.
   Public page: nothing private is shown (no passwords, access codes or trainee data).
@@ -126,23 +126,23 @@ const SLIDES = {
 trainee: [
 { icon: '🏠', title: 'One portal for all of your LSH training', points: [
     'LSH Nexus is the master portal: the front door to every LSH training program, plus the practice tools and resources all programs share.',
-    'Main page → Log In → LSH Academy Index → your program, with LSH Sims and LSH Atlas beside it.',
-    'One log in: sign in once on the portal. Your programs, LSH Sims and LSH Atlas open without asking you to sign in again.',
+    'Main page → Log In → LSH Academy Index → your program, with LSH Elev8 and LSH Atlas beside it.',
+    'One log in: sign in once on the portal. Your programs, LSH Elev8 and LSH Atlas open without asking you to sign in again.',
     'Your program holds your lessons, activities, scores, feedback and certificate.',
-    'LSH Sims and LSH Atlas are where you practice real work, and look up the SOPs.'],
+    'LSH Elev8 and LSH Atlas are where you practice real work, and look up the SOPs.'],
   where: 'The main page of LSH Nexus — Home on any section band brings you back to it.',
   tip: 'Bookmark the main page rather than a program: everything else opens from here, already signed in.' },
 { icon: '🔑', title: 'Register once, then log in once', points: [
     'New to LSH? Press Register on the log-in page and choose a username and password. An admin approves your registration and gives you your Batch ID.',
     'After that, press Log In on the main page and use your username and password. You land on LSH Academy Index.',
-    "You won't be asked to sign in again inside a Program, LSH Sims or LSH Atlas: the portal signs you in for you.",
+    "You won't be asked to sign in again inside a Program, LSH Elev8 or LSH Atlas: the portal signs you in for you.",
     'Your progress is saved to your account, not your browser, so you can pick up on any computer.',
     'Log-in details for work tools (email, CMS, time tracker) are never posted on the portal. Your trainer shares them privately.'],
   where: 'Log In on the main page (/trainee-login.html).',
   tip: 'Registered already but unsure of your Batch ID? Ask your trainer — registering a second time makes a duplicate account they then have to clean up.' },
 { icon: '📚', title: 'Find your program in LSH Academy Index', points: [
-    'LSH Academy Index lists every LSH program as a Track, with the training tools (🛠 LSH Sims, 📚 LSH Atlas, ☎ LSH Voice, 🗂 LSH CaseWorX) on the banner above it.',
-    'Tracks are grouped: Personal Injury Playbooks, Cross-Practice Playbooks, and Beyond-Legal Skills (Communication Mastery, marked Free Upskill; Client Matching Essentials and 🃏 Flash Cards).',
+    'LSH Academy Index lists every LSH program as a Track, with the training tools (🛠 LSH Elev8, 📚 LSH Atlas, ☎️ LSH CommX, 🗂 LSH CaseWorX) on the banner above it.',
+    'Tracks are grouped: Personal Injury Playbooks, Cross-Practice Playbooks, and Beyond-Legal Skills (EA PA, Communication Mastery (marked Free Upskill), Client Matching Essentials, the Coming Soon Social Media Management, Bookkeeping, Lead Generation & Outreach, Automation Upskill and Website Management Tracks, and 📬 Your Daily Digest).',
     'Request Access asks for a program; it shows Awaiting Admin Approval until a trainer approves it.',
     'Enter Program opens the program in a new tab, already signed in.',
     'Completed: a program your trainer marked passed keeps Enter Program, so you can go back into it.',
@@ -158,22 +158,22 @@ trainee: [
     '💬 Your feedback: rate the lessons and the training. You can send it anonymously.',
     '🎓 Certificate: unlocks when you complete the program.'],
   where: 'LSH Academy Index → Enter Program, which opens in a new tab.',
-  tip: 'Leave the portal tab open. It is what signs you in to the Program, LSH Sims and LSH Atlas.' },
-{ icon: '🛠', title: 'Practice on LSH Sims', points: [
-    'LSH Sims let you practice real work safely, with fictional cases, and send your scores to your trainer.',
-    '📞 Call Sim on ☎ LSH Voice: every mock call on one training phone — a caller rings your line, you answer with a headset, and the call is graded on your line\'s Mock Calls Metrics (practice with an 🤖 AI caller, take a graded call, or answer a trainer-led mock call).',
+  tip: 'Leave the portal tab open. It is what signs you in to the Program, LSH Elev8 and LSH Atlas.' },
+{ icon: '🛠', title: 'Practice on LSH Elev8', points: [
+    'LSH Elev8 lets you practice real work safely, with fictional cases, and send your scores to your trainer.',
+    '📞 Call Sim on ☎️ LSH CommX: every mock call on one training phone — a caller rings your line, you answer with a headset, and the call is graded on your line\'s Mock Calls Metrics (practice with an 🤖 AI caller, take a graded call, or answer a trainer-led mock call).',
     '📆 Calendaring Sims: Google Calendar for your program — book and manage the attorney’s week, then Submit to trainer for review.',
     '✉️ Email Sims: triage a practice inbox, and answer emails like you would at work.',
     '⚖️ Docket, 🗂 Records and 🏛 E-Filing: docket court deadlines, request medical records and bills, and file with the court.',
     "You're already signed in, so every run is saved under your name and batch. My recent results shows your scores."],
-  where: 'LSH Academy Index → LSH Sims (/simulators.html).',
+  where: 'LSH Academy Index → LSH Elev8 (/simulators.html).',
   tip: 'Put your name in when a Sim asks for it, or the run is practice only and your trainer never sees the score.' },
 { icon: '🃏', title: 'Daily practice: Flash Cards, CaseWorX and My Evaluations', points: [
     '🃏 Flash Cards: the Daily Digest — one card a day from each deck: Rules, Trivia, Terminologies, Process and FAQs. Everyone gets the same card on the same day, so the batch can talk about it.',
     'Open a deck straight from its pill on the Flash Cards card in LSH Academy Index; Got it marks the cards you know (kept in this browser).',
     '🗂 LSH CaseWorX: the practice case management system every program uses — mock case files, the scored Front Desk Drill and your own practice cases, saved for your trainer.',
     '📋 My Evaluations: your calendars in progress, the ones you submitted, and your trainer’s reports on them.'],
-  where: 'LSH Academy Index → Beyond-Legal Skills (Flash Cards); the tool banner (LSH CaseWorX); My Evaluations in the top bar.',
+  where: 'LSH Academy Index → Beyond-Legal Skills (📬 Your Daily Digest); the tool banner (LSH CaseWorX); My Evaluations in the top bar.',
   tip: 'Make the Daily Digest the first five minutes of your day: five cards, every day, adds up fast.' },
 { icon: '📖', title: 'Look things up in LSH Atlas', points: [
     "LSH Atlas is where LSH VAs find the firm's SOPs and share what they know. It's for the team only.",
@@ -205,8 +205,8 @@ admin: [
     'Trainers and Admins sign in to the Portal to run every batch, monitor trainees, and review what they share.',
     'Sign in with Admin in the main page header.',
     'Every main page then has the same admin bar: Blueprint ▾ · System Management ▾ · Trainee Monitoring · Attendance · Referrals · Switch view · Logout.',
-    'Blueprint ▾ also opens every Track’s own blueprint and the LSH CaseWorX, LSH Voice and LSH Atlas blueprints.',
-    "The portal signs you in to each program's admin, LSH Atlas and LSH Sims: one admin password everywhere."],
+    'Blueprint ▾ also opens every Track’s own blueprint and the LSH CaseWorX, LSH CommX and LSH Atlas blueprints.',
+    "The portal signs you in to each program's admin, LSH Atlas and LSH Elev8: one admin password everywhere."],
   where: 'Admin in the main page header (/admin-login.html).',
   tip: 'Sign in before you start screen sharing, never during it.' },
 { icon: '📚', title: 'LSH Academy Index, admin view', points: [
@@ -220,7 +220,7 @@ admin: [
     "🛡 Master Control: users, program access, who's online, activity logs, Broadcast & Ping, and pausing or locking the workspace.",
     "📝 Registrations: approve new sign-ups; approving issues the trainee's Batch ID.",
     '👥 Users and 🔑 Program Access: revoke access, or change which programs a trainee can open.',
-    '🛠 LSH Sims, 📚 LSH Atlas and ☎ LSH Voice: open each tool already signed in as an admin.',
+    '🛠 LSH Elev8, 📚 LSH Atlas and ☎️ LSH CommX: open each tool already signed in as an admin.',
     '🔐 Checks and 🤖 AI Usage: sign-in and admin password checks across platforms, and today’s use of the shared AI budget.'],
   where: 'System Management ▾ in the admin bar (/system.html).',
   tip: "Approving a registration is what issues the trainee's Batch ID — clear the queue before the batch's first day, not during it." },
