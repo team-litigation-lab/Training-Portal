@@ -95,17 +95,15 @@
     .topic-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
     .topic-group { margin-bottom: clamp(8px, 1.1vh, 12px); }
     .topic-group-head { display: flex; align-items: center; justify-content: center; text-align: center; gap: 14px; flex-wrap: nowrap; margin: 0 0 7px; }
-    /* The group's name sits in a navy pill with an orange edge, and the orange rule runs out
-       from both sides of it (no border under it), so it stands out on the photo without
-       making the head any taller: the pill's padding is paid for by a tighter line-height. */
-    .topic-group-head::before, .topic-group-head::after { content: ""; flex: 1 1 0; min-width: 16px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(249,115,22,0), rgba(249,115,22,.95)); }
-    .topic-group-head::after { background: linear-gradient(90deg, rgba(249,115,22,.95), rgba(249,115,22,0)); }
-    /* The group's name is the page's main signpost, so it is set in capitals and
-       carries a light text shadow: it sits on the photo backdrop, not on a card. */
-    .topic-group-head h2 { display: inline-flex; align-items: center; gap: 9px; flex: 0 0 auto; font-size: 19px; line-height: 1.15; font-weight: 900; margin: 0; padding: 4px 20px; color: #fff; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
-        background: linear-gradient(135deg, #0b1633, #1e3a8a); border: 2px solid var(--orange, #f97316); border-radius: 999px;
-        box-shadow: 0 0 0 3px rgba(249,115,22,.22), 0 8px 18px -8px rgba(8,18,38,.7); text-shadow: 0 1px 2px rgba(0,0,0,.35); }
-    .topic-group-head h2::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--orange, #f97316); box-shadow: 0 0 8px rgba(249,115,22,.9); flex-shrink: 0; }
+    /* The group's name sits in a dark pill, and a thin muted orange rule runs out from both sides of it. */
+    .topic-group-head::before, .topic-group-head::after { content: ""; flex: 1 1 0; min-width: 16px; height: 1px; border-radius: 1px; background: linear-gradient(90deg, rgba(249,115,22,0), rgba(249,115,22,.45)); }
+    .topic-group-head::after { background: linear-gradient(90deg, rgba(249,115,22,.45), rgba(249,115,22,0)); }
+    /* A quiet signpost, so the track cards stay the main thing on the page: a near-black pill with a soft gradient, a thin
+       muted orange edge, no glow, and slightly smaller capitals. */
+    .topic-group-head h2 { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; font-size: 15px; line-height: 1.15; font-weight: 800; margin: 0; padding: 4px 18px; color: rgba(255,255,255,.92); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap;
+        background: linear-gradient(135deg, #0a0a0c 0%, #1c1f26 55%, #2c3039 100%); border: 1px solid rgba(249,115,22,.45); border-radius: 999px;
+        box-shadow: 0 6px 14px -10px rgba(0,0,0,.55); }
+    .topic-group-head h2::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: rgba(249,115,22,.85); flex-shrink: 0; }
     /* These section notes sit directly on the body backdrop, not on a card,
        so the wash behind them is all the contrast they get. The photo's
        darkest area composites to about rgb(151,149,150) under the 40% wash
@@ -140,8 +138,10 @@
     .topic-card.tk h3 { border-color: var(--tk); background: linear-gradient(180deg, color-mix(in srgb, var(--tk) 18%, #fff), color-mix(in srgb, var(--tk) 28%, #fff)); }
     .topic-card.tk.live h3 .tk-name { font-weight: 900; letter-spacing: .005em; animation-duration: 4.5s; }   /* an open track's name: the boldest weight, and its shine passes a little more often */
     .tk-ic { display: inline-block; margin-right: .32em; }
-    .topic-card.tk h3.tk-long { white-space: nowrap; font-size: .84em; letter-spacing: -.01em; }   /* a long name (Settlements / Closing Specialist Track, Intellectual Property Law Track) stays on one line beside its emblem */
-    #idx-topics .topic-card.tk h3.tk-long { font-size: clamp(11px, 1.6vh, 17.5px); }
+    /* Every track's name is one size, on one line (an open track and a Coming Soon one alike). Only a name that would not fit
+       its card on one line is drawn smaller, just enough to fit (fitTrackTitles below). */
+    .topic-card h3 { white-space: nowrap; }
+    .topic-card.soon h3 { font-size: calc(16px / .92); }   /* a Coming Soon card is drawn at 92% (below): its name is set up by as much, so every name reads the same size */
     .tk-name { background: linear-gradient(100deg, var(--tk-ink) 0%, var(--tk-ink) 38%, color-mix(in srgb, var(--tk) 45%, #fff) 50%, var(--tk-ink) 62%, var(--tk-ink) 100%);
         background-size: 260% 100%; background-position: 100% 0; -webkit-background-clip: text; background-clip: text; color: transparent;
         animation: tkShine 6s ease-in-out infinite; animation-delay: var(--tkd, 0s); }
@@ -156,9 +156,7 @@
        The words keep their full colour, so they still read at WCAG AA. */
     .topic-card.soon { transform: scale(.92); background: rgba(255,255,255,.84); box-shadow: none; border-color: rgba(15,33,72,.18); }
     .topic-card.tk.soon { box-shadow: inset 0 3px 0 color-mix(in srgb, var(--tk) 45%, transparent); }
-    .topic-card.soon h3 { font-size: 14px; border-width: 1.5px; border-color: color-mix(in srgb, var(--tk, var(--navy)) 40%, #fff); background: color-mix(in srgb, var(--tk, var(--navy)) 11%, #fff); }
-    #idx-topics .topic-card.soon h3 { font-size: clamp(10.5px, 1.6vh, 17px); }
-    #idx-topics .topic-card.tk.soon h3.tk-long { font-size: clamp(10px, 1.4vh, 15px); }
+    .topic-card.soon h3 { border-width: 1.5px; border-color: color-mix(in srgb, var(--tk, var(--navy)) 40%, #fff); background: color-mix(in srgb, var(--tk, var(--navy)) 11%, #fff); }
     .topic-card.soon .tk-name { animation: none; background-position: 0 0; }
     .topic-card.soon .tk-ic { filter: grayscale(.45); opacity: .85; }
     @media (prefers-reduced-motion: reduce) { .tk-name, .topic-card.tk.live h3, .topic-card.tk.live .tk-ic { animation: none; } .tk-name { background-position: 0 0; } }
@@ -176,40 +174,33 @@
     .topic-action-btn.primary { background: var(--navy); color: var(--orange); }
     .topic-action-btn.request { background: var(--orange); color: #0f172a; }
     .topic-action-btn.disabled { background: #f1f5f9; color: #334155; cursor: default; }
-    /* 🃏 Flash Cards: the day's one flash card fills its whole card (no title, no buttons): the deck at the top, then
-       the question, or the answer once flipped by a click or Enter. A new card every day (flashcards-data.js). The card
-       keeps the size of its neighbours, so the page still fits one screen. */
+    /* 📬 Your Daily Digest: the Flash Cards card is one button that opens today's digest in a popup: one card from each deck
+       (flashcards-data.js today()), each with its question (for a term: "What does … mean?") and a Show answer button. */
     .tool-card { padding: clamp(6px, 1vh - 2px, 12px); }
-    .tool-card .fc-mini { grid-column: 1 / -1; grid-row: 1 / -1; align-self: stretch; position: relative; display: flex; flex-direction: column; gap: 4px;
-        min-height: 0; padding: 7px 12px 8px; border-radius: 10px; cursor: pointer; text-align: left; overflow: hidden;
-        background: #fff; color: var(--navy-deep); border: 2px solid var(--navy-deep); box-shadow: inset 5px 0 0 var(--orange); transition: background .25s ease, color .25s ease; }
-    .fc-mini-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .fc-mini-flip { font-size: 15px; font-weight: 900; color: #c2410c; line-height: 1; }
-    .fc-mini.flip .fc-mini-flip { color: var(--orange); }
-    /* The text sizes itself to the card (fitFlashCard below): as large as fits, centred; trimmed at a whole line only
-       when even the smallest size would not fit. */
-    .tool-card .fc-mini .fc-mini-body { flex: 1; min-height: 0; display: flex; align-items: center; overflow: hidden; }
-    .tool-card .fc-mini .fc-mini-text { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; font-size: 16px; font-weight: 800; line-height: 1.28; }
-    .tool-card .fc-mini.flip .fc-mini-text { font-weight: 600; }
-    /* short screens (up to 940px tall): the deck becomes a small corner badge (its icon and ↻), so the card's text gets the whole card */
-    @media (max-height: 940px) {
-        .tool-card .fc-mini { padding: 4px 30px 4px 10px; gap: 0; }
-        .fc-mini-top { position: absolute; top: 3px; right: 6px; flex-direction: column; gap: 2px; }
-        .fc-mini-deck b { display: none; }
-        .fc-mini-flip { font-size: 12px; }
-    }
-    .tool-card .fc-mini:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
-    .tool-card .fc-mini.flip { background: var(--navy-deep); color: #fff; border-color: var(--orange); }
-    .fc-mini-deck { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #c2410c; white-space: nowrap; }
-    .fc-mini.flip .fc-mini-deck { color: var(--orange); }
-    .fc-mini-deck b { font-weight: inherit; }
-    .fc-mini-text { font-size: 12.5px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-    .fc-mini.flip .fc-mini-text { font-weight: 600; }
-    .fc-mini-text.in { animation: fcMiniIn .45s ease; }
-    @keyframes fcMiniIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-    @media (prefers-reduced-motion: reduce) { .fc-mini-text.in { animation: none; } .tool-card .fc-mini { transition: none; } }
+    .tool-card .dd-open { grid-column: 1 / -1; grid-row: 1 / -1; align-self: stretch; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(4px, .8vh, 9px);
+        border: 2px solid var(--navy-deep); border-radius: 10px; background: linear-gradient(135deg, #0a0a0c, #1c1f26 60%, #2c3039); color: #fff; cursor: pointer; font: inherit; padding: 6px 10px; box-shadow: inset 5px 0 0 var(--orange); transition: transform .15s ease, box-shadow .15s ease; }
+    .tool-card .dd-open:hover { transform: translateY(-2px); box-shadow: inset 5px 0 0 var(--orange), 0 10px 20px -12px rgba(0,0,0,.6); }
+    .tool-card .dd-open:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+    .dd-open .dd-t { font-size: clamp(13px, 1.9vh, 20px); font-weight: 900; letter-spacing: .01em; white-space: nowrap; }
+    .dd-open .dd-c { font-size: clamp(10.5px, 1.3vh, 13px); font-weight: 800; color: #0f172a; background: var(--orange); border-radius: 999px; padding: 3px 14px; white-space: nowrap; }
+    #dd-pop { position: fixed; inset: 0; z-index: 9000; display: none; align-items: center; justify-content: center; background: rgba(8,12,24,.55); padding: 16px; }
+    #dd-pop.open { display: flex; }
+    #dd-pop .dd-box { width: min(760px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; background: #fff; border-radius: 16px; border: 2px solid var(--navy-deep); box-shadow: 0 24px 60px -20px rgba(0,0,0,.6); padding: 18px 20px 16px; }
+    #dd-pop .dd-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+    #dd-pop h2 { margin: 0; font-size: 22px; font-weight: 900; color: var(--navy-deep); }
+    #dd-pop .dd-x { border: 0; background: none; font-size: 22px; line-height: 1; cursor: pointer; color: #334155; padding: 4px 8px; }
+    #dd-pop .dd-sub { margin: 0 0 12px; color: #475569; font-size: 13.5px; }
+    #dd-pop .dd-card { border: 1.5px solid #e2e8f0; border-left: 5px solid var(--orange); border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; }
+    #dd-pop .dd-deck { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #c2410c; }
+    #dd-pop .dd-q { margin: 4px 0 8px; font-size: 16px; font-weight: 800; color: #0f172a; line-height: 1.35; }
+    #dd-pop .dd-a { margin: 0; font-size: 15px; color: #1e293b; line-height: 1.45; background: #f8fafc; border-radius: 8px; padding: 8px 10px; }
+    #dd-pop .dd-show { border: 1.5px solid var(--navy-deep); background: #fff; color: var(--navy-deep); border-radius: 999px; padding: 4px 14px; font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; }
+    #dd-pop .dd-show:hover { background: var(--navy-deep); color: #fff; }
+    #dd-pop .dd-foot { display: flex; justify-content: flex-end; margin-top: 4px; }
+    #dd-pop .dd-foot a { font-size: 13.5px; font-weight: 800; color: var(--navy-deep); }
     .sim-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid)); color: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 28px; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(8,18,38,.6); }
     .sim-banner:hover { transform: translateY(-2px); }
+    .sim-banner-tx .tm { font-size: .5em; font-weight: 700; letter-spacing: 0; margin-left: .12em; vertical-align: super; line-height: 0; opacity: .85; }   /* ™ on each tool's name */
     .sim-banner-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
     .sim-banner-row .sim-banner { margin-bottom: 0; padding: 10px 12px; gap: 10px; border-radius: 14px; }
     /* The name alone — these are signposts to four tools, not the tools'
@@ -285,6 +276,7 @@
            clipped by the body's overflow:hidden instead of the rows giving up their spare air. */
         #idx-topics .topic-card { grid-template-rows: minmax(0, 1fr) auto; align-content: center; min-height: 0; overflow: hidden; }
         #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: clamp(12px, 1.95vh, 21px); }
+        #idx-topics .topic-card.soon h3 { font-size: calc(clamp(12px, 1.95vh, 21px) / .92); }
         #idx-topics .topic-action-btn { font-size: clamp(9.5px, 1.05vh, 11.5px); padding: clamp(4px, 0.6vh, 7px) clamp(11px, 1vw, 16px); }
         #idx-topics .topic-status { font-size: clamp(9.5px, 1.1vh, 12px); padding: 3px 10px; }
     }
@@ -314,7 +306,7 @@
         .sim-banner-row .sim-banner-go { font-size: 11.5px; padding: 5px 10px; }
         .topic-group { margin-bottom: 9px; }
         .topic-group-head { margin-bottom: 5px; }
-        .topic-group-head h2 { font-size: 17px; padding: 3px 18px; }
+        .topic-group-head h2 { font-size: 14px; padding: 3px 16px; }
         .topic-grid { gap: 8px; }
         .topic-card { padding: 7px 9px; gap: 5px; }
         .topic-card h3 { font-size: 12px; padding: 5px 7px; }
@@ -387,22 +379,22 @@
     <div class="sim-banner-row">
     <a class="sim-banner" href="/simulators.html">
         <span class="sim-banner-ic">🛠</span>
-        <span class="sim-banner-tx" title="Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>LSH Sims</b></span>
+        <span class="sim-banner-tx" title="Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>LSH Sims<sup class="tm" aria-label="trademark">™</sup></b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" href="/kb.html">
         <span class="sim-banner-ic">📚</span>
-        <span class="sim-banner-tx" title="Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know."><b>LSH Atlas</b></span>
+        <span class="sim-banner-tx" title="Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know."><b>LSH Atlas<sup class="tm" aria-label="trademark">™</sup></b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="ring-banner" href="/api/launch?tool=ringchannel" target="_blank" rel="noopener">
         <span class="sim-banner-ic">☎</span>
-        <span class="sim-banner-tx" title="Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal."><b>LSH Voice</b></span>
+        <span class="sim-banner-tx" title="Mock calls on your training phone, with your trainer or a 🤖 AI caller: it rings, you answer, take the note, and the call is recorded and reviewed. Reception, Calendar and Intake. Use a headset. You are signed in from the Portal."><b>LSH Voice<sup class="tm" aria-label="trademark">™</sup></b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="cms-banner" href="/api/launch?tool=cms" target="_blank" rel="noopener">
         <span class="sim-banner-ic">🗂</span>
-        <span class="sim-banner-tx" title="LSH CaseWorX, the practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer."><b>LSH CaseWorX</b></span>
+        <span class="sim-banner-tx" title="LSH CaseWorX, the practice CMS every program uses: mock case files, the scored Front Desk Drill and your own practice cases. You are signed in from the Portal; your work is saved for your trainer."><b>LSH CaseWorX<sup class="tm" aria-label="trademark">™</sup></b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     </div>
@@ -451,8 +443,8 @@
         'STANDARD TRAINING': 'Legal VA Foundational Track',
         // The live topics table still carries the old "CM Training" / "Revised CM Training"
         // from before the rename; these put the full names on the cards without a migration.
-        'CM TRAINING': 'Case Management Playbook',
-        'REVISED CM TRAINING': 'Revised Case Management Playbook',
+        'CM TRAINING': 'Case Management Track',
+        'REVISED CM TRAINING': 'Revised Case Management Track',
         'EA  PA TRAINING-OUTSOURCED MANP': 'EA PA Track',
         'REVISED EA PA TRAINING': 'Revised EA PA Track',
         'CALENDAR MANAGEMENT TRAINING': 'Calendar Management Track',
@@ -470,8 +462,8 @@
         'INTELLECTUAL PROPERTY LAW': 'Intellectual Property Law Track',
         'REAL ESTATE LAW': 'Real Estate Law Track',
         'FREE UPSKILL PROGRAMS': 'Free Upskill Track',
-        'SETTLEMENTS CLOSING': 'Settlements / Closing Specialist Track',
-        'CLIENT INTERVIEW PREP': 'Client Interview Prep',
+        'SETTLEMENTS CLOSING': 'Closing Specialist Track',
+        'CLIENT INTERVIEW PREP': 'Client Matching Essentials',
         'FLASH CARDS': 'Flash Cards'
     };
 
@@ -496,8 +488,8 @@
     const EXTRA_PROGRAMS = [
         { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Track', sort_order: 0 },
         { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Track', sort_order: 13 },
-        { key: 'SETTLEMENTS CLOSING', name: 'Settlements / Closing Specialist Track', sort_order: 13 },
-        { key: 'CLIENT INTERVIEW PREP', name: 'Client Interview Prep', sort_order: 0 },
+        { key: 'SETTLEMENTS CLOSING', name: 'Closing Specialist Track', sort_order: 13 },
+        { key: 'CLIENT INTERVIEW PREP', name: 'Client Matching Essentials', sort_order: 0 },
         { key: 'FLASH CARDS', name: 'Flash Cards', sort_order: 0 }
     ];
     // Portal pages anyone can open from a card, with no access request: they live on this site.
@@ -505,42 +497,34 @@
     const PORTAL_TOOLS = { 'FLASH CARDS': '/flashcards.html' };
     const toolCard = (t) => `
                 <div class="topic-card tool-card">
-                    <div class="fc-mini" role="button" tabindex="0" aria-pressed="false" aria-label="${escapeHtml(t.name)}: today's flash card" title="Today's flash card: click to flip">
-                        <span class="fc-mini-top"><span class="fc-mini-deck"></span><span class="fc-mini-flip" aria-hidden="true">↻</span></span>
-                        <span class="fc-mini-body"><span class="fc-mini-text"></span></span>
-                    </div>
+                    <button type="button" class="dd-open" onclick="openDailyDigest()" aria-haspopup="dialog" title="Today's flash cards: one from each deck">
+                        <span class="dd-t">📬 Your Daily Digest</span><span class="dd-c">Click Here</span>
+                    </button>
                 </div>`;
-    // The flash card's text as large as its card allows: from 26px (a short question) down to 11px; if even 11px
-    // overflows, it is cut at the last whole line that fits (with an ellipsis) and the full text stays on hover.
-    function fitFlashCard(box) {
-        const body = box.querySelector('.fc-mini-body'), t = box.querySelector('.fc-mini-text');
-        if (!body || !t || !body.clientHeight) return;
-        t.style.webkitLineClamp = 'unset';
-        let px = 26;
-        for (; px > 11; px -= 1) { t.style.fontSize = px + 'px'; if (t.scrollHeight <= body.clientHeight && t.scrollWidth <= body.clientWidth + 1) break; }
-        t.style.fontSize = px + 'px';
-        if (t.scrollHeight > body.clientHeight) t.style.webkitLineClamp = String(Math.max(1, Math.floor(body.clientHeight / (px * 1.28))));
+    // 📬 Your Daily Digest: today's cards (flashcards-data.js today(), the same for everyone today) in a popup. A Terminologies
+    // card asks what its term means; every card keeps its answer behind a Show answer button.
+    function openDailyDigest() {
+        const F = window.LSH_FLASHCARDS; if (!F) return;
+        let pop = document.getElementById('dd-pop');
+        if (!pop) {
+            pop = document.createElement('div'); pop.id = 'dd-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-modal', 'true'); pop.setAttribute('aria-labelledby', 'dd-title');
+            document.body.appendChild(pop);
+            pop.addEventListener('click', (ev) => { if (ev.target === pop || ev.target.closest('.dd-x')) closeDailyDigest();
+                const b = ev.target.closest('.dd-show'); if (b) { const a = b.nextElementSibling; a.hidden = false; b.remove(); } });
+            document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && pop.classList.contains('open')) closeDailyDigest(); });
+        }
+        const when = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+        pop.innerHTML = `<div class="dd-box"><div class="dd-head"><h2 id="dd-title">📬 Your Daily Digest</h2><button type="button" class="dd-x" aria-label="Close">✕</button></div>
+            <p class="dd-sub">${escapeHtml(when)}: one card from each deck. Think of your answer, then press Show answer.</p>
+            ${F.today().map(({ deck, i }) => { const [q, a] = deck.cards[i];
+                const ask = deck.id === 'terms' ? `What does “${q}” mean?` : q;
+                return `<div class="dd-card"><div class="dd-deck">${escapeHtml(deck.icon + ' ' + deck.label)}</div><p class="dd-q">${escapeHtml(ask)}</p>
+                    <button type="button" class="dd-show">Show answer</button><p class="dd-a" hidden>${escapeHtml(a)}</p></div>`; }).join('')}
+            <div class="dd-foot"><a href="/flashcards.html">All the flash cards →</a></div></div>`;
+        pop.classList.add('open');
+        const x = pop.querySelector('.dd-x'); if (x) x.focus();
     }
-    // 🃏 The Flash Cards card shows one flash card a day (flashcards-data.js one()); a click or Enter flips it to the answer.
-    function startFlashCards() {
-        const box = document.querySelector('.tool-card .fc-mini'), F = window.LSH_FLASHCARDS;
-        if (!box || !F || box.dataset.ready) return;
-        box.dataset.ready = '1';
-        const { deck, i } = F.one(), [q, a] = deck.cards[i], deckEl = box.querySelector('.fc-mini-deck'), textEl = box.querySelector('.fc-mini-text');
-        const show = () => {
-            const back = box.classList.contains('flip');
-            deckEl.innerHTML = escapeHtml(deck.icon) + '<b>' + escapeHtml(' ' + deck.label) + '</b>'; deckEl.title = deck.label + (back ? ': the answer' : '');
-            textEl.textContent = back ? a : q; box.title = (back ? a : q) + (back ? '\n\nClick to see the question' : '\n\nClick for the answer');
-            box.setAttribute('aria-pressed', back ? 'true' : 'false');
-            fitFlashCard(box);
-            textEl.classList.remove('in'); void textEl.offsetWidth; textEl.classList.add('in');
-        };
-        const flip = () => { box.classList.toggle('flip'); show(); };
-        window.addEventListener('resize', () => fitFlashCard(box));
-        box.addEventListener('click', flip);
-        box.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); flip(); } });
-        show();
-    }
+    function closeDailyDigest() { const pop = document.getElementById('dd-pop'); if (pop) pop.classList.remove('open'); const b = document.querySelector('.tool-card .dd-open'); if (b) b.focus(); }
     // Shown first on the index, ahead of the progression, with a "Free" badge.
     const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
 
@@ -714,7 +698,7 @@
         // 🎨 Each track's own identity on its card: an emblem and a colour, with the name in that colour (TRACK_LOOK).
         const tkOpen = (t, live) => { const k = TRACK_LOOK[t.key]; return k ? `<div class="topic-card tk${live ? ' live' : ' soon'}" style="--tk:${k[1]};--tkd:${(t.key.length * 0.37) % 3}s">` : `<div class="topic-card${live ? '' : ' soon'}">`; };
         const tkTitle = (t) => { const k = TRACK_LOOK[t.key], free = PINNED_PROGRAMS.includes(t.key) ? ' <span class="topic-free">Free</span>' : '';
-            return k ? `<h3${t.name.length > 30 ? ' class="tk-long"' : ''}><span class="tk-ic" aria-hidden="true">${k[0]}</span><span class="tk-name">${escapeHtml(t.name)}</span>${free}</h3>` : `<h3>${escapeHtml(t.name)}${free}</h3>`; };
+            return k ? `<h3><span class="tk-ic" aria-hidden="true">${k[0]}</span><span class="tk-name">${escapeHtml(t.name)}</span>${free}</h3>` : `<h3>${escapeHtml(t.name)}${free}</h3>`; };
         const cardFor = (t) => {
             if (PORTAL_TOOLS[t.key]) return toolCard(t);
             const built = SSO_PROGRAMS.includes(t.key);
@@ -758,8 +742,19 @@
         };
         grid.className = 'topic-groups';
         grid.innerHTML = groupedTopicsHtml(cardFor);
-        startFlashCards();
+        fitTrackTitles();
     }
+    // One size for every track name; a name too long for its card on one line steps down (half a pixel at a time, to 9px at
+    // the least) until it fits, and only that name.
+    function fitTrackTitles() {
+        document.querySelectorAll('#idx-topics .topic-card h3').forEach(h => {
+            h.style.fontSize = '';
+            let px = parseFloat(getComputedStyle(h).fontSize);
+            while (h.scrollWidth > h.clientWidth + 1 && px > 9) { px -= 0.5; h.style.fontSize = px + 'px'; }
+        });
+    }
+    window.addEventListener('resize', () => { clearTimeout(window.__fitTitlesT); window.__fitTitlesT = setTimeout(fitTrackTitles, 120); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitTrackTitles());
 
     // The cards are grouped by practice area: everything personal injury is in one place.
     const TOPIC_GROUPS = [
