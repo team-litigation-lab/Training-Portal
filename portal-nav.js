@@ -236,3 +236,15 @@ window.addEventListener('scroll', () => PortalNav.closeMenus(), true);
     }
     if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
+// The standard footer on every portal page: one copyright line, the same everywhere (theme.css .lsh-footer).
+// Not inside a course's frame, where the course's own page is the one with the footer.
+(function () {
+    function addFooter() {
+        if (PortalNav.embedded() || document.querySelector('.lsh-footer')) return;
+        const f = document.createElement('footer');
+        f.className = 'lsh-footer'; f.setAttribute('role', 'contentinfo');
+        f.textContent = '\u00a9 ' + new Date().getFullYear() + ' Legal Support Help. All Rights Reserved.';
+        document.body.appendChild(f);
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addFooter); else addFooter();
+})();

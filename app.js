@@ -484,12 +484,12 @@ function renderRegistrations() {
             <summary><span class="pa-caret" aria-hidden="true">▶</span><span class="pa-title">${escapeHtml(title)}</span>
                 <span class="pa-chip warn">${users.length} waiting</span>${note ? `<span class="pa-chip">${escapeHtml(note)}</span>` : ''}</summary>
             <div class="mc-table-wrap pa-table-wrap"><table class="mc-table pa-table">
-                <thead><tr><th>#</th><th style="width:22%;">Name</th><th>Username</th><th>Email</th><th>Registered</th><th>Training start</th><th style="text-align:right;">Decision</th></tr></thead>
+                <thead><tr><th>#</th><th style="width:22%;">Name</th><th>Username</th><th>Email</th><th>Registered</th><th>Onboarding day</th><th style="text-align:right;">Decision</th></tr></thead>
                 <tbody>${users.map(row).join('')}</tbody></table></div></details>`;
     container.innerHTML = `<div class="pa-toolbar"><button class="btn-ghost" onclick="paExpandAll(true, 'registrations-list')">Expand all</button><button class="btn-ghost" onclick="paExpandAll(false, 'registrations-list')">Collapse all</button></div>`
         + (trainers.length ? section('reg:trainers', '🧑‍🏫 Trainer registrations', 'pa-trainers', trainers, 'no batch: trainers belong to none') : '')
         + batches.map(g => g.key === 'No Batch'
-            ? section('reg:batch:none', '🎓 No training start date', '', g.users, 'batch set from the approval date')
+            ? section('reg:batch:none', '🎓 No Onboarding / Orientation Day', '', g.users, 'batch set from the approval date')
             : section('reg:batch:' + g.key, '🎓 Batch ' + g.key, '', g.users, 'joins on approval')).join('');
 }
 
@@ -3317,7 +3317,7 @@ function openCreateUser() {
         ${f('email', 'Email', 'email')}
         ${f('username', 'Username', 'text', '3 to 30 letters, numbers or underscores.')}
         ${f('password', 'Password', 'password', 'At least 8 characters, any of them. Pass it to them and have them change it.')}
-        <div id="cu-startwrap">${f('start', 'Start of training', 'date', 'Dates their batch when the registration is approved.')}</div>
+        <div id="cu-startwrap">${f('start', 'Onboarding / Orientation Day', 'date', 'Their Batch ID is made from it (B + MMDDYY) when the registration is approved.')}</div>
         <div id="cu-error" style="color:#b91c1c;font-size:12px;font-weight:700;margin-top:10px;display:none;"></div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
             <button class="btn-ghost" style="padding:8px 14px;font-size:11px;border-radius:6px;" onclick="document.getElementById('create-user-overlay').remove()">Cancel</button>

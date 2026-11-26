@@ -16,7 +16,7 @@
     const FEATURES = [
         { g: 'people', id: 'registrations', icon: '📝', name: 'Log-in Approvals', go: { mc: 'registrations' }, stat: () => count('admin-stat-pending', 'waiting', true),
           what: 'New sign-ups waiting. Approving issues the Batch ID and moves the account to Users.',
-          steps: ['Open Log-in Approvals: trainers are listed first, then trainees by the batch they will join (oldest first).', 'Check the name, email and training start date.', 'Press Approve (the Batch ID is issued) or Deny.', 'Need an account for someone? Use + Create account at the top right.'] },
+          steps: ['Open Log-in Approvals: trainers are listed first, then trainees by the batch they will join (oldest first).', 'Check the name, email and Onboarding / Orientation Day (it makes the Batch ID).', 'Press Approve (the Batch ID is issued) or Deny.', 'Need an account for someone? Use + Create account at the top right.'] },
         { g: 'people', id: 'access-requests', icon: '🙋', name: 'Access Requests', go: { fn: 'openAccessRequests' }, stat: () => count('access-req-badge-side', 'waiting', true),
           what: 'Trainees asking to open a program or tool.',
           steps: ['Open Access Requests: it opens Program Access with the waiting requests.', 'Each row names the trainee, batch and program.', 'Press Approve to open the program for them, or Deny.', 'The trainee’s LSH Academy Index updates on its own within seconds.'] },

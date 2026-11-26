@@ -16,7 +16,7 @@
 <!-- auth-compact-right: the shared sign-in layout (auth.css) — a small card in
      the lower right corner, over the full-bleed rings panel. Same as
      admin-login.html, so the two sign-ins look and sit the same. -->
-<body class="auth-compact-right">
+<body class="auth-uni" data-role="trainee">
 
 <div class="auth-shell">
     <div class="auth-visual">
@@ -34,7 +34,6 @@
             <h1>One log in for all your training.</h1>
             <p>Log in with the username and password you registered with. You won't be asked to sign in again inside each program.</p>
         </div>
-        <div class="visual-foot">&copy; 2026 Legal Support Help. All Rights Reserved.</div>
     </div>
 
     <div class="auth-form-side">
@@ -43,12 +42,9 @@
                 <span class="auth-card-mark"><img src="/img/logo.svg" alt="Legal Support Help" width="75" height="46"></span>
                 <span>Legal Support Help</span>
             </div>
-            <!-- Log in as: switches between the two sign-ins (keeps ?next=). A wrong pick
-                 is also switched for you: attemptLogin() retries in the account's own role. -->
-            <div class="role-tabs" role="group" aria-label="Log in as">
-                <a href="/trainee-login.html" data-role-tab class="on" aria-current="page">Trainee</a>
-                <a href="/admin-login.html" data-role-tab>Admin</a>
-            </div>
+            <!-- Trainees and admins sign in on separate cards (no switch between them): this card signs in a
+                 Trainee account only. An admin account typed here is refused with a link to the Admin sign-in. -->
+            <div class="role-badge" data-role-badge>🎓 Trainee Sign-in</div>
             <h2 id="admin-login-heading">Trainee Log In</h2>
             <p class="sub" id="admin-login-sub">Log in once here, then open every training program from LSH Academy Index.</p>
 
@@ -60,6 +56,7 @@
                 <button class="auth-submit" onclick="attemptLogin()">Log In</button>
 
                 <div class="auth-switch">New to LSH? <a href="/registration.html">Register here</a></div>
+                <div class="role-switch">Trainer or administrator? <a href="/admin-login.html">Use the Admin sign-in &rarr;</a></div>
             </div>
 
             <div id="auth-locked-notice" style="display:none; text-align:center; padding:24px 4px;">

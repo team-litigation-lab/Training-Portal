@@ -653,3 +653,33 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 }
 .pn-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 @media print { .pn-scroll { overflow: visible; } }
+
+/* ---------- the standard footer (portal-nav.js adds it to every page) ---------- */
+/* One copyright line, the same on every page: a solid navy bar with the orange
+   line along its top, the text large and light enough to read at a glance.
+   flex-shrink:0 so a page laid out as one full-height column (LSH Academy
+   Index, the dashboard) keeps it whole at the foot of the screen. */
+.lsh-footer {
+    position: relative; z-index: 2; flex-shrink: 0;
+    width: 100%; box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+    padding: 13px 20px;
+    background: #081226; border-top: 3px solid #f97316;
+    color: #f1f5f9; text-align: center;
+    font: 600 14.5px/1.4 'IBM Plex Sans', Arial, Helvetica, sans-serif; letter-spacing: .02em;
+}
+/* the sign-in pages: the panel is the whole screen, so the footer sits on its foot */
+body.auth-uni .lsh-footer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 3; }
+body.auth-uni .auth-form-side { padding-bottom: 92px; }
+body.auth-uni { background: #081226; }
+body.auth-uni .auth-visual { justify-content: flex-start; padding-bottom: 96px; }
+body.auth-uni .visual-copy { margin: auto 0; }
+/* a long form (Registration) and any phone: the page scrolls, so the footer ends the page instead of covering the form */
+body.auth-uni[data-role="register"] .lsh-footer { position: relative; }
+body.auth-uni[data-role="register"] .auth-form-side { padding-bottom: 48px; }
+@media (max-width: 860px) {
+    body.auth-uni .lsh-footer { position: relative; }
+    body.auth-uni .auth-form-side { padding-bottom: 40px; }
+}
+@media (max-width: 560px) { .lsh-footer { font-size: 13px; padding: 11px 14px; } }
+@media print { .lsh-footer { background: none; color: #334155; border-top: 1px solid #cbd5e1; } }
