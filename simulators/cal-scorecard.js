@@ -23,7 +23,7 @@
         { name: 'Calendar Creation & Attorney Reminder Setup', weight: 1, about: 'The calendar entry: the right calendar, a specific title, the day, date, time, time zone, place or video link, who attends, the description, and the reminder for the attorney.' },
         { name: 'Notes, Recap & Call Closing', weight: 1, about: 'Reads the booking back and gets the caller’s OK; closes politely with what happens next; the notes are accurate and complete.' },
         // 🛠 ends every scorecard on the Foundational Training (js/ft-rubrics.js WRITING): how the trainee used the systems and tools
-        { name: 'Tools Utilization', weight: 1, about: 'How the trainee used the systems and tools for the call: the phone’s keys on LSH Voice, 🔎 Case lookup and LSH CaseWorks, and the Google Calendar Sim.' }
+        { name: 'Tools Utilization', weight: 1, about: 'How the trainee used the systems and tools for the call: the phone’s keys on LSH CommX, 🔎 Case lookup and LSH CaseWorks, and the Google Calendar Sim.' }
     ];
     // As on the Foundational Training: Passed at 3/5 (60%) or more, Failed below.
     const PASS_PCT = 60;

@@ -17,7 +17,7 @@ const CHECKS = [
     { name: 'CMS (database)', url: 'https://lshcasemanagementtraining-trainingcrm.pages.dev/api/state', json: (b) => b && typeof b.paused === 'boolean' },
     // The two other tools a signed-in person reaches through SSO (functions/api/launch.js SSO_TOOLS).
     { name: 'LSH Atlas', url: 'https://lsh-knowledge-base.legalsupporthelp.workers.dev/', expect: '<html' },
-    { name: 'LSH Voice', url: 'https://lshringchannel.legalsupporthelp.workers.dev/', expect: '<html' }
+    { name: 'LSH CommX', url: 'https://lshringchannel.legalsupporthelp.workers.dev/', expect: '<html' }
 ];
 
 async function run(c) {

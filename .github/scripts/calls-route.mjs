@@ -1,5 +1,5 @@
-// Every Call Sim is LSH Voice's (the training phone): a link to the Portal's (/simulators/call.html, from the
-// LSH Sims page, a course or a program) opens it there through the Portal's sign-in (functions/_middleware.js →
+// Every Call Sim is LSH CommX's (the training phone): a link to the Portal's (/simulators/call.html, from the
+// LSH SIMUL8 page, a course or a program) opens it there through the Portal's sign-in (functions/_middleware.js →
 // /api/launch?tool=ringchannel&to=calls), on 🎧 Practice, on the line the link names and with a graded call when it asks
 // for one, and nobody signs in again. Run: node .github/scripts/calls-route.mjs
 import { readFileSync } from 'node:fs';
@@ -19,7 +19,7 @@ const req = (path, token) => new Request('https://cm-training-activity.pages.dev
 const mw = async (path, token) => onRequest({ request: req(path, token), env, next: async () => new Response('the page') });
 const go = async (path, token) => { const r = await launch({ request: req(path, token), env }); return { status: r.status, at: r.headers.get('Location') || '' }; };
 
-// 1. the Portal's Call Sim address → LSH Voice's 🎧 Practice, through /api/launch, with the link's details
+// 1. the Portal's Call Sim address → LSH CommX's 🎧 Practice, through /api/launch, with the link's details
 const links = {
     '/simulators/call.html?program=FT&line=Reception%20Mock%20Calls&random=1': { program: 'FT', track: 'reception', graded: '1' },
     '/simulators/call.html?flow=intake': { track: 'intake' },
@@ -31,12 +31,12 @@ const links = {
 for (const [link, want] of Object.entries(links)) {
     const r = await mw(link, trainee);
     const at = r.headers.get('Location') || '';
-    if (r.status !== 302 || !at.startsWith('/api/launch?tool=ringchannel&to=calls')) { fail(`${link} didn't go to LSH Voice's Call Sim: ${r.status} ${at}`); continue; }
+    if (r.status !== 302 || !at.startsWith('/api/launch?tool=ringchannel&to=calls')) { fail(`${link} didn't go to LSH CommX's Call Sim: ${r.status} ${at}`); continue; }
     const l = await go(at, trainee), u = l.at ? new URL(l.at) : null;
-    if (l.status !== 302 || !u || u.origin !== 'https://lshringchannel.legalsupporthelp.workers.dev' || !u.searchParams.get('ticket') || u.hash !== '#/practice') { fail(`${link}: the launch didn't sign them into LSH Voice's practice phone: ${l.status} ${l.at}`); continue; }
-    for (const k of ['track', 'line', 'program', 'graded']) if ((u.searchParams.get(k) || undefined) !== want[k]) fail(`${link}: the LSH Voice link's ${k} is ${u.searchParams.get(k)} (expected ${want[k]})`);
+    if (l.status !== 302 || !u || u.origin !== 'https://lshringchannel.legalsupporthelp.workers.dev' || !u.searchParams.get('ticket') || u.hash !== '#/practice') { fail(`${link}: the launch didn't sign them into LSH CommX's practice phone: ${l.status} ${l.at}`); continue; }
+    for (const k of ['track', 'line', 'program', 'graded']) if ((u.searchParams.get(k) || undefined) !== want[k]) fail(`${link}: the LSH CommX link's ${k} is ${u.searchParams.get(k)} (expected ${want[k]})`);
 }
-// signed out: the sign-in page, not LSH Voice; an admin opens the same phone as a trainer (LSH Voice has no sign-in of its own)
+// signed out: the sign-in page, not LSH CommX; an admin opens the same phone as a trainer (LSH CommX has no sign-in of its own)
 const out = await mw('/simulators/call.html?program=FT', null);
 if (out.status !== 302 || !/^\/trainee-login\.html\?next=%2Fsimulators%2Fcall\.html/.test(out.headers.get('Location') || '')) fail(`a signed-out visitor to the Call Sim wasn't sent to sign in: ${out.status} ${out.headers.get('Location')}`);
 const ad = await go('/api/launch?tool=ringchannel&to=calls&flow=reception', admin);
@@ -45,40 +45,40 @@ if (!/^https:\/\/lshringchannel\.legalsupporthelp\.workers\.dev\/\?ticket=[^#&]+
 const other = await mw('/simulators/gcal.html', trainee);
 if (other.status !== 200 || (await other.text()) !== 'the page') fail('another simulator page was redirected');
 
-// 2. only what LSH Voice reads goes along
-if (callsQuery(new URLSearchParams('flow=bogus&program=<script>&line=' + 'x'.repeat(90) + '&to=roleplay&mode=practice')) !== '') fail('a link\'s unknown values went along to LSH Voice');
+// 2. only what LSH CommX reads goes along
+if (callsQuery(new URLSearchParams('flow=bogus&program=<script>&line=' + 'x'.repeat(90) + '&to=roleplay&mode=practice')) !== '') fail('a link\'s unknown values went along to LSH CommX');
 if (callsQuery(new URLSearchParams('line=all&flow=EA-PA&program=ea')) !== 'program=EA') fail(`"all" lines and an unknown flow: ${callsQuery(new URLSearchParams('line=all&flow=EA-PA&program=ea'))}`);
 if (callsQuery(new URLSearchParams('track=INTAKE&random=1')) !== 'track=intake&graded=1') fail(`the line's case and a graded call: ${callsQuery(new URLSearchParams('track=INTAKE&random=1'))}`);
-// to=calls is LSH Voice's only: a program link and the CMS can't use it, and to=drill still works
+// to=calls is LSH CommX's only: a program link and the CMS can't use it, and to=drill still works
 const prog = await go('/api/launch?program=' + encodeURIComponent('STANDARD TRAINING') + '&to=calls', trainee);
 if (/#\/practice|track=/.test(prog.at)) fail(`a program link took to=calls: ${prog.at}`);
 const cmsCalls = await go('/api/launch?tool=cms&to=calls&track=reception', trainee);
 if (/track=|#\/practice/.test(cmsCalls.at)) fail(`to=calls worked on the CMS: ${cmsCalls.at}`);
 const drill = await go('/api/launch?tool=cms&to=drill', trainee);
 if (!/&drill=1$/.test(drill.at)) fail(`to=drill no longer opens the CMS drill: ${drill.at}`);
-// 3. to=messages opens LSH Voice's 💬 Client Messaging: only its program, a conversation's id and graded go along, and only to LSH Voice
+// 3. to=messages opens LSH CommX's 💬 Client Messaging: only its program, a conversation's id and graded go along, and only to LSH CommX
 const msgs = await go('/api/launch?tool=ringchannel&to=messages&program=MD&thread=md_demand&mode=graded&line=<x>', trainee);
 if (!/^https:\/\/lshringchannel\.legalsupporthelp\.workers\.dev\/\?ticket=[^#&]+&messages=1&program=md&thread=md_demand&mode=graded$/.test(msgs.at)) fail(`to=messages: ${msgs.at}`);
 if (messagesQuery(new URLSearchParams('program=nope&thread=../../x&mode=practice')) !== 'messages=1') fail('a link\'s unknown values went along to Client Messaging');
 const cmsMsgs = await go('/api/launch?tool=cms&to=messages', trainee);
 if (/messages=1/.test(cmsMsgs.at)) fail(`to=messages worked on the CMS: ${cmsMsgs.at}`);
 
-/* 4. to=automessages opens 💬 Automated Messaging on LSH Voice: the texting simulator, where the
+/* 4. to=automessages opens 💬 Automated Messaging on LSH CommX: the texting simulator, where the
    firm's automation texts a client and the trainee answers. Only a thread of its own, its program and
-   graded go along, and only to LSH Voice. A graded thread comes back to /api/call-results with
+   graded go along, and only to LSH CommX. A graded thread comes back to /api/call-results with
    kind: 'message' (.github/scripts/call-results.mjs), filed as Client Messaging on its own line. */
 const auto = await go('/api/launch?tool=ringchannel&to=automessages&thread=am_reminder&program=ea&mode=graded&line=<x>', trainee);
 if (!/^https:\/\/lshringchannel\.legalsupporthelp\.workers\.dev\/\?ticket=[^#&]+&messaging=1&thread=am_reminder&program=EA&mode=graded$/.test(auto.at)) fail(`to=automessages: ${auto.at}`);
 const autoPlain = await go('/api/launch?tool=ringchannel&to=automessages', trainee);
-if (!/\?ticket=[^#&]+&messaging=1$/.test(autoPlain.at)) fail(`the LSH Sims card's own link (no thread named): ${autoPlain.at}`);
+if (!/\?ticket=[^#&]+&messaging=1$/.test(autoPlain.at)) fail(`the LSH SIMUL8 card's own link (no thread named): ${autoPlain.at}`);
 if (autoMessagesQuery(new URLSearchParams('thread=../../x&program=nope&mode=practice&track=reception')) !== 'messaging=1') fail('a link\'s unknown values went along to Automated Messaging');
 if (autoMessagesQuery(new URLSearchParams('thread=AM_SETTLEMENT&graded=1')) !== 'messaging=1&thread=am_settlement&mode=graded') fail(`a thread's case and a graded thread: ${autoMessagesQuery(new URLSearchParams('thread=AM_SETTLEMENT&graded=1'))}`);
 // Medical Summary & Demand takes text conversations, so a thread may count in its course (a call may not).
 if (!/program=MD/.test(autoMessagesQuery(new URLSearchParams('program=md')))) fail('Medsum and Demand should be able to take a messaging thread');
 const cmsAuto = await go('/api/launch?tool=cms&to=automessages&thread=am_reminder', trainee);
 if (/messaging=1/.test(cmsAuto.at)) fail(`to=automessages worked on the CMS: ${cmsAuto.at}`);
-// The 🛠 LSH Sims hub is where a trainee finds it.
-if (!readFileSync(new URL('../../simulators.html', import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel&to=automessages')) fail('the LSH Sims hub has no Automated Messaging card');
+// The 🛠 LSH SIMUL8 hub is where a trainee finds it.
+if (!readFileSync(new URL('../../simulators.html', import.meta.url), 'utf8').includes('/api/launch?tool=ringchannel&to=automessages')) fail('the LSH SIMUL8 hub has no Automated Messaging card');
 
 if (failures.length) { console.log(`${failures.length} failure(s):`); failures.forEach((f, i) => console.log(`${i + 1}. ${f}`)); process.exit(1); }
-console.log('Call Sim route test passed (the Portal\'s Call Sim opens LSH Voice\'s practice phone, signed in, on the link\'s line, graded when it asks; 💬 Automated Messaging opens its texting simulator the same way).');
+console.log('Call Sim route test passed (the Portal\'s Call Sim opens LSH CommX\'s practice phone, signed in, on the link\'s line, graded when it asks; 💬 Automated Messaging opens its texting simulator the same way).');

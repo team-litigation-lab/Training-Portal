@@ -20,7 +20,7 @@ export async function guardPublicSim(request, env) {
     const host = new URL(request.url).host;
     let originHost = null;
     try { originHost = origin ? new URL(origin).host : null; } catch (e) { originHost = null; }
-    if (originHost !== host) return json({ success: false, error: 'LSH Sims can only be used from LSH Nexus.' }, 403);
+    if (originHost !== host) return json({ success: false, error: 'LSH SIMUL8 can only be used from LSH Nexus.' }, 403);
 
     const limit = Math.max(5, Number(env.SIM_RATE_LIMIT) || 400);
     const ip = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';

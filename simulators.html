@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LSH Sims — LSH Nexus</title>
+<title>LSH SIMUL8 — LSH Nexus</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -60,7 +60,7 @@
 <div class="sim-wrap hub-wrap">
     <section class="sim-hero">
         <div class="eyebrow">Shared across every program</div>
-        <h1>🛠 LSH Sims</h1>
+        <h1>🛠 LSH SIMUL8</h1>
         <p>Hands-on practice for every LSH program. Pick a simulator, work a realistic scenario and get a scored debrief, saved to your account.</p>
     </section>
 
@@ -86,9 +86,9 @@
 <script>
     const SIMULATORS = [
         { id: 'call', icon: '📞', title: 'Call Sim', status: 'live', href: '/api/launch?tool=ringchannel&to=calls', uses: 'All programs',
-          desc: 'Answer phone calls on ☎ LSH Voice with an AI caller: practice, or a graded call.' },
+          desc: 'Answer phone calls on ☎️ LSH CommX with an AI caller: practice, or a graded call.' },
         { id: 'messaging', icon: '💬', title: 'Client Messaging', status: 'live', href: '/api/launch?tool=ringchannel&to=messages', uses: 'CM · PD · EA/PA · Medsum',
-          desc: 'Text clients from their case file on ☎ LSH Voice, under the firm\'s texting policy.' },
+          desc: 'Text clients from their case file on ☎️ LSH CommX, under the firm\'s texting policy.' },
         { id: 'automessaging', icon: '🤖', title: 'Automated Messaging', status: 'live', href: '/api/launch?tool=ringchannel&to=automessages', uses: 'CM · PD · EA/PA · Medsum',
           desc: 'Pick up client threads the firm\'s automated reminders and notices started.' },
         { id: 'calsim', icon: '📆', title: 'Calendaring Sims', status: 'live', href: '/simulators/calsim.html', uses: 'Standard · CM · EA/PA',
@@ -115,7 +115,7 @@
 
     function renderHub() {
         document.getElementById('topbar').innerHTML = Sim.topbar('hub');
-        Sim.label('LSH Sims');
+        Sim.label('LSH SIMUL8');
         document.getElementById('hub-grid').innerHTML = SIMULATORS.map(s => `
             <div class="sim-card hub-card ${s.status === 'live' ? '' : 'soon'}${s.gated && !PACKET_OK ? ' locked' : ''}">
                 <div class="row" style="margin-top:0;"><span class="icon">${s.icon}</span><span class="sim-chip ${CHIP[s.status][0]}">${CHIP[s.status][1]}</span></div>
