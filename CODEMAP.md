@@ -34,7 +34,8 @@ The signed-in portal: LSH Academy Index, dashboard, progress, attendance, orient
 | `core.html` | 1062 | Admin dashboard (CM Training workspace + Master Control): sidebars, views, modals, overlays (pause/alert/lock), deck/lecture viewer panes, hash deep links into Master Control tabs. |
 | `blueprint.html` | 328 | Platform Blueprint: the two tracks, with the deck itself drawn by `lsh-blueprint.js` (the shared Blueprint engine) — the former Platform Orientation. |
 | `orientation.html` | 15 | Stub pointing the old Orientation URL at /blueprint.html. |
-| `system.html` | 120 | System Management page (admin). |
+| `system.html` | 141 | System Management page (admin): the control room, one engineered card per function under section pills. |
+| `control-room.css` | 207 | The control-room design shared by System Management and the admin pages its cards open (core.html's Master Control, referrals.html, progress.html, /api/ai-usage, /api/admin-password-check): section pills, engineered cards, blue-gold framed panels, the admin bar wrapping on a phone. |
 | `mc-directory.js` | 150 | Master Control 🧭 Dashboard & Directory (core.html): every admin feature in one grouped table with live status, Open and ⓘ How to use pop-outs; adds the same How to use bar to every panel. |
 | `flashcards.html` | 150 | 🃏 Flash Cards Daily Digest (Beyond-Legal Skills card): one card a day from Rules, Trivia, Terminologies, Process and FAQs decks; signed-in only. |
 | `portal-nav.js` | 166 | Shared nav: PortalNav.html/adminHtml top bars, System Management menu, trainee-view switch, logout, injected styles, floating Back-button safety net. |
@@ -161,6 +162,7 @@ Sim results and reviews, program progress, attendance, the AI gateway and its bu
 
 | File | Lines | What it is |
 |---|---|---|
+| `functions/_control-room.js` | 20 | The page shell (admin bar, hero band, control-room.css) of the System Management pages the server draws: /api/ai-usage and /api/admin-password-check. |
 | `functions/_ai-gateway.js` | 368 | Shared AI gateway core: Claude first (ANTHROPIC_API_KEY, callClaude), then the Gemini key pool with per-model resting, US relay (first, or the fallback with AI_PREFER=gemini), model fallback, live-token minting, and the D1 usage ledger/budget (admit/record/usageSummary/runAi/runLiveToken). |
 | `functions/_attendance.js` | 151 | Attendance shared logic: PROGRAMS/lesson lists, batch-key slug rules matching the course Workers, budgeted KV reader (makeKv), check-in reads, field validation and saveRows merge-write. |
 | `functions/_drive.js` | 89 | Google Drive service-account client for batch archives: JWT sign-in, folder/upload helpers, batchCsv and saveBatchToDrive. |

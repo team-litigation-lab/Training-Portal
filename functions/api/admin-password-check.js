@@ -1,5 +1,6 @@
 import { requireSession, verifyMasterCredentials, MASTER_USERNAME } from '../_utils.js';
 import { SSO_PROGRAMS, SSO_TOOLS } from './launch.js';
+import { controlRoomPage } from '../_control-room.js';
 
 // Admin-only: does every platform accept the admin password?
 //
@@ -32,18 +33,17 @@ const verdict = (r, okTest, notSetStatuses) => {
 };
 
 function page(rows, note) {
-    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Admin password check</title></head>
-<body style="font-family:Arial,Helvetica,sans-serif;background:#081226;color:#fff;padding:32px 20px;max-width:760px;margin:0 auto">
-<h1 style="font-size:20px">Admin password check</h1>
-<p style="color:#cbd5e1;font-size:13px">Type the admin password once. Each platform is asked whether it accepts it, so you can see which one has a different <b>MASTER_ADMIN_PASSWORD</b>. Nothing is stored and the password is not shown again.</p>
-<form method="POST" style="margin:14px 0"><input type="password" name="password" autocomplete="off" placeholder="Admin password" required style="padding:10px;border-radius:8px;border:0;width:260px;max-width:100%">
-<button type="submit" style="padding:10px 16px;border-radius:8px;border:0;background:#f97316;color:#fff;font-weight:800;cursor:pointer;margin-left:6px">Check every platform</button></form>
-${note ? `<p style="color:#fde68a;font-size:13px">${esc(note)}</p>` : ''}
-${rows.map(r => `<div style="background:#0f2148;border-radius:12px;padding:14px 16px;margin:10px 0;border-left:5px solid ${COLOR[r.v[1]]}">
-<div style="font-weight:800">${esc(r.name)} <span style="color:${COLOR[r.v[1]]};float:right">${esc(r.v[0])}</span></div>
-<div style="font-size:12px;color:#cbd5e1;margin-top:4px">${esc(r.url)}<br>${esc(r.v[2])}</div></div>`).join('')}
-<p><a href="/programs.html" style="color:#f97316;font-weight:700">&larr; Back to LSH Academy Index</a></p>
-<script src="/show-password.js?v=1"></script></body></html>`;
+    return controlRoomPage('Admin password check', 'System Management · Control 01 · Access', 'Admin password check',
+        'Type the admin password once. Each platform is asked whether it accepts it, so you can see which one has a different <b>MASTER_ADMIN_PASSWORD</b>. Nothing is stored and the password is not shown again.',
+        `<div class="cr-panel"><form method="POST" class="cr-pw-form" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0"><input type="password" name="password" autocomplete="off" placeholder="Admin password" required style="padding:10px 12px;border-radius:10px;border:1.5px solid #94a3b8;width:280px;max-width:100%;font:inherit;font-size:15px">
+<button type="submit" class="cr-go">Check every platform <span class="arr">→</span></button></form>
+${note ? `<p style="color:#b45309;font-weight:700;margin:10px 0 0">${esc(note)}</p>` : ''}</div>
+${rows.length ? `<section class="cr-group"><div class="topic-group-head"><h2>Every platform</h2></div>
+${rows.map(r => `<div class="cr-panel" style="box-shadow:inset 6px 0 0 ${COLOR[r.v[1]]};padding-left:22px;margin-bottom:12px">
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;font-weight:800;color:#1E2340"><span>${esc(r.name)}</span><span style="color:${COLOR[r.v[1]]}">${esc(r.v[0])}</span></div>
+<div style="font-size:12.5px;color:#475569;margin-top:4px;overflow-wrap:anywhere">${esc(r.url)}<br>${esc(r.v[2])}</div></div>`).join('')}</section>` : ''}
+<p class="cr-note"><a href="/system.html" style="color:#c2410c">&larr; Back to System Management</a></p>`,
+        '<script src="/show-password.js?v=1"></script>');
 }
 const html = (body) => new Response(body, { status: 200, headers: { 'Content-Type': 'text/html; charset=UTF-8', 'Cache-Control': 'no-store' } });
 

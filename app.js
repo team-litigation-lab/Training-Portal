@@ -3237,10 +3237,11 @@ async function paSet(username, topicKey, action) {
         loadProgramAccess();
     } catch (e) { showToast(e.message, 'error'); }
 }
-// 🙋 Access Requests in the menu opens Program Access with the requests on top
+// 🔑 Program Access & Requests in the menu (one entry for the one panel) opens Program Access, scrolled to the requests when any are waiting
 function openAccessRequests() {
     mcGo('program-access');
-    setTimeout(() => { const el = document.getElementById('access-requests-list'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+    const waiting = Number((document.getElementById('access-req-badge-side') || {}).textContent) || 0;
+    if (waiting) setTimeout(() => { const el = document.getElementById('access-requests-list'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
 }
 window.openAccessRequests = openAccessRequests;
 
