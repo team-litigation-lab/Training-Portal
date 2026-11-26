@@ -1,5 +1,5 @@
 INSERT INTO topics (key, name, sort_order) VALUES
-('FREE UPSKILL PROGRAMS', 'Free Upskill Track', 0),
+('FREE UPSKILL PROGRAMS', 'Communication Mastery Track', 0),
 ('STANDARD TRAINING', 'Legal VA Foundational Track', 1),
 ('EA  PA TRAINING-OUTSOURCED MANP', 'EA / PA Track - Outsourced Manpower', 2),
 ('REVISED EA PA TRAINING', 'Revised EA PA Track', 3),
