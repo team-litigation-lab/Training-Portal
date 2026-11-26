@@ -14,5 +14,6 @@ export const COURSE_PROGRAMS = [
     { topic: 'CM TRAINING', id: 'cm', label: 'Case Management Training', prefix: 'cm:' },
     { topic: 'PROPERTY DAMAGE', id: 'pd', label: 'PD Claims Training', prefix: 'pd:' },
     { topic: 'MEDSUM AND DEMAND', id: 'md', label: 'Medsum & Demand Training', prefix: 'md:' },
-    { topic: 'LIEN NEGOTIATION', id: 'ln', label: 'Lien Negotiator Training', prefix: 'ln:' }
+    { topic: 'LIEN NEGOTIATION', id: 'ln', label: 'Lien Negotiator Training', prefix: 'ln:' },
+    { topic: 'SETTLEMENTS CLOSING', id: 'cs', label: 'Closing Specialist Training', prefix: 'cs:' }
 ];

@@ -57,7 +57,7 @@ const PortalNav = {
     // and LSH Atlas and LSH CommX are banners on LSH Academy Index.
     SYSTEM_LINKS: [
         ['/index.html?stay=1', '🏠 Main Portal', 'The LSH Nexus landing page'],
-        ['/programs.html', '🎓 LSH Academy Index', 'Every training program, plus 🛠 LSH Elev8, 📚 LSH Atlas, ☎️ LSH CommX and 🗂 LSH CaseWorks'],
+        ['/programs.html', '🎓 LSH Academy Index', 'Every training program, plus 🛠 LSH Elev8, 📚 LSH Atlas, ☎️ LSH CommX and 🗂 LSH CaseWorX'],
         ['/core.html#master', '🛡 Master Control', "Users & revoke access, program access, who's online, activity logs and broadcasts: all on one screen"],
         ['/core.html#registrations', '📝 Log-in Approvals <b class="pn-reg-badge" id="idx-reg-badge"></b>', 'Approve new trainee registrations'],
         ['/core.html#access-requests', '🙋 Access Requests <b class="pn-reg-badge" id="idx-access-badge"></b>', 'Trainees asking to open a program or tool: approve or deny, suspend or restore'],
@@ -76,7 +76,8 @@ const PortalNav = {
         ['Property Damage Claims Track', '/api/launch?program=PROPERTY%20DAMAGE&to=blueprint'],
         ['Medsum & Demand Track', '/api/launch?program=MEDSUM%20AND%20DEMAND&to=blueprint'],
         ['Lien Negotiator Track', '/api/launch?program=LIEN%20NEGOTIATION&to=blueprint'],
-        ['🗂 LSH CaseWorks', '/api/launch?tool=cms&to=blueprint'],
+        ['Closing Specialist Track', '/api/launch?program=SETTLEMENTS%20CLOSING&to=blueprint'],
+        ['🗂 LSH CaseWorX', '/api/launch?tool=cms&to=blueprint'],
         ['☎️ LSH CommX', '/api/launch?tool=ringchannel&to=blueprint'],
         ['📚 LSH Atlas', '/api/launch?tool=kb&to=blueprint']
     ],

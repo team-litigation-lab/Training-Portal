@@ -3,7 +3,7 @@
 // (/api/program-progress?program=<id>) and lists its trainees batch by batch.
 // A batch can be archived (hidden, its records kept in a snapshot) and
 // reopened or restored from the "Archived batches" list.
-const PROGRAM_ORDER = ['ft', 'eapa', 'cm', 'pd', 'md', 'ln'];   // keep in step with PROGRAM_ORDER (and the label fallback) in attendance.html
+const PROGRAM_ORDER = ['ft', 'eapa', 'cm', 'pd', 'md', 'ln', 'cs'];   // keep in step with PROGRAM_ORDER (and the label fallback) in attendance.html
 const P = { data: null, cache: {}, snaps: {}, tab: 'people', program: (() => { try { return localStorage.getItem('pg-program') || 'ft'; } catch (e) { return 'ft'; } })(),
     status: 'active', batch: '', q: '', sort: 'recent', open: {}, closed: {}, archOpen: false,
     fb: { day: '', status: '', batch: '', q: '' } };
@@ -40,7 +40,7 @@ function ago(iso) {
 const date = (iso) => iso ? new Date(iso).toLocaleDateString() : '—';
 // The programs' shown names (as on LSH Academy Index's cards). The server's labels stay as they were: they name
 // the Drive archive folders and the Attendance sheet's program column.
-const TRACK_NAMES = { ft: 'Legal VA Foundational Track', eapa: 'EA PA Track', cm: 'Case Management Track', pd: 'Property Damage Claims Track', md: 'Medsum & Demand Track', ln: 'Lien Negotiator Track' };
+const TRACK_NAMES = { ft: 'Legal VA Foundational Track', eapa: 'EA PA Track', cm: 'Case Management Track', pd: 'Property Damage Claims Track', md: 'Medsum & Demand Track', ln: 'Lien Negotiator Track', cs: 'Closing Specialist Track' };
 function progLabel(id) { if (TRACK_NAMES[id]) return TRACK_NAMES[id]; const p = (P.data.programs || []).find(x => x.id === id); return p ? p.label : id; }
 function score(n) { if (n == null) return '<span class="pg-muted">—</span>'; const c = n >= 85 ? 'good' : n >= 70 ? 'mid' : 'low'; return `<span class="sim-score ${c}">${n}%</span>`; }
 function rating(r) { return r ? `<span class="pg-rt ${esc(String(r).split(' ')[0])}">${esc(r)}</span>` : ''; }
