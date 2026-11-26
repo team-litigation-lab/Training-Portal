@@ -327,6 +327,7 @@
         #idx-topics .topic-card h3 { align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 0; font-size: calc(clamp(13px, 1.95vh, 21px) + 1pt); padding: .45em 1em; line-height: 1.1; }   /* the pill's air in step with the name, so it never looks crammed */
         /* ✦ Beyond-Legal Skills, the highlight lessons: their names a size down, with room either side, so that row doesn't look crammed */
         #idx-topics .tg-beyond .topic-card h3 { font-size: calc(clamp(13px, 1.55vh, 17px) + 1pt); padding-left: 14px; padding-right: 14px; }
+        #idx-topics .topic-card.tk-ft h3 { font-size: calc(clamp(13px, 1.95vh, 21px) - 1pt); }   /* 🧭 Legal VA Foundational Track's name a little smaller than the other tracks' */
         #idx-topics .topic-action-btn { font-size: clamp(9.5px, 1.05vh, 11.5px); padding: clamp(4px, 0.6vh, 7px) clamp(11px, 1vw, 16px); }
         #idx-topics .topic-status { font-size: clamp(9.5px, 1.1vh, 12px); padding: 3px 10px; }
     }
@@ -788,7 +789,7 @@
         const isAdmin = session.userType === 'Admin';
 
         // 🎨 Each track's own identity on its card: an emblem and a colour, with the name in that colour (TRACK_LOOK).
-        const tkOpen = (t, live) => { const k = TRACK_LOOK[t.key], free = PINNED_PROGRAMS.includes(t.key) ? ' has-free' : ''; return k ? `<div class="topic-card tk${live ? ' live' : ' soon'}${free}" style="--tk:${k[1]};--tkd:${(t.key.length * 0.37) % 3}s">` : `<div class="topic-card${live ? '' : ' soon'}${free}">`; };
+        const tkOpen = (t, live) => { const k = TRACK_LOOK[t.key], free = PINNED_PROGRAMS.includes(t.key) ? ' has-free' : ''; return k ? `<div class="topic-card tk${live ? ' live' : ' soon'}${free}${t.key === 'STANDARD TRAINING' ? ' tk-ft' : ''}" style="--tk:${k[1]};--tkd:${(t.key.length * 0.37) % 3}s">` : `<div class="topic-card${live ? '' : ' soon'}${free}">`; };
         const tkTitle = (t) => { const k = TRACK_LOOK[t.key];
             const line = k ? `<span class="tk-ic" aria-hidden="true">${k[0]}</span><span class="tk-name">${escapeHtml(t.name)}</span>` : escapeHtml(t.name);
             // the Free Upskill badge goes in the bottom row (.has-free), between the status and the action
