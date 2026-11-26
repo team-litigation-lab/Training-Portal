@@ -28,7 +28,8 @@ export const SSO_PROGRAMS = {
     'CM TRAINING': 'https://case-management-training.legalsupporthelp.workers.dev/',
     'PROPERTY DAMAGE': 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/',
     'MEDSUM AND DEMAND': 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/',
-    'LIEN NEGOTIATION': 'https://liennegotiatortraining.legalsupporthelp.workers.dev/'
+    'LIEN NEGOTIATION': 'https://liennegotiatortraining.legalsupporthelp.workers.dev/',
+    'SETTLEMENTS CLOSING': 'https://closingspecialisttraining.legalsupporthelp.workers.dev/'
 };
 // Shared tools that aren't programs: any signed-in, approved person opens them (no program access to request).
 // ringchannel is LSH Ring Channel (the lshringchannel repo), the VOIP phone for trainer-led mock calls and the home of the
