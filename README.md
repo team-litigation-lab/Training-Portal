@@ -287,6 +287,14 @@ Every page loads `theme.css` last, and that file is what makes a page look like
 the portal. A new page needs nothing but the stylesheet: the look below is the
 default, not something to opt into.
 
+**Phones.** Every page has the `width=device-width` viewport tag and its own
+narrow-screen rules. Behind those, `theme.css` carries a no-specificity safety
+net for screens up to 760px (pictures and frames shrink to fit, long words and
+email addresses wrap, the phone's own text boost is off), and `portal-nav.js`
+puts any table wider than the screen into a sideways-scrolling `.pn-scroll`
+box, including tables drawn after the page loads. A new page gets all of this
+by loading `theme.css` and `portal-nav.js`.
+
 **The backdrop.** The page sits on a photo behind a wash — the scales image by
 default, the office on the landing page. Three variables on the page's own
 `body` change it, and nothing else should:
