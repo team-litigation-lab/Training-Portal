@@ -78,13 +78,10 @@
     .pg-arch-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid #eef2f7; }
     .pg-arch-acts { display: flex; gap: 8px; align-items: center; } .pg-drive { font-size: 12.5px; font-weight: 700; color: #1d4ed8; text-decoration: none; padding: 6px 10px; } .pg-arch-snap { flex-basis: 100%; }
 
-    /* ===== Monitoring and Feedback design: dark navy page, a band title, batch cards with a batch pill ===== */
+    /* ===== Monitoring and Feedback design: dark navy page, the shared hero band, batch cards with a batch pill (their blue-gold frame: control-room.css) ===== */
     body { background: var(--navy); }
-    .pg-band { margin: -34px calc(50% - 50vw) 18px; padding: 22px 24px; background: var(--navy-mid); border-bottom: 3px solid var(--orange); text-align: center; }
-    .pg-band h1 { margin: 0; color: #fff; font-size: clamp(20px, 2.6vw, 30px); font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
-    @media (max-width: 760px) { .pg-band { margin-top: -22px; } }
     html, body { overflow-x: clip; }
-    .pg-intro { color: rgba(255,255,255,.7); font-size: 13.5px; line-height: 1.55; margin: 0 0 16px; max-width: 90ch; }
+    .pg-intro { color: #c7d2fe; font-size: 13.5px; line-height: 1.55; margin: 0; max-width: 90ch; }
     .sim-wrap > #app > .pg-muted, #pane > .pg-muted { color: rgba(255,255,255,.6); }
     .pg-ptabs button { background: rgba(255,255,255,.06); color: #fff; border-color: rgba(255,255,255,.25); }
     .pg-ptabs button.on { background: var(--orange); color: var(--navy-deep); border-color: var(--orange); }
@@ -104,8 +101,9 @@
 </style>
 <script src="/portal-nav.js"></script>
 <link rel="stylesheet" href="/theme.css">
+<link rel="stylesheet" href="/control-room.css">
 </head>
-<body class="portal-bg-dark">
+<body class="portal-bg-dark cr-page">
 <script>
     // Admins only (the API checks the session too). Anyone else goes to admin sign-in.
     (function () {
@@ -123,8 +121,11 @@
     </div>
 </div>
 <div class="sim-wrap">
-    <section class="pg-band"><h1>Monitoring and Feedback</h1></section>
-    <p class="pg-intro">Pick a training program, then work batch by batch: the latest batch is featured; open any batch for its trainees, each one's scores, feedback and simulators by module. Archive a finished batch to keep the lists short; its records are kept.</p>
+    <section class="sim-hero">
+        <div class="eyebrow">Admin · Trainee Monitoring</div>
+        <h1>Monitoring and Feedback</h1>
+        <p class="pg-intro">Pick a training program, then work batch by batch: the latest batch is featured; open any batch for its trainees, each one's scores, feedback and simulators by module. Archive a finished batch to keep the lists short; its records are kept.</p>
+    </section>
     <div id="app"><div class="sim-card"><div class="sim-loading">Loading trainee progress…</div></div></div>
 </div>
 
