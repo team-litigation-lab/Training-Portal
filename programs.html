@@ -474,7 +474,7 @@
         'IMMIGRATION LAW': 'Immigration Law Track',
         'INTELLECTUAL PROPERTY LAW': 'Intellectual Property Law Track',
         'REAL ESTATE LAW': 'Real Estate Law Track',
-        'FREE UPSKILL PROGRAMS': 'Free Upskill Track',
+        'FREE UPSKILL PROGRAMS': 'English Proficiency Track',
         'SETTLEMENTS CLOSING': 'Closing Specialist Track',
         'CLIENT INTERVIEW PREP': 'Client Matching Essentials',
         'FLASH CARDS': 'Flash Cards'
@@ -499,7 +499,7 @@
     // Not in TOPIC_SEQUENCE: free programs aren't gated behind progression.
     // It opens once it is in functions/_programs.js and launch.js (its own site).
     const EXTRA_PROGRAMS = [
-        { key: 'FREE UPSKILL PROGRAMS', name: 'Free Upskill Track', sort_order: 0 },
+        { key: 'FREE UPSKILL PROGRAMS', name: 'English Proficiency Track', sort_order: 0 },
         { key: 'LIEN NEGOTIATION', name: 'Lien Negotiator Track', sort_order: 13 },
         { key: 'SETTLEMENTS CLOSING', name: 'Closing Specialist Track', sort_order: 13 },
         { key: 'CLIENT INTERVIEW PREP', name: 'Client Matching Essentials', sort_order: 0 },
@@ -697,7 +697,7 @@
                 if (pa !== pb) return (pa === -1 ? Infinity : pa) < (pb === -1 ? Infinity : pb) ? -1 : 1;
                 const ia = seqIndex(a.key), ib = seqIndex(b.key);
                 // Compare directly: Infinity - Infinity is NaN, which left the
-                // unsequenced cards (Handouts, Free Upskill…) in random order.
+                // unsequenced cards (Handouts, English Proficiency…) in random order.
                 if (ia !== ib) return ia < ib ? -1 : 1;
                 return (a.sort_order || 0) - (b.sort_order || 0);
             });
@@ -710,7 +710,7 @@
 
         // 🎨 Each track's own identity on its card: an emblem and a colour, with the name in that colour (TRACK_LOOK).
         const tkOpen = (t, live) => { const k = TRACK_LOOK[t.key]; return k ? `<div class="topic-card tk${live ? ' live' : ' soon'}" style="--tk:${k[1]};--tkd:${(t.key.length * 0.37) % 3}s">` : `<div class="topic-card${live ? '' : ' soon'}">`; };
-        const tkTitle = (t) => { const k = TRACK_LOOK[t.key], free = PINNED_PROGRAMS.includes(t.key) ? ' <span class="topic-free">Free</span>' : '';
+        const tkTitle = (t) => { const k = TRACK_LOOK[t.key], free = PINNED_PROGRAMS.includes(t.key) ? ' <span class="topic-free">Free Upskill</span>' : '';
             return k ? `<h3><span class="tk-ic" aria-hidden="true">${k[0]}</span><span class="tk-name">${escapeHtml(t.name)}</span>${free}</h3>` : `<h3>${escapeHtml(t.name)}${free}</h3>`; };
         const cardFor = (t) => {
             if (PORTAL_TOOLS[t.key]) return toolCard(t);
