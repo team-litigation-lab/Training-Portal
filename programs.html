@@ -185,6 +185,8 @@
             linear-gradient(120deg, color-mix(in srgb, var(--tk) 45%, #fff), color-mix(in srgb, var(--tk) 18%, #fff) 50%, color-mix(in srgb, var(--tk) 45%, #fff)) border-box; }
     .topic-card.soon .tk-name { animation: none; background-position: 0 0; }
     .topic-card.soon .tk-ic { filter: grayscale(.45); opacity: .85; }
+    /* ▪ The track-name pill, simplified: a plain black frame on white, no coloured border, sheen or glow (the name keeps its colour) */
+    .topic-card h3, .topic-card.tk h3, .topic-card.soon h3, .topic-card.tk.soon h3 { border: 2px solid #111827; background: #fff; box-shadow: none; animation: none; }
     @media (prefers-reduced-motion: reduce) { .tk-name, .topic-card.tk.live h3, .topic-card.tk.live .tk-ic { animation: none; } .tk-name { background-position: 0 0; } }
     .topic-status { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 999px; display: inline-block; width: fit-content; }
     .topic-status.approved { background: #f0fdf4; color: #166534; }
@@ -209,8 +211,8 @@
     /* 📬 Your Daily Digest: the Flash Cards card is one button that opens today's card in a popup (the popup's styles are below). */
     .tool-card { padding: clamp(6px, 1vh - 2px, 12px); }
     .tool-card .dd-open { grid-column: 1 / -1; grid-row: 1 / -1; align-self: stretch; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(4px, .8vh, 9px);
-        border: 2px solid var(--navy-deep); border-radius: 10px; background: linear-gradient(135deg, var(--navy-deep), var(--navy) 60%, var(--navy-mid)); color: #fff; cursor: pointer; font: inherit; padding: 6px 10px; box-shadow: inset 5px 0 0 var(--orange); transition: transform .15s ease, box-shadow .15s ease; }
-    .tool-card .dd-open:hover { transform: translateY(-2px); box-shadow: inset 5px 0 0 var(--orange), 0 10px 20px -12px rgba(0,0,0,.6); }
+        border: 2px solid #ecc98a; border-radius: 10px; background: linear-gradient(135deg, #fffdf7 0%, #fdf2dc 45%, #f7dfb0 100%); color: var(--navy-deep); cursor: pointer; font: inherit; padding: 6px 10px; box-shadow: inset 5px 0 0 var(--orange); transition: transform .15s ease, box-shadow .15s ease; }
+    .tool-card .dd-open:hover { transform: translateY(-2px); box-shadow: inset 5px 0 0 var(--orange), 0 10px 20px -12px rgba(160,100,30,.45); }
     .tool-card .dd-open:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
     .dd-open .dd-t { font-size: clamp(13px, 1.9vh, 20px); font-weight: 900; letter-spacing: .01em; white-space: nowrap; }
     .dd-open .dd-c { font-size: clamp(10.5px, 1.3vh, 13px); font-weight: 800; color: #0f172a; background: var(--orange); border-radius: 999px; padding: 3px 14px; white-space: nowrap; }
@@ -296,9 +298,9 @@
     .sim-banner-go { background: var(--orange); color: #0f172a; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 8px 16px; white-space: nowrap; }
 
     /* The top bar: the LSH logo, the page's name, and the pill bar (trainees, visitors, or the admin bar). */
-    .idx-top { --brand-panel: 200px; --brand-panel-sm: 162px; position: relative; z-index: 5; gap: 20px; padding: 14px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
+    .idx-top { --brand-panel: 200px; --brand-panel-sm: 162px; position: relative; z-index: 5; gap: 20px; padding: 8px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
     .idx-brand { flex-shrink: 0; margin-right: 72px; }
-    .idx-logo { height: 58px; width: auto; display: block; }
+    .idx-logo { height: 70px; width: auto; display: block; }   /* the LSH logo a size up; the bar's padding gives it the room, so the bar stays the same height */
     .idx-title { flex: 0 1 auto; margin: 0 auto 0 0; font-size: clamp(16px, 2vw, 28px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: #fff; white-space: nowrap; }
     .idx-title span { color: var(--orange); }
     .idx-user { gap: 6px; }
@@ -344,15 +346,15 @@
        full text is on hover.*/
     @media (max-height: 940px) {
         .idx-wrap { padding: 10px 24px 10px; }
-        .idx-top { padding: 11px 24px; }
-        .idx-logo { height: 50px; }
+        .idx-top { padding: 6px 24px; }
+        .idx-logo { height: 60px; }
         .sim-banner-row { gap: 9px; margin-bottom: 9px; }
         .sim-banner-row .sim-banner { padding: 9px 11px; }
         .topic-card { padding: 8px 10px; gap: 6px; }
     }
     @media (max-height: 800px) {
-        .idx-top { padding: 9px 22px; gap: 16px; }
-        .idx-logo { height: 44px; }
+        .idx-top { padding: 5px 22px; gap: 16px; }
+        .idx-logo { height: 52px; }
         .idx-user .pn-pill { font-size: 10.5px !important; padding: 4px 8px !important; }
         .sim-banner-row { gap: 8px; margin-bottom: 8px; }
         .sim-banner-row .sim-banner { padding: 7px 10px; gap: 9px; }
@@ -371,7 +373,7 @@
     @media (max-height: 730px) {
         .idx-wrap { padding: 8px 20px 8px; }
         .idx-top { padding: 8px 20px; }
-        .idx-logo { height: 38px; }
+        .idx-logo { height: 46px; }
         .sim-banner-row { gap: 7px; margin-bottom: 7px; }
         .sim-banner-row .sim-banner { padding: 6px 9px; }
         .topic-grid { gap: 7px; }
@@ -401,6 +403,7 @@
 </style>
 <script src="/portal-nav.js"></script>
 <script src="/flashcards-data.js"></script>
+<script src="/online-now.js"></script>
 <link rel="stylesheet" href="/theme.css">
 </head>
 <body>
@@ -666,7 +669,7 @@
             // One admin bar on every main page (portal-nav.js); everything else is under System Management.
             if (userEl) userEl.innerHTML = PortalNav.adminHtml('', { back: '/index.html?stay=1', blueprintMenu: true });
             // 📢 the announcement is edited in Master Control → Broadcast & Ping: ✏️ Edit on the ticker goes straight there
-            if (!asTrainee) { const tk = document.getElementById('announcement-ticker'); if (tk && !document.getElementById('idx-ann-edit')) tk.insertAdjacentHTML('afterend', '<a id="idx-ann-edit" href="/core.html#announce" title="Edit the announcement (Master Control → Broadcast &amp; Ping)" style="flex:none;padding:3px 10px;border:1px solid rgba(253,186,116,.6);border-radius:999px;color:#fdba74;font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap">✏️ Edit</a>'); }
+            if (!asTrainee) { const tk = document.getElementById('announcement-ticker'); if (tk && !document.getElementById('idx-ann-edit')) tk.insertAdjacentHTML('afterend', '<a id="idx-ann-edit" href="/core.html#announce" title="Edit the announcement (Master Control → Broadcast &amp; Ping)" style="flex:none;padding:3px 10px;border:1px solid rgba(253,186,116,.6);border-radius:999px;color:#fdba74;font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap">✏️ Edit</a>'); if (window.OnlineNow) OnlineNow.mount(document.getElementById('idx-ann-edit')); }
             if (asTrainee) document.querySelector('.idx-top').insertAdjacentHTML('afterend',
                 `<div class="pn-trainee-view">👁 Trainee view: LSH Academy Index as trainees see it.<button type="button" onclick="PortalNav.switchView()">Back to the admin view</button></div>`);
         }
