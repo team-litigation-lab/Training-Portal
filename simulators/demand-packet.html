@@ -12,10 +12,31 @@
 <link rel="stylesheet" href="/simulators/sim.css">
 <link rel="stylesheet" href="/simulators/demand-packet.css">
 <link rel="stylesheet" href="/theme.css">
+<style>
+/* 📚 Demand Packets & Binders: full width, bigger and bolder text */
+.sim-wrap.pk-wrap{max-width:none;padding-left:clamp(16px,2.2vw,40px);padding-right:clamp(16px,2.2vw,40px);}
+.pk-wrap .sim-hero h1{font-size:34px;}
+.pk-wrap .sim-hero p{font-size:16px;font-weight:600;line-height:1.65;}
+.pk-wrap #app{font-weight:600;}
+.pk-wrap .pk-card h3{font-size:14px;}
+.pk-wrap .pk-card p, .pk-wrap .pk-choice, .pk-wrap .pk-opts, .pk-wrap .pk-checks, .pk-wrap .pk-drop{font-size:14.5px;}
+.pk-wrap .pk-doc label, .pk-wrap .pk-form label{font-size:12.5px;font-weight:800;}
+.pk-wrap .pk-doc input, .pk-wrap .pk-doc select, .pk-wrap .pk-form input, .pk-wrap .pk-form select{font-size:15px;font-weight:600;padding:8px 10px;}
+.pk-wrap .pk-form textarea{font-size:15px;}
+.pk-wrap .pk-sec-h input.ttl{font-size:16.5px;} .pk-wrap .pk-sec-h .kind{font-size:12.5px;} .pk-wrap .pk-sec-h button{font-size:13.5px;}
+.pk-wrap .pk-sec-b .hint{font-size:14px;}
+.pk-wrap .pk-doc .file{font-size:12.5px;} .pk-wrap .pk-doc .ops button{font-size:13.5px;}
+.pk-wrap .pk-pip{font-size:14px;} .pk-wrap .pk-pip th{font-size:12px;}
+.pk-wrap .pk-out{font-size:14.5px;} .pk-wrap .pk-name{font-size:12.5px;}
+.pk-wrap .pk-ok, .pk-wrap .pk-bad, .pk-wrap .pk-busy{font-size:14.5px;}
+.pk-wrap .sim-btn{font-size:15px;}
+.pk-wrap .pk-tab{font-size:15px;padding:10px 20px;}
+</style>
+
 </head>
 <body>
 <div id="topbar"></div>
-<div class="sim-wrap">
+<div class="sim-wrap pk-wrap">
     <section class="sim-hero">
         <div class="eyebrow">Sim · Drafting</div>
         <h1>📚 Demand Packets &amp; Binders</h1>
