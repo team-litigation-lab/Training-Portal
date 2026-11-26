@@ -502,7 +502,7 @@ html { -webkit-tap-highlight-color: transparent; }
 
 /* ---------- section dividers & eyebrows ---------- */
 /* The pillar dividers on the Academy Index (Personal Injury Playbooks,
-   Specialized Playbooks, Support & Upskill) and the eyebrow pills on every
+   Cross-Practice Playbooks, Beyond-Legal Skills) and the eyebrow pills on every
    hero share one look: navy pill, thin orange edge, soft lift. */
 .topic-group-head h2 { box-shadow: 0 8px 18px -12px rgba(8, 18, 38, .65), inset 0 1px 0 rgba(255, 255, 255, .08); }
 .sim-hero .eyebrow,
@@ -613,8 +613,11 @@ input[type="search"]:focus { outline: none; border-color: var(--eco-orange); box
     .topic-card { padding: 14px 16px; gap: 12px 10px; }
     /* A long action label wraps inside its pill instead of being cut off. */
     .topic-card .topic-action-btn { white-space: normal; text-align: center; }
-    /* A pillar name too wide for a narrow phone wraps rather than spilling. */
-    .topic-group-head h2 { white-space: normal; text-align: center; }
+    /* A pillar name stays on one line on a phone: smaller capitals, tighter tracking and padding, and shorter rules
+       either side, so the longest (CROSS-PRACTICE PLAYBOOKS, PERSONAL INJURY PLAYBOOKS) fits a 360px screen. */
+    .topic-group-head { gap: 8px; }
+    .topic-group-head::before, .topic-group-head::after { min-width: 8px; }
+    .topic-group-head h2 { white-space: nowrap; text-align: center; font-size: 12.5px; letter-spacing: .06em; padding: 4px 12px; gap: 6px; max-width: 100%; }
     /* Comfortable tap targets. */
     .sim-btn, .topic-action-btn, .queue-btn, .pn-pill, .pn-back { min-height: 34px; }
 }
