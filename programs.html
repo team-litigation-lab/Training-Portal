@@ -185,6 +185,9 @@
             linear-gradient(120deg, color-mix(in srgb, var(--tk) 45%, #fff), color-mix(in srgb, var(--tk) 18%, #fff) 50%, color-mix(in srgb, var(--tk) 45%, #fff)) border-box; }
     .topic-card.soon .tk-name { animation: none; background-position: 0 0; }
     .topic-card.soon .tk-ic { filter: grayscale(.45); opacity: .85; }
+    /* The Legal VA Foundational Track's card stands still: no glow, no bobbing emblem, no shine over its name (.still, STILL_TRACKS). */
+    .topic-card.tk.still h3, .topic-card.tk.still .tk-ic, .topic-card.tk.still .tk-name { animation: none; }
+    .topic-card.tk.still .tk-name { background-position: 0 0; }
     @media (prefers-reduced-motion: reduce) { .tk-name, .topic-card.tk.live h3, .topic-card.tk.live .tk-ic { animation: none; } .tk-name { background-position: 0 0; } }
     .topic-status { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 999px; display: inline-block; width: fit-content; }
     .topic-status.approved { background: #f0fdf4; color: #166534; }
@@ -616,6 +619,8 @@
     function closeDailyDigest() { const pop = document.getElementById('dd-pop'); if (pop) pop.classList.remove('open'); const b = document.querySelector('.tool-card .dd-open'); if (b) b.focus(); }
     // Shown first on the index, ahead of the progression, with a "Free" badge.
     const PINNED_PROGRAMS = ['FREE UPSKILL PROGRAMS'];
+    // Tracks whose card has no animation (the glow, the bobbing emblem and the shine over the name)
+    const STILL_TRACKS = ['STANDARD TRAINING'];
 
     // Fixed VA progression order — display order only now: the topics API
     // no longer gates by sequence (its old gated copy is gone). Anything
@@ -785,7 +790,7 @@
         const isAdmin = session.userType === 'Admin';
 
         // 🎨 Each track's own identity on its card: an emblem and a colour, with the name in that colour (TRACK_LOOK).
-        const tkOpen = (t, live) => { const k = TRACK_LOOK[t.key], free = PINNED_PROGRAMS.includes(t.key) ? ' has-free' : ''; return k ? `<div class="topic-card tk${live ? ' live' : ' soon'}${free}" style="--tk:${k[1]};--tkd:${(t.key.length * 0.37) % 3}s">` : `<div class="topic-card${live ? '' : ' soon'}${free}">`; };
+        const tkOpen = (t, live) => { const k = TRACK_LOOK[t.key], free = (PINNED_PROGRAMS.includes(t.key) ? ' has-free' : '') + (STILL_TRACKS.includes(t.key) ? ' still' : ''); return k ? `<div class="topic-card tk${live ? ' live' : ' soon'}${free}" style="--tk:${k[1]};--tkd:${(t.key.length * 0.37) % 3}s">` : `<div class="topic-card${live ? '' : ' soon'}${free}">`; };
         const tkTitle = (t) => { const k = TRACK_LOOK[t.key];
             const line = k ? `<span class="tk-ic" aria-hidden="true">${k[0]}</span><span class="tk-name">${escapeHtml(t.name)}</span>` : escapeHtml(t.name);
             // the Free Upskill badge goes in the bottom row (.has-free), between the status and the action
