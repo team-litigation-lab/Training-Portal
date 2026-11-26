@@ -296,9 +296,9 @@
     .sim-banner-go { background: var(--orange); color: #0f172a; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 8px 16px; white-space: nowrap; }
 
     /* The top bar: the LSH logo, the page's name, and the pill bar (trainees, visitors, or the admin bar). */
-    .idx-top { --brand-panel: 200px; --brand-panel-sm: 162px; position: relative; z-index: 5; gap: 20px; padding: 14px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
+    .idx-top { --brand-panel: 200px; --brand-panel-sm: 162px; position: relative; z-index: 5; gap: 20px; padding: 8px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
     .idx-brand { flex-shrink: 0; margin-right: 72px; }
-    .idx-logo { height: 58px; width: auto; display: block; }
+    .idx-logo { height: 70px; width: auto; display: block; }   /* the LSH logo a size up; the bar's padding gives it the room, so the bar stays the same height */
     .idx-title { flex: 0 1 auto; margin: 0 auto 0 0; font-size: clamp(16px, 2vw, 28px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: #fff; white-space: nowrap; }
     .idx-title span { color: var(--orange); }
     .idx-user { gap: 6px; }
@@ -344,15 +344,15 @@
        full text is on hover.*/
     @media (max-height: 940px) {
         .idx-wrap { padding: 10px 24px 10px; }
-        .idx-top { padding: 11px 24px; }
-        .idx-logo { height: 50px; }
+        .idx-top { padding: 6px 24px; }
+        .idx-logo { height: 60px; }
         .sim-banner-row { gap: 9px; margin-bottom: 9px; }
         .sim-banner-row .sim-banner { padding: 9px 11px; }
         .topic-card { padding: 8px 10px; gap: 6px; }
     }
     @media (max-height: 800px) {
-        .idx-top { padding: 9px 22px; gap: 16px; }
-        .idx-logo { height: 44px; }
+        .idx-top { padding: 5px 22px; gap: 16px; }
+        .idx-logo { height: 52px; }
         .idx-user .pn-pill { font-size: 10.5px !important; padding: 4px 8px !important; }
         .sim-banner-row { gap: 8px; margin-bottom: 8px; }
         .sim-banner-row .sim-banner { padding: 7px 10px; gap: 9px; }
@@ -371,7 +371,7 @@
     @media (max-height: 730px) {
         .idx-wrap { padding: 8px 20px 8px; }
         .idx-top { padding: 8px 20px; }
-        .idx-logo { height: 38px; }
+        .idx-logo { height: 46px; }
         .sim-banner-row { gap: 7px; margin-bottom: 7px; }
         .sim-banner-row .sim-banner { padding: 6px 9px; }
         .topic-grid { gap: 7px; }
