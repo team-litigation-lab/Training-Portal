@@ -201,3 +201,38 @@ window.addEventListener('scroll', () => PortalNav.closeMenus(), true);
     const later = () => setTimeout(ensureBack, 1500);
     if (document.readyState === 'complete') later(); else window.addEventListener('load', later);
 })();
+// Phones: a table wider than the screen scrolls sideways inside its own box instead of
+// pushing the whole page off the right edge (several pages lock body scrolling, so the
+// overflow would otherwise be out of reach). Only tables that actually overflow, and that
+// have no scrolling box around them already, are wrapped — in a .pn-scroll div (theme.css).
+// Tables drawn later (Master Control, the sims, progress) are caught as they appear.
+(function () {
+    const NARROW = window.matchMedia('(max-width: 760px)');
+    function scrolls(el) {
+        for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+            const o = getComputedStyle(a).overflowX;
+            if (o === 'auto' || o === 'scroll' || o === 'hidden' || o === 'clip') return true;
+        }
+        return false;
+    }
+    function fit() {
+        if (!NARROW.matches) return;
+        document.querySelectorAll('table:not([data-pn-fit])').forEach((t) => {
+            const p = t.parentElement;
+            if (!p || !t.offsetWidth) return;                    // hidden for now: look again when it shows
+            t.setAttribute('data-pn-fit', '');
+            if (t.offsetWidth <= p.clientWidth + 1 || scrolls(t)) return;
+            const box = document.createElement('div');
+            box.className = 'pn-scroll';
+            p.insertBefore(box, t); box.appendChild(t);
+        });
+    }
+    let queued = false;
+    const soon = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; fit(); }); } };
+    function start() {
+        fit();
+        new MutationObserver(soon).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+        window.addEventListener('resize', soon);
+    }
+    if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();

@@ -631,3 +631,25 @@ input[type="search"]:focus { outline: none; border-color: var(--eco-orange); box
 @media print {
     .idx-top, .sim-top, .sim-card, .queue-card { box-shadow: none; }
 }
+
+/* ---------- phones ---------- */
+/* The safety net that keeps every page usable on a phone. Each page already has
+   its own narrow-screen rules; these only catch what those miss, so every rule
+   is wrapped in :where() (no specificity) and any page rule still wins.
+     - text is never inflated by the phone's own font boost when it turns sideways;
+     - pictures, video and embedded frames shrink to the screen instead of
+       pushing the page wider than it;
+     - a long unbroken word (an email address, a link, a case number) breaks
+       rather than running off the edge;
+     - wide tables scroll sideways inside their own box (portal-nav.js puts each
+       one that has no scrolling box of its own into a .pn-scroll one). */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+@media (max-width: 760px) {
+    :where(body) { overflow-wrap: break-word; }
+    :where(img, video, iframe, embed, object) { max-width: 100%; }
+    :where(img, video) { height: auto; }
+    :where(pre) { white-space: pre-wrap; }
+    :where(input, select, textarea) { max-width: 100%; }
+}
+.pn-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media print { .pn-scroll { overflow: visible; } }
