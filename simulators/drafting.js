@@ -779,10 +779,9 @@ function titleHtml() {
 function renderView(t) {
     const edit = S.mode === 'edit';
     app().innerHTML = `
-        ${trainerHtml()}
+        ${titleHtml()}
         <div class="dr-layout">
             <aside class="dr-left" aria-label="Letters, steps and case notes">
-                ${titleHtml()}
                 ${navHtml()}
                 <div class="dr-cards">
                     <div class="dr-note" id="dr-check" hidden><h3>Your letter, checked</h3><div data-body></div></div>
@@ -807,7 +806,6 @@ function renderView(t) {
     openHipaa();
     restoreLetter(t);
     showSaved(t);
-    showTrainer();
 }
 
 function render() {
