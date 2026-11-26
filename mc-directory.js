@@ -8,9 +8,10 @@
     const GROUPS = [
         { id: 'people', title: '1 · People & Access', note: 'who can sign in, and what they can open' },
         { id: 'grading', title: '2 · Grading & Progress', note: 'scores, feedback and attendance' },
-        { id: 'content', title: '3 · Training Content', note: 'what trainees learn from' },
-        { id: 'monitor', title: '4 · Monitoring & Comms', note: 'who is on, what happened, telling everyone' },
-        { id: 'system', title: '5 · System', note: 'site-wide switches' }
+        // (3 · Training Content left the menu: its rows below stay defined, so Lesson Decks & Activities keeps its panel bar
+        // and How to use, but the directory no longer lists them)
+        { id: 'monitor', title: '3 · Monitoring & Comms', note: 'who is on, what happened, telling everyone' },
+        { id: 'system', title: '4 · System', note: 'site-wide switches' }
     ];
     // go: a Master Control panel (mc), a workspace view (view), a function name (fn) or a page (href)
     const FEATURES = [
@@ -134,7 +135,7 @@
         const g = GROUPS.find(x => x.id === f.g);
         pop.setAttribute('aria-label', 'How to use ' + f.name);
         pop.innerHTML = `<button type="button" class="x" data-guide-close aria-label="Close">×</button><h4>${f.icon} ${esc(f.name)}</h4>
-            <div class="where">Menu: ${esc(g ? g.title : '')} → ${esc(f.name)}</div><p>${esc(f.what)}</p>
+            <div class="where">${g ? `Menu: ${esc(g.title)} → ${esc(f.name)}` : 'Not in the menu'}</div><p>${esc(f.what)}</p>
             <ol>${f.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
             ${f.id === currentPane() ? '' : `<button type="button" class="ov-open" data-open="${f.id}">Open ${esc(f.name)} →</button>`}`;
         pop.classList.add('open');
