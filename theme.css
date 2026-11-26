@@ -502,7 +502,7 @@ html { -webkit-tap-highlight-color: transparent; }
 
 /* ---------- section dividers & eyebrows ---------- */
 /* The pillar dividers on the Academy Index (Personal Injury Playbooks,
-   Specialized Playbooks, Support & Upskill) and the eyebrow pills on every
+   Cross-Practice Playbooks, Beyond-Legal Skills) and the eyebrow pills on every
    hero share one look: navy pill, thin orange edge, soft lift. */
 .topic-group-head h2 { box-shadow: 0 8px 18px -12px rgba(8, 18, 38, .65), inset 0 1px 0 rgba(255, 255, 255, .08); }
 .sim-hero .eyebrow,

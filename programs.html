@@ -770,15 +770,15 @@
     const TOPIC_GROUPS = [
         { title: 'Personal Injury Playbooks', note: '',
           keys: ['STANDARD TRAINING', 'LIEN NEGOTIATION', 'MEDSUM AND DEMAND', 'CM TRAINING', 'PROPERTY DAMAGE', 'HEALTH SUBRO', 'LIEN VERIFICATION', 'SETTLEMENTS CLOSING'] },
-        { title: 'Specialized Playbooks', note: '',
+        { title: 'Cross-Practice Playbooks', note: '',
           keys: ['LITIGATION', 'MASS TORT', 'BUSINESS LAW', 'ESTATE PLANNING', 'FAMILY LAW', 'IMMIGRATION LAW', 'INTELLECTUAL PROPERTY LAW', 'REAL ESTATE LAW'] },
-        { title: 'Support & Upskill', note: '',
+        { title: 'Beyond-Legal Skills', note: '',
           keys: ['EA  PA TRAINING-OUTSOURCED MANP', 'FREE UPSKILL PROGRAMS', 'CLIENT INTERVIEW PREP', 'FLASH CARDS'] }
     ];
     // How many across, so a group's last row is not a stub. Four is the default
     // and the widest the cards look right at; three when the count divides by
     // three and not by four. Personal Injury Playbooks' eight reads 4 + 4;
-    // Specialized Playbooks' eight stays 4 + 4.
+    // Cross-Practice Playbooks' eight stays 4 + 4.
     const columnsFor = (n) => (n % 4 === 0 ? 4 : n % 3 === 0 ? 3 : 4);
 
     function groupedTopicsHtml(cardFor) {
