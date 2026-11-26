@@ -310,6 +310,8 @@
     .sim-banner-row .sim-banner:hover, .sim-banner-row .sim-banner:focus-visible { transform: translateY(-3px);
         outline-color: rgba(253,186,116,.9); box-shadow: 0 16px 30px -14px rgba(8,18,38,.75), 0 0 0 2px rgba(249,115,22,.45), 0 0 22px rgba(249,115,22,.35); }
     .sim-banner-row .sim-banner:hover .sim-banner-go { transform: translateX(3px); }
+    /* the tool banners stand still: no shimmer across them, no pulse on Open, no bobbing icon (the hover lift stays) */
+    .sim-banner-row .sim-banner::before, .sim-banner-row .sim-banner-go, .sim-banner-row .sim-banner-ic { animation: none !important; }
     @media (prefers-reduced-motion: reduce) {
         .sim-banner-row .sim-banner::before, .sim-banner-row .sim-banner-go, .sim-banner-row .sim-banner-ic { animation: none; }
         .sim-banner-row .sim-banner, .sim-banner-row .sim-banner-go { transition: none; }
