@@ -79,6 +79,12 @@
     /* the hub's line under LSH Elev8: bigger, bolder and brighter (it was small, pale lavender) */
     .hub-wrap .sim-hero p { font-size: 16.5px !important; font-weight: 700; color: #eef2ff; line-height: 1.5 !important; }
     .hub-wrap .sim-hero { align-items: center !important; }
+    /* LSH Elev8™ in gold, as LSH Atlas™ and LSH CaseWorX™ show their names (the 🛠 stays in its own colours) */
+    .hub-wrap .sim-hero h1 .hub-name { background: linear-gradient(180deg, #ffffff 0%, #fde7b0 40%, #f5c451 72%, #e0a43a 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 8px rgba(245,196,81,.30)) drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
+    .hub-wrap .sim-hero h1 .hub-name .tm { font-size: .55em; font-weight: 900; vertical-align: super; line-height: 0; margin-left: 2px;
+        color: #f5c451; -webkit-text-fill-color: #f5c451; }
 
     /* Laptop and desktop: a compact one-line hero, then the engines three across (four from 1600px wide, where all eleven
        fit one 1920x1080 screen). On a 1366x768 laptop the richer cards take a short scroll rather than being squeezed: their
@@ -170,7 +176,7 @@
 <div class="sim-wrap hub-wrap">
     <section class="sim-hero">
         <div class="eyebrow">Shared across every program</div>
-        <h1>🛠 LSH Elev8</h1>
+        <h1>🛠 <span class="hub-name">LSH Elev8<sup class="tm" aria-label="trademark">™</sup></span></h1>
         <p>Hands-on practice for every LSH program. Pick a simulator, work a realistic scenario and get a scored debrief, saved to your account.</p>
     </section>
 
