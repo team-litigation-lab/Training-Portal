@@ -16,7 +16,7 @@ import { controlRoomPage } from '../_control-room.js';
 // Nothing is stored and the password is never shown back. Use it after setting or changing the secret on a platform.
 const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const COLOR = { ok: '#16a34a', bad: '#dc2626', warn: '#d97706' };
-const NAMES = { 'STANDARD TRAINING': 'Standard Training', 'EA  PA TRAINING-OUTSOURCED MANP': 'EA / PA Training', 'CM TRAINING': 'Case Management Training', 'PROPERTY DAMAGE': 'Property Damage', 'MEDSUM AND DEMAND': 'Med Sum & Demand', 'LIEN NEGOTIATION': 'Lien Negotiator Training', 'SETTLEMENTS CLOSING': 'Closing Specialist Training' };
+const NAMES = { 'STANDARD TRAINING': 'Standard Training', 'EA  PA TRAINING-OUTSOURCED MANP': 'EA / PA Training', 'CM TRAINING': 'Case Management Training', 'PROPERTY DAMAGE': 'Property Damage', 'MEDSUM AND DEMAND': 'Med Sum & Demand', 'LIEN NEGOTIATION': 'Lien Negotiator Training', 'SETTLEMENTS CLOSING': 'Closing Specialist Training', 'HEALTH SUBRO': 'Health Subrogation Training', 'LIEN VERIFICATION': 'Lien Verification Training' };
 
 async function ask(url, body) {
     try {

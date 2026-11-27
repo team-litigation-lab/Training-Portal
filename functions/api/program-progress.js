@@ -42,7 +42,9 @@ const PROGRAMS = [
     { id: 'pd', label: 'PD Claims Training', prefix: 'pd:', days: 5, url: 'https://propertydamageclaimstraining.legalsupporthelp.workers.dev/' },
     { id: 'md', label: 'Medsum & Demand Training', prefix: 'md:', days: 5, url: 'https://medsumanddemandtraining.legalsupporthelp.workers.dev/' },
     { id: 'ln', label: 'Lien Negotiator Training', prefix: 'ln:', days: 3, url: 'https://liennegotiatortraining.legalsupporthelp.workers.dev/' },
-    { id: 'cs', label: 'Closing Specialist Training', prefix: 'cs:', days: 5, url: 'https://closingspecialisttraining.legalsupporthelp.workers.dev/' }
+    { id: 'cs', label: 'Closing Specialist Training', prefix: 'cs:', days: 5, url: 'https://closingspecialisttraining.legalsupporthelp.workers.dev/' },
+    { id: 'hs', label: 'Health Subrogation Training', prefix: 'hs:', days: 5, url: 'https://healthsubrotraining.legalsupporthelp.workers.dev/' },
+    { id: 'lv', label: 'Lien Verification Training', prefix: 'lv:', days: 3, url: 'https://lienverificationtraining.legalsupporthelp.workers.dev/' }
 ];
 
 // Workers KV allows 1,000 operations per request. Stay under it; if a very
