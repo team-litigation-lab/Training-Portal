@@ -1,4 +1,4 @@
-import { json, logActivity, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, googleRequired, googleNeededMessage } from '../_utils.js';
+import { json, logActivity, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, googleRequired, googleNeededMessage, SESSION_IDLE_SECONDS } from '../_utils.js';
 import { verifyTicket, TOOL_AUDIENCES, traineeAccount } from './verify-ticket.js';
 
 // POST /api/ticket-login { ticket }  → signs a trainee in to the Portal from a course's signed ticket, so a simulator a course
@@ -45,7 +45,7 @@ export async function ticketSession(env, ticket) {
         await upsertSessionHeartbeat(db, { username: user.username, fullName, batchId: user.batch_id, userType: 'Admin' });
         const token = await createSessionToken({ sub: user.id, username: user.username, batchId: user.batch_id, userType: 'Admin', fullName }, env.SESSION_SECRET);
         const { password: _pw, ...safeUser } = user;
-        return { user: { ...safeUser, fullName, userType: 'Admin' }, cookie: sessionCookie(token, 43200) };
+        return { user: { ...safeUser, fullName, userType: 'Admin' }, cookie: sessionCookie(token, SESSION_IDLE_SECONDS) };
     }
     // the trainee's Portal account, by its id (u) only: never by the names on the ticket, which a course signs from a record the
     // trainee can edit there (security review 2026-11-19)
@@ -63,7 +63,7 @@ export async function ticketSession(env, ticket) {
     await upsertSessionHeartbeat(db, { username: user.username, fullName, batchId: user.batch_id, userType: 'Trainee' });
     const token = await createSessionToken({ sub: user.id, username: user.username, batchId: user.batch_id, userType: 'Trainee', fullName }, env.SESSION_SECRET);
     const { password: _pw, ...safeUser } = user;
-    return { user: { ...safeUser, fullName, userType: 'Trainee' }, cookie: sessionCookie(token, 43200) };
+    return { user: { ...safeUser, fullName, userType: 'Trainee' }, cookie: sessionCookie(token, SESSION_IDLE_SECONDS) };
 }
 
 export async function onRequestPost({ request, env }) {

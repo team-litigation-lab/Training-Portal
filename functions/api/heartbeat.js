@@ -1,4 +1,4 @@
-import { json, getCookie, verifySessionToken, requireSession, upsertSessionHeartbeat, HEARTBEAT_GRACE_SECONDS, MASTER_USERNAME, sessionGoogleOk, googleNeededMessage } from '../_utils.js';
+import { json, getCookie, verifySessionToken, createSessionToken, sessionCookie, SESSION_IDLE_SECONDS, requireSession, upsertSessionHeartbeat, HEARTBEAT_GRACE_SECONDS, MASTER_USERNAME, sessionGoogleOk, googleNeededMessage } from '../_utils.js';
 
 export async function onRequestGet({ request, env }) {
     // Who's currently online, their real name, and which case they're
@@ -61,5 +61,9 @@ export async function onRequestPost({ request, env }) {
         currentCase: currentCase || null
     });
 
-    return json({ success: true, graceSeconds: HEARTBEAT_GRACE_SECONDS });
+    // 💤 the session renewed for another 8 hours (SESSION_IDLE_SECONDS): someone active stays signed in; 8 hours with no
+    // beat and it lapses on its own
+    const { iat: _iat, exp: _exp, ...claims } = session;
+    const renewed = await createSessionToken(claims, env.SESSION_SECRET);
+    return json({ success: true, graceSeconds: HEARTBEAT_GRACE_SECONDS }, 200, { 'Set-Cookie': sessionCookie(renewed, SESSION_IDLE_SECONDS) });
 }

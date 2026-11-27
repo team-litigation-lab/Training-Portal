@@ -56,7 +56,7 @@ async function getHmacKey(secret) {
     return crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
 }
 
-export async function createSessionToken(payload, secret, ttlSeconds = 43200 /* 12h */) {
+export async function createSessionToken(payload, secret, ttlSeconds = SESSION_IDLE_SECONDS /* 8h, renewed on each heartbeat */) {
     const body = { ...payload, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + ttlSeconds };
     const encodedBody = toBase64Url(new TextEncoder().encode(JSON.stringify(body)));
     const key = await getHmacKey(secret);
@@ -136,16 +136,22 @@ export function originAllowed(request) {
 export const HEARTBEAT_GRACE_SECONDS = 150;
 
 /**
- * True when the user's heartbeats row was touched within the grace window.
- * Sessions without a recent heartbeat are expired even if the signed cookie
- * has not reached its Max-Age yet (tab/browser close, idle timeout, etc.).
+ * 💤 How long a session lasts with no activity: 8 hours. A closed tab, a laptop that slept or a lunch break no longer signs
+ * anyone out; 8 hours with no Portal page beating does. The signed session is renewed on every heartbeat (api/heartbeat.js)
+ * for the same 8 hours, so a person who stays active is never asked to sign in again. HEARTBEAT_GRACE_SECONDS above is now
+ * only who reads as Online vs Away (the admin monitor, online-now.js).
+ */
+export const SESSION_IDLE_SECONDS = 8 * 3600;
+
+/**
+ * True when the user's heartbeats row was touched within the idle window (SESSION_IDLE_SECONDS).
  */
 export async function isSessionHeartbeatAlive(db, username) {
     const row = await db.prepare(
         `SELECT 1 AS ok FROM heartbeats
          WHERE username = ?
          AND datetime(last_seen) >= datetime('now', ?)`
-    ).bind(username, `-${HEARTBEAT_GRACE_SECONDS} seconds`).first();
+    ).bind(username, `-${SESSION_IDLE_SECONDS} seconds`).first();
     return !!row;
 }
 

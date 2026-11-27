@@ -177,7 +177,7 @@ async function launch({ request, env }) {
         const info = await auth.response.json().catch(() => ({}));
         const why = {
             NOT_AUTHENTICATED: ['Please log in', 'The Portal doesn\'t see you as logged in on this browser. Log in again, then open the program from LSH Academy Index.'],
-            SESSION_EXPIRED: ['Your Portal session timed out', 'The Portal stays signed in only while a Portal page is open and active. Log in again, then open the program from LSH Academy Index.'],
+            SESSION_EXPIRED: ['Your Portal session timed out', 'The Portal signs you out after 8 hours with no activity. Log in again, then open the program from LSH Academy Index.'],
             ACCESS_REVOKED: ['Your account isn\'t approved', 'Your account has been revoked or isn\'t approved yet. Please tell your trainer.'],
             SITE_LOCKED: ['The Portal is locked', 'An administrator has locked the Portal for now. Please try again later.']
         }[info.code] || ['Please log in', 'The Portal couldn\'t confirm your session. Log in again, then open the program from LSH Academy Index.'];

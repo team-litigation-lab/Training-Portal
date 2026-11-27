@@ -201,7 +201,9 @@ check(!/\.auth-(submit|msg|switch)\s*\{/.test(fs.readFileSync('styles.css', 'utf
 // the heartbeat's grace outlasts a backgrounded tab's throttled beats (code inventory 2026-10-16 #8): 5x the 30 s client beat
 {
     check(u.HEARTBEAT_GRACE_SECONDS >= 150 && /HEARTBEAT_INTERVAL_MS = 30000/.test(fs.readFileSync('app.js', 'utf8')), `the grace window (${u.HEARTBEAT_GRACE_SECONDS} s) is at least 5x the client's 30 s beat`);
-    for (const [ago, alive] of [[120, true], [200, false]]) {
+    // (💤 a session lasts 8 hours with no activity: SESSION_IDLE_SECONDS)
+    check(u.SESSION_IDLE_SECONDS === 8 * 3600, `the idle window is 8 hours (${u.SESSION_IDLE_SECONDS} s)`);
+    for (const [ago, alive] of [[120, true], [200, true], [7 * 3600, true], [9 * 3600, false]]) {
         sql.prepare(`INSERT OR REPLACE INTO heartbeats (username, full_name, batch_id, user_type, last_seen) VALUES ('beat', 'b', 'B1', 'Trainee', datetime('now', ?))`).run(`-${ago} seconds`);
         check(await u.isSessionHeartbeatAlive(env.DB, 'beat') === alive, `a heartbeat ${ago} s old reads ${alive ? 'alive' : 'gone'}`);
     }
