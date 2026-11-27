@@ -701,9 +701,9 @@ body.auth-uni[data-role="register"] .auth-form-side { padding-bottom: 48px; }
     .sim-hero.has-lsh-logo { padding-left: 184px !important; min-height: 112px; }
     .sim-hero.has-lsh-logo > .lsh-hero-logo { left: 22px; }
 }
-/* a narrow hero (a simulator's side panel): the logo above the hero's text, at its left, a step smaller */
+/* a narrow hero (a simulator's side panel): the logo above the hero's text, centred, a step smaller */
 .sim-hero.has-lsh-logo.lsh-logo-stack { padding-left: 18px !important; min-height: 0; }
-.sim-hero.has-lsh-logo.lsh-logo-stack > .lsh-hero-logo { position: static; transform: none; height: 64px; margin: 0 0 12px; align-self: flex-start; flex: none; }
+.sim-hero.has-lsh-logo.lsh-logo-stack > .lsh-hero-logo { position: static; transform: none; height: 64px; margin: 0 auto 12px; align-self: center; flex: none; }
 @media (max-width: 560px) {
     /* a phone: no logo in the hero card (the trainer: "no need for this"), so the hero's text has the card's full width */
     .sim-hero.has-lsh-logo > .lsh-hero-logo, .or-head.has-lsh-logo > .lsh-hero-logo { display: none !important; }
