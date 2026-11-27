@@ -3022,7 +3022,7 @@ function showToast(message, type = 'info', duration = 3500, options = {}) {
 // 6. DYNAMIC BRAND MARK INJECTION
 function renderAgencyLogo() {
     // the standard LSH logo (/lsh-logo-dark.png, the one logo every LSH page uses: white outline and wordmark for dark backgrounds), on the sidebar's navy: no white box
-    const imgTag = `<img src="/lsh-logo-dark.png" onerror="this.src='${AGENCY_LOGO}'" alt="Legal Support Help" style="width:100%;height:100%;object-fit:contain;">`;
+    const imgTag = `<img src="/lsh-logo-dark.svg" onerror="this.src='${AGENCY_LOGO}'" alt="Legal Support Help" style="width:100%;height:100%;object-fit:contain;">`;
     document.querySelectorAll('#agency-seal, #agency-seal-admin, #auth-seal').forEach(el => {
         el.innerHTML = imgTag;
     });

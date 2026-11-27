@@ -49,6 +49,7 @@
     }
     .idx-ticker-bar .top-ticker-mini { flex: 1 1 260px; max-width: none; min-width: 0; }
     .idx-ticker-bar .ticker-viewport { min-width: 0; overflow: hidden; }
+    .idx-ticker-bar .idx-ann-tag-edit { cursor: pointer; } .idx-ticker-bar .idx-ann-tag-edit:hover, .idx-ticker-bar .idx-ann-tag-edit:focus-visible { filter: brightness(1.12); box-shadow: 0 0 0 2px #f5c451; outline: none; }   /* a trainer: the pill opens the editor */
     .idx-ticker-bar .top-clock { color: #cbd5e1; font-size: 11px; font-weight: 600; white-space: nowrap; }
     .idx-ticker-bar select { border: none; background: none; font: inherit; font-weight: 600; color: #fdba74; cursor: pointer; }
     @media (max-width: 640px) { .idx-ticker-bar { padding: 8px 16px; gap: 8px 14px; } }
@@ -205,16 +206,19 @@
     .tg-pi .topic-card.tk { --tk: #1d3f86 !important; }
     .tg-cross .topic-card.tk { --tk: #0f5f66 !important; }
     .tg-beyond .topic-card.tk { --tk: #8a4b12 !important; }
-    /* each title is one solid colour (its set's ink), not a gradient with a shine passing through it */
-    .topic-card.tk .tk-name { background: none !important; color: var(--tk-ink) !important; -webkit-text-fill-color: var(--tk-ink) !important; animation: none !important; }
+    /* ✨ each title a shiny metallic gradient in its set's colour (one hue per set, so the page isn't a fiesta): light at the
+       top, the set's ink through the middle, deeper at the foot, with a bright band across it; still, no animation */
+    .topic-card.tk .tk-name { background: linear-gradient(172deg, color-mix(in srgb, var(--tk) 45%, #fff) 0%, var(--tk-ink) 34%, color-mix(in srgb, var(--tk) 55%, #fff) 50%, var(--tk-ink) 62%, color-mix(in srgb, var(--tk-ink) 72%, #000) 100%) !important;
+        background-size: 100% 100% !important; background-position: 0 0 !important; -webkit-background-clip: text !important; background-clip: text !important;
+        color: transparent !important; -webkit-text-fill-color: transparent !important; animation: none !important; }
     /* ▪ The track-name pill, simplified: a plain black frame on white, no coloured border, sheen or glow (the name keeps its colour) */
     .topic-card h3, .topic-card.tk h3, .topic-card.soon h3, .topic-card.tk.soon h3 { border: 2px solid #111827; background: #fff; box-shadow: none; animation: none; }
     /* ▬ No pill inside the card: the track's name sits straight on the card, whose outer frame is the only border, with one
        subtle line under it between the title and the status / action row. */
     #idx-topics .topic-card h3 { border: 0 !important; border-bottom: 1px solid rgba(30,35,64,.16) !important; border-radius: 0 !important;
         background: none !important; box-shadow: none !important; padding: 2px 4px clamp(6px, .9vh, 10px) !important; }
-    /* the line under the name, clearer: 2px LSH gold (it was a faint 1px grey) */
-    #idx-topics .topic-card h3 { border-bottom: 2px solid #e0a43a !important; }
+    /* the line under the name, clearer: 2px LSH navy (it was gold, and a faint 1px grey before that) */
+    #idx-topics .topic-card h3 { border-bottom: 2px solid #1E2340 !important; }
     /* 🎨 The emblem, big, on the card's left the full height of the card (in a soft tile of the set's colour); the name beside it,
        left-aligned; Available / Coming Soon moved aside to the right, beside Enter Program (Free Upskill just before them). */
     #idx-topics .topic-card.tk { grid-template-columns: auto minmax(0, 1fr) auto auto auto !important; grid-template-rows: minmax(0, 1fr) auto !important;
@@ -227,6 +231,12 @@
     #idx-topics .topic-card.tk .topic-status { grid-area: status; justify-self: end; }
     #idx-topics .topic-card.tk .topic-action-btn { grid-area: action; justify-self: end; }
     #idx-topics .topic-card.tk .topic-free { grid-area: free; justify-self: end; }
+    /* Beyond-Legal Skills' cards are five across (narrower): their chips and Enter Program a little tighter so they never clip */
+    #idx-topics .tg-beyond .topic-card.tk { column-gap: 6px !important; }
+    #idx-topics .tg-beyond .topic-card .topic-action-btn, #idx-topics .tg-beyond .topic-card .topic-status, #idx-topics .tg-beyond .topic-card .topic-free {
+        letter-spacing: .01em !important; padding-left: 8px !important; padding-right: 8px !important; }
+    #idx-topics .topic-card .topic-action-btn, #idx-topics .topic-card .topic-status, #idx-topics .topic-card .topic-free { min-width: max-content; max-width: none; }   /* never clipped */
+    @media (max-width: 1700px) { #idx-topics .tg-beyond .topic-card.tk:has(.topic-action-btn.primary) .topic-status { display: none; } }   /* a laptop: an open track's gold frame and Enter Program say it's available */
     .topic-card.soon .tk-big { filter: grayscale(.35); }
     @media (prefers-reduced-motion: reduce) { .tk-name, .topic-card.tk.live h3, .topic-card.tk.live .tk-ic { animation: none; } .tk-name { background-position: 0 0; } }
     .topic-status { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 999px; display: inline-block; width: fit-content; }
@@ -254,6 +264,10 @@
     .tool-card .dd-open { grid-column: 1 / -1; grid-row: 1 / -1; align-self: stretch; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(4px, .8vh, 9px);
         border: 2px solid #ecc98a; border-radius: 10px; background: linear-gradient(135deg, #fffdf7 0%, #fdf2dc 45%, #f7dfb0 100%); color: var(--navy-deep); cursor: pointer; font: inherit; padding: 6px 10px; box-shadow: inset 5px 0 0 var(--orange); transition: transform .15s ease, box-shadow .15s ease; }
     .tool-card .dd-open:hover { transform: translateY(-2px); box-shadow: inset 5px 0 0 var(--orange), 0 10px 20px -12px rgba(160,100,30,.45); }
+    /* no inner pill: the button fills the card with no frame, fill or edge of its own (the card's own frame is the only one) */
+    .tool-card:has(.dd-open) { padding: 0; }
+    .tool-card .dd-open { border: 0 !important; background: transparent !important; box-shadow: none !important; border-radius: inherit; padding: 8px 12px; }
+    .tool-card .dd-open:hover { transform: none; background: rgba(245,196,81,.10) !important; }
     .tool-card .dd-open:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
     .dd-open .dd-t { font-size: clamp(13px, 1.9vh, 20px); font-weight: 900; letter-spacing: .01em; white-space: nowrap; }
     .dd-open .dd-c { font-size: clamp(10.5px, 1.3vh, 13px); font-weight: 800; color: #1E2340; background: linear-gradient(180deg, #fde7b0 0%, #f5c451 50%, #e0a43a 100%); border-radius: 999px; padding: 3px 14px; white-space: nowrap; }
@@ -341,11 +355,11 @@
     .sim-banner-go { background: linear-gradient(180deg, #fde7b0 0%, #f5c451 50%, #e0a43a 100%); color: #1E2340; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 8px 16px; white-space: nowrap; }
 
     /* The top bar: the LSH logo, the page's name, and the pill bar (trainees, visitors, or the admin bar). */
-    .idx-top { --brand-panel: 200px; --brand-panel-sm: 162px; position: relative; z-index: 5; gap: 20px; padding: 8px 28px; background: var(--navy); border-bottom: 2px solid var(--orange); }
+    .idx-top { --brand-panel: 200px; --brand-panel-sm: 162px; position: relative; z-index: 5; gap: 20px; padding: 8px 28px; background: var(--navy); border-bottom: 2px solid #e0a43a; }   /* a gold rule under the bar */
     .idx-brand { flex-shrink: 0; margin-right: 72px; }
-    .idx-logo { height: 70px; width: auto; display: block; }   /* the LSH logo a size up; the bar's padding gives it the room, so the bar stays the same height */
+    body .idx-top .idx-logo { height: 84px; width: auto; aspect-ratio: 646 / 397; display: block; }   /* the vector logo (sharp at any size), a size bigger */
     .idx-title { flex: 0 1 auto; margin: 0 auto 0 0; font-size: clamp(16px, 2vw, 28px); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: #fff; white-space: nowrap; }
-    .idx-title span { color: var(--orange); }
+    .idx-title span { background: linear-gradient(180deg, #fff3cf 0%, #f5c451 50%, #e0a43a 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }   /* "Index" in LSH gold */
     .idx-user { gap: 6px; }
     .idx-user .pn-pill { font-size: 11.5px !important; padding: 5px 10px !important; }
     .idx-user .pn-back { font-size: 12px; font-weight: 700; padding: 5px 10px !important; }
@@ -396,14 +410,14 @@
     @media (max-height: 940px) {
         .idx-wrap { padding: 10px 24px 10px; }
         .idx-top { padding: 6px 24px; }
-        .idx-logo { height: 60px; }
+        body .idx-top .idx-logo { height: 70px; }
         .sim-banner-row { gap: 9px; margin-bottom: 9px; }
         .sim-banner-row .sim-banner { padding: 9px 11px; }
         .topic-card { padding: 8px 10px; gap: 6px; }
     }
     @media (max-height: 800px) {
         .idx-top { padding: 5px 22px; gap: 16px; }
-        .idx-logo { height: 52px; }
+        body .idx-top .idx-logo { height: 60px; }
         .idx-user .pn-pill { font-size: 10.5px !important; padding: 4px 8px !important; }
         .sim-banner-row { gap: 8px; margin-bottom: 8px; }
         .sim-banner-row .sim-banner { padding: 7px 10px; gap: 9px; }
@@ -422,7 +436,7 @@
     @media (max-height: 730px) {
         .idx-wrap { padding: 8px 20px 8px; }
         .idx-top { padding: 8px 20px; }
-        .idx-logo { height: 46px; }
+        body .idx-top .idx-logo { height: 52px; }
         .sim-banner-row { gap: 7px; margin-bottom: 7px; }
         .sim-banner-row .sim-banner { padding: 6px 9px; }
         .topic-grid { gap: 7px; }
@@ -493,7 +507,7 @@
 </div>
 
 <div class="idx-top">
-    <span class="idx-brand"><img class="idx-logo" src="/lsh-logo-dark.png" alt="Legal Support Help"></span>
+    <span class="idx-brand"><img class="idx-logo" src="/lsh-logo-dark.svg" alt="Legal Support Help"></span>
     <h1 class="idx-title" id="idx-heading">LSH Academy <span>Index</span></h1>
     <div class="idx-user" id="idx-user">
         <script>document.write(PortalNav.traineeHtml('', { back: '/index.html?stay=1' }));</script>
@@ -503,14 +517,14 @@
 
 <div class="idx-wrap">
     <div class="sim-banner-row">
-    <a class="sim-banner" href="/simulators.html">
-        <span class="sim-banner-ic">🛠</span>
-        <span class="sim-banner-tx" title="Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>LSH Elev8<sup class="tm" aria-label="trademark">™</sup></b></span>
-        <span class="sim-banner-go">Open →</span>
-    </a>
     <a class="sim-banner" href="/kb.html">
         <span class="sim-banner-ic">📚</span>
         <span class="sim-banner-tx" title="Official SOPs and resources, plus tips, guides and lessons shared by LSH VAs. Search it, and share what you know."><b>LSH Atlas<sup class="tm" aria-label="trademark">™</sup></b></span>
+        <span class="sim-banner-go">Open →</span>
+    </a>
+    <a class="sim-banner" href="/simulators.html">
+        <span class="sim-banner-ic">🛠</span>
+        <span class="sim-banner-tx" title="Calls, live mock calls, calendaring, email, docketing, medical records requests and court e-filing: live and shared by every program. Chat is on the way."><b>LSH Elev8<sup class="tm" aria-label="trademark">™</sup></b></span>
         <span class="sim-banner-go">Open →</span>
     </a>
     <a class="sim-banner" id="ring-banner" href="/api/launch?tool=ringchannel" target="_blank" rel="noopener">
@@ -533,6 +547,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
 <script src="portal.js"></script>
+<script src="/tool-tips.js"></script>
 <script>
     // The programs with their own site, which open through this portal's single sign-in (/api/launch): their own site has
     // no trainee sign-in, and trainees come in with a signed ticket. The list comes with /api/topics (programs), from the
@@ -720,7 +735,13 @@
             // One admin bar on every main page (portal-nav.js); everything else is under System Management.
             if (userEl) userEl.innerHTML = PortalNav.adminHtml('', { back: '/index.html?stay=1', blueprintMenu: true });
             // 📢 the announcement is edited in Master Control → Broadcast & Ping: ✏️ Edit on the ticker goes straight there
-            if (!asTrainee) { const tk = document.getElementById('announcement-ticker'); if (tk && !document.getElementById('idx-ann-edit')) tk.insertAdjacentHTML('afterend', '<a id="idx-ann-edit" href="/core.html#announce" title="Edit the announcement (Master Control → Broadcast &amp; Ping)" style="flex:none;padding:3px 10px;border:1px solid rgba(253,186,116,.6);border-radius:999px;color:#fdba74;font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap">✏️ Edit</a>'); if (window.OnlineNow) OnlineNow.mount(document.getElementById('idx-ann-edit')); }
+            // (no ✏️ Edit button: a trainer clicks the Announcement pill itself to open the editor; a trainee's pill does nothing)
+            if (!asTrainee) { const tk = document.getElementById('announcement-ticker'), tag = document.getElementById('announcement-tag');
+                if (tag && !tag.dataset.edit) { tag.dataset.edit = '1'; tag.classList.add('idx-ann-tag-edit'); tag.setAttribute('role', 'link'); tag.tabIndex = 0;
+                    tag.title = 'Edit the announcement (Master Control → Broadcast & Ping)';
+                    const go = () => { location.href = '/core.html#announce'; };
+                    tag.addEventListener('click', go); tag.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }); }
+                if (tk && window.OnlineNow) OnlineNow.mount(tk); }
             if (asTrainee) document.querySelector('.idx-top').insertAdjacentHTML('afterend',
                 `<div class="pn-trainee-view">👁 Trainee view: LSH Academy Index as trainees see it.<button type="button" onclick="PortalNav.switchView()">Back to the admin view</button></div>`);
         }
