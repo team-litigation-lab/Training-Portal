@@ -238,6 +238,22 @@
         letter-spacing: .01em !important; padding-left: 8px !important; padding-right: 8px !important; }
     #idx-topics .topic-card .topic-action-btn, #idx-topics .topic-card .topic-status, #idx-topics .topic-card .topic-free { min-width: max-content; max-width: none; }   /* never clipped */
     @media (max-width: 1700px) { #idx-topics .tg-beyond .topic-card.tk:has(.topic-action-btn.primary) .topic-status { display: none; } }   /* a laptop: an open track's gold frame and Enter Program say it's available */
+    /* ▬ the chips and Enter Program never ride up over the line under the name: the name's row never shrinks below the name
+       (on a short window, or with a font a little taller, the squeezed row let the name push the line down onto them), and
+       the chips keep a clear gap under the line */
+    #idx-topics .topic-card.tk { grid-template-rows: minmax(0, 1fr) max-content !important; row-gap: 5px !important; }
+    #idx-topics .topic-card.tk h3 { padding-bottom: 4px !important; align-self: start; }
+    #idx-topics .topic-card.tk .topic-status, #idx-topics .topic-card.tk .topic-action-btn, #idx-topics .topic-card.tk .topic-free { margin-top: 0 !important; min-height: max-content; align-self: end; }
+    /* a laptop-height window: Beyond-Legal's two-line names a little tighter, so the name, its line and the chips all fit */
+    @media (max-height: 860px) {
+        #idx-topics .tg-beyond .topic-card.tk .tk-name { line-height: 1.08 !important; padding-top: 0 !important; padding-bottom: .08em !important; margin: 0 !important; }
+        #idx-topics .tg-beyond .topic-card.tk h3 { padding-top: 0 !important; padding-bottom: 3px !important; }
+        #idx-topics .tg-beyond .topic-card.tk { row-gap: 4px !important; }
+    }
+    @media (max-height: 760px) {
+        #idx-topics .tg-beyond .topic-card.tk h3 { font-size: 13px !important; }
+        #idx-topics .topic-card.tk h3 { padding-bottom: 3px !important; }
+    }
     .topic-card.soon .tk-big { filter: grayscale(.35); }
     @media (prefers-reduced-motion: reduce) { .tk-name, .topic-card.tk.live h3, .topic-card.tk.live .tk-ic { animation: none; } .tk-name { background-position: 0 0; } }
     .topic-status { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 999px; display: inline-block; width: fit-content; }
