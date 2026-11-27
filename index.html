@@ -656,6 +656,51 @@
     footer { background: var(--paper); border-top: 1px solid rgba(15,33,72,.1); }
     footer .footer-bottom { color: var(--slate-on-paper); }
     .founder-text .btn-ghost-dark:hover { background: rgba(255,255,255,.08) !important; }
+    /* ===== Bigger, bolder, more prominent (the trainer asked for it on every section below the first screen) ===== */
+    /* the office photo a little more visible behind the page: the wash over it from .72 to .62 */
+    body { --portal-wash: rgba(250, 248, 244, .62); }
+    /* the training team, a size larger */
+    body .org { max-width: 1640px; }
+    body .org-card { min-width: 540px; padding: 18px 36px 18px 18px; gap: 24px; }
+    body .org-card img { width: 150px; height: 150px; }
+    body .org-name { font-size: 26px; font-weight: 900; }
+    body .org-role { font-size: 18px; font-weight: 700; }
+    body .org-row .org-card img { width: 132px; height: 132px; }
+    body .org-row .org-name { font-size: 23px; }
+    /* Mission and Vision: bigger, bolder type */
+    body .vm-body { padding: 20px 26px; }
+    body .vm-body h3 { font-size: 21px; }
+    body .vm-body p { font-size: 16.5px; font-weight: 700; line-height: 1.6; }
+    /* the nine values: bigger, bolder; their heading highlighted (a gold-edged navy ribbon) */
+    body .value-card { min-height: 78px; font-size: 17.5px; font-weight: 900; letter-spacing: .01em; }
+    body .vm-values-head { display: table; margin: 26px auto 0; padding: 8px 26px; border-radius: 999px; font-size: 22px; font-weight: 900; letter-spacing: .04em;
+        color: #fff; background: linear-gradient(135deg, #0b1230, #1E2340 55%, #2D3762); border: 2px solid #e0a43a; box-shadow: 0 10px 24px -12px rgba(15,33,72,.65); }
+    /* the FAQs: bigger, bolder questions and answers */
+    body .faq-question { font-size: 18px; font-weight: 800; padding: 18px 24px; }
+    body .faq-answer p { font-size: 16px; font-weight: 600; color: rgba(255,255,255,.92); }
+    body .faq-item.open .faq-answer { max-height: 320px; }
+    /* the founder and the history: bigger, bolder type */
+    body #about .founder-text p, body #about .about-text p { font-size: clamp(14.5px, 1.1vw, 17px); font-weight: 600; color: #fff; }
+    body #about .name-pill { font-size: clamp(16px, 1.3vw, 20px); }
+    body #about .sub-head { font-size: clamp(21px, 1.7vw, 27px); font-weight: 900; }
+    /* short windows (a 1366×768 laptop): a step down so each section still fits its screen */
+    @media (max-height: 820px) {
+        body .org-card { min-width: 460px; padding: 12px 28px 12px 12px; }
+        body .org-card img { width: 112px; height: 112px; }
+        body .org-row .org-card img { width: 96px; height: 96px; }
+        body .org-name { font-size: 21px; } body .org-role { font-size: 15.5px; }
+        body .org-row .org-name { font-size: 19px; }
+        body .vm-body { padding: 14px 20px; }
+        body .vm-body h3 { font-size: 17px; }
+        body .vm-body p { font-size: 13.5px; line-height: 1.5; margin-bottom: 9px; }
+        body .vm-values-head { margin-top: 14px; font-size: 17px; padding: 5px 20px; }
+        body .value-card { min-height: 50px; font-size: 14px; }
+        body .faq-question { font-size: 15.5px; padding: 13px 18px; }
+        body .faq-answer p { font-size: 14px; }
+        body #about .founder-text p, body #about .about-text p { font-size: 13.5px; }
+    }
+    @media (max-width: 1100px) { body .org-card { min-width: 0; } body .org-row .org-name { font-size: 16px; } body .org-row .org-card img { width: 72px; height: 72px; } }
+    @media (max-width: 760px) { body .org-card img { width: 96px; height: 96px; } body .value-card { font-size: 16px; } body .vm-body p { font-size: 15px; } }
 </style>
 <link rel="stylesheet" href="/theme.css">
 </head>
@@ -663,7 +708,7 @@
 
 <nav>
     <div class="nav-inner">
-        <div class="brand"><img class="brand-logo" src="/lsh-logo-dark.png" alt="Legal Support Help" width="137" height="84"> <span class="brand-title"><span class="bt-top">Legal Support Help</span><span class="bt-rule" aria-hidden="true"></span><span class="bt-main">Nexus</span></span></div>
+        <div class="brand"><img class="brand-logo" src="/lsh-logo-dark.svg" alt="Legal Support Help" width="137" height="84"> <span class="brand-title"><span class="bt-top">Legal Support Help</span><span class="bt-rule" aria-hidden="true"></span><span class="bt-main">Nexus</span></span></div>
         <div class="nav-pills">
             <!-- The pills that scroll this page come first, in the order the sections appear on it
                  (team, about, vision, values, faq), then the places that leave it, then the actions. -->
@@ -850,6 +895,38 @@
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">How is my progress graded? <span class="chev">&#9660;</span></button>
             <div class="faq-answer"><p>Most activities are auto-graded instantly on submission. Anything needing a human eye is reviewed by an admin, and you'll see the released grade and feedback on your Grades &amp; Submissions page.</p></div>
+        </div>
+        <div class="faq-item">
+            <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">🧭 Where can I find my programs and lessons? <span class="chev">&#9660;</span></button>
+            <div class="faq-answer"><p>On <b>LSH Academy Index</b>, the page you land on once you're logged in. Each program is a card there: press <b>Enter Program</b> on yours to open its lessons, activities and recorded lectures.</p></div>
+        </div>
+        <div class="faq-item">
+            <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">🏅 Where can I find my grades and my trainer's feedback? <span class="chev">&#9660;</span></button>
+            <div class="faq-answer"><p>Inside your program: open it from LSH Academy Index, then go to its <b>Grades &amp; Submissions</b> page. Released grades and feedback show there as soon as your trainer sends them.</p></div>
+        </div>
+        <div class="faq-item">
+            <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">📚 Where can I find the SOPs and how-to guides? <span class="chev">&#9660;</span></button>
+            <div class="faq-answer"><p>In <b>LSH Atlas</b>. Open it from the LSH Atlas banner at the top of LSH Academy Index, then search for the task or SOP you need.</p></div>
+        </div>
+        <div class="faq-item">
+            <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">☎ Where can I practise my mock calls? <span class="chev">&#9660;</span></button>
+            <div class="faq-answer"><p>In <b>LSH CommX</b>, from its banner on LSH Academy Index. Your calls ring there, with your trainer or an AI caller, and are recorded and reviewed. Use a headset.</p></div>
+        </div>
+        <div class="faq-item">
+            <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">🗂 Where can I find the mock case files and practice CMS? <span class="chev">&#9660;</span></button>
+            <div class="faq-answer"><p>In <b>LSH CaseWorX</b>, from its banner on LSH Academy Index. It holds the mock case files every program uses and your own practice cases.</p></div>
+        </div>
+        <div class="faq-item">
+            <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">🛠 Where can I practise the tools I'll use on the job? <span class="chev">&#9660;</span></button>
+            <div class="faq-answer"><p>In <b>LSH Elev8</b>, from its banner on LSH Academy Index: pick a simulator (email, calendaring, docketing, records requests, e-filing and more), work the scenario and get a scored debrief.</p></div>
+        </div>
+        <div class="faq-item">
+            <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">📢 Where can I see announcements? <span class="chev">&#9660;</span></button>
+            <div class="faq-answer"><p>In the <b>Announcement</b> bar across the top of LSH Academy Index. Your trainer posts schedule changes and reminders there.</p></div>
+        </div>
+        <div class="faq-item">
+            <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">📬 Where can I find my Daily Digest? <span class="chev">&#9660;</span></button>
+            <div class="faq-answer"><p>On LSH Academy Index: press <b>Your Daily Digest</b> for today's card. A new one comes every day.</p></div>
         </div>
         <div class="faq-item">
             <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">Do I need to log in here? <span class="chev">&#9660;</span></button>

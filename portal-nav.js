@@ -247,7 +247,7 @@ window.addEventListener('scroll', () => PortalNav.closeMenus(), true);
         const hero = document.querySelector('.sim-hero, .or-head');
         if (!hero || hero.querySelector(':scope > .lsh-hero-logo')) return;
         const img = document.createElement('img');
-        img.className = 'lsh-hero-logo'; img.src = '/lsh-logo-dark.png'; img.alt = 'Legal Support Help'; img.width = 646; img.height = 397;   // the logo made for dark backgrounds: white outline and wordmark
+        img.className = 'lsh-hero-logo'; img.src = '/lsh-logo-dark.svg'; img.alt = 'Legal Support Help'; img.width = 646; img.height = 397;   // the logo made for dark backgrounds: white outline and wordmark
         hero.insertBefore(img, hero.firstChild);
         hero.classList.add('has-lsh-logo');
         document.body.classList.add('lsh-logo-in-hero');
