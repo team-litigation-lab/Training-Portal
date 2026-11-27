@@ -66,6 +66,8 @@ const PortalNav = {
         ['Medsum & Demand Track', '/api/launch?program=MEDSUM%20AND%20DEMAND&to=blueprint'],
         ['Lien Negotiator Track', '/api/launch?program=LIEN%20NEGOTIATION&to=blueprint'],
         ['Closing Specialist Track', '/api/launch?program=SETTLEMENTS%20CLOSING&to=blueprint'],
+        ['Health Subro Track', '/api/launch?program=HEALTH%20SUBRO&to=blueprint'],
+        ['Lien Verification Track', '/api/launch?program=LIEN%20VERIFICATION&to=blueprint'],
         ['🗂 LSH CaseWorX', '/api/launch?tool=cms&to=blueprint'],
         ['☎️ LSH CommX', '/api/launch?tool=ringchannel&to=blueprint'],
         ['📚 LSH Atlas', '/api/launch?tool=kb&to=blueprint']
