@@ -1,4 +1,4 @@
-import { json, logActivity, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, googleRequired, googleNeededMessage } from '../_utils.js';
+import { json, logActivity, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, googleRequired, googleNeededMessage, SESSION_MAX_SECONDS } from '../_utils.js';
 import { verifyTicket, TOOL_AUDIENCES, traineeAccount } from './verify-ticket.js';
 
 // POST /api/ticket-login { ticket }  → signs a trainee in to the Portal from a course's signed ticket, so a simulator a course
@@ -14,7 +14,7 @@ import { verifyTicket, TOOL_AUDIENCES, traineeAccount } from './verify-ticket.js
 //     Account's), no such admin or more than one, and the Portal's system ticket, never sign anyone in: the password then;
 //   - the account is the trainee's Portal account whose id the ticket carries (u), Approved, never found by the ticket's names;
 //     no account, more than one, or a pending, rejected, revoked or suspended one: refused, never guessed.
-// The session is the same as /api/login's (12 hours, the heartbeat seeded).
+// The session is the same as /api/login's (it lasts until 8 hours without activity: SESSION_IDLE_SECONDS; the heartbeat seeded).
 // The Portal session for a course's ticket: { user, cookie } or { status, code, error }. functions/_middleware.js uses it for a
 // simulator page opened with ?ticket= (it signs the trainee in before the page is sent, then drops the ticket from the address).
 export async function ticketSession(env, ticket) {
@@ -45,7 +45,7 @@ export async function ticketSession(env, ticket) {
         await upsertSessionHeartbeat(db, { username: user.username, fullName, batchId: user.batch_id, userType: 'Admin' });
         const token = await createSessionToken({ sub: user.id, username: user.username, batchId: user.batch_id, userType: 'Admin', fullName }, env.SESSION_SECRET);
         const { password: _pw, ...safeUser } = user;
-        return { user: { ...safeUser, fullName, userType: 'Admin' }, cookie: sessionCookie(token, 43200) };
+        return { user: { ...safeUser, fullName, userType: 'Admin' }, cookie: sessionCookie(token, SESSION_MAX_SECONDS) };
     }
     // the trainee's Portal account, by its id (u) only: never by the names on the ticket, which a course signs from a record the
     // trainee can edit there (security review 2026-11-19)
@@ -63,7 +63,7 @@ export async function ticketSession(env, ticket) {
     await upsertSessionHeartbeat(db, { username: user.username, fullName, batchId: user.batch_id, userType: 'Trainee' });
     const token = await createSessionToken({ sub: user.id, username: user.username, batchId: user.batch_id, userType: 'Trainee', fullName }, env.SESSION_SECRET);
     const { password: _pw, ...safeUser } = user;
-    return { user: { ...safeUser, fullName, userType: 'Trainee' }, cookie: sessionCookie(token, 43200) };
+    return { user: { ...safeUser, fullName, userType: 'Trainee' }, cookie: sessionCookie(token, SESSION_MAX_SECONDS) };
 }
 
 export async function onRequestPost({ request, env }) {

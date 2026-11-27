@@ -1,4 +1,4 @@
-import { json, getCookie, verifySessionToken, requireSession, upsertSessionHeartbeat, HEARTBEAT_GRACE_SECONDS, MASTER_USERNAME, sessionGoogleOk, googleNeededMessage } from '../_utils.js';
+import { json, getCookie, verifySessionToken, requireSession, upsertSessionHeartbeat, HEARTBEAT_GRACE_SECONDS, SESSION_IDLE_SECONDS, MASTER_USERNAME, sessionGoogleOk, googleNeededMessage } from '../_utils.js';
 
 export async function onRequestGet({ request, env }) {
     // Who's currently online, their real name, and which case they're
@@ -46,6 +46,12 @@ export async function onRequestPost({ request, env }) {
     }
 
     const db = env.DB;
+    // 🔓 8 hours with no activity ends a session (SESSION_IDLE_SECONDS): a tab that comes back after that can't bring it
+    // back with a beat. A sign-in younger than that is good with no row yet (the first beat after logging in).
+    const row = await db.prepare(`SELECT 1 AS ok FROM heartbeats WHERE username = ? AND datetime(last_seen) >= datetime('now', ?)`)
+        .bind(session.username, `-${SESSION_IDLE_SECONDS} seconds`).first().catch(() => null);
+    const fresh = Number(session.iat) && (Date.now() / 1000 - Number(session.iat)) < SESSION_IDLE_SECONDS;
+    if (!row && !fresh) return json({ success: false, error: 'Session expired.', code: 'SESSION_EXPIRED' }, 401);
     let body;
     try { body = await request.json(); } catch (e) { return json({ success: false, error: 'Invalid request body.' }, 400); }
     const { fullName, currentCase } = body;
