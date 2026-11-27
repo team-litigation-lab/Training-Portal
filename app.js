@@ -3069,7 +3069,7 @@ async function loadProgramAccess() {
 }
 const PA_HIDDEN = ['REVISED CM TRAINING', 'REVISED EA PA TRAINING', 'CALENDAR MANAGEMENT TRAINING'];   // keep in step with ARCHIVED_TOPICS in programs.html (same list; a different name because programs.html loads app.js into the same global scope)
 // the programs' names as LSH Academy Index shows them (PROGRAM_NAMES in programs.html)
-const PA_NAMES = { 'STANDARD TRAINING': 'Legal VA Foundational Track', 'CM TRAINING': 'Case Management Track', 'REVISED CM TRAINING': 'Revised Case Management Track', 'PROPERTY DAMAGE': 'Property Damage Claims Track', 'MEDSUM AND DEMAND': 'Medsum & Demand Track', 'LIEN NEGOTIATION': 'Lien Negotiator Track', 'SETTLEMENTS CLOSING': 'Closing Specialist Track', 'EA  PA TRAINING-OUTSOURCED MANP': 'Executive/Personal Assistant Track' };
+const PA_NAMES = { 'STANDARD TRAINING': 'Legal VA Foundational Track', 'CM TRAINING': 'Case Management Track', 'REVISED CM TRAINING': 'Revised Case Management Track', 'PROPERTY DAMAGE': 'Property Damage Claims Track', 'MEDSUM AND DEMAND': 'Medsum & Demand Track', 'LIEN NEGOTIATION': 'Lien Negotiator Track', 'SETTLEMENTS CLOSING': 'Closing Specialist Track', 'HEALTH SUBRO': 'Health Subro Track', 'LIEN VERIFICATION': 'Lien Verification Track', 'EA  PA TRAINING-OUTSOURCED MANP': 'Executive/Personal Assistant Track' };
 const paName = (key) => PA_NAMES[key] || ((__paTopics.find(t => t.key === key) || {}).name) || key;
 const paIsSuspended = (st) => String(st || '').startsWith('Suspended');
 const paPillClass = (st) => paIsSuspended(st) ? 'suspended' : String(st || '').toLowerCase();
