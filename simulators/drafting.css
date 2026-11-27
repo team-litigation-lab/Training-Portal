@@ -114,7 +114,7 @@ textarea.dr-f { display: block; width: 100%; min-height: 72px; resize: vertical;
 .dr-paper.dr-docx p[style*="background-color: inherit"] { background-color: transparent !important; }
 
 /* ---------- ✍ the Word-style editor (drafting-editor.js) ----------
-   Word's own chrome, so the trainee practises where they will work: the blue title bar with the file
+   Word's own chrome, so the trainee practices where they will work: the blue title bar with the file
    name, the ribbon tabs (File · Home · Insert · Review · View), the Home groups, the grey canvas with
    the page on it, and the status bar with pages, words and zoom. */
 .wd { border: 1px solid #c8c6c4; border-radius: 10px; overflow: hidden; background: #f3f2f1; min-width: 0;

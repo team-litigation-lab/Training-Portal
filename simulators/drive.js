@@ -108,7 +108,7 @@ function traineeHTML() {
     else if (!D.configured) body = `<p class="drv-p">The Backup Drive isn't switched on for this site yet — a trainer sets it up once (README → 📂 The trainee's Backup Drive). Nothing else is blocked.</p>`;
     else if (!D.connected) {
         preloadGis();
-        body = `<p class="drv-p">Connect the Google account you want to practise on — a personal Gmail address is fine. The Portal asks Google for <b>drive.file</b> only: it can see and change the folders and files it makes here, and nothing else in your Drive. Everything it makes stays yours, and you can disconnect at any time.</p>
+        body = `<p class="drv-p">Connect the Google account you want to practice on — a personal Gmail address is fine. The Portal asks Google for <b>drive.file</b> only: it can see and change the folders and files it makes here, and nothing else in your Drive. Everything it makes stays yours, and you can disconnect at any time.</p>
       ${D.setup ? `<p class="drv-meta">Your setup so far: ${D.setup.score}% on ${D.setup.attempts} attempt${D.setup.attempts === 1 ? '' : 's'}.</p>` : ''}
       <button type="button" class="drv-btn drv-go" onclick="PortalDrive.connect()" ${connecting ? 'disabled' : ''}>${GLOGO}${connecting ? 'Connecting…' : 'Connect my Google Drive'}</button>`;
     } else if (!D.built) {
