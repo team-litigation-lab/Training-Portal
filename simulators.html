@@ -85,6 +85,10 @@
         filter: drop-shadow(0 0 8px rgba(245,196,81,.30)) drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
     .hub-wrap .sim-hero h1 .hub-name .tm { font-size: .55em; font-weight: 900; vertical-align: super; line-height: 0; margin-left: 2px;
         color: #f5c451; -webkit-text-fill-color: #f5c451; }
+    /* 🛠 LSH Elev8™ big, and its line under it (not beside it on one small row) */
+    .hub-wrap .sim-hero { display: flex; flex-direction: column; align-items: flex-start !important; gap: 6px; }
+    .hub-wrap .sim-hero h1 { font-size: clamp(30px, 2.6vw, 44px) !important; margin: 0; line-height: 1.15; }
+    .hub-wrap .sim-hero p { font-size: clamp(18px, 1.2vw, 21px) !important; margin: 0; }
 
     /* Laptop and desktop: a compact one-line hero, then the engines three across (four from 1600px wide, where all eleven
        fit one 1920x1080 screen). On a 1366x768 laptop the richer cards take a short scroll rather than being squeezed: their

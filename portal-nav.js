@@ -253,6 +253,9 @@ window.addEventListener('scroll', () => PortalNav.closeMenus(), true);
         hero.insertBefore(img, hero.firstChild);
         hero.classList.add('has-lsh-logo');
         document.body.classList.add('lsh-logo-in-hero');
+        // a narrow hero (a simulator's side panel, 264px): the logo above the text, not beside it squeezing the text to a sliver
+        const fit = () => hero.classList.toggle('lsh-logo-stack', hero.getBoundingClientRect().width < 560);
+        fit(); if (window.ResizeObserver) new ResizeObserver(fit).observe(hero); else window.addEventListener('resize', fit);
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', heroLogo); else heroLogo();
     window.addEventListener('load', heroLogo);
