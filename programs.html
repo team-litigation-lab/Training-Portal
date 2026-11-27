@@ -241,14 +241,16 @@
     /* ▬ the chips and Enter Program never ride up over the line under the name: the name's row never shrinks below the name
        (on a short window, or with a font a little taller, the squeezed row let the name push the line down onto them), and
        the chips keep a clear gap under the line */
-    #idx-topics .topic-card.tk { grid-template-rows: minmax(0, 1fr) max-content !important; row-gap: 5px !important; }
-    #idx-topics .topic-card.tk h3 { padding-bottom: 4px !important; align-self: start; }
+    #idx-topics .topic-card.tk { grid-template-rows: minmax(0, 1fr) max-content !important; row-gap: 7px !important; }
+    /* (the name sits at the foot of its row: a font that sets a little taller grows the name up into the card's top padding,
+       never down onto the chips, so the line under it always keeps the gap above them) */
+    #idx-topics .topic-card.tk h3 { padding-bottom: 4px !important; align-self: end; }
     #idx-topics .topic-card.tk .topic-status, #idx-topics .topic-card.tk .topic-action-btn, #idx-topics .topic-card.tk .topic-free { margin-top: 0 !important; min-height: max-content; align-self: end; }
     /* a laptop-height window: Beyond-Legal's two-line names a little tighter, so the name, its line and the chips all fit */
     @media (max-height: 860px) {
         #idx-topics .tg-beyond .topic-card.tk .tk-name { line-height: 1.08 !important; padding-top: 0 !important; padding-bottom: .08em !important; margin: 0 !important; }
         #idx-topics .tg-beyond .topic-card.tk h3 { padding-top: 0 !important; padding-bottom: 3px !important; }
-        #idx-topics .tg-beyond .topic-card.tk { row-gap: 4px !important; }
+        #idx-topics .tg-beyond .topic-card.tk { row-gap: 6px !important; }
     }
     @media (max-height: 760px) {
         #idx-topics .tg-beyond .topic-card.tk h3 { font-size: 13px !important; }
@@ -395,7 +397,9 @@
         #idx-topics .topic-group { flex: var(--rows, 1) 1 auto; min-height: 0; display: flex; flex-direction: column; }
         /* Beyond-Legal Skills' cards shorter (their group is only as tall as its cards need), and the room goes to a bigger
            top bar: more air above and below, the page's name a size up */
-        #idx-topics .topic-group.tg-beyond { flex: 0 1 auto; }   /* only as tall as its cards need; the other groups take the spare height */
+        /* every card the same height in all three sets (each set is two rows of cards): the groups share the height equally,
+           so Beyond-Legal's cards are no taller than the others and the Personal Injury and Cross-Practice cards get their room */
+        #idx-topics .topic-group, #idx-topics .topic-group.tg-beyond { flex: var(--rows, 1) 1 0 !important; }
         body .idx-top { padding-top: 14px; padding-bottom: 14px; }
         body .idx-title { font-size: clamp(20px, 2.35vw, 36px); }
         @media (max-width: 1400px) { body .idx-title { font-size: clamp(18px, 1.75vw, 24px); white-space: nowrap; max-width: none; } }   /* a laptop: one line, beside the admin bar */
