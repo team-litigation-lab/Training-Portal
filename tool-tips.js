@@ -6,7 +6,7 @@
 (function () {
     const MORE = {   // a line on what to open it for, after the overview
         'LSH Atlas': 'Open it to look up an SOP or a how-to before you ask.',
-        'LSH Elev8': 'Open it to practise a task in a simulator and get a scored debrief.',
+        'LSH Elev8': 'Open it to practice a task in a simulator and get a scored debrief.',
         'LSH CommX': 'Open it for your mock calls: answer, take the note, get reviewed.',
         'LSH CaseWorX': 'Open it to work a mock case file in the practice CMS.'
     };
