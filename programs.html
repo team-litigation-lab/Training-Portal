@@ -208,9 +208,10 @@
     .tg-beyond .topic-card.tk { --tk: #8a4b12 !important; }
     /* ✨ each title a shiny metallic gradient in its set's colour (one hue per set, so the page isn't a fiesta): light at the
        top, the set's ink through the middle, deeper at the foot, with a bright band across it; still, no animation */
-    .topic-card.tk .tk-name { background: linear-gradient(172deg, color-mix(in srgb, var(--tk) 45%, #fff) 0%, var(--tk-ink) 34%, color-mix(in srgb, var(--tk) 55%, #fff) 50%, var(--tk-ink) 62%, color-mix(in srgb, var(--tk-ink) 72%, #000) 100%) !important;
+    .topic-card.tk .tk-name { background: linear-gradient(180deg, color-mix(in srgb, var(--tk) 82%, #fff) 0%, var(--tk-ink) 45%, color-mix(in srgb, var(--tk-ink) 70%, #000) 100%) !important;
         background-size: 100% 100% !important; background-position: 0 0 !important; -webkit-background-clip: text !important; background-clip: text !important;
-        color: transparent !important; -webkit-text-fill-color: transparent !important; animation: none !important; }
+        color: transparent !important; -webkit-text-fill-color: transparent !important; animation: none !important;
+        filter: none !important; }   /* no emboss shadow behind the gradient: it showed through the letters as a faded double */
     /* ▪ The track-name pill, simplified: a plain black frame on white, no coloured border, sheen or glow (the name keeps its colour) */
     .topic-card h3, .topic-card.tk h3, .topic-card.soon h3, .topic-card.tk.soon h3 { border: 2px solid #111827; background: #fff; box-shadow: none; animation: none; }
     /* ▬ No pill inside the card: the track's name sits straight on the card, whose outer frame is the only border, with one
