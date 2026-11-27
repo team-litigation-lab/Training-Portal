@@ -702,12 +702,9 @@ body.auth-uni[data-role="register"] .auth-form-side { padding-bottom: 48px; }
     .sim-hero.has-lsh-logo > .lsh-hero-logo { left: 22px; }
 }
 @media (max-width: 560px) {
-    /* still beside the hero's text on a phone, never above or over the title */
-    .lsh-hero-logo { height: 56px; }
-    .sim-hero.has-lsh-logo { padding-left: 120px !important; min-height: 84px; }
-    .sim-hero.has-lsh-logo > .lsh-hero-logo { left: 14px; top: 22px; transform: none; }
-    .or-head.has-lsh-logo > .lsh-hero-logo + * { flex: 1 1 0; min-width: 0; }
-    .or-head.has-lsh-logo > .lsh-hero-logo + * ~ * { flex-basis: 100%; }
+    /* a phone: no logo in the hero card (the trainer: "no need for this"), so the hero's text has the card's full width */
+    .sim-hero.has-lsh-logo > .lsh-hero-logo, .or-head.has-lsh-logo > .lsh-hero-logo { display: none !important; }
+    .sim-hero.has-lsh-logo { padding-left: 20px !important; min-height: 0; }
 }
 
 /* One compact top bar on every page. Where the hero carries the logo the bar drops it (and the slate panel that
