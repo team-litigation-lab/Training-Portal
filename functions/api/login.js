@@ -1,4 +1,4 @@
-import { googleRequired, verifyGoogleCredential, json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME, verifyMasterCredentials, normalizePassword, loginBlocked, loginFailed, needsNewPassword, findUserByUsername, AMBIGUOUS_USERNAME_MESSAGE } from '../_utils.js';
+import { googleRequired, verifyGoogleCredential, json, logActivity, verifyPassword, isLegacyPlaintext, upgradePasswordHash, createSessionToken, sessionCookie, upsertSessionHeartbeat, buildFullName, MASTER_USERNAME, verifyMasterCredentials, normalizePassword, loginBlocked, loginFailed, needsNewPassword, findUserByUsername, AMBIGUOUS_USERNAME_MESSAGE, SESSION_MAX_SECONDS } from '../_utils.js';
 
 // An approved account made without a password (the trainers' accounts): whatever was typed in the password box,
 // the sign-in page asks them to choose their password (portal.js -> POST /api/set-password).
@@ -153,6 +153,6 @@ export async function onRequestPost({ request, env }) {
     return json(
         { success: true, user: { ...safeUser, fullName: fullNameOut, userType: dbUserType } },
         200,
-        { 'Set-Cookie': sessionCookie(token, 43200) }
+        { 'Set-Cookie': sessionCookie(token, SESSION_MAX_SECONDS) }
     );
 }

@@ -56,7 +56,7 @@ async function getHmacKey(secret) {
     return crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
 }
 
-export async function createSessionToken(payload, secret, ttlSeconds = 43200 /* 12h */) {
+export async function createSessionToken(payload, secret, ttlSeconds = SESSION_MAX_SECONDS /* 30 days: the 8-hour idle rule ends a session first */) {
     const body = { ...payload, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + ttlSeconds };
     const encodedBody = toBase64Url(new TextEncoder().encode(JSON.stringify(body)));
     const key = await getHmacKey(secret);
@@ -136,7 +136,16 @@ export function originAllowed(request) {
 export const HEARTBEAT_GRACE_SECONDS = 150;
 
 /**
- * True when the user's heartbeats row was touched within the grace window.
+ * 🔓 How long a sign-in lasts with nobody using it: 8 hours. Closing the tab or the browser no longer signs anyone out;
+ * a session ends after 8 hours with no heartbeat from any of its pages (an open Portal page beats every 30 s), on Log out,
+ * or when access is revoked. HEARTBEAT_GRACE_SECONDS above is only for who reads as Online now.
+ * SESSION_MAX_SECONDS is the signed token's (and the cookie's) own lifetime: long, so the 8-hour rule is the one that applies.
+ */
+export const SESSION_IDLE_SECONDS = 8 * 60 * 60;
+export const SESSION_MAX_SECONDS = 30 * 24 * 60 * 60;
+
+/**
+ * True when the user's heartbeats row was touched within SESSION_IDLE_SECONDS (8 hours of no activity ends a session).
  * Sessions without a recent heartbeat are expired even if the signed cookie
  * has not reached its Max-Age yet (tab/browser close, idle timeout, etc.).
  */
@@ -145,7 +154,7 @@ export async function isSessionHeartbeatAlive(db, username) {
         `SELECT 1 AS ok FROM heartbeats
          WHERE username = ?
          AND datetime(last_seen) >= datetime('now', ?)`
-    ).bind(username, `-${HEARTBEAT_GRACE_SECONDS} seconds`).first();
+    ).bind(username, `-${SESSION_IDLE_SECONDS} seconds`).first();
     return !!row;
 }
 
