@@ -9,7 +9,7 @@ import { toCourseFor } from './sim-results.js';
    on the Portal, for every program: the same structure, the same grading, the same Google set-up and the
    same secrets. A firm keeps a backup drive of every case document in one folder structure everybody knows
    by heart: a Case Manager covering someone else's file still finds the executed retainer, the demand
-   package and the lien correspondence where they always are. A trainee practises that on their own Google
+   package and the lien correspondence where they always are. A trainee practices that on their own Google
    Drive: they connect it once, lay the firm's structure out themselves — graded, folder by folder — and the
    structure is then made in their Drive. ↻ Check my drive and 🔁 Put the missing folders back keep it.
 
