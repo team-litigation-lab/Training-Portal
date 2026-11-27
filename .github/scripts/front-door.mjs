@@ -204,6 +204,20 @@ check(!/\.auth-(submit|msg|switch)\s*\{/.test(fs.readFileSync('styles.css', 'utf
     // 🔓 a sign-in lasts until 8 hours with no activity (SESSION_IDLE_SECONDS): a closed tab or a few hours away keeps it,
     // a day away doesn't (the 150 s grace window above is only for who reads as Online now)
     check(u.SESSION_IDLE_SECONDS === 8 * 3600, `a session ends after 8 hours idle (${u.SESSION_IDLE_SECONDS} s)`);
+    // 🔁 a sign-in from before the rule (a 12-hour cookie) is handed back renewed by a beat or a page load, so it never runs
+    // out mid-work; a fresh 30-day one is left alone
+    {
+        const secret = 'test-secret', e2 = { SESSION_SECRET: secret };
+        const oldTok = await u.createSessionToken({ username: 'beat', userType: 'Trainee' }, secret, 3600);
+        const oldSes = await u.verifySessionToken(oldTok, secret);
+        const renewed = await u.renewedSessionCookie(e2, oldSes);
+        const m = /lsh_session=([^;]+);[^]*Max-Age=(\d+)/.exec(renewed || '');
+        const back = m && await u.verifySessionToken(m[1], secret);
+        check(!!m && Number(m[2]) === u.SESSION_MAX_SECONDS && back && back.username === 'beat' && back.exp - Math.floor(Date.now() / 1000) > 29 * 86400,
+            'an old short sign-in comes back as the same session in a fresh 30-day cookie');
+        const newSes = await u.verifySessionToken(await u.createSessionToken({ username: 'beat' }, secret), secret);
+        check(await u.renewedSessionCookie(e2, newSes) === '', 'a fresh 30-day sign-in is not reissued on every beat');
+    }
     for (const [ago, alive] of [[120, true], [200, true], [7 * 3600, true], [9 * 3600, false]]) {
         sql.prepare(`INSERT OR REPLACE INTO heartbeats (username, full_name, batch_id, user_type, last_seen) VALUES ('beat', 'b', 'B1', 'Trainee', datetime('now', ?))`).run(`-${ago} seconds`);
         check(await u.isSessionHeartbeatAlive(env.DB, 'beat') === alive, `a heartbeat ${ago} s old reads ${alive ? 'alive' : 'gone'}`);

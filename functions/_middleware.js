@@ -1,4 +1,4 @@
-import { requireSession, getCookie, verifySessionToken, getSiteState, upsertSessionHeartbeat, sessionGoogleOk } from './_utils.js';
+import { requireSession, getCookie, verifySessionToken, getSiteState, upsertSessionHeartbeat, sessionGoogleOk, renewedSessionCookie } from './_utils.js';
 import { ticketSession } from './api/ticket-login.js';
 
 // The Simulators are for signed-in LSH people only (the Knowledge Base is its own site, opened through /api/launch?tool=kb). A Portal session is checked BEFORE
@@ -117,6 +117,8 @@ export async function onRequest(context) {
         const out = new Response(res.body, res);
         out.headers.set('Cache-Control', 'private, no-store');
         out.headers.set('X-Robots-Tag', 'noindex');
+        // 🔁 an aging session cookie renewed as the person moves between pages (renewedSessionCookie)
+        try { const renewed = await renewedSessionCookie(env, auth.session); if (renewed) out.headers.append('Set-Cookie', renewed); } catch (e) { /* keep the page */ }
         return out;
     }
     // the sign-in brings them back to this simulator, not to LSH Academy Index

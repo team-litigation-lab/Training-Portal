@@ -1,4 +1,4 @@
-import { json, getCookie, verifySessionToken, requireSession, upsertSessionHeartbeat, HEARTBEAT_GRACE_SECONDS, SESSION_IDLE_SECONDS, MASTER_USERNAME, sessionGoogleOk, googleNeededMessage } from '../_utils.js';
+import { json, getCookie, verifySessionToken, requireSession, upsertSessionHeartbeat, HEARTBEAT_GRACE_SECONDS, SESSION_IDLE_SECONDS, renewedSessionCookie, MASTER_USERNAME, sessionGoogleOk, googleNeededMessage } from '../_utils.js';
 
 export async function onRequestGet({ request, env }) {
     // Who's currently online, their real name, and which case they're
@@ -67,5 +67,8 @@ export async function onRequestPost({ request, env }) {
         currentCase: currentCase || null
     });
 
-    return json({ success: true, graceSeconds: HEARTBEAT_GRACE_SECONDS });
+    // 🔁 the cookie renewed while the session is in use (renewedSessionCookie): an old 12-hour one no longer runs out mid-work
+    const renewed = await renewedSessionCookie(env, session);
+    const headers = renewed ? { 'Set-Cookie': renewed } : {};
+    return json({ success: true, graceSeconds: HEARTBEAT_GRACE_SECONDS }, 200, headers);
 }
