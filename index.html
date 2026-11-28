@@ -650,6 +650,12 @@
     .org-arrow, .org-stem, .org-branch i { background: #aab4c3; }
     .org-branch { border-top-color: #aab4c3; }
     .org-arrow::after, .org-branch i::after, .org-stem::after { border-top-color: #aab4c3 !important; }
+    /* org chart lines prominent (the trainer asked): thick, dark navy, bigger arrowheads, so they read over the office photo */
+    .org-arrow, .org-stem, .org-branch i { background: #0F2148 !important; width: 5px !important; }
+    .org-arrow { height: 40px; } .org-branch i { top: -5px !important; height: 40px !important; }
+    .org-branch { border-top: 5px solid #0F2148 !important; height: 40px; }
+    .org-branch i:nth-child(2) { left: calc(50% - 2.5px) !important; }
+    .org-arrow::after, .org-branch i::after, .org-stem::after { left: -7.5px !important; bottom: -4px !important; border-width: 10px !important; border-top-width: 14px !important; border-bottom: 0 !important; border-color: transparent !important; border-top-color: #0F2148 !important; }
     /* CLIENTS / VA in black, on a light tag */
     .vm-tag { background: #fff; border: 2px solid rgba(15,33,72,.15); color: #000; }
     /* footer back on cream */
