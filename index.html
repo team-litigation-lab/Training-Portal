@@ -650,11 +650,11 @@
     .org-arrow, .org-stem, .org-branch i { background: #aab4c3; }
     .org-branch { border-top-color: #aab4c3; }
     .org-arrow::after, .org-branch i::after, .org-stem::after { border-top-color: #aab4c3 !important; }
-    /* org chart lines prominent (the trainer asked): thick, in a gold gradient, bigger arrowheads, so they read over the office photo */
-    .org-arrow, .org-stem, .org-branch i { background: linear-gradient(180deg, #F6E3A1 0%, #E9CC7E 45%, #C99A2E 100%) !important; width: 5px !important; box-shadow: 0 0 0 1px rgba(15,33,72,.35); }
-    .org-arrow { height: 40px; } .org-branch i { top: -5px !important; height: 40px !important; }
-    .org-branch { border-top: 5px solid #C99A2E !important; border-image: linear-gradient(90deg, #C99A2E, #F6E3A1 50%, #C99A2E) 1 !important; height: 40px; }
-    .org-branch i:nth-child(2) { left: calc(50% - 2.5px) !important; }
+    /* org chart lines prominent (the trainer asked): thick, in a blue-to-gold gradient, bigger gold arrowheads, so they read over the office photo */
+    .org-arrow, .org-stem, .org-branch i { background: linear-gradient(180deg, #0F2148 0%, #2C4A8C 40%, #E9CC7E 80%, #C99A2E 100%) !important; width: 6px !important; }
+    .org-arrow { height: 40px; } .org-branch i { top: -6px !important; height: 40px !important; }
+    .org-branch { border-top: 5px solid #C99A2E !important; border-top-width: 6px !important; border-image: linear-gradient(90deg, #C99A2E, #2C4A8C 30%, #0F2148 50%, #2C4A8C 70%, #C99A2E) 1 !important; height: 40px; }
+    .org-branch i:nth-child(2) { left: calc(50% - 3px) !important; }
     .org-arrow::after, .org-branch i::after, .org-stem::after { left: -7.5px !important; bottom: -4px !important; border-width: 10px !important; border-top-width: 14px !important; border-bottom: 0 !important; border-color: transparent !important; border-top-color: #C99A2E !important; filter: drop-shadow(0 1px 0 rgba(15,33,72,.35)); }
     /* CLIENTS / VA in black, on a light tag */
     .vm-tag { background: #fff; border: 2px solid rgba(15,33,72,.15); color: #000; }
